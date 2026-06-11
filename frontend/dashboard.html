@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Vehículos — VehiAmb</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+
+    <div class="layout">
+        <aside class="sidebar" id="sidebar"></aside>
+
+        <main class="content">
+            <div class="page-header">
+                <div>
+                    <h1>Vehículos</h1>
+                    <p class="page-kicker">Consulta el parque automotor registrado</p>
+                </div>
+            </div>
+
+            <div id="loader" class="loader hidden"></div>
+            <div id="vehiculosContainer" class="vehicles-grid"></div>
+        </main>
+    </div>
+
+    <script src="assets/js/shared/api.js"></script>
+    <script src="assets/js/shared/ui.js"></script>
+    <script src="assets/js/shared/sidebar.js"></script>
+    <script src="assets/js/pages/vehicles.js"></script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Parque Automotor — VehiAmb</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+
+    <div class="layout">
+
+        <aside class="sidebar" id="sidebar"></aside>
+
+        <main class="content">
+
+            <div class="dash-header">
+                <div>
+                    <h1>Panel de Control</h1>
+                    <p class="dash-fecha" id="fecha-hoy"></p>
+                </div>
+            </div>
+
+            <div class="dash-cards">
+                <div class="dash-card">
+                    <div class="dash-card-icon" style="background:#fff0f0; color:var(--color-primary)">🚐</div>
+                    <div>
+                        <span class="dash-card-label">Vehículos</span>
+                        <strong class="dash-card-value" id="total-vehiculos">—</strong>
+                    </div>
+                </div>
+                <div class="dash-card">
+                    <div class="dash-card-icon" style="background:#f0f4ff; color:#3b5bdb">👤</div>
+                    <div>
+                        <span class="dash-card-label">Conductores</span>
+                        <strong class="dash-card-value" id="total-conductores">—</strong>
+                    </div>
+                </div>
+                <div class="dash-card">
+                    <div class="dash-card-icon" style="background:#fff8e1; color:#e67700">🔧</div>
+                    <div>
+                        <span class="dash-card-label">Mantenimientos</span>
+                        <strong class="dash-card-value" id="total-mantenimientos">—</strong>
+                    </div>
+                </div>
+                <div class="dash-card">
+                    <div class="dash-card-icon" style="background:#f0faf4; color:#2e7d32">🗺️</div>
+                    <div>
+                        <span class="dash-card-label">Rutas Activas</span>
+                        <strong class="dash-card-value" id="total-rutas">—</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dash-grid">
+
+                <div class="dash-panel">
+                    <h3 class="dash-panel-title">🚐 Últimos Vehículos Añadidos</h3>
+                    <table class="dash-table">
+                        <thead>
+                            <tr>
+                                <th>Placa</th>
+                                <th>Marca</th>
+                                <th>Modelo</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-vehiculos">
+                            <tr><td colspan="4" class="dash-empty">Cargando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="dash-panel">
+                    <h3 class="dash-panel-title">🔧 Próximos Mantenimientos</h3>
+                    <ul class="dash-list" id="lista-mantenimientos">
+                        <li class="dash-empty">Cargando...</li>
+                    </ul>
+                </div>
+
+            </div>
+
+        </main>
+    </div>
+
+    <script src="assets/js/shared/api.js"></script>
+    <script src="assets/js/shared/sidebar.js"></script>
+    <script src="assets/js/pages/home.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Añadir Vehículo — VehiAmb</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+
+    <div class="layout">
+
+        <!-- SIDEBAR: solo este aside, igual en TODAS las páginas -->
+        <aside class="sidebar" id="sidebar"></aside>
+
+        <!-- CONTENIDO: esto cambia en cada página -->
+        <main class="content">
+
+            <div class="page-header">
+                <div>
+                    <h1>Añadir Vehículo</h1>
+                    <p class="page-kicker">Complete los datos del nuevo vehículo</p>
+                </div>
+            </div>
+
+            <form id="vehiculoForm" class="form-card form-vertical">
+
+                <div class="form-group">
+                    <label>Código Interno</label>
+                    <input type="text" name="codigo_interno" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="select-marca">Marca</label>
+                    <select name="marca" id="select-marca" required>
+                        <option value="">-- Selecciona una marca --</option>
+                        <option value="Fuso">Fuso</option>
+                        <option value="Hino">Hino</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Modelo</label>
+                    <input type="text" name="modelo" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Placa</label>
+                    <input type="text" name="placa" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Kilometraje</label>
+                    <input type="number" name="kilometraje_actual" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Imagen del Vehículo</label>
+                    <input type="file" name="imagen" id="imagen" accept="image/*">
+                    <img id="preview" class="preview hidden" alt="Vista previa del vehículo">
+                </div>
+
+                <button type="submit" class="btn-primary">
+                    Guardar Vehículo
+                </button>
+
+            </form>
+
+            <div id="loader" class="loader hidden"></div>
+            <div id="mensaje" class="mensaje hidden"></div>
+
+        </main>
+    </div>
+
+    <script src="assets/js/shared/api.js"></script>
+    <script src="assets/js/shared/ui.js"></script>
+    <script src="assets/js/shared/sidebar.js"></script>
+    <script src="assets/js/pages/add.js"></script>
+
+</body>
+</html>
