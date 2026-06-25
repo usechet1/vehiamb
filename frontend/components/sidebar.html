@@ -1,29 +1,28 @@
 <div class="sidebar-logo">
-    <div class="logo-icon">🚐</div>
+    <div class="logo-mark" aria-hidden="true">VA</div>
     <div>
         <h2>VehiAmb</h2>
-        <span>Parque Automotor</span>
+        <span>Gestion de flota</span>
     </div>
 </div>
 
 <div class="sidebar-user">
-    <div class="user-avatar">TU</div>
+    <div class="user-avatar" id="sidebarAvatar">VA</div>
     <div class="user-info">
-        <strong>Tomas Useche</strong>
-        <span>Administrador</span>
+        <strong id="sidebarUserName">Usuario</strong>
+        <span id="sidebarUserRole">Sesion activa</span>
     </div>
 </div>
 
 <nav class="sidebar-menu">
-    <button data-page="index.html">🏠 Inicio</button>
-    <button data-page="add.html">➕ Añadir Vehículo</button>
-    <button data-page="dashboard.html">📋 Ver Vehículos</button>
-    <button data-page="edit.html" disabled>✏️ Editar Vehículo</button>
-    <button data-page="delete.html" disabled>🗑️ Eliminar Vehículo</button>
+    <button data-page="index.html"><span class="nav-icon nav-home"></span>Inicio</button>
+    <button data-page="add.html"><span class="nav-icon nav-add"></span>Añadir vehiculo</button>
+    <button data-page="dashboard.html"><span class="nav-icon nav-list"></span>Ver vehiculos</button>
+    <button data-page="mantenimientos.html"><span class="nav-icon nav-service"></span>Mantenimientos</button>
 </nav>
 
 <div class="sidebar-footer">
-    <button class="footer-btn">❓ Ayuda</button>
-    <button class="footer-btn">🛠️ Soporte</button>
-    <button class="footer-btn logout">🚪 Cerrar Sesión</button>
+    <button class="footer-btn">Ayuda</button>
+    <button class="footer-btn">Soporte</button>
+    <button class="footer-btn logout" id="logoutButton">Cerrar sesion</button>
 </div>

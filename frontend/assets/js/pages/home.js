@@ -1,16 +1,16 @@
 document.getElementById("fecha-hoy").textContent =
-    new Date().toLocaleDateString("es-ES", {
+    new Date().toLocaleDateString("es-CO", {
         weekday: "long",
         year: "numeric",
         month: "long",
         day: "numeric"
     });
 
-function pintarResumen(vehiculos) {
+function pintarResumen(vehiculos, mantenimientos = [], documentos = []) {
     document.getElementById("total-vehiculos").textContent = vehiculos.length;
     document.getElementById("total-conductores").textContent = "12";
-    document.getElementById("total-mantenimientos").textContent = "5";
-    document.getElementById("total-rutas").textContent = "8";
+    document.getElementById("total-mantenimientos").textContent = mantenimientos.length;
+    document.getElementById("total-rutas").textContent = documentos.length;
 }
 
 function pintarVehiculos(vehiculos) {
@@ -32,21 +32,21 @@ function pintarVehiculos(vehiculos) {
     `).join("");
 }
 
-function pintarMantenimientos() {
-    const datos = [
-        { placa: "ABC-123", tipo: "Cambio de aceite", fecha: "2026-07-10" },
-        { placa: "DEF-789", tipo: "Revisión de frenos", fecha: "2026-07-15" },
-        { placa: "GHI-012", tipo: "Alineación", fecha: "2026-07-20" }
-    ];
+function pintarMantenimientos(datos) {
+    if (!datos.length) {
+        document.getElementById("lista-mantenimientos").innerHTML =
+            '<li class="dash-empty">Sin mantenimientos registrados</li>';
+        return;
+    }
 
-    document.getElementById("lista-mantenimientos").innerHTML = datos.map((mantenimiento) => `
+    document.getElementById("lista-mantenimientos").innerHTML = datos.slice(0, 4).map((mantenimiento) => `
         <li class="dash-list-item">
             <div>
                 <strong>${mantenimiento.tipo}</strong>
                 <span class="dash-sub">Placa: ${mantenimiento.placa}</span>
             </div>
             <span class="dash-fecha-tag">
-                ${new Date(mantenimiento.fecha).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}
+                ${new Date(mantenimiento.fecha).toLocaleDateString("es-CO", { day: "2-digit", month: "short" })}
             </span>
         </li>
     `).join("");
@@ -54,17 +54,22 @@ function pintarMantenimientos() {
 
 async function inicializarDashboard() {
     try {
-        const vehiculos = await window.VehiAmb.api.getVehiculos();
-        pintarResumen(vehiculos);
+        const [vehiculos, mantenimientos, documentos] = await Promise.all([
+            window.VehiAmb.api.getVehiculos(),
+            window.VehiAmb.api.getMantenimientos(),
+            window.VehiAmb.api.getDocumentos()
+        ]);
+
+        pintarResumen(vehiculos, mantenimientos, documentos);
         pintarVehiculos(vehiculos);
+        pintarMantenimientos(mantenimientos);
     } catch (error) {
         console.error(error);
         pintarResumen([]);
         document.getElementById("tabla-vehiculos").innerHTML =
             '<tr><td colspan="4" class="dash-empty">No fue posible cargar los vehículos</td></tr>';
+        pintarMantenimientos([]);
     }
-
-    pintarMantenimientos();
 }
 
 document.addEventListener("DOMContentLoaded", inicializarDashboard);

@@ -2,79 +2,125 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Añadir Vehículo — VehiAmb</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Añadir Vehiculo - VehiAmb</title>
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
-
     <div class="layout">
-
-        <!-- SIDEBAR: solo este aside, igual en TODAS las páginas -->
         <aside class="sidebar" id="sidebar"></aside>
 
-        <!-- CONTENIDO: esto cambia en cada página -->
         <main class="content">
-
             <div class="page-header">
                 <div>
-                    <h1>Añadir Vehículo</h1>
-                    <p class="page-kicker">Complete los datos del nuevo vehículo</p>
+                    <h1>Añadir Vehiculo</h1>
+                    <p class="page-kicker">Registra la ficha tecnica completa de la unidad</p>
                 </div>
             </div>
 
             <form id="vehiculoForm" class="form-card form-vertical">
+                <div class="form-card-head">
+                    <span class="form-step">Ficha tecnica</span>
+                    <p>Esta vista ahora captura los mismos datos base que luego ves en la ficha del vehiculo.</p>
+                </div>
 
-                <div class="form-group">
-                    <label>Código Interno</label>
-                    <input type="text" name="codigo_interno" required>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Codigo interno</label>
+                        <input type="text" name="codigo_interno" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Placa</label>
+                        <input type="text" name="placa" required>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="select-marca">Marca</label>
+                        <select name="marca" id="select-marca" required>
+                            <option value="">Selecciona una marca</option>
+                            <option value="Fuso">Fuso</option>
+                            <option value="Hino">Hino</option>
+                            <option value="Chevrolet">Chevrolet</option>
+                            <option value="Toyota">Toyota</option>
+                            <option value="Nissan">Nissan</option>
+                            <option value="Mazda">Mazda</option>
+                            <option value="Kia">Kia</option>
+                            <option value="Hyundai">Hyundai</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Modelo</label>
+                        <input type="text" name="modelo" required>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Año</label>
+                        <input type="number" name="anio" min="1950" max="2100">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Color</label>
+                        <input type="text" name="color">
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Combustible</label>
+                        <select name="combustible">
+                            <option value="">Selecciona un tipo</option>
+                            <option value="Diesel">Diesel</option>
+                            <option value="Gasolina">Gasolina</option>
+                            <option value="Gas">Gas</option>
+                            <option value="Hibrido">Hibrido</option>
+                            <option value="Electrico">Electrico</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Kilometraje actual</label>
+                        <input type="number" name="kilometraje_actual" min="0" required>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Cilindraje</label>
+                        <input type="number" name="cilindraje" min="0" step="1">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Capacidad de carga</label>
+                        <input type="number" name="capacidad_carga" min="0" step="1">
+                    </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="select-marca">Marca</label>
-                    <select name="marca" id="select-marca" required>
-                        <option value="">-- Selecciona una marca --</option>
-                        <option value="Fuso">Fuso</option>
-                        <option value="Hino">Hino</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Modelo</label>
-                    <input type="text" name="modelo" required>
-                </div>
-
-                <div class="form-group">
-                    <label>Placa</label>
-                    <input type="text" name="placa" required>
-                </div>
-
-                <div class="form-group">
-                    <label>Kilometraje</label>
-                    <input type="number" name="kilometraje_actual" required>
-                </div>
-
-                <div class="form-group">
-                    <label>Imagen del Vehículo</label>
+                    <label>Imagen del vehiculo</label>
                     <input type="file" name="imagen" id="imagen" accept="image/*">
-                    <img id="preview" class="preview hidden" alt="Vista previa del vehículo">
+                    <img id="preview" class="preview hidden" alt="Vista previa del vehiculo">
                 </div>
 
                 <button type="submit" class="btn-primary">
-                    Guardar Vehículo
+                    Guardar vehiculo
                 </button>
-
             </form>
 
             <div id="loader" class="loader hidden"></div>
             <div id="mensaje" class="mensaje hidden"></div>
-
         </main>
     </div>
 
+    <script src="assets/js/shared/auth.js"></script>
     <script src="assets/js/shared/api.js"></script>
     <script src="assets/js/shared/ui.js"></script>
     <script src="assets/js/shared/sidebar.js"></script>
     <script src="assets/js/pages/add.js"></script>
-
 </body>
 </html>

@@ -1,3 +1,13 @@
+CREATE TABLE IF NOT EXISTS usuarios (
+  id BIGSERIAL PRIMARY KEY,
+  nombre TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  rol TEXT NOT NULL DEFAULT 'Administrador',
+  activo BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS vehiculos (
   id BIGSERIAL PRIMARY KEY,
   codigo_interno TEXT NOT NULL,
@@ -19,8 +29,14 @@ CREATE TABLE IF NOT EXISTS mantenimientos (
   fecha DATE NOT NULL,
   tipo TEXT NOT NULL,
   descripcion TEXT,
+  autorizado_por TEXT,
+  hecho_por TEXT,
+  repuestos TEXT,
+  soporte_url TEXT,
+  soporte_nombre TEXT,
+  soporte_mime TEXT,
   valor NUMERIC(12, 2) NOT NULL DEFAULT 0,
-  kilometraje INTEGER,
+  kilometraje FLOAT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -45,6 +61,7 @@ CREATE TABLE IF NOT EXISTS cambios_aceite (
 );
 
 CREATE INDEX IF NOT EXISTS idx_vehiculos_placa ON vehiculos (placa);
+CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios (email);
 CREATE INDEX IF NOT EXISTS idx_mantenimientos_vehiculo_id ON mantenimientos (vehiculo_id);
 CREATE INDEX IF NOT EXISTS idx_documentos_vehiculo_id ON documentos (vehiculo_id);
 CREATE INDEX IF NOT EXISTS idx_cambios_aceite_vehiculo_id ON cambios_aceite (vehiculo_id);

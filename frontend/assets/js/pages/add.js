@@ -17,8 +17,8 @@ imageInput?.addEventListener("change", () => {
     window.VehiAmb.ui.show(preview);
 });
 
-form.addEventListener("submit", async (e) => {
-    e.preventDefault();
+form.addEventListener("submit", async (event) => {
+    event.preventDefault();
 
     const formData = new FormData(form);
 
@@ -26,25 +26,25 @@ form.addEventListener("submit", async (e) => {
         codigo_interno: formData.get("codigo_interno"),
         marca: formData.get("marca"),
         modelo: formData.get("modelo"),
+        anio: formData.get("anio"),
+        color: formData.get("color"),
+        combustible: formData.get("combustible"),
+        cilindraje: formData.get("cilindraje"),
+        capacidad_carga: formData.get("capacidad_carga"),
         placa: formData.get("placa"),
-        kilometraje_actual: formData.get("kilometraje_actual"),
-        anio: null,
-        color: null,
-        combustible: null,
-        cilindraje: null,
-        capacidad_carga: null
+        kilometraje_actual: formData.get("kilometraje_actual")
     };
 
     try {
         window.VehiAmb.ui.show(loader);
         await window.VehiAmb.api.createVehiculo(nuevoVehiculo);
-        window.VehiAmb.ui.showMessage(mensaje, "Vehículo guardado correctamente");
+        window.VehiAmb.ui.showMessage(mensaje, "Vehiculo guardado correctamente");
         form.reset();
+        preview.removeAttribute("src");
         window.VehiAmb.ui.hide(preview);
-
     } catch (error) {
         console.error(error);
-        window.VehiAmb.ui.showMessage(mensaje, "Error al guardar el vehículo", "error");
+        window.VehiAmb.ui.showMessage(mensaje, "Error al guardar el vehiculo", "error");
     } finally {
         window.VehiAmb.ui.hide(loader);
     }

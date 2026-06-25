@@ -9,6 +9,9 @@ node_modules/
 # Logs
 *.log
 
+# Local uploads
+backend/uploads/
+
 # OS/editor
 .DS_Store
 Thumbs.db

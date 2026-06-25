@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mantenimientos - VehiAmb</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar"></aside>
+
+        <main class="content">
+            <div class="page-header">
+                <div>
+                    <h1>Mantenimientos y revisiones</h1>
+                    <p class="page-kicker">Registra intervenciones, repuestos, soportes de firma y vencimientos futuros</p>
+                </div>
+            </div>
+
+            <div class="module-grid">
+                <div class="stack">
+                    <section class="section-card">
+                        <div class="section-card-head">
+                            <h2>Registrar mantenimiento</h2>
+                            <p>Revision, preventivo, correctivo, aceite, frenos, llantas u otro trabajo.</p>
+                        </div>
+                        <div class="section-card-body">
+                            <form id="mantenimientoForm" class="compact-form">
+                                <div class="form-group">
+                                    <label>Vehiculo</label>
+                                    <select name="vehiculo_id" id="vehiculoMantenimiento" required>
+                                        <option value="">Selecciona un vehiculo</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Fecha</label>
+                                        <input type="date" name="fecha" required>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Tipo</label>
+                                        <select name="tipo" required>
+                                            <option value="revision">Revision general</option>
+                                            <option value="preventivo">Mantenimiento preventivo</option>
+                                            <option value="correctivo">Mantenimiento correctivo</option>
+                                            <option value="cambio_aceite">Cambio de aceite</option>
+                                            <option value="frenos">Frenos</option>
+                                            <option value="llantas">Llantas</option>
+                                            <option value="otro">Otro</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Que se reviso o realizo</label>
+                                    <textarea name="descripcion" placeholder="Ej: revision de frenos, suspension, luces, niveles y fugas"></textarea>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Repuestos utilizados</label>
+                                    <input type="hidden" name="repuestos" id="repuestosData">
+                                    <div class="simple-list-builder">
+                                        <div class="simple-list-entry">
+                                            <input type="text" id="repuestoInput" placeholder="Repuesto">
+                                            <input type="number" id="repuestoValorInput" placeholder="Valor" min="0" step="1000">
+                                            <input type="text" id="repuestoNotasInput" placeholder="Notas del repuesto">
+                                            <button type="button" id="addRepuestoButton" class="btn-secondary">Agregar</button>
+                                        </div>
+                                        <div id="repuestosEmpty" class="field-help">Aun no has agregado repuestos.</div>
+                                        <ul id="repuestosList" class="simple-checklist"></ul>
+                                    </div>
+                                </div>
+
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Autorizado por</label>
+                                        <input type="text" name="autorizado_por" placeholder="Nombre de quien autoriza">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Hecho por</label>
+                                        <input type="text" name="hecho_por" placeholder="Taller, tecnico o responsable">
+                                    </div>
+                                </div>
+
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Kilometraje</label>
+                                        <input type="number" name="kilometraje" min="0">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Valor</label>
+                                        <input type="number" name="valor" min="0" step="1000">
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Adjunto de firma o autorizacion</label>
+                                    <input type="file" name="soporte" accept=".pdf,image/png,image/jpeg,image/webp">
+                                    <p class="field-help">Soporta PDF, PNG, JPG o WEBP hasta 5 MB.</p>
+                                </div>
+
+                                <button type="submit" class="btn-primary">Guardar mantenimiento</button>
+                            </form>
+                        </div>
+                    </section>
+
+                    <section class="section-card">
+                        <div class="section-card-head">
+                            <h2>Agendar documento</h2>
+                            <p>Base para controlar Tecnomecanica, SOAT, seguros y otros vencimientos.</p>
+                        </div>
+                        <div class="section-card-body">
+                            <form id="documentoForm" class="compact-form">
+                                <div class="form-group">
+                                    <label>Vehiculo</label>
+                                    <select name="vehiculo_id" id="vehiculoDocumento" required>
+                                        <option value="">Selecciona un vehiculo</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Tipo</label>
+                                        <select name="tipo" required>
+                                            <option value="tecnomecanica">Tecnomecanica</option>
+                                            <option value="soat">SOAT</option>
+                                            <option value="seguro">Seguro</option>
+                                            <option value="tarjeta_operacion">Tarjeta de operacion</option>
+                                            <option value="otro">Otro</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Numero</label>
+                                        <input type="text" name="numero_documento">
+                                    </div>
+                                </div>
+
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Expedicion</label>
+                                        <input type="date" name="fecha_expedicion">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Vencimiento</label>
+                                        <input type="date" name="fecha_vencimiento" required>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn-primary">Guardar agenda</button>
+                            </form>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="stack">
+                    <section class="section-card">
+                        <div class="section-card-head">
+                            <h2>Historial reciente</h2>
+                            <p>Ultimas revisiones y mantenimientos registrados.</p>
+                        </div>
+                        <div class="section-card-body">
+                            <div id="mantenimientosList" class="records-list">
+                                <p class="dash-empty">Cargando...</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="section-card">
+                        <div class="section-card-head">
+                            <h2>Agenda futura</h2>
+                            <p>Vencimientos de Tecnomecanica, SOAT, seguros y documentos.</p>
+                        </div>
+                        <div class="section-card-body">
+                            <div id="documentosList" class="records-list">
+                                <p class="dash-empty">Cargando...</p>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <div id="loader" class="loader hidden"></div>
+            <div id="mensaje" class="mensaje hidden"></div>
+        </main>
+    </div>
+
+    <script src="assets/js/shared/auth.js"></script>
+    <script src="assets/js/shared/api.js"></script>
+    <script src="assets/js/shared/ui.js"></script>
+    <script src="assets/js/shared/sidebar.js"></script>
+    <script src="assets/js/pages/mantenimientos.js"></script>
+</body>
+</html>

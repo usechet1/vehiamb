@@ -2,59 +2,60 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Parque Automotor — VehiAmb</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parque Automotor - VehiAmb</title>
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
-
     <div class="layout">
-
         <aside class="sidebar" id="sidebar"></aside>
 
         <main class="content">
-
             <div class="dash-header">
                 <div>
                     <h1>Panel de Control</h1>
                     <p class="dash-fecha" id="fecha-hoy"></p>
                 </div>
+                <div class="ops-summary" aria-label="Estado operativo">
+                    <span class="status-dot"></span>
+                    Operación estable
+                </div>
             </div>
 
             <div class="dash-cards">
-                <div class="dash-card">
-                    <div class="dash-card-icon" style="background:#fff0f0; color:var(--color-primary)">🚐</div>
+                <div class="dash-card dash-card-fleet">
+                    <div class="dash-card-icon icon-fleet" aria-hidden="true"></div>
                     <div>
                         <span class="dash-card-label">Vehículos</span>
-                        <strong class="dash-card-value" id="total-vehiculos">—</strong>
+                        <strong class="dash-card-value" id="total-vehiculos">--</strong>
                     </div>
                 </div>
-                <div class="dash-card">
-                    <div class="dash-card-icon" style="background:#f0f4ff; color:#3b5bdb">👤</div>
+                <div class="dash-card dash-card-drivers">
+                    <div class="dash-card-icon icon-driver" aria-hidden="true"></div>
                     <div>
                         <span class="dash-card-label">Conductores</span>
-                        <strong class="dash-card-value" id="total-conductores">—</strong>
+                        <strong class="dash-card-value" id="total-conductores">--</strong>
                     </div>
                 </div>
-                <div class="dash-card">
-                    <div class="dash-card-icon" style="background:#fff8e1; color:#e67700">🔧</div>
+                <div class="dash-card dash-card-service">
+                    <div class="dash-card-icon icon-service" aria-hidden="true"></div>
                     <div>
                         <span class="dash-card-label">Mantenimientos</span>
-                        <strong class="dash-card-value" id="total-mantenimientos">—</strong>
+                        <strong class="dash-card-value" id="total-mantenimientos">--</strong>
                     </div>
                 </div>
-                <div class="dash-card">
-                    <div class="dash-card-icon" style="background:#f0faf4; color:#2e7d32">🗺️</div>
+                <div class="dash-card dash-card-routes">
+                    <div class="dash-card-icon icon-route" aria-hidden="true"></div>
                     <div>
-                        <span class="dash-card-label">Rutas Activas</span>
-                        <strong class="dash-card-value" id="total-rutas">—</strong>
+                        <span class="dash-card-label">Vencimientos</span>
+                        <strong class="dash-card-value" id="total-rutas">--</strong>
                     </div>
                 </div>
             </div>
 
             <div class="dash-grid">
-
                 <div class="dash-panel">
-                    <h3 class="dash-panel-title">🚐 Últimos Vehículos Añadidos</h3>
+                    <h3 class="dash-panel-title">Últimos vehículos añadidos</h3>
                     <table class="dash-table">
                         <thead>
                             <tr>
@@ -71,20 +72,18 @@
                 </div>
 
                 <div class="dash-panel">
-                    <h3 class="dash-panel-title">🔧 Próximos Mantenimientos</h3>
+                    <h3 class="dash-panel-title">Próximos mantenimientos</h3>
                     <ul class="dash-list" id="lista-mantenimientos">
                         <li class="dash-empty">Cargando...</li>
                     </ul>
                 </div>
-
             </div>
-
         </main>
     </div>
 
+    <script src="assets/js/shared/auth.js"></script>
     <script src="assets/js/shared/api.js"></script>
     <script src="assets/js/shared/sidebar.js"></script>
     <script src="assets/js/pages/home.js"></script>
-
 </body>
 </html>

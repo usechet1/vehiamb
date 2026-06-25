@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ficha del vehiculo - VehiAmb</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar"></aside>
+
+        <main class="content">
+            <div class="page-header">
+                <div>
+                    <a class="back-link" href="dashboard.html">Volver a vehiculos</a>
+                    <h1 id="vehicleTitle">Ficha del vehiculo</h1>
+                    <p class="page-kicker" id="vehicleSubtitle">Informacion operativa, mantenimientos y vencimientos</p>
+                </div>
+                <a class="header-action" href="mantenimientos.html">Registrar mantenimiento</a>
+            </div>
+
+            <div id="loader" class="loader hidden"></div>
+            <div id="mensaje" class="mensaje hidden"></div>
+
+            <section id="vehicleHero" class="vehicle-hero hidden">
+                <div class="vehicle-hero-main">
+                    <span class="plate vehicle-hero-plate" id="vehiclePlate">---</span>
+                    <h2 id="vehicleName">---</h2>
+                    <p id="vehicleCode">Codigo interno: --</p>
+                </div>
+                <div class="vehicle-hero-status">
+                    <span class="badge badge-verde">Activo</span>
+                    <span id="vehicleKm" class="pill">-- km</span>
+                </div>
+            </section>
+
+            <div id="vehicleDetail" class="vehicle-detail-grid hidden">
+                <section class="section-card">
+                    <div class="section-card-head">
+                        <h2>Datos del vehiculo</h2>
+                        <p>Ficha base de identificacion y operacion.</p>
+                    </div>
+                    <div class="section-card-body">
+                        <dl class="detail-list" id="vehicleFacts"></dl>
+                    </div>
+                </section>
+
+                <section class="section-card">
+                    <div class="section-card-head">
+                        <h2>Resumen operativo</h2>
+                        <p>Vista rapida del estado de esta unidad.</p>
+                    </div>
+                    <div class="section-card-body">
+                        <div class="summary-grid">
+                            <div>
+                                <span class="dash-card-label">Mantenimientos</span>
+                                <strong class="dash-card-value" id="vehicleMaintenanceCount">0</strong>
+                            </div>
+                            <div>
+                                <span class="dash-card-label">Vencimientos</span>
+                                <strong class="dash-card-value" id="vehicleDocumentCount">0</strong>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div id="vehicleRecords" class="vehicle-records-grid hidden">
+                <section class="section-card">
+                    <div class="section-card-head">
+                        <h2>Mantenimientos y revisiones</h2>
+                        <p>Trabajos realizados, repuestos y costos asociados.</p>
+                    </div>
+                    <div class="section-card-body">
+                        <div id="vehicleMaintenanceList" class="records-list">
+                            <p class="dash-empty">Cargando...</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="section-card">
+                    <div class="section-card-head">
+                        <h2>Vencimientos</h2>
+                        <p>Tecnomecanica, SOAT, seguros y documentos futuros.</p>
+                    </div>
+                    <div class="section-card-body">
+                        <div id="vehicleDocumentList" class="records-list">
+                            <p class="dash-empty">Cargando...</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <section id="vehicleSimit" class="section-card hidden">
+                <div class="section-card-head">
+                    <h2>Consulta SIMIT</h2>
+                    <p>Version preliminar para abrir la consulta oficial y llevar la placa lista.</p>
+                </div>
+                <div class="section-card-body simit-panel">
+                    <div class="simit-plate-wrap">
+                        <span class="dash-card-label">Placa a consultar</span>
+                        <strong id="simitPlate" class="simit-plate">---</strong>
+                        <p class="record-sub">El portal oficial se abre en otra pestaña. La placa queda lista para copiar y pegar.</p>
+                    </div>
+                    <div class="simit-actions">
+                        <button id="copyPlateButton" type="button" class="btn-secondary">Copiar placa</button>
+                        <a id="openSimitLink" class="header-action simit-link" href="https://www.fcm.org.co/simit/#/estado-cuenta" target="_blank" rel="noreferrer">Abrir SIMIT</a>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="assets/js/shared/auth.js"></script>
+    <script src="assets/js/shared/api.js"></script>
+    <script src="assets/js/shared/ui.js"></script>
+    <script src="assets/js/shared/sidebar.js"></script>
+    <script src="assets/js/pages/vehicle-detail.js"></script>
+</body>
+</html>
