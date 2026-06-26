@@ -100,7 +100,7 @@ window.VehiAmb.auth = {
         });
 
         if (!response.ok) {
-            throw new Error("Correo o contrasena invalidos");
+            throw new Error("Correo o contraseña invalidos");
         }
 
         const data = await response.json();
