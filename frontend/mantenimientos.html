@@ -109,54 +109,6 @@
                         </div>
                     </section>
 
-                    <section class="section-card">
-                        <div class="section-card-head">
-                            <h2>Agendar documento</h2>
-                            <p>Base para controlar Tecnomecanica, SOAT, seguros y otros vencimientos.</p>
-                        </div>
-                        <div class="section-card-body">
-                            <form id="documentoForm" class="compact-form">
-                                <div class="form-group">
-                                    <label>Vehiculo</label>
-                                    <select name="vehiculo_id" id="vehiculoDocumento" required>
-                                        <option value="">Selecciona un vehiculo</option>
-                                    </select>
-                                </div>
-
-                                <div class="form-grid">
-                                    <div class="form-group">
-                                        <label>Tipo</label>
-                                        <select name="tipo" required>
-                                            <option value="tecnomecanica">Tecnomecanica</option>
-                                            <option value="soat">SOAT</option>
-                                            <option value="seguro">Seguro</option>
-                                            <option value="tarjeta_operacion">Tarjeta de operacion</option>
-                                            <option value="otro">Otro</option>
-                                        </select>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label>Numero</label>
-                                        <input type="text" name="numero_documento">
-                                    </div>
-                                </div>
-
-                                <div class="form-grid">
-                                    <div class="form-group">
-                                        <label>Expedicion</label>
-                                        <input type="date" name="fecha_expedicion">
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label>Vencimiento</label>
-                                        <input type="date" name="fecha_vencimiento" required>
-                                    </div>
-                                </div>
-
-                                <button type="submit" class="btn-primary">Guardar agenda</button>
-                            </form>
-                        </div>
-                    </section>
                 </div>
 
                 <div class="stack">
@@ -166,23 +118,36 @@
                             <p>Ultimas revisiones y mantenimientos registrados.</p>
                         </div>
                         <div class="section-card-body">
+                            <form id="mantenimientosFilterForm" class="filter-form">
+                                <div class="form-group">
+                                    <label>Placa</label>
+                                    <input type="search" id="filterPlaca" placeholder="Ej: ABC123">
+                                </div>
+
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Desde</label>
+                                        <input type="date" id="filterFechaDesde">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Hasta</label>
+                                        <input type="date" id="filterFechaHasta">
+                                    </div>
+                                </div>
+
+                                <div class="filter-actions">
+                                    <span id="filterSummary" class="field-help">Mostrando todos los mantenimientos.</span>
+                                    <button type="button" id="clearFiltersButton" class="btn-secondary">Limpiar filtros</button>
+                                </div>
+                            </form>
+
                             <div id="mantenimientosList" class="records-list">
                                 <p class="dash-empty">Cargando...</p>
                             </div>
                         </div>
                     </section>
 
-                    <section class="section-card">
-                        <div class="section-card-head">
-                            <h2>Agenda futura</h2>
-                            <p>Vencimientos de Tecnomecanica, SOAT, seguros y documentos.</p>
-                        </div>
-                        <div class="section-card-body">
-                            <div id="documentosList" class="records-list">
-                                <p class="dash-empty">Cargando...</p>
-                            </div>
-                        </div>
-                    </section>
                 </div>
             </div>
 

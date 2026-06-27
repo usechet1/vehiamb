@@ -29,12 +29,12 @@ HTTP route
 
 ## Base de datos
 
-El backend soporta dos modos:
+El backend usa PostgreSQL como unica base operativa.
 
-- `DB_CLIENT=sqlite`: usa `src/database/parque_automotor.db`.
-- `DB_CLIENT=postgres`: usa `DATABASE_URL`.
+- `DB_CLIENT=postgres`
+- `DATABASE_URL=postgres://vehiamb:vehiamb_dev@localhost:5432/vehiamb`
 
-En Docker se usa PostgreSQL por defecto. En local, si no defines variables de entorno, usa SQLite para que el desarrollo sea simple.
+En Docker la API se conecta al servicio `postgres` definido en `docker-compose.yml`.
 
 ## Comandos
 

@@ -176,131 +176,88 @@ label[for="loginPassword"] {
     box-shadow: 0 0 0 4px rgba(25, 168, 101, 0.14);
 }
 
+/* ── Sidebar base ─────────────────────────────── */
 .sidebar {
     position: sticky;
     top: 0;
     width: var(--sidebar-width);
     height: 100vh;
-    padding: 24px 18px;
+    padding: 0;
     background: var(--color-sidebar);
     color: #e7edf7;
     display: flex;
     flex-direction: column;
 }
 
+/* ── Logo ─────────────────────────────────────── */
 .sidebar-logo {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 22px;
-    padding: 2px 8px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+    justify-content: center;
+    padding: 20px 20px 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    margin-bottom: 0;
 }
 
-.logo-mark {
-    width: 42px;
-    height: 42px;
-    border-radius: var(--radius-md);
-    background: linear-gradient(135deg, #d43444, #941925);
-    color: #fff;
-    display: grid;
-    place-items: center;
-    font-size: 0.85rem;
-    font-weight: 800;
+.logo-image-sidebar {
+    width: 380px;
+    height: 160px;
 }
 
-.sidebar-logo h2 {
-    font-size: 1.14rem;
-    letter-spacing: 0;
+/* ── Etiquetas de sección ─────────────────────── */
+.nav-label {
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.28);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 14px 10px 4px;
+    margin: 0;
 }
 
-.sidebar-logo span,
-.user-info span {
-    color: #9aa7ba;
-    font-size: 0.76rem;
+.nav-divider {
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    margin: 6px 0;
 }
 
-.sidebar-user {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    margin-bottom: 24px;
-    padding: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: var(--radius-md);
-    background: var(--color-sidebar-soft);
-}
-
-.user-avatar {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    background: #eef2f7;
-    color: var(--color-sidebar);
-    display: grid;
-    place-items: center;
-    font-size: 0.8rem;
-    font-weight: 800;
-    flex-shrink: 0;
-}
-
-.user-info {
-    display: flex;
-    min-width: 0;
-    flex-direction: column;
-}
-
-.user-info strong {
-    overflow: hidden;
-    color: #fff;
-    font-size: 0.9rem;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.sidebar-menu,
-.sidebar-footer {
+/* ── Menú ─────────────────────────────────────── */
+.sidebar-menu {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-}
-
-.sidebar-footer {
-    margin-top: auto;
-    padding-top: 18px;
-    border-top: 1px solid rgba(255, 255, 255, 0.09);
-}
-
-.sidebar-menu button,
-.footer-btn {
-    width: 100%;
-    min-height: 42px;
-    padding: 10px 12px;
-    border: 0;
-    border-radius: var(--radius-sm);
-    background: transparent;
-    color: #c5cedd;
-    text-align: left;
-    transition: var(--transition);
+    gap: 1px;
+    flex: 1;
+    padding: 6px 12px;
+    overflow-y: auto;
 }
 
 .sidebar-menu button {
     display: flex;
     align-items: center;
     gap: 10px;
+    width: 100%;
+    min-height: 40px;
+    padding: 9px 10px;
+    border: 0.5px solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: rgba(255, 255, 255, 0.5);
+    text-align: left;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: var(--transition);
 }
 
-.sidebar-menu button:hover:not(:disabled),
-.sidebar-menu button.active,
-.footer-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #fff;
+.sidebar-menu button:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.9);
 }
 
 .sidebar-menu button.active {
-    background: #fff;
-    color: var(--color-sidebar);
-    font-weight: 700;
+    background: rgba(192, 57, 43, 0.15);
+    color: #e8806e;
+    border-color: rgba(192, 57, 43, 0.25);
+    font-weight: 600;
 }
 
 .sidebar-menu button:disabled {
@@ -308,23 +265,91 @@ label[for="loginPassword"] {
     cursor: not-allowed;
 }
 
-.footer-btn {
-    color: #9aa7ba;
+/* ── Footer ───────────────────────────────────── */
+.sidebar-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* ── Usuario ──────────────────────────────────── */
+.sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 8px 8px;
+}
+
+.user-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(48, 95, 143, 0.18), #8a0404);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    text-transform: uppercase;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.user-info strong {
+    color: #fff;
     font-size: 0.88rem;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-info span {
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 0.72rem;
+}
+
+/* ── Botón cerrar sesión ──────────────────────── */
+.footer-btn {
+    width: 100%;
+    min-height: 36px;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: #9aa7ba;
+    text-align: left;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: var(--transition);
 }
 
 .footer-btn.logout {
-    color: #f3a4ad;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.38);
+    font-size: 0.82rem;
 }
 
-.nav-icon,
-.dash-card-icon {
+.footer-btn.logout:hover {
+    background: rgba(192, 57, 43, 0.12);
+    color: #e8806e;
+    border-color: rgba(192, 57, 43, 0.3);
+}
+
+/* ── Íconos ───────────────────────────────────── */
+.nav-icon {
     position: relative;
     display: inline-block;
     flex-shrink: 0;
-}
-
-.nav-icon {
     width: 18px;
     height: 18px;
 }
@@ -341,46 +366,33 @@ label[for="loginPassword"] {
     border: 2px solid currentColor;
     border-radius: 3px;
 }
-
-.nav-add::after {
-    content: "+";
-    position: absolute;
-    inset: -1px 0 0;
-    text-align: center;
-    font-weight: 800;
-}
-
-.nav-list::before {
-    border-radius: 2px;
-}
-
-.nav-list::after {
-    content: "";
-    position: absolute;
-    left: 5px;
-    right: 5px;
-    top: 8px;
-    height: 2px;
-    background: currentColor;
-    box-shadow: 0 4px 0 currentColor;
-}
-
-.nav-service::before {
-    inset: 4px;
-    border-radius: 50%;
-}
-
-.nav-service::after {
-    content: "";
-    position: absolute;
-    left: 8px;
-    top: 2px;
-    width: 2px;
+/* ── Ícono logout ─────────────────────────────── */
+.logout-icon {
+    position: relative;
+    display: inline-block;
+    flex-shrink: 0;
+    width: 14px;
     height: 14px;
-    background: currentColor;
-    transform: rotate(45deg);
 }
 
+.logout-icon::before {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    border: 2px solid currentColor;
+    border-right: none;
+    border-radius: 2px 0 0 2px;
+}
+
+.logout-icon::after {
+    content: "→";
+    position: absolute;
+    right: -2px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    line-height: 1;
+}
 .nav-edit::after {
     content: "";
     position: absolute;
@@ -1128,6 +1140,28 @@ label[for="loginPassword"] {
     box-shadow: 0 0 0 3px rgba(178, 31, 45, 0.12);
 }
 
+.filter-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.filter-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.filter-actions .btn-secondary {
+    min-height: 38px;
+    padding: 9px 12px;
+    font-size: 0.84rem;
+}
+
 .simple-list-builder {
     display: flex;
     flex-direction: column;
@@ -1341,6 +1375,11 @@ label[for="loginPassword"] {
     .simit-actions {
         width: 100%;
         justify-content: stretch;
+    }
+
+    .filter-actions {
+        align-items: stretch;
+        flex-direction: column;
     }
 
     .simit-actions .btn-secondary,

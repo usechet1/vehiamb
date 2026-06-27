@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta SIMIT - VehiAmb</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar"></aside>
+
+        <main class="content">
+            <div class="page-header">
+                <div>
+                    <h1>Consulta SIMIT</h1>
+                    <p class="page-kicker">Selecciona un vehiculo para copiar la placa y abrir la consulta oficial</p>
+                </div>
+            </div>
+
+            <div class="module-grid">
+                <div class="stack">
+                    <section class="section-card">
+                        <div class="section-card-head">
+                            <h2>Vehiculo a consultar</h2>
+                            <p>La placa queda lista para pegarla en el portal SIMIT.</p>
+                        </div>
+                        <div class="section-card-body">
+                            <form id="simitForm" class="compact-form">
+                                <div class="form-group">
+                                    <label>Vehiculo</label>
+                                    <select id="vehiculoSimit" required>
+                                        <option value="">Selecciona un vehiculo</option>
+                                    </select>
+                                </div>
+
+                                <div class="simit-panel">
+                                    <div class="simit-plate-wrap">
+                                        <span class="dash-card-label">Placa seleccionada</span>
+                                        <strong id="simitPlate" class="simit-plate">---</strong>
+                                    </div>
+                                    <div class="simit-actions">
+                                        <button id="copyPlateButton" type="button" class="btn-secondary">Copiar placa</button>
+                                        <a id="openSimitLink" class="header-action simit-link" href="https://www.fcm.org.co/simit/#/estado-cuenta" target="_blank" rel="noreferrer">Abrir SIMIT</a>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="stack">
+                    <section class="section-card">
+                        <div class="section-card-head">
+                            <h2>Placas disponibles</h2>
+                            <p>Vehiculos registrados en la flota.</p>
+                        </div>
+                        <div class="section-card-body">
+                            <div id="simitVehicleList" class="records-list">
+                                <p class="dash-empty">Cargando...</p>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <div id="loader" class="loader hidden"></div>
+            <div id="mensaje" class="mensaje hidden"></div>
+        </main>
+    </div>
+
+    <script src="assets/js/shared/auth.js"></script>
+    <script src="assets/js/shared/api.js"></script>
+    <script src="assets/js/shared/ui.js"></script>
+    <script src="assets/js/shared/sidebar.js"></script>
+    <script src="assets/js/pages/simit.js"></script>
+</body>
+</html>

@@ -44,7 +44,7 @@ form.addEventListener("submit", async (event) => {
         window.VehiAmb.ui.hide(preview);
     } catch (error) {
         console.error(error);
-        window.VehiAmb.ui.showMessage(mensaje, "Error al guardar el vehiculo", "error");
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "Error al guardar el vehiculo", "error");
     } finally {
         window.VehiAmb.ui.hide(loader);
     }

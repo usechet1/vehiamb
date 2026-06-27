@@ -46,6 +46,86 @@ async function seedAdminUser() {
   );
 }
 
+async function ensurePostgresTables() {
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS usuarios (
+      id BIGSERIAL PRIMARY KEY,
+      nombre TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      rol TEXT NOT NULL DEFAULT 'Administrador',
+      activo BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS vehiculos (
+      id BIGSERIAL PRIMARY KEY,
+      codigo_interno TEXT NOT NULL,
+      marca TEXT NOT NULL,
+      modelo TEXT NOT NULL,
+      anio INTEGER,
+      color TEXT,
+      combustible TEXT,
+      cilindraje INTEGER,
+      capacidad_carga INTEGER,
+      placa TEXT NOT NULL UNIQUE,
+      kilometraje_actual INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS mantenimientos (
+      id BIGSERIAL PRIMARY KEY,
+      vehiculo_id BIGINT NOT NULL REFERENCES vehiculos(id) ON DELETE CASCADE,
+      fecha DATE NOT NULL,
+      tipo TEXT NOT NULL,
+      descripcion TEXT,
+      autorizado_por TEXT,
+      hecho_por TEXT,
+      repuestos TEXT,
+      soporte_url TEXT,
+      soporte_nombre TEXT,
+      soporte_mime TEXT,
+      valor NUMERIC(12, 2) NOT NULL DEFAULT 0,
+      kilometraje FLOAT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS documentos (
+      id BIGSERIAL PRIMARY KEY,
+      vehiculo_id BIGINT NOT NULL REFERENCES vehiculos(id) ON DELETE CASCADE,
+      tipo TEXT NOT NULL,
+      numero_documento TEXT,
+      fecha_expedicion DATE,
+      fecha_vencimiento DATE,
+      archivo_url TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS cambios_aceite (
+      id BIGSERIAL PRIMARY KEY,
+      vehiculo_id BIGINT NOT NULL REFERENCES vehiculos(id) ON DELETE CASCADE,
+      fecha DATE NOT NULL,
+      kilometraje_actual INTEGER NOT NULL,
+      proximo_cambio_km INTEGER NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.run("CREATE INDEX IF NOT EXISTS idx_vehiculos_placa ON vehiculos (placa)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios (email)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_mantenimientos_vehiculo_id ON mantenimientos (vehiculo_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_documentos_vehiculo_id ON documentos (vehiculo_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_cambios_aceite_vehiculo_id ON cambios_aceite (vehiculo_id)");
+}
+
 if (env.dbClient === "sqlite") {
   db.serialize(() => {
     db.run(`
@@ -136,14 +216,15 @@ if (env.dbClient === "sqlite") {
     .then(() => console.log("Tablas verificadas/creadas"))
     .catch((error) => console.error("Error verificando columnas", error.message));
 } else {
-  Promise.all([
-    ensureColumn("mantenimientos", "repuestos", "TEXT"),
-    ensureColumn("mantenimientos", "autorizado_por", "TEXT"),
-    ensureColumn("mantenimientos", "hecho_por", "TEXT"),
-    ensureColumn("mantenimientos", "soporte_url", "TEXT"),
-    ensureColumn("mantenimientos", "soporte_nombre", "TEXT"),
-    ensureColumn("mantenimientos", "soporte_mime", "TEXT")
-  ])
+  ensurePostgresTables()
+    .then(() => Promise.all([
+      ensureColumn("mantenimientos", "repuestos", "TEXT"),
+      ensureColumn("mantenimientos", "autorizado_por", "TEXT"),
+      ensureColumn("mantenimientos", "hecho_por", "TEXT"),
+      ensureColumn("mantenimientos", "soporte_url", "TEXT"),
+      ensureColumn("mantenimientos", "soporte_nombre", "TEXT"),
+      ensureColumn("mantenimientos", "soporte_mime", "TEXT")
+    ]))
     .then(seedAdminUser)
     .then(() => console.log("Columnas PostgreSQL verificadas"))
     .catch((error) => console.error("Error verificando columnas PostgreSQL", error.message));

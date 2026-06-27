@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: vehiamb
       POSTGRES_PASSWORD: vehiamb_dev
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/src/database/schema.postgres.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
@@ -25,12 +25,12 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      PORT: 3000
+      PORT: 3001
       CORS_ORIGIN: http://localhost:8080
       DB_CLIENT: postgres
       DATABASE_URL: postgres://vehiamb:vehiamb_dev@postgres:5432/vehiamb
     ports:
-      - "3000:3000"
+      - "3001:3001"
     depends_on:
       postgres:
         condition: service_healthy
@@ -47,3 +47,4 @@ services:
 
 volumes:
   postgres_data:
+s

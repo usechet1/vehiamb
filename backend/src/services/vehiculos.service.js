@@ -64,7 +64,15 @@ async function createVehiculo(payload) {
   const vehiculo = normalizePayload(payload);
   validateVehiculo(vehiculo);
 
-  return vehiculosRepository.create(vehiculo);
+  try {
+    return await vehiculosRepository.create(vehiculo);
+  } catch (error) {
+    if (error.code === "23505" && String(error.constraint || "").includes("vehiculos_placa")) {
+      throw new HttpError(409, "Ya existe un vehiculo registrado con esa placa");
+    }
+
+    throw error;
+  }
 }
 
 async function deleteVehiculo(id) {

@@ -3,13 +3,13 @@ window.VehiAmb = window.VehiAmb || {};
 window.VehiAmb.API_URL = window.VehiAmb.API_URL || (
     window.location.port === "8080"
         ? "/api"
-        : "http://localhost:3000/api"
+        : "http://localhost:3001/api"
 );
 
 window.VehiAmb.ASSET_BASE_URL = window.VehiAmb.ASSET_BASE_URL || (
     window.location.port === "8080"
         ? ""
-        : "http://localhost:3000"
+        : "http://localhost:3001"
 );
 
 async function requestJson(url, options, errorMessage) {
@@ -31,7 +31,15 @@ async function requestJson(url, options, errorMessage) {
     }
 
     if (!response.ok) {
-        throw new Error(errorMessage);
+        let serverMessage = "";
+        try {
+            const data = await response.json();
+            serverMessage = data?.message || "";
+        } catch (error) {
+            serverMessage = "";
+        }
+
+        throw new Error(serverMessage || errorMessage);
     }
 
     return response.json();

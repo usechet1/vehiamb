@@ -4,7 +4,7 @@ const env = {
   nodeEnv: process.env.NODE_ENV || "development",
   port: Number(process.env.PORT || 3000),
   corsOrigin: process.env.CORS_ORIGIN || "*",
-  dbClient: process.env.DB_CLIENT || "sqlite",
+  dbClient: process.env.DB_CLIENT || "postgres",
   databaseUrl: process.env.DATABASE_URL || "postgres://vehiamb:vehiamb_dev@localhost:5432/vehiamb",
   authSecret: process.env.AUTH_SECRET || "vehiamb-dev-secret",
   authTokenHours: Number(process.env.AUTH_TOKEN_HOURS || 12),

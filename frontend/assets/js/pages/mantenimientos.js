@@ -1,9 +1,12 @@
 const mantenimientoForm = document.getElementById("mantenimientoForm");
-const documentoForm = document.getElementById("documentoForm");
+const mantenimientosFilterForm = document.getElementById("mantenimientosFilterForm");
 const mantenimientoSelect = document.getElementById("vehiculoMantenimiento");
-const documentoSelect = document.getElementById("vehiculoDocumento");
 const mantenimientosList = document.getElementById("mantenimientosList");
-const documentosList = document.getElementById("documentosList");
+const filterPlaca = document.getElementById("filterPlaca");
+const filterFechaDesde = document.getElementById("filterFechaDesde");
+const filterFechaHasta = document.getElementById("filterFechaHasta");
+const filterSummary = document.getElementById("filterSummary");
+const clearFiltersButton = document.getElementById("clearFiltersButton");
 const loader = document.getElementById("loader");
 const mensaje = document.getElementById("mensaje");
 const repuestosData = document.getElementById("repuestosData");
@@ -15,6 +18,7 @@ const repuestosList = document.getElementById("repuestosList");
 const repuestosEmpty = document.getElementById("repuestosEmpty");
 
 let repuestosState = [];
+let mantenimientosState = [];
 
 const tiposMantenimiento = {
     revision: "Revision general",
@@ -23,14 +27,6 @@ const tiposMantenimiento = {
     cambio_aceite: "Cambio de aceite",
     frenos: "Frenos",
     llantas: "Llantas",
-    otro: "Otro"
-};
-
-const tiposDocumento = {
-    tecnomecanica: "Tecnomecanica",
-    soat: "SOAT",
-    seguro: "Seguro",
-    tarjeta_operacion: "Tarjeta de operacion",
     otro: "Otro"
 };
 
@@ -49,16 +45,6 @@ function formatDate(value) {
         month: "short",
         year: "numeric"
     });
-}
-
-function daysUntil(value) {
-    if (!value) return null;
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const target = new Date(`${value}T00:00:00`);
-    return Math.ceil((target.getTime() - today.getTime()) / 86400000);
 }
 
 function fillVehicleSelect(select, vehiculos) {
@@ -104,7 +90,7 @@ function parseRepuestos(value) {
                 return parseRepuestos(parsed);
             }
         } catch (error) {
-            // Fallback to legacy text formats.
+            // Fallback para formatos antiguos en texto plano.
         }
 
         return value
@@ -151,11 +137,7 @@ function addRepuesto() {
 
     if (!repuesto) return;
 
-    repuestosState.push({
-        repuesto,
-        valor,
-        notas
-    });
+    repuestosState.push({ repuesto, valor, notas });
     repuestoInput.value = "";
     repuestoValorInput.value = "";
     repuestoNotasInput.value = "";
@@ -173,8 +155,8 @@ function renderRepuestosMeta(value) {
     return repuestos.map((repuesto) => `
         <span class="pill">
             ${repuesto.repuesto}
-            ${repuesto.valor ? ` · ${formatCurrency(repuesto.valor)}` : ""}
-            ${repuesto.notas ? ` · ${repuesto.notas}` : ""}
+            ${repuesto.valor ? ` - ${formatCurrency(repuesto.valor)}` : ""}
+            ${repuesto.notas ? ` - ${repuesto.notas}` : ""}
         </span>
     `).join("");
 }
@@ -194,7 +176,7 @@ function renderAttachment(item) {
 
 function renderMantenimientos(mantenimientos) {
     if (!mantenimientos.length) {
-        mantenimientosList.innerHTML = '<p class="dash-empty">Aun no hay mantenimientos registrados</p>';
+        mantenimientosList.innerHTML = '<p class="dash-empty">No hay mantenimientos para los filtros seleccionados</p>';
         return;
     }
 
@@ -203,7 +185,7 @@ function renderMantenimientos(mantenimientos) {
             <div class="record-top">
                 <div>
                     <span class="record-title">${tiposMantenimiento[item.tipo] || item.tipo}</span>
-                    <span class="record-sub">${item.placa || "Sin placa"} · ${item.marca || ""} ${item.modelo || ""}</span>
+                    <span class="record-sub">${item.placa || "Sin placa"} - ${item.marca || ""} ${item.modelo || ""}</span>
                 </div>
                 <span class="pill">${formatDate(item.fecha)}</span>
             </div>
@@ -214,67 +196,73 @@ function renderMantenimientos(mantenimientos) {
                 ${renderRepuestosMeta(item.repuestos)}
                 <span class="pill">Autorizado por: ${item.autorizado_por || "No registrado"}</span>
                 <span class="pill">Hecho por: ${item.hecho_por || "No registrado"}</span>
-                ${item.soporte_url ? `<span class="pill">Soporte adjunto</span>` : ""}
+                ${item.soporte_url ? '<span class="pill">Soporte adjunto</span>' : ""}
             </div>
             ${renderAttachment(item)}
         </article>
     `).join("");
 }
 
-function renderDocumentos(documentos) {
-    if (!documentos.length) {
-        documentosList.innerHTML = '<p class="dash-empty">Aun no hay vencimientos agendados</p>';
+function maintenanceMatchesFilters(item) {
+    const placa = filterPlaca.value.trim().toLowerCase();
+    const fechaDesde = filterFechaDesde.value;
+    const fechaHasta = filterFechaHasta.value;
+    const itemPlaca = String(item.placa || "").toLowerCase();
+    const itemFecha = String(item.fecha || "").slice(0, 10);
+
+    if (placa && !itemPlaca.includes(placa)) return false;
+    if (fechaDesde && (!itemFecha || itemFecha < fechaDesde)) return false;
+    if (fechaHasta && (!itemFecha || itemFecha > fechaHasta)) return false;
+
+    return true;
+}
+
+function updateFilterSummary(filteredCount) {
+    const total = mantenimientosState.length;
+    const hasFilters = Boolean(
+        filterPlaca.value.trim() ||
+        filterFechaDesde.value ||
+        filterFechaHasta.value
+    );
+
+    if (!total) {
+        filterSummary.textContent = "Aun no hay mantenimientos registrados.";
         return;
     }
 
-    documentosList.innerHTML = documentos.map((item) => {
-        const days = daysUntil(item.fecha_vencimiento);
-        const pillClass = days !== null && days < 0
-            ? "pill-danger"
-            : days !== null && days <= 30
-                ? "pill-warning"
-                : "";
-        const statusText = days === null
-            ? "Sin fecha"
-            : days < 0
-                ? `Vencido hace ${Math.abs(days)} dias`
-                : `Vence en ${days} dias`;
+    filterSummary.textContent = hasFilters
+        ? `Mostrando ${filteredCount} de ${total} mantenimientos.`
+        : `Mostrando todos los mantenimientos (${total}).`;
+}
 
-        return `
-            <article class="record-item">
-                <div class="record-top">
-                    <div>
-                        <span class="record-title">${tiposDocumento[item.tipo] || item.tipo}</span>
-                        <span class="record-sub">${item.placa || "Sin placa"} · ${item.numero_documento || "Sin numero"}</span>
-                    </div>
-                    <span class="pill ${pillClass}">${statusText}</span>
-                </div>
-                <div class="record-meta">
-                    <span class="pill">Expedicion: ${formatDate(item.fecha_expedicion)}</span>
-                    <span class="pill">Vencimiento: ${formatDate(item.fecha_vencimiento)}</span>
-                </div>
-            </article>
-        `;
-    }).join("");
+function applyMaintenanceFilters() {
+    const filtered = mantenimientosState.filter(maintenanceMatchesFilters);
+    renderMantenimientos(filtered);
+    updateFilterSummary(filtered.length);
 }
 
 async function cargarDatos() {
     try {
         window.VehiAmb.ui.show(loader);
 
-        const [vehiculos, mantenimientos, documentos] = await Promise.all([
-            window.VehiAmb.api.getVehiculos(),
-            window.VehiAmb.api.getMantenimientos(),
-            window.VehiAmb.api.getDocumentos()
-        ]);
-
+        const vehiculos = await window.VehiAmb.api.getVehiculos();
         fillVehicleSelect(mantenimientoSelect, vehiculos);
-        fillVehicleSelect(documentoSelect, vehiculos);
-        renderMantenimientos(mantenimientos);
-        renderDocumentos(documentos);
     } catch (error) {
         console.error(error);
-        window.VehiAmb.ui.showMessage(mensaje, "No fue posible cargar la informacion", "error");
+        window.VehiAmb.ui.showMessage(mensaje, "No fue posible cargar los vehiculos", "error");
+        window.VehiAmb.ui.hide(loader);
+        return;
+    }
+
+    try {
+        const mantenimientos = await window.VehiAmb.api.getMantenimientos();
+        mantenimientosState = mantenimientos;
+        applyMaintenanceFilters();
+    } catch (error) {
+        console.error(error);
+        mantenimientosList.innerHTML = '<p class="dash-empty">No fue posible cargar el historial de mantenimientos</p>';
+        updateFilterSummary(0);
+        window.VehiAmb.ui.showMessage(mensaje, "Los vehiculos cargaron, pero no fue posible cargar el historial", "error");
     } finally {
         window.VehiAmb.ui.hide(loader);
     }
@@ -301,31 +289,24 @@ mantenimientoForm.addEventListener("submit", async (event) => {
     }
 });
 
+mantenimientosFilterForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+});
+
+[filterPlaca, filterFechaDesde, filterFechaHasta].forEach((input) => {
+    input.addEventListener("input", applyMaintenanceFilters);
+});
+
+clearFiltersButton.addEventListener("click", () => {
+    mantenimientosFilterForm.reset();
+    applyMaintenanceFilters();
+});
+
 addRepuestoButton.addEventListener("click", addRepuesto);
 repuestoInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
         event.preventDefault();
         addRepuesto();
-    }
-});
-
-documentoForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-
-    const formData = new FormData(documentoForm);
-    const payload = Object.fromEntries(formData.entries());
-
-    try {
-        window.VehiAmb.ui.show(loader);
-        await window.VehiAmb.api.createDocumento(payload);
-        window.VehiAmb.ui.showMessage(mensaje, "Documento agendado correctamente");
-        documentoForm.reset();
-        await cargarDatos();
-    } catch (error) {
-        console.error(error);
-        window.VehiAmb.ui.showMessage(mensaje, "Error al agendar el documento", "error");
-    } finally {
-        window.VehiAmb.ui.hide(loader);
     }
 });
 

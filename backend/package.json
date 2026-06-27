@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "check": "node --check server.js"
+    "check": "node --check server.js",
+    "migrate:sqlite-postgres": "node scripts/migrate-sqlite-to-postgres.js",
+    "export:sqlite-postgres-sql": "node scripts/export-sqlite-to-postgres-sql.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

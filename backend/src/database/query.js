@@ -1,7 +1,9 @@
 const env = require("../config/env");
 
-const database = env.dbClient === "postgres"
-  ? require("./postgres")
-  : require("./sqlite");
+if (env.dbClient !== "postgres") {
+  throw new Error("DB_CLIENT debe ser postgres. SQLite solo queda disponible para scripts de migracion.");
+}
+
+const database = require("./postgres");
 
 module.exports = database;

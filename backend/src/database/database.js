@@ -1,1 +1,1 @@
-module.exports = require("./sqlite");
+module.exports = require("./query");
