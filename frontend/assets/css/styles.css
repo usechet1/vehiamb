@@ -611,103 +611,27 @@ label[for="loginPassword"] {
 
 .dash-card-fleet { --card-accent: #b21f2d; }
 .dash-card-drivers { --card-accent: #305f8f; }
+.dash-card-docs { --card-accent: #305f8f; }
 .dash-card-service { --card-accent: #a15c09; }
 .dash-card-routes { --card-accent: #147a45; }
 
 .dash-card-icon {
+    position: relative;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
     width: 42px;
     height: 42px;
-    border-radius: var(--radius-md);
-    background: color-mix(in srgb, var(--card-accent) 12%, #fff);
-}
-
-.icon-fleet::before {
-    content: "";
-    position: absolute;
-    left: 7px;
-    right: 7px;
-    top: 14px;
-    height: 12px;
-    border: 2px solid var(--card-accent);
-    border-radius: 4px;
-}
-
-.icon-fleet::after {
-    content: "";
-    position: absolute;
-    left: 11px;
-    right: 11px;
-    bottom: 9px;
-    height: 5px;
-    border-left: 4px solid var(--card-accent);
-    border-right: 4px solid var(--card-accent);
-}
-
-.icon-driver::before {
-    content: "";
-    position: absolute;
-    left: 15px;
-    top: 9px;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
+    border-radius: var(--radius-sm);
     background: var(--card-accent);
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 900;
+    box-shadow: inset 0 -10px 20px rgba(0, 0, 0, 0.12);
 }
 
-.icon-driver::after {
-    content: "";
-    position: absolute;
-    left: 10px;
-    bottom: 8px;
-    width: 22px;
-    height: 12px;
-    border-radius: 12px 12px 5px 5px;
-    background: var(--card-accent);
-}
-
-.icon-service::before {
-    content: "";
-    position: absolute;
-    left: 11px;
-    top: 19px;
-    width: 21px;
-    height: 4px;
-    border-radius: 4px;
-    background: var(--card-accent);
-    transform: rotate(-35deg);
-}
-
-.icon-service::after {
-    content: "";
-    position: absolute;
-    right: 9px;
-    top: 9px;
-    width: 9px;
-    height: 9px;
-    border: 3px solid var(--card-accent);
-    border-radius: 50%;
-}
-
-.icon-route::before {
-    content: "";
-    position: absolute;
-    left: 11px;
-    top: 11px;
-    width: 20px;
-    height: 20px;
-    border: 2px solid var(--card-accent);
-    border-radius: 50%;
-}
-
-.icon-route::after {
-    content: "";
-    position: absolute;
-    left: 20px;
-    top: 8px;
-    width: 2px;
-    height: 26px;
-    background: var(--card-accent);
-    transform: rotate(35deg);
+.dash-card-icon::before {
+    content: attr(data-symbol);
 }
 
 .dash-card-label {
@@ -731,8 +655,29 @@ label[for="loginPassword"] {
     gap: 20px;
 }
 
+.dash-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+    gap: 18px;
+    align-items: start;
+}
+
+.dash-panel-main {
+    min-height: 100%;
+}
+
 .dash-panel {
     overflow: hidden;
+}
+
+.dash-panel-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface-2);
 }
 
 .dash-panel-title {
@@ -742,6 +687,29 @@ label[for="loginPassword"] {
     color: var(--color-ink-soft);
     font-size: 0.95rem;
     font-weight: 750;
+}
+
+.dash-panel-head .dash-panel-title {
+    padding: 0;
+    border-bottom: 0;
+    background: transparent;
+}
+
+.dash-panel-subtitle {
+    margin-top: 4px;
+    color: var(--color-muted);
+    font-size: 0.8rem;
+}
+
+.dash-panel-link {
+    flex: 0 0 auto;
+    padding: 7px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: var(--color-primary);
+    font-size: 0.78rem;
+    font-weight: 800;
 }
 
 .dash-table {
@@ -803,6 +771,11 @@ label[for="loginPassword"] {
     color: var(--color-primary);
 }
 
+.badge-amarillo {
+    background: var(--color-warning-bg);
+    color: var(--color-warning);
+}
+
 .dash-list {
     display: flex;
     flex-direction: column;
@@ -819,8 +792,19 @@ label[for="loginPassword"] {
     font-size: 0.89rem;
 }
 
+.dash-list-item-rich {
+    align-items: flex-start;
+}
+
 .dash-list-item:last-child {
     border-bottom: 0;
+}
+
+.dash-item-side {
+    display: flex;
+    align-items: flex-end;
+    flex-direction: column;
+    gap: 7px;
 }
 
 .dash-sub {
@@ -844,6 +828,48 @@ label[for="loginPassword"] {
     color: #8b95a6;
     font-size: 0.9rem;
     text-align: center;
+}
+
+.dash-bars {
+    display: grid;
+    gap: 14px;
+    padding: 18px;
+}
+
+.dash-bar-row {
+    display: grid;
+    gap: 8px;
+}
+
+.dash-bar-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--color-ink-soft);
+    font-size: 0.86rem;
+}
+
+.dash-bar-top span {
+    color: var(--color-muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.dash-bar-track {
+    height: 10px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #edf1f5;
+}
+
+.dash-bar-fill {
+    display: block;
+    height: 100%;
+    min-width: 18px;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--color-primary), #147a45);
 }
 
 .vehicles-grid {
@@ -1321,7 +1347,8 @@ label[for="loginPassword"] {
         padding: 28px 20px;
     }
 
-    .dash-grid {
+    .dash-grid,
+    .dash-workspace {
         grid-template-columns: 1fr;
     }
 
@@ -1390,6 +1417,22 @@ label[for="loginPassword"] {
 
     .form-card {
         padding: 22px;
+    }
+
+    .dash-panel-head,
+    .dash-list-item,
+    .dash-item-side {
+        align-items: flex-start;
+    }
+
+    .dash-panel-head,
+    .dash-list-item {
+        flex-direction: column;
+    }
+
+    .dash-item-side {
+        flex-direction: row;
+        flex-wrap: wrap;
     }
 }
 

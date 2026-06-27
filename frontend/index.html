@@ -13,69 +13,96 @@
         <main class="content">
             <div class="dash-header">
                 <div>
-                    <h1>Panel de Control</h1>
+                    <h1>Panel operativo</h1>
                     <p class="dash-fecha" id="fecha-hoy"></p>
                 </div>
                 <div class="ops-summary" aria-label="Estado operativo">
                     <span class="status-dot"></span>
-                    Operación estable
+                    Operacion estable
                 </div>
             </div>
 
             <div class="dash-cards">
                 <div class="dash-card dash-card-fleet">
-                    <div class="dash-card-icon icon-fleet" aria-hidden="true"></div>
+                    <div class="dash-card-icon" data-symbol="V" aria-hidden="true"></div>
                     <div>
-                        <span class="dash-card-label">Vehículos</span>
+                        <span class="dash-card-label">Vehiculos</span>
                         <strong class="dash-card-value" id="total-vehiculos">--</strong>
                     </div>
                 </div>
-                <div class="dash-card dash-card-drivers">
-                    <div class="dash-card-icon icon-driver" aria-hidden="true"></div>
+                <div class="dash-card dash-card-docs">
+                    <div class="dash-card-icon" data-symbol="!" aria-hidden="true"></div>
                     <div>
-                        <span class="dash-card-label">Conductores</span>
-                        <strong class="dash-card-value" id="total-conductores">--</strong>
+                        <span class="dash-card-label">Por vencer</span>
+                        <strong class="dash-card-value" id="total-por-vencer">--</strong>
                     </div>
                 </div>
                 <div class="dash-card dash-card-service">
-                    <div class="dash-card-icon icon-service" aria-hidden="true"></div>
+                    <div class="dash-card-icon" data-symbol="M" aria-hidden="true"></div>
                     <div>
                         <span class="dash-card-label">Mantenimientos</span>
                         <strong class="dash-card-value" id="total-mantenimientos">--</strong>
                     </div>
                 </div>
                 <div class="dash-card dash-card-routes">
-                    <div class="dash-card-icon icon-route" aria-hidden="true"></div>
+                    <div class="dash-card-icon" data-symbol="D" aria-hidden="true"></div>
                     <div>
-                        <span class="dash-card-label">Vencimientos</span>
-                        <strong class="dash-card-value" id="total-rutas">--</strong>
+                        <span class="dash-card-label">Documentos</span>
+                        <strong class="dash-card-value" id="total-documentos">--</strong>
                     </div>
                 </div>
             </div>
 
-            <div class="dash-grid">
-                <div class="dash-panel">
-                    <h3 class="dash-panel-title">Últimos vehículos añadidos</h3>
-                    <table class="dash-table">
-                        <thead>
-                            <tr>
-                                <th>Placa</th>
-                                <th>Marca</th>
-                                <th>Modelo</th>
-                                <th>Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-vehiculos">
-                            <tr><td colspan="4" class="dash-empty">Cargando...</td></tr>
-                        </tbody>
-                    </table>
+            <div class="dash-workspace">
+                <div class="dash-panel dash-panel-main">
+                    <div class="dash-panel-head">
+                        <div>
+                            <h3 class="dash-panel-title">Vencimientos cercanos</h3>
+                            <p class="dash-panel-subtitle">Documentos vencidos o por vencer en los proximos 30 dias.</p>
+                        </div>
+                        <a class="dash-panel-link" href="documentos.html">Gestionar</a>
+                    </div>
+                    <div class="dash-list" id="lista-vencimientos">
+                        <p class="dash-empty">Cargando...</p>
+                    </div>
                 </div>
 
                 <div class="dash-panel">
-                    <h3 class="dash-panel-title">Próximos mantenimientos</h3>
+                    <div class="dash-panel-head">
+                        <div>
+                            <h3 class="dash-panel-title">Mantenimientos recientes</h3>
+                            <p class="dash-panel-subtitle">Ultimas intervenciones registradas.</p>
+                        </div>
+                        <a class="dash-panel-link" href="mantenimientos.html">Ver todo</a>
+                    </div>
                     <ul class="dash-list" id="lista-mantenimientos">
                         <li class="dash-empty">Cargando...</li>
                     </ul>
+                </div>
+
+                <div class="dash-panel">
+                    <div class="dash-panel-head">
+                        <div>
+                            <h3 class="dash-panel-title">Mayor kilometraje</h3>
+                            <p class="dash-panel-subtitle">Unidades que conviene revisar primero.</p>
+                        </div>
+                    </div>
+                    <ul class="dash-list" id="lista-kilometraje">
+                        <li class="dash-empty">Cargando...</li>
+                    </ul>
+                </div>
+
+                <div class="dash-panel dash-panel-main">
+                    <div class="dash-panel-head">
+                        <div>
+                            <h3 class="dash-panel-title">Flota por combustible</h3>
+                            <p class="dash-panel-subtitle">Distribucion general de los vehiculos registrados.</p>
+                        </div>
+                        <a class="dash-panel-link" href="add.html">Agregar</a>
+                    </div>
+                    <div class="dash-bars" id="resumen-combustible">
+                        <p class="dash-empty">Cargando...</p>
+                    </div>
                 </div>
             </div>
         </main>

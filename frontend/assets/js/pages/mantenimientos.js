@@ -47,8 +47,8 @@ function formatDate(value) {
     });
 }
 
-function fillVehicleSelect(select, vehiculos) {
-    select.innerHTML = '<option value="">Selecciona un vehiculo</option>';
+function fillVehicleSelect(select, vehiculos, placeholder = "Selecciona un vehiculo", valueField = "id") {
+    select.innerHTML = `<option value="">${placeholder}</option>`;
 
     if (!vehiculos.length) {
         select.innerHTML = '<option value="">Primero registra un vehiculo</option>';
@@ -57,7 +57,7 @@ function fillVehicleSelect(select, vehiculos) {
 
     vehiculos.forEach((vehiculo) => {
         const option = document.createElement("option");
-        option.value = vehiculo.id;
+        option.value = vehiculo[valueField] || "";
         option.textContent = `${vehiculo.placa} - ${vehiculo.marca} ${vehiculo.modelo}`;
         select.appendChild(option);
     });
@@ -210,7 +210,7 @@ function maintenanceMatchesFilters(item) {
     const itemPlaca = String(item.placa || "").toLowerCase();
     const itemFecha = String(item.fecha || "").slice(0, 10);
 
-    if (placa && !itemPlaca.includes(placa)) return false;
+    if (placa && itemPlaca !== placa) return false;
     if (fechaDesde && (!itemFecha || itemFecha < fechaDesde)) return false;
     if (fechaHasta && (!itemFecha || itemFecha > fechaHasta)) return false;
 
@@ -247,6 +247,7 @@ async function cargarDatos() {
 
         const vehiculos = await window.VehiAmb.api.getVehiculos();
         fillVehicleSelect(mantenimientoSelect, vehiculos);
+        fillVehicleSelect(filterPlaca, vehiculos, "Todas las placas", "placa");
     } catch (error) {
         console.error(error);
         window.VehiAmb.ui.showMessage(mensaje, "No fue posible cargar los vehiculos", "error");
@@ -295,6 +296,7 @@ mantenimientosFilterForm.addEventListener("submit", (event) => {
 
 [filterPlaca, filterFechaDesde, filterFechaHasta].forEach((input) => {
     input.addEventListener("input", applyMaintenanceFilters);
+    input.addEventListener("change", applyMaintenanceFilters);
 });
 
 clearFiltersButton.addEventListener("click", () => {
