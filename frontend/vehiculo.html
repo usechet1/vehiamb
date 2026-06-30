@@ -5,6 +5,130 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ficha del vehiculo - VehiAmb</title>
     <link rel="stylesheet" href="assets/css/styles.css">
+    <style>
+        .vehicle-status-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 10px;
+        }
+
+        .vehicle-status-options {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 8px;
+            border: 0;
+        }
+
+        .vehicle-status-options legend {
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            position: absolute;
+            clip: rect(0 0 0 0);
+            white-space: nowrap;
+        }
+
+        .vehicle-status-option {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            min-height: 30px;
+            padding: 5px 9px;
+            border: 1px solid var(--color-border);
+            border-radius: 999px;
+            background: var(--color-surface);
+            color: var(--color-ink-soft);
+            font-size: 0.76rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: border-color var(--transition), background var(--transition), color var(--transition);
+        }
+
+        .vehicle-status-option input {
+            width: 14px;
+            height: 14px;
+            accent-color: var(--color-primary);
+        }
+
+        .vehicle-status-option:has(input:checked) {
+            border-color: var(--color-primary);
+            background: #fff7f8;
+            color: var(--color-primary);
+        }
+
+        .vehicle-image-card {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .vehicle-image-frame {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 10;
+            overflow: hidden;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            background:
+                linear-gradient(135deg, rgba(178, 31, 45, 0.08), rgba(48, 95, 143, 0.08)),
+                var(--color-surface-2);
+        }
+
+        .vehicle-image-frame img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: cover;
+        }
+
+        .vehicle-image-placeholder {
+            display: grid;
+            width: 100%;
+            height: 100%;
+            place-items: center;
+            color: var(--color-muted);
+            font-size: 0.9rem;
+            font-weight: 800;
+            text-align: center;
+        }
+
+        .vehicle-image-meta {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .vehicle-image-meta h3 {
+            color: var(--color-ink);
+            font-size: 1rem;
+            line-height: 1.25;
+        }
+
+        .vehicle-image-meta p {
+            margin-top: 4px;
+            color: var(--color-muted);
+            font-size: 0.82rem;
+        }
+
+        .vehicle-summary-counters {
+            display: none;
+        }
+
+        @media (max-width: 620px) {
+            .vehicle-status-panel,
+            .vehicle-status-options {
+                align-items: flex-start;
+                justify-content: flex-start;
+            }
+
+            .vehicle-image-meta {
+                flex-direction: column;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="layout">
@@ -30,7 +154,20 @@
                     <p id="vehicleCode">Codigo interno: --</p>
                 </div>
                 <div class="vehicle-hero-status">
-                    <span class="badge badge-verde">Activo</span>
+                    <div class="vehicle-status-panel">
+                        <span id="vehicleStatusBadge" class="badge badge-verde">Activo</span>
+                        <fieldset class="vehicle-status-options" id="vehicleStatusOptions">
+                            <legend>Estado del vehiculo</legend>
+                            <label class="vehicle-status-option">
+                                <input type="radio" name="vehicleStatus" value="activo" checked>
+                                Activo
+                            </label>
+                            <label class="vehicle-status-option">
+                                <input type="radio" name="vehicleStatus" value="reparacion">
+                                En reparacion
+                            </label>
+                        </fieldset>
+                    </div>
                     <span id="vehicleKm" class="pill">-- km</span>
                 </div>
             </section>
@@ -48,19 +185,26 @@
 
                 <section class="section-card">
                     <div class="section-card-head">
-                        <h2>Resumen operativo</h2>
-                        <p>Vista rapida del estado de esta unidad.</p>
+                        <h2>Imagen del vehiculo</h2>
+                        <p>Referencia visual de esta unidad.</p>
                     </div>
                     <div class="section-card-body">
-                        <div class="summary-grid">
-                            <div>
-                                <span class="dash-card-label">Mantenimientos</span>
-                                <strong class="dash-card-value" id="vehicleMaintenanceCount">0</strong>
+                        <div class="vehicle-image-card">
+                            <div class="vehicle-image-frame">
+                                <img id="vehicleImage" class="hidden" src="" alt="Imagen del vehiculo">
+                                <div id="vehicleImagePlaceholder" class="vehicle-image-placeholder">Sin imagen disponible</div>
                             </div>
-                            <div>
-                                <span class="dash-card-label">Vencimientos</span>
-                                <strong class="dash-card-value" id="vehicleDocumentCount">0</strong>
+                            <div class="vehicle-image-meta">
+                                <div>
+                                    <span class="plate" id="vehicleImagePlate">---</span>
+                                    <h3 id="vehicleImageName">---</h3>
+                                    <p id="vehicleImageModel">Modelo no disponible</p>
+                                </div>
                             </div>
+                        </div>
+                        <div class="vehicle-summary-counters" aria-hidden="true">
+                            <span id="vehicleMaintenanceCount">0</span>
+                            <span id="vehicleDocumentCount">0</span>
                         </div>
                     </div>
                 </section>
@@ -116,6 +260,84 @@
     <script src="assets/js/shared/api.js"></script>
     <script src="assets/js/shared/ui.js"></script>
     <script src="assets/js/shared/sidebar.js"></script>
+    <script>
+        (function () {
+            const statusBadge = document.getElementById("vehicleStatusBadge");
+            const statusOptions = document.getElementById("vehicleStatusOptions");
+            const vehicleImage = document.getElementById("vehicleImage");
+            const vehicleImagePlaceholder = document.getElementById("vehicleImagePlaceholder");
+            const vehicleImagePlate = document.getElementById("vehicleImagePlate");
+            const vehicleImageName = document.getElementById("vehicleImageName");
+            const vehicleImageModel = document.getElementById("vehicleImageModel");
+
+            function getVehicleImageSource(vehiculo) {
+                const rawSource = vehiculo.imagen_url
+                    || vehiculo.imagen
+                    || vehiculo.foto_url
+                    || vehiculo.foto
+                    || vehiculo.image_url
+                    || vehiculo.image;
+
+                if (!rawSource) return "";
+                if (/^(https?:|data:|blob:)/i.test(rawSource)) return rawSource;
+                return window.VehiAmb?.api?.getAssetUrl
+                    ? window.VehiAmb.api.getAssetUrl(rawSource)
+                    : rawSource;
+            }
+
+            function renderVehicleImageCard(vehiculo) {
+                const title = `${vehiculo.marca || "Vehiculo"} ${vehiculo.modelo || ""}`.trim();
+                const imageSource = getVehicleImageSource(vehiculo);
+
+                vehicleImage.onerror = function () {
+                    vehicleImage.removeAttribute("src");
+                    window.VehiAmb.ui.hide(vehicleImage);
+                    window.VehiAmb.ui.show(vehicleImagePlaceholder);
+                };
+
+                vehicleImagePlate.textContent = vehiculo.placa || "SIN PLACA";
+                vehicleImageName.textContent = title;
+                vehicleImageModel.textContent = vehiculo.modelo
+                    ? `Modelo ${vehiculo.modelo}`
+                    : "Modelo no disponible";
+
+                if (imageSource) {
+                    vehicleImage.src = imageSource;
+                    vehicleImage.alt = `Imagen del vehiculo ${vehiculo.placa || title}`;
+                    window.VehiAmb.ui.show(vehicleImage);
+                    window.VehiAmb.ui.hide(vehicleImagePlaceholder);
+                    return;
+                }
+
+                vehicleImage.removeAttribute("src");
+                window.VehiAmb.ui.hide(vehicleImage);
+                window.VehiAmb.ui.show(vehicleImagePlaceholder);
+            }
+
+            function updateStatusBadge(value) {
+                const isRepair = value === "reparacion";
+
+                statusBadge.textContent = isRepair ? "En reparacion" : "Activo";
+                statusBadge.classList.toggle("badge-verde", !isRepair);
+                statusBadge.classList.toggle("badge-amarillo", isRepair);
+            }
+
+            statusOptions?.addEventListener("change", (event) => {
+                if (event.target.name === "vehicleStatus") {
+                    updateStatusBadge(event.target.value);
+                }
+            });
+
+            if (window.VehiAmb?.api?.getVehiculo) {
+                const getVehiculo = window.VehiAmb.api.getVehiculo;
+                window.VehiAmb.api.getVehiculo = async function (...args) {
+                    const vehiculo = await getVehiculo.apply(this, args);
+                    renderVehicleImageCard(vehiculo);
+                    return vehiculo;
+                };
+            }
+        })();
+    </script>
     <script src="assets/js/pages/vehicle-detail.js"></script>
 </body>
 </html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Usuarios - VehiAmb</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar"></aside>
+
+        <main class="content">
+            <div class="page-header">
+                <div>
+                    <h1>Administracion de usuarios</h1>
+                    <p class="page-kicker">Gestion de accesos, roles y permisos por modulo</p>
+                </div>
+            </div>
+
+            <div id="loader" class="loader hidden"></div>
+            <div id="mensaje" class="mensaje hidden"></div>
+
+            <div class="module-grid admin-users-grid">
+                <section class="form-card form-vertical admin-user-form-card">
+                    <div class="form-card-head">
+                        <span class="form-step" id="userFormMode">Nuevo usuario</span>
+                        <p>Asigna un rol para aplicar permisos RBAC.</p>
+                    </div>
+
+                    <form id="userForm" class="form-vertical">
+                        <input type="hidden" id="userId" name="id">
+
+                        <div class="form-group">
+                            <label for="userName">Nombre</label>
+                            <input type="text" id="userName" name="nombre" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="userEmail">Correo</label>
+                            <input type="email" id="userEmail" name="email" autocomplete="off" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="userPassword">Contrasena</label>
+                            <input type="password" id="userPassword" name="password" autocomplete="new-password" minlength="6">
+                            <span class="field-help">Obligatoria al crear. En edicion dejala vacia para conservar la actual.</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="userRole">Rol</label>
+                            <select id="userRole" name="role_id" required>
+                                <option value="">Selecciona un rol</option>
+                            </select>
+                        </div>
+
+                        <label class="toggle-row">
+                            <input type="checkbox" id="userActive" name="activo" checked>
+                            Usuario activo
+                        </label>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary admin-submit">Guardar usuario</button>
+                            <button type="button" class="btn-secondary" id="cancelEditButton">Cancelar</button>
+                        </div>
+                    </form>
+                </section>
+
+                <section class="section-card">
+                    <div class="section-card-head">
+                        <h2>Usuarios registrados</h2>
+                        <p>Activa, desactiva o edita los accesos del sistema.</p>
+                    </div>
+                    <div class="section-card-body">
+                        <div id="usersList" class="admin-users-list">
+                            <p class="dash-empty">Cargando usuarios...</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <section class="section-card admin-permissions-card">
+                <div class="section-card-head">
+                    <h2>Permisos por rol</h2>
+                    <p>Los permisos se aplican automaticamente a cada usuario segun su rol asignado.</p>
+                </div>
+                <div class="section-card-body">
+                    <div id="rolesPermissions" class="roles-permissions-grid">
+                        <p class="dash-empty">Cargando permisos...</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="assets/js/shared/auth.js"></script>
+    <script src="assets/js/shared/api.js"></script>
+    <script src="assets/js/shared/ui.js"></script>
+    <script src="assets/js/shared/sidebar.js"></script>
+    <script src="assets/js/pages/admin-users.js"></script>
+</body>
+</html>

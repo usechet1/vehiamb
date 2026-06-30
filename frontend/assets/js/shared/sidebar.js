@@ -7,12 +7,36 @@ function getInitials(name) {
         .join("");
 }
 
+function findNextButton(element) {
+    let next = element.nextElementSibling;
+
+    while (next) {
+        if (next.matches("button[data-page]")) return next;
+        if (next.matches(".nav-divider, .nav-label")) return null;
+        next = next.nextElementSibling;
+    }
+
+    return null;
+}
+
+function removeEmptyMenuGroups(aside) {
+    aside.querySelectorAll(".sidebar-menu").forEach((menu) => {
+        menu.querySelectorAll(".nav-divider, .nav-label").forEach((marker) => {
+            if (!findNextButton(marker)) {
+                marker.remove();
+            }
+        });
+    });
+}
+
 async function cargarSidebar() {
     const aside = document.getElementById("sidebar");
     if (!aside) return;
 
     try {
-        const res = await fetch("components/sidebar.html");
+        const res = await fetch(`components/sidebar.html?v=${Date.now()}`, {
+            cache: "no-store"
+        });
         if (!res.ok) {
             throw new Error("No se pudo cargar el sidebar");
         }
@@ -22,12 +46,13 @@ async function cargarSidebar() {
         console.error(error);
         aside.innerHTML = `
             <nav class="sidebar-menu">
-                <button data-page="index.html">Inicio</button>
-                <button data-page="add.html">Añadir vehículo</button>
-                <button data-page="dashboard.html">Ver vehículos</button>
-                <button data-page="mantenimientos.html">Mantenimientos</button>
-                <button data-page="documentos.html">Documentos</button>
-                <button data-page="simit.html">Consulta SIMIT</button>
+                <button data-page="index.html" data-permission="dashboard.view">Inicio</button>
+                <button data-page="add.html" data-permission="vehicles.create">Anadir vehiculo</button>
+                <button data-page="dashboard.html" data-permission="vehicles.view">Ver vehiculos</button>
+                <button data-page="mantenimientos.html" data-permission="maintenance.view">Mantenimientos</button>
+                <button data-page="documentos.html" data-permission="documents.view">Documentos</button>
+                <button data-page="simit.html" data-permission="simit.view">Consulta SIMIT</button>
+                <button data-page="admin-usuarios.html" data-permission="users.manage">Usuarios</button>
             </nav>
         `;
     }
@@ -41,6 +66,25 @@ async function cargarSidebar() {
         window.VehiAmb.auth.logout();
     });
 
+    try {
+        const user = await window.VehiAmb.auth.fetchCurrentUser();
+        if (!user) return;
+
+        if (nameEl) nameEl.textContent = user.nombre;
+        if (roleEl) roleEl.textContent = user.rol || "Usuario";
+        if (avatarEl) avatarEl.textContent = getInitials(user.nombre);
+
+        aside.querySelectorAll("button[data-permission]").forEach((btn) => {
+            if (!window.VehiAmb.auth.hasPermission(btn.dataset.permission)) {
+                btn.remove();
+            }
+        });
+
+        removeEmptyMenuGroups(aside);
+    } catch (error) {
+        console.error("No fue posible cargar el usuario del sidebar:", error);
+    }
+
     const paginaActual = window.location.pathname.split("/").pop() || "index.html";
     aside.querySelectorAll("button[data-page]").forEach((btn) => {
         if (btn.dataset.page === paginaActual) {
@@ -52,17 +96,6 @@ async function cargarSidebar() {
             window.location.href = btn.dataset.page;
         });
     });
-
-    try {
-        const user = await window.VehiAmb.auth.fetchCurrentUser();
-        if (!user) return;
-
-        if (nameEl) nameEl.textContent = user.nombre;
-        if (roleEl) roleEl.textContent = user.rol || "Usuario";
-        if (avatarEl) avatarEl.textContent = getInitials(user.nombre);
-    } catch (error) {
-        console.error("No fue posible cargar el usuario del sidebar:", error);
-    }
 }
 
 cargarSidebar();

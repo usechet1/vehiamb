@@ -1,9 +1,33 @@
+CREATE TABLE IF NOT EXISTS roles (
+  id BIGSERIAL PRIMARY KEY,
+  nombre TEXT NOT NULL UNIQUE,
+  descripcion TEXT,
+  activo BOOLEAN NOT NULL DEFAULT TRUE,
+  permisos_configurados BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS permisos (
+  id BIGSERIAL PRIMARY KEY,
+  codigo TEXT NOT NULL UNIQUE,
+  modulo TEXT NOT NULL,
+  descripcion TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS roles_permisos (
+  role_id BIGINT NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+  permiso_id BIGINT NOT NULL REFERENCES permisos(id) ON DELETE CASCADE,
+  PRIMARY KEY (role_id, permiso_id)
+);
+
 CREATE TABLE IF NOT EXISTS usuarios (
   id BIGSERIAL PRIMARY KEY,
   nombre TEXT NOT NULL,
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
   rol TEXT NOT NULL DEFAULT 'Administrador',
+  role_id BIGINT REFERENCES roles(id),
   activo BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -62,6 +86,7 @@ CREATE TABLE IF NOT EXISTS cambios_aceite (
 
 CREATE INDEX IF NOT EXISTS idx_vehiculos_placa ON vehiculos (placa);
 CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios (email);
+CREATE INDEX IF NOT EXISTS idx_usuarios_role_id ON usuarios (role_id);
 CREATE INDEX IF NOT EXISTS idx_mantenimientos_vehiculo_id ON mantenimientos (vehiculo_id);
 CREATE INDEX IF NOT EXISTS idx_documentos_vehiculo_id ON documentos (vehiculo_id);
 CREATE INDEX IF NOT EXISTS idx_cambios_aceite_vehiculo_id ON cambios_aceite (vehiculo_id);

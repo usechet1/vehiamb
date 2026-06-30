@@ -2,11 +2,21 @@ window.VehiAmb = window.VehiAmb || {};
 window.VehiAmb.API_URL = window.VehiAmb.API_URL || (
     window.location.port === "8080"
         ? "/api"
-        : "http://localhost:3000/api"
+        : "http://localhost:3001/api"
 );
 
 const LOGIN_PAGE = "login.html";
 const AUTH_STORAGE_KEY = "vehiamb.auth";
+const PAGE_PERMISSIONS = {
+    "index.html": "dashboard.view",
+    "dashboard.html": "vehicles.view",
+    "vehiculo.html": "vehicles.view",
+    "add.html": "vehicles.create",
+    "mantenimientos.html": "maintenance.view",
+    "documentos.html": "documents.view",
+    "simit.html": "simit.view",
+    "admin-usuarios.html": "users.manage"
+};
 
 function getStoredSession() {
     try {
@@ -31,6 +41,11 @@ function redirectToLogin() {
     window.location.href = LOGIN_PAGE;
 }
 
+function hasPermission(user, permission) {
+    if (!permission) return true;
+    return Array.isArray(user?.permisos) && user.permisos.includes(permission);
+}
+
 window.VehiAmb.auth = {
     getSession() {
         return getStoredSession();
@@ -42,6 +57,14 @@ window.VehiAmb.auth = {
 
     getUser() {
         return getStoredSession()?.user || null;
+    },
+
+    hasPermission(permission) {
+        return hasPermission(this.getUser(), permission);
+    },
+
+    getPagePermission(page) {
+        return PAGE_PERMISSIONS[page];
     },
 
     setSession(session) {
@@ -67,6 +90,7 @@ window.VehiAmb.auth = {
         if (!session) return null;
 
         const response = await fetch(`${window.VehiAmb.API_URL}/auth/me`, {
+            cache: "no-store",
             headers: {
                 Authorization: `Bearer ${session.token}`
             }
@@ -74,6 +98,11 @@ window.VehiAmb.auth = {
 
         if (response.status === 401) {
             this.logout();
+            return null;
+        }
+
+        if (response.status === 403) {
+            window.location.href = "index.html";
             return null;
         }
 
@@ -111,6 +140,21 @@ window.VehiAmb.auth = {
     logout() {
         this.clearSession();
         redirectToLogin();
+    },
+
+    async requirePageAccess() {
+        const currentPage = window.location.pathname.split("/").pop() || "index.html";
+        const permission = PAGE_PERMISSIONS[currentPage];
+        const user = await this.fetchCurrentUser();
+
+        if (!user) return null;
+
+        if (!hasPermission(user, permission)) {
+            window.location.href = "index.html";
+            return null;
+        }
+
+        return user;
     }
 };
 
@@ -127,5 +171,11 @@ window.VehiAmb.auth = {
 
     if (!getStoredSession()?.token) {
         redirectToLogin();
+        return;
     }
+
+    window.VehiAmb.auth.requirePageAccess().catch((error) => {
+        console.error("No fue posible validar permisos:", error);
+        redirectToLogin();
+    });
 })();

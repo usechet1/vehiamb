@@ -8,9 +8,16 @@ function toSafeUser(user) {
     id: user.id,
     nombre: user.nombre,
     email: user.email,
-    rol: user.rol,
-    activo: Boolean(user.activo)
+    rol: user.role_nombre || user.rol,
+    role_id: user.role_id,
+    activo: Boolean(user.activo),
+    permisos: user.permisos || []
   };
+}
+
+async function enrichUser(user) {
+  const permisos = await usuariosRepository.findPermissionsByUserId(user.id);
+  return toSafeUser({ ...user, permisos });
 }
 
 async function login(payload) {
@@ -33,7 +40,7 @@ async function login(payload) {
 
   return {
     token: createAuthToken(user),
-    user: toSafeUser(user)
+    user: await enrichUser(user)
   };
 }
 
@@ -48,7 +55,7 @@ async function getCurrentUser(authToken) {
     throw new HttpError(401, "Sesion invalida o expirada");
   }
 
-  return toSafeUser(user);
+  return enrichUser(user);
 }
 
 module.exports = {

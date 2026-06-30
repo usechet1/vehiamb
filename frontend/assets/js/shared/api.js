@@ -30,6 +30,10 @@ async function requestJson(url, options, errorMessage) {
         throw new Error("Sesion expirada");
     }
 
+    if (response.status === 403) {
+        throw new Error("No tienes permiso para realizar esta accion");
+    }
+
     if (!response.ok) {
         let serverMessage = "";
         try {
@@ -120,6 +124,74 @@ window.VehiAmb.api = {
                 body: JSON.stringify(payload)
             },
             "No se pudo guardar el documento"
+        );
+    },
+
+    getUsuarios() {
+        return requestJson(`${window.VehiAmb.API_URL}/usuarios`, undefined, "No se pudieron cargar los usuarios");
+    },
+
+    createUsuario(payload) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/usuarios`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            },
+            "No se pudo crear el usuario"
+        );
+    },
+
+    updateUsuario(id, payload) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/usuarios/${id}`,
+            {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            },
+            "No se pudo actualizar el usuario"
+        );
+    },
+
+    setUsuarioActivo(id, activo) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/usuarios/${id}/activo`,
+            {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ activo })
+            },
+            "No se pudo cambiar el estado del usuario"
+        );
+    },
+
+    getRoles() {
+        return requestJson(`${window.VehiAmb.API_URL}/usuarios/catalogos/roles`, undefined, "No se pudieron cargar los roles");
+    },
+
+    getPermisos() {
+        return requestJson(`${window.VehiAmb.API_URL}/usuarios/catalogos/permisos`, undefined, "No se pudieron cargar los permisos");
+    },
+
+    updateRolePermissions(roleId, permissionIds) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/usuarios/catalogos/roles/${roleId}/permisos`,
+            {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ permission_ids: permissionIds })
+            },
+            "No se pudieron actualizar los permisos"
         );
     }
 };

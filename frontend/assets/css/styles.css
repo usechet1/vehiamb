@@ -1188,6 +1188,141 @@ label[for="loginPassword"] {
     font-size: 0.84rem;
 }
 
+.admin-users-grid {
+    align-items: start;
+    margin-bottom: 20px;
+}
+
+.admin-user-form-card {
+    width: 100%;
+}
+
+.form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.form-actions .btn-primary,
+.form-actions .btn-secondary {
+    width: auto;
+    margin: 0;
+}
+
+.admin-submit {
+    min-width: 170px;
+}
+
+.toggle-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--color-ink-soft);
+    font-size: 0.86rem;
+    font-weight: 750;
+}
+
+.toggle-row input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--color-primary);
+}
+
+.admin-users-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.admin-user-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 14px;
+    padding: 14px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-2);
+}
+
+.admin-user-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.admin-user-actions .btn-secondary {
+    min-height: 36px;
+    padding: 8px 11px;
+    font-size: 0.82rem;
+}
+
+.admin-permissions-card {
+    margin-top: 20px;
+}
+
+.roles-permissions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+}
+
+.role-permission-card {
+    padding: 14px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-2);
+}
+
+.permission-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.role-permission-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.permission-group {
+    display: grid;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+}
+
+.permission-group legend {
+    padding: 0 5px;
+    color: var(--color-primary);
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.permission-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    color: var(--color-ink-soft);
+    font-size: 0.84rem;
+    font-weight: 700;
+}
+
+.permission-check input {
+    flex: 0 0 auto;
+    width: 15px;
+    height: 15px;
+    margin-top: 2px;
+    accent-color: var(--color-primary);
+}
+
 .simple-list-builder {
     display: flex;
     flex-direction: column;
@@ -1384,6 +1519,20 @@ label[for="loginPassword"] {
 
     .simple-list-entry {
         grid-template-columns: 1fr;
+    }
+
+    .admin-user-item {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-user-actions {
+        justify-content: stretch;
+    }
+
+    .admin-user-actions .btn-secondary,
+    .form-actions .btn-primary,
+    .form-actions .btn-secondary {
+        width: 100%;
     }
 
     .vehicle-hero {
