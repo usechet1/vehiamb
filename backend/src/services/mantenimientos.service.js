@@ -18,7 +18,7 @@ function toNumberOrNull(value) {
   if (typeof value == "string") {
     cleanValue = value.replace(",", "."); 
   }
-  const parsed = Number(value);
+  const parsed = Number(cleanValue);
   return Number.isFinite(parsed) ? parsed : null;
 }
 
@@ -59,6 +59,14 @@ async function validateMantenimiento(mantenimiento) {
   const vehiculo = await vehiculosRepository.findById(mantenimiento.vehiculo_id);
   if (!vehiculo) {
     throw new HttpError(404, "Vehiculo no encontrado");
+  }
+
+  const kilometrajeActual = Number(vehiculo.kilometraje_actual || 0);
+  if (mantenimiento.kilometraje !== null && mantenimiento.kilometraje < kilometrajeActual) {
+    throw new HttpError(
+      400,
+      `El kilometraje debe ser mayor o igual al actual del vehiculo (${kilometrajeActual} km)`
+    );
   }
 }
 

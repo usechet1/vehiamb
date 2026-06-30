@@ -89,7 +89,8 @@
                                 <div class="form-grid">
                                     <div class="form-group">
                                         <label>Kilometraje</label>
-                                        <input type="number" name="kilometraje" min="0">
+                                        <input type="number" name="kilometraje" id="mantenimientoKilometraje" min="0">
+                                        <span id="kilometrajeHelp" class="field-help">Selecciona un vehiculo para validar el kilometraje.</span>
                                     </div>
 
                                     <div class="form-group">
@@ -99,7 +100,7 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label>Adjunto de firma o autorizacion</label>
+                                    <label>Adjuntos</label>
                                     <input type="file" name="soporte" accept=".pdf,image/png,image/jpeg,image/webp">
                                     <p class="field-help">Soporta PDF, PNG, JPG o WEBP hasta 5 MB.</p>
                                 </div>
@@ -155,6 +156,19 @@
 
             <div id="loader" class="loader hidden"></div>
             <div id="mensaje" class="mensaje hidden"></div>
+
+            <div id="maintenanceDrawerBackdrop" class="drawer-backdrop hidden"></div>
+            <aside id="maintenanceDrawer" class="detail-drawer hidden" aria-hidden="true" aria-labelledby="maintenanceDrawerTitle">
+                <div class="detail-drawer-head">
+                    <div>
+                        <span class="form-step">Detalle de mantenimiento</span>
+                        <h2 id="maintenanceDrawerTitle">Mantenimiento</h2>
+                        <p id="maintenanceDrawerSubtitle">Informacion completa del registro</p>
+                    </div>
+                    <button type="button" id="closeMaintenanceDrawer" class="drawer-close" aria-label="Cerrar detalle">×</button>
+                </div>
+                <div id="maintenanceDrawerBody" class="detail-drawer-body"></div>
+            </aside>
         </main>
     </div>
 
