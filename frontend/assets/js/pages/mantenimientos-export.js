@@ -99,12 +99,13 @@
             return;
         }
 
-        const colX = [MARGIN_X, MARGIN_X + 220, MARGIN_X + 320];
+        const colX = [MARGIN_X, MARGIN_X + 150, MARGIN_X + 260, MARGIN_X + 330];
 
         doc.setFont(undefined, "bold");
         doc.text("Repuesto", colX[0], layout.y);
-        doc.text("Valor", colX[1], layout.y);
-        doc.text("Notas", colX[2], layout.y);
+        doc.text("Proveedor", colX[1], layout.y);
+        doc.text("Valor", colX[2], layout.y);
+        doc.text("Notas", colX[3], layout.y);
         layout.spacer(6);
         doc.line(MARGIN_X, layout.y, layout.pageWidth - MARGIN_X, layout.y);
         layout.spacer(14);
@@ -112,9 +113,10 @@
 
         repuestos.forEach((repuesto) => {
             layout.ensureSpace(16);
-            doc.text(safe(repuesto.repuesto), colX[0], layout.y, { maxWidth: 200 });
-            doc.text(repuesto.valor ? formatCurrency(repuesto.valor) : "No registrado", colX[1], layout.y);
-            doc.text(safe(repuesto.notas, "Sin notas"), colX[2], layout.y, { maxWidth: layout.pageWidth - MARGIN_X - colX[2] });
+            doc.text(safe(repuesto.repuesto), colX[0], layout.y, { maxWidth: 140 });
+            doc.text(safe(repuesto.proveedor, "Sin proveedor"), colX[1], layout.y, { maxWidth: 100 });
+            doc.text(repuesto.valor ? formatCurrency(repuesto.valor) : "No registrado", colX[2], layout.y);
+            doc.text(safe(repuesto.notas, "Sin notas"), colX[3], layout.y, { maxWidth: layout.pageWidth - MARGIN_X - colX[3] });
             layout.spacer(16);
         });
     }

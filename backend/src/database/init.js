@@ -43,6 +43,7 @@ const PERMISSIONS = [
   ["dashboard.view", "Inicio", "Ver panel principal"],
   ["vehicles.view", "Vehiculos", "Ver vehiculos"],
   ["vehicles.create", "Vehiculos", "Crear vehiculos"],
+  ["vehicles.edit", "Vehiculos", "Editar vehiculos"],
   ["vehicles.delete", "Vehiculos", "Eliminar vehiculos"],
   ["maintenance.view", "Mantenimientos", "Ver mantenimientos"],
   ["maintenance.create", "Mantenimientos", "Registrar mantenimientos"],
@@ -59,6 +60,7 @@ const ROLE_PERMISSIONS = {
     "dashboard.view",
     "vehicles.view",
     "vehicles.create",
+    "vehicles.edit",
     "maintenance.view",
     "maintenance.create",
     "documents.view",
@@ -230,6 +232,8 @@ async function ensurePostgresTables() {
       tipo_carroceria TEXT,
       numero_chasis TEXT,
       numero_motor TEXT,
+      estado TEXT NOT NULL DEFAULT 'activo',
+      imagen_url TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
@@ -282,6 +286,8 @@ async function ensurePostgresTables() {
       fecha_expedicion DATE,
       fecha_vencimiento DATE,
       archivo_url TEXT,
+      archivo_nombre TEXT,
+      archivo_mime TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
@@ -298,7 +304,6 @@ async function ensurePostgresTables() {
   `);
 
   await db.run("CREATE INDEX IF NOT EXISTS idx_vehiculos_placa ON vehiculos (placa)");
-  await db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_vehiculos_numero_chasis ON vehiculos (numero_chasis) WHERE numero_chasis IS NOT NULL");
   await db.run("CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios (email)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_mantenimientos_vehiculo_id ON mantenimientos (vehiculo_id)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_documentos_vehiculo_id ON documentos (vehiculo_id)");
@@ -371,6 +376,8 @@ if (env.dbClient === "sqlite") {
         tipo_carroceria TEXT,
         numero_chasis TEXT,
         numero_motor TEXT,
+        estado TEXT NOT NULL DEFAULT 'activo',
+        imagen_url TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -426,6 +433,8 @@ if (env.dbClient === "sqlite") {
         fecha_expedicion TEXT,
         fecha_vencimiento TEXT,
         archivo_url TEXT,
+        archivo_nombre TEXT,
+        archivo_mime TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (vehiculo_id) REFERENCES vehiculos(id) ON DELETE CASCADE
       )
@@ -462,7 +471,11 @@ if (env.dbClient === "sqlite") {
     ensureColumn("vehiculos", "tipo_vehiculo", "TEXT"),
     ensureColumn("vehiculos", "tipo_carroceria", "TEXT"),
     ensureColumn("vehiculos", "numero_chasis", "TEXT"),
-    ensureColumn("vehiculos", "numero_motor", "TEXT")
+    ensureColumn("vehiculos", "numero_motor", "TEXT"),
+    ensureColumn("vehiculos", "estado", "TEXT NOT NULL DEFAULT 'activo'"),
+    ensureColumn("vehiculos", "imagen_url", "TEXT"),
+    ensureColumn("documentos", "archivo_nombre", "TEXT"),
+    ensureColumn("documentos", "archivo_mime", "TEXT")
   ])
     .then(() => db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_vehiculos_numero_chasis ON vehiculos (numero_chasis) WHERE numero_chasis IS NOT NULL"))
     .then(seedRolesAndPermissions)
@@ -490,12 +503,18 @@ if (env.dbClient === "sqlite") {
       ensureColumn("vehiculos", "tipo_vehiculo", "TEXT"),
       ensureColumn("vehiculos", "tipo_carroceria", "TEXT"),
       ensureColumn("vehiculos", "numero_chasis", "TEXT"),
-      ensureColumn("vehiculos", "numero_motor", "TEXT")
+      ensureColumn("vehiculos", "numero_motor", "TEXT"),
+      ensureColumn("vehiculos", "estado", "TEXT NOT NULL DEFAULT 'activo'"),
+      ensureColumn("vehiculos", "imagen_url", "TEXT"),
+      ensureColumn("documentos", "archivo_nombre", "TEXT"),
+      ensureColumn("documentos", "archivo_mime", "TEXT")
     ]))
     .then(() => Promise.all([
       ensureNumericColumn("vehiculos", "kilometraje_actual"),
       ensureNumericColumn("vehiculos", "capacidad_carga")
     ]))
+    .then(() => db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_vehiculos_numero_chasis ON vehiculos (numero_chasis) WHERE numero_chasis IS NOT NULL"))
+    .then(() => db.run("CREATE INDEX IF NOT EXISTS idx_vehiculos_estado ON vehiculos (estado)"))
     .then(() => db.run("CREATE INDEX IF NOT EXISTS idx_usuarios_role_id ON usuarios (role_id)"))
     .then(seedRolesAndPermissions)
     .then(syncUserRoles)

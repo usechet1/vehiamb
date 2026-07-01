@@ -3,6 +3,7 @@ const documentosFilterForm = document.getElementById("documentosFilterForm");
 const documentoSelect = document.getElementById("vehiculoDocumento");
 const documentosList = document.getElementById("documentosList");
 const filterDocumentoPlaca = document.getElementById("filterDocumentoPlaca");
+const filterDocumentoTipo = document.getElementById("filterDocumentoTipo");
 const filterDocumentoFechaDesde = document.getElementById("filterDocumentoFechaDesde");
 const filterDocumentoFechaHasta = document.getElementById("filterDocumentoFechaHasta");
 const documentosFilterSummary = document.getElementById("documentosFilterSummary");
@@ -45,8 +46,9 @@ function daysUntil(value) {
     return Math.ceil((target.getTime() - today.getTime()) / 86400000);
 }
 
-function fillVehicleSelect(select, vehiculos) {
-    select.innerHTML = '<option value="">Selecciona un vehiculo</option>';
+function fillVehicleSelect(select, vehiculos, placeholder = "Selecciona un vehiculo", valueField = "id") {
+    const previousValue = select.value;
+    select.innerHTML = `<option value="">${placeholder}</option>`;
 
     if (!vehiculos.length) {
         select.innerHTML = '<option value="">Primero registra un vehiculo</option>';
@@ -55,10 +57,14 @@ function fillVehicleSelect(select, vehiculos) {
 
     vehiculos.forEach((vehiculo) => {
         const option = document.createElement("option");
-        option.value = vehiculo.id;
+        option.value = vehiculo[valueField] || "";
         option.textContent = `${vehiculo.placa} - ${vehiculo.marca} ${vehiculo.modelo}`;
         select.appendChild(option);
     });
+
+    if (previousValue && Array.from(select.options).some((option) => option.value === previousValue)) {
+        select.value = previousValue;
+    }
 }
 
 function renderDocumentos(documentos) {
@@ -92,20 +98,27 @@ function renderDocumentos(documentos) {
                 <div class="record-meta">
                     <span class="pill">Expedicion: ${formatDate(item.fecha_expedicion)}</span>
                     <span class="pill">Vencimiento: ${formatDate(item.fecha_vencimiento)}</span>
+                    ${item.archivo_url ? '<span class="pill">Adjunto disponible</span>' : ""}
                 </div>
+                ${item.archivo_url ? `
+                    <a class="record-link" href="${window.VehiAmb.api.getAssetUrl(item.archivo_url)}" target="_blank" rel="noreferrer">
+                        ${item.archivo_nombre || "Ver adjunto"}
+                    </a>
+                ` : ""}
             </article>
         `;
     }).join("");
 }
 
 function documentMatchesFilters(item) {
-    const placa = filterDocumentoPlaca.value.trim().toLowerCase();
+    const placa = filterDocumentoPlaca.value;
+    const tipo = filterDocumentoTipo.value;
     const fechaDesde = filterDocumentoFechaDesde.value;
     const fechaHasta = filterDocumentoFechaHasta.value;
-    const itemPlaca = String(item.placa || "").toLowerCase();
     const itemFecha = String(item.fecha_vencimiento || "").slice(0, 10);
 
-    if (placa && !itemPlaca.includes(placa)) return false;
+    if (placa && item.placa !== placa) return false;
+    if (tipo && item.tipo !== tipo) return false;
     if (fechaDesde && (!itemFecha || itemFecha < fechaDesde)) return false;
     if (fechaHasta && (!itemFecha || itemFecha > fechaHasta)) return false;
 
@@ -115,7 +128,8 @@ function documentMatchesFilters(item) {
 function updateDocumentosFilterSummary(filteredCount) {
     const total = documentosState.length;
     const hasFilters = Boolean(
-        filterDocumentoPlaca.value.trim() ||
+        filterDocumentoPlaca.value ||
+        filterDocumentoTipo.value ||
         filterDocumentoFechaDesde.value ||
         filterDocumentoFechaHasta.value
     );
@@ -140,8 +154,9 @@ async function cargarDatos() {
     try {
         window.VehiAmb.ui.show(loader);
 
-        const vehiculos = await window.VehiAmb.api.getVehiculos();
+        const vehiculos = await window.VehiAmb.api.getVehiculosCatalogo();
         fillVehicleSelect(documentoSelect, vehiculos);
+        fillVehicleSelect(filterDocumentoPlaca, vehiculos, "Todas las placas", "placa");
     } catch (error) {
         console.error(error);
         window.VehiAmb.ui.showMessage(mensaje, "No fue posible cargar los vehiculos", "error");
@@ -167,11 +182,10 @@ documentoForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const formData = new FormData(documentoForm);
-    const payload = Object.fromEntries(formData.entries());
 
     try {
         window.VehiAmb.ui.show(loader);
-        await window.VehiAmb.api.createDocumento(payload);
+        await window.VehiAmb.api.createDocumento(formData);
         window.VehiAmb.ui.showMessage(mensaje, "Documento guardado correctamente");
         documentoForm.reset();
         await cargarDatos();
@@ -187,8 +201,12 @@ documentosFilterForm.addEventListener("submit", (event) => {
     event.preventDefault();
 });
 
-[filterDocumentoPlaca, filterDocumentoFechaDesde, filterDocumentoFechaHasta].forEach((input) => {
+[filterDocumentoFechaDesde, filterDocumentoFechaHasta].forEach((input) => {
     input.addEventListener("input", applyDocumentosFilters);
+});
+
+[filterDocumentoPlaca, filterDocumentoTipo].forEach((select) => {
+    select.addEventListener("change", applyDocumentosFilters);
 });
 
 clearDocumentosFiltersButton.addEventListener("click", () => {

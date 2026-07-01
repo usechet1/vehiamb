@@ -83,7 +83,7 @@ async function copyPlateToClipboard() {
 async function cargarVehiculos() {
     try {
         window.VehiAmb.ui.show(loader);
-        vehiculosState = await window.VehiAmb.api.getVehiculos();
+        vehiculosState = await window.VehiAmb.api.getVehiculosCatalogo();
         fillVehicleSelect(vehiculosState);
         renderVehicleList(vehiculosState);
     } catch (error) {

@@ -11,6 +11,6 @@ exports.getDocumentosByVehicle = async (req, res) => {
 };
 
 exports.createDocumento = async (req, res) => {
-  const documento = await documentosService.createDocumento(req.body);
+  const documento = await documentosService.createDocumento(req.body, req.file);
   res.status(201).json(documento);
 };

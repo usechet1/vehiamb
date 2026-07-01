@@ -4,9 +4,17 @@ const router = express.Router();
 const documentosController = require("../controllers/documentos.controller");
 const asyncHandler = require("../middlewares/async-handler");
 const requirePermission = require("../middlewares/require-permission");
+const uploadDocumento = require("../middlewares/upload-documento");
+const compressImage = require("../middlewares/compress-image");
 
 router.get("/", requirePermission("documents.view"), asyncHandler(documentosController.getDocumentos));
 router.get("/vehiculo/:vehiculoId", requirePermission("documents.view"), asyncHandler(documentosController.getDocumentosByVehicle));
-router.post("/", requirePermission("documents.create"), asyncHandler(documentosController.createDocumento));
+router.post(
+  "/",
+  requirePermission("documents.create"),
+  uploadDocumento.single("archivo"),
+  asyncHandler(compressImage),
+  asyncHandler(documentosController.createDocumento)
+);
 
 module.exports = router;

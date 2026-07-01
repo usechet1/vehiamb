@@ -64,6 +64,12 @@
                                     </div>
                                 </div>
 
+                                <div class="form-group">
+                                    <label>Adjuntos</label>
+                                    <input type="file" name="archivo" accept=".pdf,image/png,image/jpeg,image/webp">
+                                    <p class="field-help">Soporta PDF, PNG, JPG o WEBP hasta 5 MB.</p>
+                                </div>
+
                                 <button type="submit" class="btn-primary">Guardar documento</button>
                             </form>
                         </div>
@@ -78,12 +84,26 @@
                         </div>
                         <div class="section-card-body">
                             <form id="documentosFilterForm" class="filter-form">
-                                <div class="form-group">
-                                    <label>Placa</label>
-                                    <input type="search" id="filterDocumentoPlaca" placeholder="Ej: ABC123">
-                                </div>
+                                <div class="form-grid-4">
+                                    <div class="form-group">
+                                        <label>Placa</label>
+                                        <select id="filterDocumentoPlaca">
+                                            <option value="">Todas las placas</option>
+                                        </select>
+                                    </div>
 
-                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Tipo de documento</label>
+                                        <select id="filterDocumentoTipo">
+                                            <option value="">Todos</option>
+                                            <option value="tecnomecanica">Tecnomecanica</option>
+                                            <option value="soat">SOAT</option>
+                                            <option value="seguro">Seguro</option>
+                                            <option value="tarjeta_operacion">Tarjeta de operacion</option>
+                                            <option value="otro">Otro</option>
+                                        </select>
+                                    </div>
+
                                     <div class="form-group">
                                         <label>Desde</label>
                                         <input type="date" id="filterDocumentoFechaDesde">

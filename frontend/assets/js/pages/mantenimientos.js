@@ -14,6 +14,7 @@ const mantenimientoKilometraje = document.getElementById("mantenimientoKilometra
 const kilometrajeHelp = document.getElementById("kilometrajeHelp");
 const repuestosData = document.getElementById("repuestosData");
 const repuestoInput = document.getElementById("repuestoInput");
+const repuestoProveedorInput = document.getElementById("repuestoProveedorInput");
 const repuestoValorInput = document.getElementById("repuestoValorInput");
 const repuestoNotasInput = document.getElementById("repuestoNotasInput");
 const addRepuestoButton = document.getElementById("addRepuestoButton");
@@ -178,11 +179,12 @@ function parseRepuestos(value) {
             .filter(Boolean)
             .map((item) => {
                 if (typeof item === "string") {
-                    return { repuesto: item.trim(), valor: "", notas: "" };
+                    return { repuesto: item.trim(), proveedor: "", valor: "", notas: "" };
                 }
 
                 return {
                     repuesto: String(item.repuesto || item.nombre || "").trim(),
+                    proveedor: String(item.proveedor || "").trim(),
                     valor: item.valor ?? "",
                     notas: String(item.notas || "").trim()
                 };
@@ -202,7 +204,7 @@ function parseRepuestos(value) {
 
         return value
             .split(/\n|,/)
-            .map((item) => ({ repuesto: item.trim(), valor: "", notas: "" }))
+            .map((item) => ({ repuesto: item.trim(), proveedor: "", valor: "", notas: "" }))
             .filter((item) => item.repuesto);
     }
 
@@ -224,6 +226,7 @@ function renderRepuestosBuilder() {
         <li class="simple-checklist-item">
             <div class="simple-checklist-content">
                 <span class="simple-checklist-label">${item.repuesto}</span>
+                <span class="simple-checklist-detail">${item.proveedor || "Sin proveedor"}</span>
                 <span class="simple-checklist-detail">${item.valor ? formatCurrency(item.valor) : "Sin valor"}</span>
                 <span class="simple-checklist-detail">${item.notas || "Sin notas"}</span>
             </div>
@@ -246,13 +249,15 @@ function renderRepuestosBuilder() {
 
 function addRepuesto() {
     const repuesto = repuestoInput.value.trim();
+    const proveedor = repuestoProveedorInput.value.trim();
     const valor = repuestoValorInput.value.trim();
     const notas = repuestoNotasInput.value.trim();
 
     if (!repuesto) return;
 
-    repuestosState.push({ repuesto, valor, notas });
+    repuestosState.push({ repuesto, proveedor, valor, notas });
     repuestoInput.value = "";
+    repuestoProveedorInput.value = "";
     repuestoValorInput.value = "";
     repuestoNotasInput.value = "";
     renderRepuestosBuilder();
@@ -269,6 +274,7 @@ function renderRepuestosMeta(value) {
     return repuestos.map((repuesto) => `
         <span class="pill">
             ${repuesto.repuesto}
+            ${repuesto.proveedor ? ` - ${repuesto.proveedor}` : ""}
             ${repuesto.valor ? ` - ${formatCurrency(repuesto.valor)}` : ""}
             ${repuesto.notas ? ` - ${repuesto.notas}` : ""}
         </span>
@@ -328,6 +334,7 @@ function renderDetailRepuestos(value) {
             ${repuestos.map((repuesto) => `
                 <article class="detail-part-item">
                     <strong>${escapeHtml(repuesto.repuesto)}</strong>
+                    <span>Proveedor: ${escapeHtml(repuesto.proveedor || "Sin proveedor")}</span>
                     <span>${escapeHtml(repuesto.valor ? formatCurrency(repuesto.valor) : "Sin valor")}</span>
                     <p>${escapeHtml(repuesto.notas || "Sin notas")}</p>
                 </article>
@@ -465,10 +472,16 @@ async function cargarDatos() {
     try {
         window.VehiAmb.ui.show(loader);
 
-        const vehiculos = await window.VehiAmb.api.getVehiculos();
+        const vehiculos = await window.VehiAmb.api.getVehiculosCatalogo();
         vehiculosState = vehiculos;
         fillVehicleSelect(mantenimientoSelect, vehiculos);
         fillVehicleSelect(filterPlaca, vehiculos, "Todas las placas", "placa");
+
+        const vehiculoPreseleccionado = new URLSearchParams(window.location.search).get("vehiculo");
+        if (vehiculoPreseleccionado && Array.from(mantenimientoSelect.options).some((option) => option.value === vehiculoPreseleccionado)) {
+            mantenimientoSelect.value = vehiculoPreseleccionado;
+        }
+
         updateKilometrajeValidation();
     } catch (error) {
         console.error(error);

@@ -56,25 +56,71 @@ window.VehiAmb.api = {
         return `${window.VehiAmb.ASSET_BASE_URL}${path}`;
     },
 
-    getVehiculos() {
-        return requestJson(`${window.VehiAmb.API_URL}/vehiculos`, undefined, "No se pudieron cargar los vehiculos");
+    getVehiculos(filters = {}) {
+        const params = new URLSearchParams();
+
+        if (filters.search) params.set("search", filters.search);
+        if (filters.estado) params.set("estado", filters.estado);
+        if (filters.tipo) params.set("tipo", filters.tipo);
+        if (filters.marca) params.set("marca", filters.marca);
+        if (filters.sort) params.set("sort", filters.sort);
+        if (filters.page) params.set("page", filters.page);
+        if (filters.limit) params.set("limit", filters.limit);
+
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/vehiculos${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudieron cargar los vehiculos"
+        );
+    },
+
+    getMarcasVehiculos() {
+        return requestJson(`${window.VehiAmb.API_URL}/vehiculos/catalogos/marcas`, undefined, "No se pudieron cargar las marcas");
+    },
+
+    getVehiculosCatalogo() {
+        return requestJson(`${window.VehiAmb.API_URL}/vehiculos/catalogos/lista`, undefined, "No se pudieron cargar los vehiculos");
     },
 
     getVehiculo(id) {
         return requestJson(`${window.VehiAmb.API_URL}/vehiculos/${id}`, undefined, "No se pudo cargar el vehiculo");
     },
 
-    createVehiculo(payload) {
+    createVehiculo(formData) {
         return requestJson(
             `${window.VehiAmb.API_URL}/vehiculos`,
             {
                 method: "POST",
+                body: formData
+            },
+            "No se pudo guardar el vehiculo"
+        );
+    },
+
+    updateVehiculo(id, formData) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/vehiculos/${id}`,
+            {
+                method: "PUT",
+                body: formData
+            },
+            "No se pudo actualizar el vehiculo"
+        );
+    },
+
+    updateEstadoVehiculo(id, estado) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/vehiculos/${id}/estado`,
+            {
+                method: "PATCH",
                 headers: {
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({ estado })
             },
-            "No se pudo guardar el vehiculo"
+            "No se pudo actualizar el estado del vehiculo"
         );
     },
 
@@ -131,10 +177,7 @@ window.VehiAmb.api = {
             `${window.VehiAmb.API_URL}/documentos`,
             {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(payload)
+                body: payload
             },
             "No se pudo guardar el documento"
         );

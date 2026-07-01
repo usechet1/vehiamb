@@ -18,74 +18,75 @@
                 </div>
             </div>
 
-            <div class="module-grid">
-                <div class="stack">
-                    <section class="section-card">
-                        <div class="section-card-head">
-                            <h2>Registrar mantenimiento</h2>
-                            <p>Revision, preventivo, correctivo, aceite, frenos, llantas u otro trabajo.</p>
-                        </div>
-                        <div class="section-card-body">
-                            <form id="mantenimientoForm" class="compact-form">
+            <div class="stack">
+                <section class="section-card">
+                    <div class="section-card-head">
+                        <h2>Registrar mantenimiento</h2>
+                        <p>Revision, preventivo, correctivo, aceite, frenos, llantas u otro trabajo.</p>
+                    </div>
+                    <div class="section-card-body">
+                        <form id="mantenimientoForm" class="compact-form">
+                            <div class="form-group">
+                                <label>Vehiculo</label>
+                                <select name="vehiculo_id" id="vehiculoMantenimiento" required>
+                                    <option value="">Selecciona un vehiculo</option>
+                                </select>
+                            </div>
+
+                            <div class="form-grid">
                                 <div class="form-group">
-                                    <label>Vehiculo</label>
-                                    <select name="vehiculo_id" id="vehiculoMantenimiento" required>
-                                        <option value="">Selecciona un vehiculo</option>
+                                    <label>Fecha</label>
+                                    <input type="date" name="fecha" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Tipo</label>
+                                    <select name="tipo" id="mantenimientoTipo" required>
+                                        <option value="revision">Revision general</option>
+                                        <option value="preventivo">Mantenimiento preventivo</option>
+                                        <option value="correctivo">Mantenimiento correctivo</option>
+                                        <option value="cambio_aceite">Cambio de aceite</option>
+                                        <option value="frenos">Frenos</option>
+                                        <option value="llantas">Llantas</option>
+                                        <option value="otro">Otro</option>
                                     </select>
                                 </div>
+                            </div>
 
-                                <div class="form-grid">
-                                    <div class="form-group">
-                                        <label>Fecha</label>
-                                        <input type="date" name="fecha" required>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label>Tipo</label>
-                                        <select name="tipo" id="mantenimientoTipo" required>
-                                            <option value="revision">Revision general</option>
-                                            <option value="preventivo">Mantenimiento preventivo</option>
-                                            <option value="correctivo">Mantenimiento correctivo</option>
-                                            <option value="cambio_aceite">Cambio de aceite</option>
-                                            <option value="frenos">Frenos</option>
-                                            <option value="llantas">Llantas</option>
-                                            <option value="otro">Otro</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div class="form-grid hidden" id="cambioAceiteFields">
-                                    <div class="form-group">
-                                        <label>Proximo cambio de aceite (km)</label>
-                                        <input type="number" name="proximo_cambio_km" id="proximoCambioKmInput" min="0">
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label>Proxima fecha de cambio</label>
-                                        <input type="date" name="proximo_cambio_fecha" id="proximoCambioFechaInput">
-                                    </div>
+                            <div class="form-grid hidden" id="cambioAceiteFields">
+                                <div class="form-group">
+                                    <label>Proximo cambio de aceite (km)</label>
+                                    <input type="number" name="proximo_cambio_km" id="proximoCambioKmInput" min="0">
                                 </div>
 
                                 <div class="form-group">
-                                    <label>Descripción o detalles</label>
-                                    <textarea name="descripcion" placeholder="Ej: revision de frenos, suspension, luces, niveles y fugas"></textarea>
+                                    <label>Proxima fecha de cambio</label>
+                                    <input type="date" name="proximo_cambio_fecha" id="proximoCambioFechaInput">
                                 </div>
+                            </div>
 
-                                <div class="form-group">
-                                    <label>Repuestos utilizados</label>
-                                    <input type="hidden" name="repuestos" id="repuestosData">
-                                    <div class="simple-list-builder">
-                                        <div class="simple-list-entry">
-                                            <input type="text" id="repuestoInput" placeholder="Repuesto">
-                                            <input type="number" id="repuestoValorInput" placeholder="Valor" min="0" step="1000">
-                                            <input type="text" id="repuestoNotasInput" placeholder="Notas del repuesto">
-                                            <button type="button" id="addRepuestoButton" class="btn-secondary">Agregar</button>
-                                        </div>
-                                        <div id="repuestosEmpty" class="field-help">Aún no has agregado repuestos.</div>
-                                        <ul id="repuestosList" class="simple-checklist"></ul>
+                            <div class="form-group">
+                                <label>Descripción o detalles</label>
+                                <textarea name="descripcion" placeholder="Ej: revision de frenos, suspension, luces, niveles y fugas"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Repuestos utilizados</label>
+                                <input type="hidden" name="repuestos" id="repuestosData">
+                                <div class="simple-list-builder">
+                                    <div class="simple-list-entry">
+                                        <input type="text" id="repuestoInput" placeholder="Repuesto">
+                                        <input type="text" id="repuestoProveedorInput" placeholder="Proveedor">
+                                        <input type="number" id="repuestoValorInput" placeholder="Valor" min="0" step="1000">
+                                        <input type="text" id="repuestoNotasInput" placeholder="Notas del repuesto">
+                                        <button type="button" id="addRepuestoButton" class="btn-secondary">Agregar</button>
                                     </div>
+                                    <div id="repuestosEmpty" class="field-help">Aún no has agregado repuestos.</div>
+                                    <ul id="repuestosList" class="simple-checklist"></ul>
                                 </div>
+                            </div>
 
+                            <div class="form-grid-3">
                                 <div class="form-group">
                                     <label>Valor mano de obra</label>
                                     <input type="number" name="valor_mano_obra" id="valorManoObraInput" min="0" step="1000" value="0">
@@ -96,54 +97,51 @@
                                     <input type="text" id="costoTotalDisplay" readonly disabled>
                                 </div>
 
-                                <div class="form-group form-checkbox">
-                                    <label>
-                                        <input type="checkbox" name="vehiculo_varado" id="vehiculoVaradoInput">
-                                        Vehiculo varado / en taller (no disponible para asignacion de rutas)
-                                    </label>
+                                <div class="form-group">
+                                    <label>Kilometraje</label>
+                                    <input type="number" name="kilometraje" id="mantenimientoKilometraje" min="0">
+                                    <span id="kilometrajeHelp" class="field-help">Selecciona un vehiculo para validar el kilometraje.</span>
                                 </div>
+                            </div>
 
-                                <div class="form-grid">
-                                    <div class="form-group">
-                                        <label>Autorizado por</label>
-                                        <input type="text" name="autorizado_por" placeholder="Nombre de quien autoriza">
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label>Hecho por</label>
-                                        <input type="text" name="hecho_por" placeholder="Taller, tecnico o responsable">
-                                    </div>
-                                </div>
-
-                                <div class="form-grid">
-                                    <div class="form-group">
-                                        <label>Kilometraje</label>
-                                        <input type="number" name="kilometraje" id="mantenimientoKilometraje" min="0">
-                                        <span id="kilometrajeHelp" class="field-help">Selecciona un vehiculo para validar el kilometraje.</span>
-                                    </div>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Autorizado por</label>
+                                    <input type="text" name="autorizado_por" placeholder="Nombre de quien autoriza">
                                 </div>
 
                                 <div class="form-group">
-                                    <label>Adjuntos</label>
-                                    <input type="file" name="soporte" accept=".pdf,image/png,image/jpeg,image/webp">
-                                    <p class="field-help">Soporta PDF, PNG, JPG o WEBP hasta 5 MB.</p>
+                                    <label>Hecho por</label>
+                                    <input type="text" name="hecho_por" placeholder="Taller, tecnico o responsable">
                                 </div>
+                            </div>
 
-                                <button type="submit" class="btn-primary">Guardar mantenimiento</button>
-                            </form>
-                        </div>
-                    </section>
+                            <div class="form-group form-checkbox">
+                                <label>
+                                    <input type="checkbox" name="vehiculo_varado" id="vehiculoVaradoInput">
+                                    Vehiculo varado / en taller (no disponible para asignacion de rutas)
+                                </label>
+                            </div>
 
-                </div>
+                            <div class="form-group">
+                                <label>Adjuntos</label>
+                                <input type="file" name="soporte" accept=".pdf,image/png,image/jpeg,image/webp">
+                                <p class="field-help">Soporta PDF, PNG, JPG o WEBP hasta 5 MB.</p>
+                            </div>
 
-                <div class="stack">
-                    <section class="section-card">
-                        <div class="section-card-head">
-                            <h2>Historial reciente</h2>
-                            <p>Ultimas revisiones y mantenimientos registrados.</p>
-                        </div>
-                        <div class="section-card-body">
-                            <form id="mantenimientosFilterForm" class="filter-form">
+                            <button type="submit" class="btn-primary">Guardar mantenimiento</button>
+                        </form>
+                    </div>
+                </section>
+
+                <section class="section-card">
+                    <div class="section-card-head">
+                        <h2>Historial reciente</h2>
+                        <p>Ultimas revisiones y mantenimientos registrados.</p>
+                    </div>
+                    <div class="section-card-body">
+                        <form id="mantenimientosFilterForm" class="filter-form">
+                            <div class="form-grid-4">
                                 <div class="form-group">
                                     <label>Placa</label>
                                     <select id="filterPlaca">
@@ -165,32 +163,29 @@
                                     </select>
                                 </div>
 
-                                <div class="form-grid">
-                                    <div class="form-group">
-                                        <label>Desde</label>
-                                        <input type="date" id="filterFechaDesde">
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label>Hasta</label>
-                                        <input type="date" id="filterFechaHasta">
-                                    </div>
+                                <div class="form-group">
+                                    <label>Desde</label>
+                                    <input type="date" id="filterFechaDesde">
                                 </div>
 
-                                <div class="filter-actions">
-                                    <span id="filterSummary" class="field-help">Mostrando todos los mantenimientos.</span>
-                                    <button type="button" id="exportHistorialButton" class="btn-secondary">Exportar historial PDF</button>
-                                    <button type="button" id="clearFiltersButton" class="btn-secondary">Limpiar filtros</button>
+                                <div class="form-group">
+                                    <label>Hasta</label>
+                                    <input type="date" id="filterFechaHasta">
                                 </div>
-                            </form>
-
-                            <div id="mantenimientosList" class="records-list">
-                                <p class="dash-empty">Cargando...</p>
                             </div>
-                        </div>
-                    </section>
 
-                </div>
+                            <div class="filter-actions">
+                                <span id="filterSummary" class="field-help">Mostrando todos los mantenimientos.</span>
+                                <button type="button" id="exportHistorialButton" class="btn-secondary">Exportar historial PDF</button>
+                                <button type="button" id="clearFiltersButton" class="btn-secondary">Limpiar filtros</button>
+                            </div>
+                        </form>
+
+                        <div id="mantenimientosList" class="records-list">
+                            <p class="dash-empty">Cargando...</p>
+                        </div>
+                    </div>
+                </section>
             </div>
 
             <div id="loader" class="loader hidden"></div>

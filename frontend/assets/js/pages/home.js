@@ -130,62 +130,173 @@ function pintarMantenimientos(mantenimientos) {
     `).join("");
 }
 
-function pintarKilometraje(vehiculos) {
-    const container = document.getElementById("lista-kilometraje");
-    const topVehiculos = [...vehiculos]
-        .sort((a, b) => Number(b.kilometraje_actual || 0) - Number(a.kilometraje_actual || 0))
-        .slice(0, 5);
+const MESES = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+];
 
-    if (!topVehiculos.length) {
-        container.innerHTML = '<li class="dash-empty">Sin vehiculos registrados</li>';
+let calendarCursor = new Date();
+calendarCursor.setDate(1);
+let calendarSelectedDate = toDateKey(new Date());
+let calendarEventsByDate = new Map();
+
+function toDateKey(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
+function buildCalendarEvents(mantenimientos, documentos) {
+    const eventsByDate = new Map();
+
+    function addEvent(dateValue, event) {
+        const key = String(dateValue || "").slice(0, 10);
+        if (!key || Number.isNaN(new Date(`${key}T00:00:00`).getTime())) return;
+
+        if (!eventsByDate.has(key)) eventsByDate.set(key, []);
+        eventsByDate.get(key).push(event);
+    }
+
+    mantenimientos.forEach((mantenimiento) => {
+        const vehicle = `${mantenimiento.placa || "Sin placa"} - ${mantenimiento.marca || ""} ${mantenimiento.modelo || ""}`.trim();
+
+        addEvent(mantenimiento.fecha, {
+            kind: "mantenimiento",
+            title: tiposMantenimiento[mantenimiento.tipo] || mantenimiento.tipo || "Mantenimiento",
+            sub: vehicle
+        });
+
+        if (mantenimiento.tipo === "cambio_aceite" && mantenimiento.proximo_cambio_fecha) {
+            addEvent(mantenimiento.proximo_cambio_fecha, {
+                kind: "mantenimiento",
+                title: `Proximo cambio de aceite - ${mantenimiento.placa || "Sin placa"}`,
+                sub: vehicle
+            });
+        }
+    });
+
+    documentos.forEach((documento) => {
+        const vehicle = `${documento.placa || "Sin placa"} - ${documento.marca || ""} ${documento.modelo || ""}`.trim();
+
+        addEvent(documento.fecha_vencimiento, {
+            kind: "vencimiento",
+            title: tiposDocumento[documento.tipo] || documento.tipo || "Documento",
+            sub: vehicle
+        });
+    });
+
+    return eventsByDate;
+}
+
+function renderCalendarGrid() {
+    const grid = document.getElementById("calendarGrid");
+    const label = document.getElementById("calendarLabel");
+    const year = calendarCursor.getFullYear();
+    const month = calendarCursor.getMonth();
+    const todayKey = toDateKey(new Date());
+
+    label.textContent = `${MESES[month]} ${year}`;
+
+    const firstWeekdayIndex = (new Date(year, month, 1).getDay() + 6) % 7;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    let cellsHtml = "";
+
+    for (let i = 0; i < firstWeekdayIndex; i += 1) {
+        cellsHtml += '<div class="dash-calendar-day is-empty"></div>';
+    }
+
+    for (let day = 1; day <= daysInMonth; day += 1) {
+        const dateKey = toDateKey(new Date(year, month, day));
+        const events = calendarEventsByDate.get(dateKey) || [];
+        const hasMantenimiento = events.some((event) => event.kind === "mantenimiento");
+        const hasVencimiento = events.some((event) => event.kind === "vencimiento");
+
+        const classes = ["dash-calendar-day"];
+        if (dateKey === todayKey) classes.push("is-today");
+        if (dateKey === calendarSelectedDate) classes.push("is-selected");
+
+        cellsHtml += `
+            <div class="${classes.join(" ")}" data-date="${dateKey}">
+                <span class="dash-calendar-day-number">${day}</span>
+                <div class="dash-calendar-day-dots">
+                    ${hasMantenimiento ? '<span class="dash-calendar-dot dash-calendar-dot-mantenimiento"></span>' : ""}
+                    ${hasVencimiento ? '<span class="dash-calendar-dot dash-calendar-dot-vencimiento"></span>' : ""}
+                </div>
+            </div>
+        `;
+    }
+
+    grid.innerHTML = cellsHtml;
+}
+
+function renderCalendarAgenda() {
+    const head = document.getElementById("calendarAgendaHead");
+    const list = document.getElementById("calendarAgendaList");
+    const events = calendarEventsByDate.get(calendarSelectedDate) || [];
+
+    const selectedDate = new Date(`${calendarSelectedDate}T00:00:00`);
+    head.textContent = Number.isNaN(selectedDate.getTime())
+        ? "Selecciona un dia"
+        : selectedDate.toLocaleDateString("es-CO", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
+
+    if (!events.length) {
+        list.innerHTML = '<p class="dash-empty">Sin mantenimientos ni vencimientos este dia.</p>';
         return;
     }
 
-    container.innerHTML = topVehiculos.map((vehiculo) => `
-        <li class="dash-list-item">
+    list.innerHTML = events.map((event) => `
+        <article class="dash-list-item dash-list-item-rich">
             <div>
-                <strong>${escapeHtml(vehiculo.placa || "Sin placa")}</strong>
-                <span class="dash-sub">${escapeHtml(`${vehiculo.marca || ""} ${vehiculo.modelo || ""}`.trim() || "Sin referencia")}</span>
+                <strong>${escapeHtml(event.title)}</strong>
+                <span class="dash-sub">${escapeHtml(event.sub)}</span>
             </div>
-            <span class="dash-fecha-tag">${Number(vehiculo.kilometraje_actual || 0).toLocaleString("es-CO", { maximumFractionDigits: 2 })} km</span>
-        </li>
+            <span class="badge ${event.kind === "vencimiento" ? "badge-rojo" : "badge-verde"}">
+                ${event.kind === "vencimiento" ? "Vencimiento" : "Mantenimiento"}
+            </span>
+        </article>
     `).join("");
 }
 
-function pintarCombustible(vehiculos) {
-    const container = document.getElementById("resumen-combustible");
-
-    if (!vehiculos.length) {
-        container.innerHTML = '<p class="dash-empty">Sin vehiculos registrados</p>';
-        return;
-    }
-
-    const resumen = vehiculos.reduce((acc, vehiculo) => {
-        const combustible = vehiculo.combustible || "Sin dato";
-        acc[combustible] = (acc[combustible] || 0) + 1;
-        return acc;
-    }, {});
-
-    const max = Math.max(...Object.values(resumen));
-
-    container.innerHTML = Object.entries(resumen)
-        .sort((a, b) => b[1] - a[1])
-        .map(([combustible, total]) => `
-            <div class="dash-bar-row">
-                <div class="dash-bar-top">
-                    <strong>${escapeHtml(combustible)}</strong>
-                    <span>${total} vehiculo${total === 1 ? "" : "s"}</span>
-                </div>
-                <div class="dash-bar-track">
-                    <span class="dash-bar-fill" style="width: ${(total / max) * 100}%"></span>
-                </div>
-            </div>
-        `).join("");
+function renderCalendar() {
+    renderCalendarGrid();
+    renderCalendarAgenda();
 }
+
+function pintarCalendario(mantenimientos, documentos) {
+    calendarEventsByDate = buildCalendarEvents(mantenimientos, documentos);
+    renderCalendar();
+}
+
+document.getElementById("calendarPrev").addEventListener("click", () => {
+    calendarCursor.setMonth(calendarCursor.getMonth() - 1);
+    renderCalendarGrid();
+});
+
+document.getElementById("calendarNext").addEventListener("click", () => {
+    calendarCursor.setMonth(calendarCursor.getMonth() + 1);
+    renderCalendarGrid();
+});
+
+document.getElementById("calendarToday").addEventListener("click", () => {
+    calendarCursor = new Date();
+    calendarCursor.setDate(1);
+    calendarSelectedDate = toDateKey(new Date());
+    renderCalendar();
+});
+
+document.getElementById("calendarGrid").addEventListener("click", (event) => {
+    const cell = event.target.closest("[data-date]");
+    if (!cell) return;
+
+    calendarSelectedDate = cell.dataset.date;
+    renderCalendar();
+});
 
 async function inicializarDashboard() {
     const [vehiculosResult, mantenimientosResult, documentosResult] = await Promise.allSettled([
-        window.VehiAmb.api.getVehiculos(),
+        window.VehiAmb.api.getVehiculosCatalogo(),
         window.VehiAmb.api.getMantenimientos(),
         window.VehiAmb.api.getDocumentos()
     ]);
@@ -196,13 +307,6 @@ async function inicializarDashboard() {
 
     if (vehiculosResult.status === "rejected") {
         console.error(vehiculosResult.reason);
-        document.getElementById("lista-kilometraje").innerHTML =
-            '<li class="dash-empty">No fue posible cargar los vehiculos</li>';
-        document.getElementById("resumen-combustible").innerHTML =
-            '<p class="dash-empty">No fue posible cargar los vehiculos</p>';
-    } else {
-        pintarKilometraje(vehiculos);
-        pintarCombustible(vehiculos);
     }
 
     if (mantenimientosResult.status === "rejected") {
@@ -219,6 +323,13 @@ async function inicializarDashboard() {
             '<p class="dash-empty">No fue posible cargar los vencimientos</p>';
     } else {
         pintarVencimientos(documentos);
+    }
+
+    if (mantenimientosResult.status === "rejected" && documentosResult.status === "rejected") {
+        document.getElementById("calendarAgendaList").innerHTML =
+            '<p class="dash-empty">No fue posible cargar el calendario</p>';
+    } else {
+        pintarCalendario(mantenimientos, documentos);
     }
 
     pintarResumen(vehiculos, mantenimientos, documentos);

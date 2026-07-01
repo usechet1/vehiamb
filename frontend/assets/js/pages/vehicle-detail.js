@@ -86,11 +86,12 @@ function parseRepuestos(value) {
             .filter(Boolean)
             .map((item) => {
                 if (typeof item === "string") {
-                    return { repuesto: item.trim(), valor: "", notas: "" };
+                    return { repuesto: item.trim(), proveedor: "", valor: "", notas: "" };
                 }
 
                 return {
                     repuesto: String(item.repuesto || item.nombre || "").trim(),
+                    proveedor: String(item.proveedor || "").trim(),
                     valor: item.valor ?? "",
                     notas: String(item.notas || "").trim()
                 };
@@ -110,7 +111,7 @@ function parseRepuestos(value) {
 
         return value
             .split(/\n|,/)
-            .map((item) => ({ repuesto: item.trim(), valor: "", notas: "" }))
+            .map((item) => ({ repuesto: item.trim(), proveedor: "", valor: "", notas: "" }))
             .filter((item) => item.repuesto);
     }
 
@@ -127,6 +128,7 @@ function renderRepuestosMeta(value) {
     return repuestos.map((repuesto) => `
         <span class="pill">
             ${repuesto.repuesto}
+            ${repuesto.proveedor ? ` · ${repuesto.proveedor}` : ""}
             ${repuesto.valor ? ` · ${formatCurrency(repuesto.valor)}` : ""}
             ${repuesto.notas ? ` · ${repuesto.notas}` : ""}
         </span>

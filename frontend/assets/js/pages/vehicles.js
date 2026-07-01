@@ -1,56 +1,288 @@
 const container = document.getElementById("vehiculosContainer");
 const loader = document.getElementById("loader");
+const emptyState = document.getElementById("vehiculosEmptyState");
+const paginationBar = document.getElementById("paginationBar");
+const paginationSummary = document.getElementById("paginationSummary");
+const filterSummary = document.getElementById("filterSummary");
+
+const searchInput = document.getElementById("searchInput");
+const filterEstado = document.getElementById("filterEstado");
+const filterTipoVehiculo = document.getElementById("filterTipoVehiculo");
+const filterMarca = document.getElementById("filterMarca");
+const sortSelect = document.getElementById("sortSelect");
+const pageSizeSelect = document.getElementById("pageSizeSelect");
+const clearFiltersButton = document.getElementById("clearFiltersButton");
+const emptyStateClearButton = document.getElementById("emptyStateClearButton");
+
+const paginationFirst = document.getElementById("paginationFirst");
+const paginationPrev = document.getElementById("paginationPrev");
+const paginationNext = document.getElementById("paginationNext");
+const paginationLast = document.getElementById("paginationLast");
+
+const STORAGE_KEY = "vehiamb.vehiculos.filtros";
+
+const DEFAULT_FILTERS = {
+    search: "",
+    estado: "",
+    tipo: "",
+    marca: "",
+    sort: "recientes",
+    page: 1,
+    limit: 20
+};
+
+const ESTADOS = {
+    activo: { label: "Activo", badge: "badge-verde" },
+    reparacion: { label: "En reparacion", badge: "badge-amarillo" },
+    fuera_servicio: { label: "Fuera de servicio", badge: "badge-rojo" }
+};
+
+let filters = loadFilters();
+let lastMeta = { page: 1, totalPages: 1, total: 0 };
+
+function loadFilters() {
+    try {
+        const stored = JSON.parse(sessionStorage.getItem(STORAGE_KEY));
+        if (!stored || typeof stored !== "object") return { ...DEFAULT_FILTERS };
+        return { ...DEFAULT_FILTERS, ...stored };
+    } catch (error) {
+        return { ...DEFAULT_FILTERS };
+    }
+}
+
+function saveFilters() {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(filters));
+}
+
+function debounce(fn, delay) {
+    let timeoutId;
+    return (...args) => {
+        window.clearTimeout(timeoutId);
+        timeoutId = window.setTimeout(() => fn(...args), delay);
+    };
+}
 
 function formatKm(value) {
-    const number = Number(value || 0);
-    return new Intl.NumberFormat("es-CO", { maximumFractionDigits: 2 }).format(number);
+    return new Intl.NumberFormat("es-CO", { maximumFractionDigits: 2 }).format(Number(value || 0));
+}
+
+function applyFiltersToForm() {
+    searchInput.value = filters.search;
+    filterEstado.value = filters.estado;
+    filterTipoVehiculo.value = filters.tipo;
+    filterMarca.value = filters.marca;
+    sortSelect.value = filters.sort;
+    pageSizeSelect.value = String(filters.limit);
+}
+
+async function loadMarcas() {
+    try {
+        const marcas = await window.VehiAmb.api.getMarcasVehiculos();
+        const previousValue = filters.marca;
+
+        filterMarca.innerHTML = '<option value="">Todas</option>' + marcas
+            .map((marca) => `<option value="${marca}">${marca}</option>`)
+            .join("");
+
+        if (previousValue && marcas.includes(previousValue)) {
+            filterMarca.value = previousValue;
+        }
+    } catch (error) {
+        console.error("No fue posible cargar las marcas:", error);
+    }
+}
+
+function renderCard(vehiculo) {
+    const estadoInfo = ESTADOS[vehiculo.estado] || ESTADOS.activo;
+    const fotoPlaceholder = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 13l1.5-4.5A2 2 0 0 1 6.4 7h11.2a2 2 0 0 1 1.9 1.5L21 13"/>
+            <path d="M3 13h18v5a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-1H6v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/>
+            <circle cx="7.5" cy="16" r="1.2"/>
+            <circle cx="16.5" cy="16" r="1.2"/>
+        </svg>
+    `;
+    const foto = vehiculo.imagen_url
+        ? `<img src="${window.VehiAmb.api.getAssetUrl(vehiculo.imagen_url)}" alt="Imagen de ${vehiculo.placa || "vehiculo"}">`
+        : fotoPlaceholder;
+
+    return `
+        <article class="vehicle-card" data-id="${vehiculo.id}">
+            <div class="vehicle-card-photo">
+                ${foto}
+            </div>
+
+            <div class="vehicle-card-top">
+                <span class="plate">${vehiculo.placa || "SIN PLACA"}</span>
+                <select class="vehicle-status-select badge ${estadoInfo.badge}" data-id="${vehiculo.id}">
+                    ${Object.entries(ESTADOS).map(([value, info]) => `
+                        <option value="${value}" ${vehiculo.estado === value ? "selected" : ""}>${info.label}</option>
+                    `).join("")}
+                </select>
+            </div>
+
+            <h3>${vehiculo.marca || "Marca"} ${vehiculo.modelo || "Modelo"}</h3>
+
+            <dl class="vehicle-meta">
+                <div>
+                    <dt>Codigo</dt>
+                    <dd>${vehiculo.codigo_interno || "--"}</dd>
+                </div>
+                <div>
+                    <dt>Kilometraje</dt>
+                    <dd>${formatKm(vehiculo.kilometraje_actual)} km</dd>
+                </div>
+            </dl>
+
+            <div class="vehicle-card-actions">
+                <a class="btn-secondary" href="vehiculo.html?id=${vehiculo.id}">Ver detalle</a>
+                <a class="btn-secondary" href="add.html?id=${vehiculo.id}">Editar</a>
+                <a class="btn-secondary" href="mantenimientos.html?vehiculo=${vehiculo.id}">Registrar mantenimiento</a>
+            </div>
+        </article>
+    `;
+}
+
+function renderPagination(meta) {
+    lastMeta = meta;
+
+    if (!meta.total) {
+        window.VehiAmb.ui.hide(paginationBar);
+        return;
+    }
+
+    window.VehiAmb.ui.show(paginationBar);
+    paginationSummary.textContent = `Pagina ${meta.page} de ${meta.totalPages} · ${meta.total} vehiculos encontrados`;
+
+    paginationFirst.disabled = meta.page <= 1;
+    paginationPrev.disabled = meta.page <= 1;
+    paginationNext.disabled = meta.page >= meta.totalPages;
+    paginationLast.disabled = meta.page >= meta.totalPages;
 }
 
 async function cargarVehiculos() {
     try {
         window.VehiAmb.ui.show(loader);
+        filterSummary.textContent = "Cargando vehiculos...";
 
-        const data = await window.VehiAmb.api.getVehiculos();
+        const resultado = await window.VehiAmb.api.getVehiculos(filters);
 
-        container.innerHTML = "";
+        if (filters.page > resultado.totalPages) {
+            filters.page = resultado.totalPages;
+            saveFilters();
+        }
 
-        if (!data.length) {
-            container.innerHTML = '<p class="dash-empty">Sin vehículos registrados</p>';
+        if (!resultado.items.length) {
+            container.innerHTML = "";
+            window.VehiAmb.ui.show(emptyState);
+            window.VehiAmb.ui.hide(paginationBar);
+            filterSummary.textContent = "0 vehiculos encontrados.";
             return;
         }
 
-        data.forEach((vehiculo) => {
-            const card = document.createElement("a");
-            card.className = "vehicle-card vehicle-card-link";
-            card.href = `vehiculo.html?id=${vehiculo.id}`;
-
-            card.innerHTML = `
-                <div class="vehicle-card-top">
-                    <span class="plate">${vehiculo.placa || "SIN PLACA"}</span>
-                    <span class="badge badge-verde">Activo</span>
-                </div>
-                <h3>${vehiculo.marca || "Marca"} ${vehiculo.modelo || "Modelo"}</h3>
-                <dl class="vehicle-meta">
-                    <div>
-                        <dt>Código</dt>
-                        <dd>${vehiculo.codigo_interno || "--"}</dd>
-                    </div>
-                    <div>
-                        <dt>Kilometraje</dt>
-                        <dd>${formatKm(vehiculo.kilometraje_actual)} km</dd>
-                    </div>
-                </dl>
-                <span class="vehicle-card-action">Ver ficha operativa</span>
-            `;
-
-            container.appendChild(card);
-        });
+        window.VehiAmb.ui.hide(emptyState);
+        container.innerHTML = resultado.items.map(renderCard).join("");
+        renderPagination(resultado);
+        filterSummary.textContent = `${resultado.total} vehiculos encontrados.`;
     } catch (error) {
-        console.error("Error cargando vehículos:", error);
-        container.innerHTML = '<p class="dash-empty">No fue posible cargar los vehículos</p>';
+        console.error("Error cargando vehiculos:", error);
+        container.innerHTML = '<p class="dash-empty">No fue posible cargar los vehiculos</p>';
+        window.VehiAmb.ui.hide(emptyState);
+        window.VehiAmb.ui.hide(paginationBar);
+        filterSummary.textContent = "No fue posible cargar los vehiculos.";
     } finally {
         window.VehiAmb.ui.hide(loader);
     }
 }
 
-document.addEventListener("DOMContentLoaded", cargarVehiculos);
+function goToPage(page) {
+    filters.page = Math.max(1, page);
+    saveFilters();
+    cargarVehiculos();
+}
+
+function resetFilters() {
+    filters = { ...DEFAULT_FILTERS };
+    saveFilters();
+    applyFiltersToForm();
+    cargarVehiculos();
+}
+
+const debouncedSearch = debounce(() => {
+    filters.search = searchInput.value;
+    filters.page = 1;
+    saveFilters();
+    cargarVehiculos();
+}, 300);
+
+searchInput.addEventListener("input", debouncedSearch);
+
+filterEstado.addEventListener("change", () => {
+    filters.estado = filterEstado.value;
+    filters.page = 1;
+    saveFilters();
+    cargarVehiculos();
+});
+
+filterTipoVehiculo.addEventListener("change", () => {
+    filters.tipo = filterTipoVehiculo.value;
+    filters.page = 1;
+    saveFilters();
+    cargarVehiculos();
+});
+
+filterMarca.addEventListener("change", () => {
+    filters.marca = filterMarca.value;
+    filters.page = 1;
+    saveFilters();
+    cargarVehiculos();
+});
+
+sortSelect.addEventListener("change", () => {
+    filters.sort = sortSelect.value;
+    filters.page = 1;
+    saveFilters();
+    cargarVehiculos();
+});
+
+pageSizeSelect.addEventListener("change", () => {
+    filters.limit = Number(pageSizeSelect.value);
+    filters.page = 1;
+    saveFilters();
+    cargarVehiculos();
+});
+
+clearFiltersButton.addEventListener("click", resetFilters);
+emptyStateClearButton.addEventListener("click", resetFilters);
+
+paginationFirst.addEventListener("click", () => goToPage(1));
+paginationPrev.addEventListener("click", () => goToPage(lastMeta.page - 1));
+paginationNext.addEventListener("click", () => goToPage(lastMeta.page + 1));
+paginationLast.addEventListener("click", () => goToPage(lastMeta.totalPages));
+
+container.addEventListener("change", async (event) => {
+    const select = event.target.closest(".vehicle-status-select");
+    if (!select) return;
+
+    const { id } = select.dataset;
+    const nuevoEstado = select.value;
+    const estadoInfo = ESTADOS[nuevoEstado];
+
+    select.className = `vehicle-status-select badge ${estadoInfo.badge}`;
+    select.disabled = true;
+
+    try {
+        await window.VehiAmb.api.updateEstadoVehiculo(id, nuevoEstado);
+    } catch (error) {
+        console.error("No fue posible actualizar el estado:", error);
+        cargarVehiculos();
+    } finally {
+        select.disabled = false;
+    }
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+    applyFiltersToForm();
+    loadMarcas();
+    cargarVehiculos();
+});

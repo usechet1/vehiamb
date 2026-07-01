@@ -6,7 +6,9 @@ const DOCUMENTO_FIELDS = [
   "numero_documento",
   "fecha_expedicion",
   "fecha_vencimiento",
-  "archivo_url"
+  "archivo_url",
+  "archivo_nombre",
+  "archivo_mime"
 ];
 
 async function findAll() {

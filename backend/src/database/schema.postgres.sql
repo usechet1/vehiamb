@@ -48,6 +48,8 @@ CREATE TABLE IF NOT EXISTS vehiculos (
   tipo_carroceria TEXT,
   numero_chasis TEXT,
   numero_motor TEXT,
+  estado TEXT NOT NULL DEFAULT 'activo',
+  imagen_url TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -94,6 +96,8 @@ CREATE TABLE IF NOT EXISTS documentos (
   fecha_expedicion DATE,
   fecha_vencimiento DATE,
   archivo_url TEXT,
+  archivo_nombre TEXT,
+  archivo_mime TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -108,6 +112,7 @@ CREATE TABLE IF NOT EXISTS cambios_aceite (
 
 CREATE INDEX IF NOT EXISTS idx_vehiculos_placa ON vehiculos (placa);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_vehiculos_numero_chasis ON vehiculos (numero_chasis) WHERE numero_chasis IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_vehiculos_estado ON vehiculos (estado);
 CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios (email);
 CREATE INDEX IF NOT EXISTS idx_usuarios_role_id ON usuarios (role_id);
 CREATE INDEX IF NOT EXISTS idx_mantenimientos_vehiculo_id ON mantenimientos (vehiculo_id);

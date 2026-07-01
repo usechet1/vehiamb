@@ -80,28 +80,34 @@
                     </ul>
                 </div>
 
-                <div class="dash-panel">
+                <div class="dash-panel dash-panel-main dash-panel-calendar">
                     <div class="dash-panel-head">
                         <div>
-                            <h3 class="dash-panel-title">Mayor kilometraje</h3>
-                            <p class="dash-panel-subtitle">Unidades que conviene revisar primero.</p>
+                            <h3 class="dash-panel-title">Calendario de mantenimientos y vencimientos</h3>
+                            <p class="dash-panel-subtitle">Vista mensual de trabajos programados y documentos por vencer.</p>
+                        </div>
+                        <div class="dash-calendar-nav">
+                            <button type="button" id="calendarPrev" class="dash-calendar-nav-btn" aria-label="Mes anterior">&#8249;</button>
+                            <span id="calendarLabel" class="dash-calendar-label">--</span>
+                            <button type="button" id="calendarNext" class="dash-calendar-nav-btn" aria-label="Mes siguiente">&#8250;</button>
+                            <button type="button" id="calendarToday" class="btn-secondary dash-calendar-today-btn">Hoy</button>
                         </div>
                     </div>
-                    <ul class="dash-list" id="lista-kilometraje">
-                        <li class="dash-empty">Cargando...</li>
-                    </ul>
-                </div>
-
-                <div class="dash-panel dash-panel-main">
-                    <div class="dash-panel-head">
-                        <div>
-                            <h3 class="dash-panel-title">Flota por combustible</h3>
-                            <p class="dash-panel-subtitle">Distribucion general de los vehiculos registrados.</p>
+                    <div class="dash-calendar">
+                        <div class="dash-calendar-weekdays">
+                            <span>Lun</span><span>Mar</span><span>Mie</span><span>Jue</span><span>Vie</span><span>Sab</span><span>Dom</span>
                         </div>
-                        <a class="dash-panel-link" href="add.html">Agregar</a>
+                        <div class="dash-calendar-grid" id="calendarGrid"></div>
+                        <div class="dash-calendar-legend">
+                            <span><i class="dash-calendar-dot dash-calendar-dot-mantenimiento"></i> Mantenimientos</span>
+                            <span><i class="dash-calendar-dot dash-calendar-dot-vencimiento"></i> Vencimientos</span>
+                        </div>
                     </div>
-                    <div class="dash-bars" id="resumen-combustible">
-                        <p class="dash-empty">Cargando...</p>
+                    <div class="dash-calendar-agenda">
+                        <p class="dash-calendar-agenda-head" id="calendarAgendaHead">Selecciona un dia</p>
+                        <div id="calendarAgendaList">
+                            <p class="dash-empty">Cargando...</p>
+                        </div>
                     </div>
                 </div>
             </div>

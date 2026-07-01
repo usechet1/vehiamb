@@ -6,21 +6,21 @@
     <title>Añadir Vehiculo - VehiAmb</title>
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
-<body>
+<body class="static-page">
     <div class="layout">
         <aside class="sidebar" id="sidebar"></aside>
 
         <main class="content">
             <div class="page-header">
                 <div>
-                    <h1>Añadir Vehiculo</h1>
-                    <p class="page-kicker">Registra la ficha tecnica completa de la unidad</p>
+                    <h1 id="pageTitle">Añadir Vehiculo</h1>
+                    <p class="page-kicker" id="pageSubtitle">Registra la ficha tecnica completa de la unidad</p>
                 </div>
             </div>
 
             <form id="vehiculoForm" class="form-card form-vertical form-card-wide">
                 <div class="form-card-head">
-                    <span class="form-step">Ficha tecnica</span>
+                    <span class="form-step" id="formStep">Ficha tecnica</span>
                     <p>Esta vista ahora captura los mismos datos base que luego ves en la ficha del vehiculo.</p>
                 </div>
 
@@ -115,7 +115,8 @@
                         <div class="form-grid-3">
                             <div class="form-group">
                                 <label>Año</label>
-                                <input type="number" name="anio" id="input-anio" min="1950" max="2100">
+                                <input type="number" name="anio" id="input-anio" min="1900" max="2100" step="1" inputmode="numeric" required>
+                                <span class="field-help" id="anioHelp">Ingresa el año con 4 digitos (Ej: 2020).</span>
                             </div>
 
                             <div class="form-group">
@@ -187,11 +188,20 @@
                                 <label>Numero de motor</label>
                                 <input type="text" name="numero_motor" placeholder="Si no esta disponible, dejar en blanco">
                             </div>
+
+                            <div class="form-group">
+                                <label for="select-estado">Estado</label>
+                                <select name="estado" id="select-estado">
+                                    <option value="activo">Activo</option>
+                                    <option value="reparacion">En reparacion</option>
+                                    <option value="fuera_servicio">Fuera de servicio</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <button type="submit" class="btn-primary">
+                <button type="submit" class="btn-primary" id="submitButton">
                     Guardar vehiculo
                 </button>
             </form>

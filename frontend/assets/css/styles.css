@@ -65,6 +65,22 @@ a {
     min-height: 100vh;
 }
 
+@media (min-width: 901px) {
+    body.static-page {
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    body.static-page .layout {
+        height: 100vh;
+    }
+
+    body.static-page .content {
+        height: 100vh;
+        overflow-y: auto;
+    }
+}
+
 .login-shell {
     min-height: 100vh;
     display: grid;
@@ -128,6 +144,12 @@ label[for="loginPassword"] {
     justify-content: space-between;
     gap: 24px;
     margin-bottom: 26px;
+}
+
+.vehicle-detail-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .page-header h1,
@@ -556,6 +578,7 @@ label[for="loginPassword"] {
 
 .form-card-wide {
     width: min(100%, 1220px);
+    margin: 0 auto;
 }
 
 /* ── Layout de dos columnas (imagen + formulario) ─ */
@@ -660,6 +683,12 @@ label[for="loginPassword"] {
     gap: 16px;
 }
 
+.form-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
 .form-vertical {
     display: flex;
     flex-direction: column;
@@ -689,6 +718,13 @@ label[for="loginPassword"] {
     color: var(--color-ink);
     outline: 0;
     transition: var(--transition);
+}
+
+.form-group input:disabled,
+.form-group input[readonly] {
+    background: var(--color-surface-2);
+    color: var(--color-muted);
+    cursor: not-allowed;
 }
 
 .form-group input[type="file"] {
@@ -1085,46 +1121,174 @@ label[for="loginPassword"] {
     text-align: center;
 }
 
-.dash-bars {
-    display: grid;
-    gap: 14px;
-    padding: 18px;
+.dash-panel-calendar {
+    grid-column: 1 / -1;
 }
 
-.dash-bar-row {
-    display: grid;
+.dash-calendar-nav {
+    display: flex;
+    align-items: center;
     gap: 8px;
 }
 
-.dash-bar-top {
-    display: flex;
+.dash-calendar-nav-btn {
+    display: inline-flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    color: var(--color-ink-soft);
-    font-size: 0.86rem;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-size: 1.1rem;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+    transition: var(--transition);
 }
 
-.dash-bar-top span {
+.dash-calendar-nav-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.dash-calendar-today-btn {
+    min-height: 32px;
+    padding: 0 12px;
+    font-size: 0.78rem;
+}
+
+.dash-calendar-label {
+    min-width: 130px;
+    color: var(--color-ink);
+    font-weight: 800;
+    font-size: 0.9rem;
+    text-align: center;
+    text-transform: capitalize;
+}
+
+.dash-calendar {
+    padding: 18px;
+}
+
+.dash-calendar-weekdays,
+.dash-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.dash-calendar-weekdays {
+    margin-bottom: 8px;
+    color: var(--color-muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.dash-calendar-day {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 78px;
+    padding: 6px 8px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.dash-calendar-day:hover {
+    border-color: var(--color-primary);
+}
+
+.dash-calendar-day.is-empty {
+    border-color: transparent;
+    background: transparent;
+    cursor: default;
+    pointer-events: none;
+}
+
+.dash-calendar-day-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    color: var(--color-ink-soft);
+    font-size: 0.82rem;
+    font-weight: 700;
+    border-radius: 50%;
+}
+
+.dash-calendar-day.is-today .dash-calendar-day-number {
+    background: var(--color-primary);
+    color: #fff;
+}
+
+.dash-calendar-day.is-selected {
+    border-color: var(--color-primary);
+    background: rgba(178, 31, 45, 0.05);
+    box-shadow: 0 0 0 1px var(--color-primary) inset;
+}
+
+.dash-calendar-day-dots {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    margin-top: auto;
+}
+
+.dash-calendar-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+}
+
+.dash-calendar-dot-mantenimiento {
+    background: #305f8f;
+}
+
+.dash-calendar-dot-vencimiento {
+    background: var(--color-primary);
+}
+
+.dash-calendar-day-more {
+    color: var(--color-muted);
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+
+.dash-calendar-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 14px;
     color: var(--color-muted);
     font-size: 0.78rem;
     font-weight: 700;
-    white-space: nowrap;
 }
 
-.dash-bar-track {
-    height: 10px;
-    overflow: hidden;
-    border-radius: 999px;
-    background: #edf1f5;
+.dash-calendar-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 
-.dash-bar-fill {
-    display: block;
-    height: 100%;
-    min-width: 18px;
-    border-radius: inherit;
-    background: linear-gradient(90deg, var(--color-primary), #147a45);
+.dash-calendar-agenda {
+    border-top: 1px solid var(--color-border);
+}
+
+.dash-calendar-agenda-head {
+    padding: 14px 20px 0;
+    color: var(--color-ink);
+    font-size: 0.85rem;
+    font-weight: 800;
+    text-transform: capitalize;
 }
 
 .vehicles-grid {
@@ -1221,6 +1385,97 @@ label[for="loginPassword"] {
     color: var(--color-primary);
     font-size: 0.84rem;
     font-weight: 800;
+}
+
+.vehicle-card-photo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 120px;
+    margin: -20px -20px 16px;
+    background: var(--color-surface-2);
+    color: var(--color-muted);
+    overflow: hidden;
+}
+
+.vehicle-card-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.vehicle-card-photo svg {
+    width: 34px;
+    height: 34px;
+}
+
+.vehicle-status-select {
+    appearance: none;
+    border: 0;
+    min-height: 26px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.vehicle-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.vehicle-card-actions .btn-secondary {
+    min-height: 34px;
+    padding: 7px 11px;
+    font-size: 0.78rem;
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 48px 20px;
+    color: var(--color-muted);
+    text-align: center;
+}
+
+.empty-state svg {
+    width: 52px;
+    height: 52px;
+    color: var(--color-muted);
+}
+
+.pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-border);
+}
+
+.pagination-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.pagination-controls .btn-secondary {
+    min-height: 36px;
+    padding: 8px 12px;
+    font-size: 0.82rem;
+}
+
+.pagination-controls .btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .back-link {
@@ -1334,19 +1589,26 @@ label[for="loginPassword"] {
     align-items: center;
     justify-content: space-between;
     gap: 20px;
+    padding: 20px;
+    background: linear-gradient(135deg, rgba(178, 31, 45, 0.05), rgba(178, 31, 45, 0));
+    border-radius: var(--radius-md);
 }
 
 .simit-plate-wrap {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    padding: 12px 20px;
+    background: var(--color-surface);
+    border: 1.5px dashed var(--color-primary);
+    border-radius: var(--radius-sm);
 }
 
 .simit-plate {
-    color: var(--color-ink);
-    font-size: clamp(1.2rem, 2vw, 1.8rem);
+    color: var(--color-primary-dark);
+    font-size: clamp(1.3rem, 2vw, 1.9rem);
     font-weight: 800;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.14em;
 }
 
 .simit-actions {
@@ -1383,15 +1645,34 @@ label[for="loginPassword"] {
 }
 
 .section-card-head {
-    padding: 18px 20px;
+    position: relative;
+    padding: 18px 20px 18px 24px;
     border-bottom: 1px solid var(--color-border);
-    background: var(--color-surface-2);
+    background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-2) 100%);
+}
+
+.section-card-head::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--color-primary);
 }
 
 .section-card-head h2 {
-    margin-bottom: 5px;
-    color: var(--color-ink-soft);
-    font-size: 1rem;
+    margin-bottom: 4px;
+    color: var(--color-ink);
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.section-card-head p {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 0.85rem;
 }
 
 .section-card-body {
@@ -1586,7 +1867,7 @@ label[for="loginPassword"] {
 
 .simple-list-entry {
     display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(120px, 0.6fr) minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(120px, 0.6fr) minmax(0, 1fr) auto;
     gap: 10px;
 }
 
@@ -1911,7 +2192,8 @@ label[for="loginPassword"] {
         position: static;
     }
 
-    .form-grid-3 {
+    .form-grid-3,
+    .form-grid-4 {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
@@ -1927,6 +2209,11 @@ label[for="loginPassword"] {
         flex-direction: column;
     }
 
+    .vehicle-detail-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
     .header-action,
     .ops-summary {
         width: 100%;
@@ -1936,6 +2223,7 @@ label[for="loginPassword"] {
     .dash-cards,
     .form-grid,
     .form-grid-3,
+    .form-grid-4,
     .vehicle-meta,
     .detail-list,
     .summary-grid {
@@ -1944,6 +2232,24 @@ label[for="loginPassword"] {
 
     .simple-list-entry {
         grid-template-columns: 1fr;
+    }
+
+    .dash-panel-head {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .dash-calendar-nav {
+        justify-content: space-between;
+    }
+
+    .dash-calendar-day {
+        min-height: 56px;
+        padding: 4px 6px;
+    }
+
+    .dash-calendar-day-number {
+        font-size: 0.74rem;
     }
 
     .admin-user-item {
@@ -1958,6 +2264,19 @@ label[for="loginPassword"] {
     .form-actions .btn-primary,
     .form-actions .btn-secondary {
         width: 100%;
+    }
+
+    .pagination-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .pagination-controls {
+        justify-content: stretch;
+    }
+
+    .pagination-controls .btn-secondary {
+        flex: 1;
     }
 
     .vehicle-hero {

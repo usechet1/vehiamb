@@ -24,7 +24,9 @@ function normalizePayload(payload) {
     numero_documento: payload.numero_documento ? String(payload.numero_documento).trim() : null,
     fecha_expedicion: payload.fecha_expedicion ? String(payload.fecha_expedicion).trim() : null,
     fecha_vencimiento: String(payload.fecha_vencimiento || "").trim(),
-    archivo_url: payload.archivo_url ? String(payload.archivo_url).trim() : null
+    archivo_url: payload.archivo_url ? String(payload.archivo_url).trim() : null,
+    archivo_nombre: payload.archivo_nombre ? String(payload.archivo_nombre).trim() : null,
+    archivo_mime: payload.archivo_mime ? String(payload.archivo_mime).trim() : null
   };
 }
 
@@ -51,8 +53,13 @@ async function listDocumentosByVehicle(vehiculoId) {
   return documentosRepository.findByVehicle(vehiculoId);
 }
 
-async function createDocumento(payload) {
-  const documento = normalizePayload(payload);
+async function createDocumento(payload, file) {
+  const documento = normalizePayload({
+    ...payload,
+    archivo_url: file ? `/uploads/documentos/${file.filename}` : null,
+    archivo_nombre: file?.originalname || null,
+    archivo_mime: file?.mimetype || null
+  });
   await validateDocumento(documento);
 
   return documentosRepository.create(documento);

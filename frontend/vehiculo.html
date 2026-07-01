@@ -141,7 +141,10 @@
                     <h1 id="vehicleTitle">Ficha del vehiculo</h1>
                     <p class="page-kicker" id="vehicleSubtitle">Informacion operativa, mantenimientos y vencimientos</p>
                 </div>
-                <a class="header-action" href="mantenimientos.html">Registrar mantenimiento</a>
+                <div class="vehicle-detail-actions">
+                    <a class="btn-secondary" id="editVehicleLink" href="add.html">Editar vehiculo</a>
+                    <a class="header-action" href="mantenimientos.html">Registrar mantenimiento</a>
+                </div>
             </div>
 
             <div id="loader" class="loader hidden"></div>
@@ -165,6 +168,10 @@
                             <label class="vehicle-status-option">
                                 <input type="radio" name="vehicleStatus" value="reparacion">
                                 En reparacion
+                            </label>
+                            <label class="vehicle-status-option">
+                                <input type="radio" name="vehicleStatus" value="fuera_servicio">
+                                Fuera de servicio
                             </label>
                         </fieldset>
                     </div>
@@ -241,7 +248,7 @@
                     <h2>Consulta SIMIT</h2>
                     <p>Version preliminar para abrir la consulta oficial y llevar la placa lista.</p>
                 </div>
-                <div class="section-card-body simit-panel">
+                <div class="simit-panel">
                     <div class="simit-plate-wrap">
                         <span class="dash-card-label">Placa a consultar</span>
                         <strong id="simitPlate" class="simit-plate">---</strong>
@@ -269,6 +276,25 @@
             const vehicleImagePlate = document.getElementById("vehicleImagePlate");
             const vehicleImageName = document.getElementById("vehicleImageName");
             const vehicleImageModel = document.getElementById("vehicleImageModel");
+            const editVehicleLink = document.getElementById("editVehicleLink");
+            const mensaje = document.getElementById("mensaje");
+
+            const vehicleId = new URLSearchParams(window.location.search).get("id");
+            const registerMaintenanceLink = document.querySelector('a[href="mantenimientos.html"]');
+
+            if (vehicleId && editVehicleLink) {
+                editVehicleLink.href = `add.html?id=${vehicleId}`;
+            }
+
+            if (vehicleId && registerMaintenanceLink) {
+                registerMaintenanceLink.href = `mantenimientos.html?vehiculo=${vehicleId}`;
+            }
+
+            const ESTADO_BADGES = {
+                activo: { label: "Activo", clase: "badge-verde" },
+                reparacion: { label: "En reparacion", clase: "badge-amarillo" },
+                fuera_servicio: { label: "Fuera de servicio", clase: "badge-rojo" }
+            };
 
             function getVehicleImageSource(vehiculo) {
                 const rawSource = vehiculo.imagen_url
@@ -315,16 +341,32 @@
             }
 
             function updateStatusBadge(value) {
-                const isRepair = value === "reparacion";
+                const estadoInfo = ESTADO_BADGES[value] || ESTADO_BADGES.activo;
 
-                statusBadge.textContent = isRepair ? "En reparacion" : "Activo";
-                statusBadge.classList.toggle("badge-verde", !isRepair);
-                statusBadge.classList.toggle("badge-amarillo", isRepair);
+                statusBadge.textContent = estadoInfo.label;
+                Object.values(ESTADO_BADGES).forEach((info) => statusBadge.classList.remove(info.clase));
+                statusBadge.classList.add(estadoInfo.clase);
             }
 
-            statusOptions?.addEventListener("change", (event) => {
-                if (event.target.name === "vehicleStatus") {
-                    updateStatusBadge(event.target.value);
+            function setEstadoInicial(estado) {
+                const radio = statusOptions?.querySelector(`input[value="${estado}"]`);
+                if (radio) radio.checked = true;
+                updateStatusBadge(estado);
+            }
+
+            statusOptions?.addEventListener("change", async (event) => {
+                if (event.target.name !== "vehicleStatus") return;
+
+                const nuevoEstado = event.target.value;
+                updateStatusBadge(nuevoEstado);
+
+                if (!vehicleId || !window.VehiAmb?.api?.updateEstadoVehiculo) return;
+
+                try {
+                    await window.VehiAmb.api.updateEstadoVehiculo(vehicleId, nuevoEstado);
+                } catch (error) {
+                    console.error("No fue posible actualizar el estado:", error);
+                    window.VehiAmb.ui?.showMessage?.(mensaje, "No fue posible actualizar el estado del vehiculo", "error");
                 }
             });
 
@@ -333,6 +375,7 @@
                 window.VehiAmb.api.getVehiculo = async function (...args) {
                     const vehiculo = await getVehiculo.apply(this, args);
                     renderVehicleImageCard(vehiculo);
+                    setEstadoInicial(vehiculo.estado || "activo");
                     return vehiculo;
                 };
             }
