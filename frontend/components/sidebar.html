@@ -102,6 +102,25 @@
       <strong id="sidebarUserName">Usuario</strong>
       <span id="sidebarUserRole">Sesión activa</span>
     </div>
+
+    <div class="notif-bell-wrap">
+      <button type="button" class="notif-bell" id="notifBellButton" aria-label="Notificaciones">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <span class="notif-badge hidden" id="notifBadge">0</span>
+      </button>
+
+      <div class="notif-panel hidden" id="notifPanel">
+        <div class="notif-panel-head">
+          <strong>Notificaciones</strong>
+        </div>
+        <div class="notif-panel-body" id="notifPanelBody">
+          <p class="dash-empty">Cargando...</p>
+        </div>
+      </div>
+    </div>
   </div>
 
   <button class="footer-btn logout" id="logoutButton">

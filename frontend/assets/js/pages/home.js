@@ -50,6 +50,8 @@ function daysUntil(value) {
     today.setHours(0, 0, 0, 0);
 
     const target = new Date(`${String(value).slice(0, 10)}T00:00:00`);
+    if (Number.isNaN(target.getTime())) return null;
+
     return Math.ceil((target - today) / 86400000);
 }
 

@@ -32,6 +32,7 @@ const PERMISSIONS = [
   ["vehicles.delete", "Vehiculos", "Eliminar vehiculos"],
   ["maintenance.view", "Mantenimientos", "Ver mantenimientos"],
   ["maintenance.create", "Mantenimientos", "Registrar mantenimientos"],
+  ["maintenance.approve", "Mantenimientos", "Aprobar o rechazar mantenimientos"],
   ["documents.view", "Documentos", "Ver documentos"],
   ["documents.create", "Documentos", "Registrar documentos"],
   ["simit.view", "SIMIT", "Consultar SIMIT"],
@@ -229,8 +230,28 @@ async function ensurePostgresTables() {
       soporte_nombre TEXT,
       soporte_mime TEXT,
       valor NUMERIC(12, 2) NOT NULL DEFAULT 0,
+      valor_mano_obra NUMERIC(12, 2) NOT NULL DEFAULT 0,
       kilometraje FLOAT,
+      proximo_cambio_km INTEGER,
+      proximo_cambio_fecha DATE,
+      creado_por_usuario_id BIGINT REFERENCES usuarios(id),
+      estado TEXT NOT NULL DEFAULT 'completado',
+      vehiculo_varado BOOLEAN NOT NULL DEFAULT FALSE,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS notificaciones (
+      id BIGSERIAL PRIMARY KEY,
+      usuario_id BIGINT NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+      tipo TEXT NOT NULL,
+      prioridad TEXT NOT NULL DEFAULT 'media',
+      mensaje TEXT NOT NULL,
+      leido BOOLEAN NOT NULL DEFAULT FALSE,
+      referencia_tipo TEXT,
+      referencia_id BIGINT,
+      fecha_creacion TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
 
@@ -263,6 +284,8 @@ async function ensurePostgresTables() {
   await db.run("CREATE INDEX IF NOT EXISTS idx_mantenimientos_vehiculo_id ON mantenimientos (vehiculo_id)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_documentos_vehiculo_id ON documentos (vehiculo_id)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_cambios_aceite_vehiculo_id ON cambios_aceite (vehiculo_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_notificaciones_usuario_id ON notificaciones (usuario_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_notificaciones_referencia ON notificaciones (referencia_tipo, referencia_id)");
 }
 
 if (env.dbClient === "sqlite") {
@@ -343,9 +366,31 @@ if (env.dbClient === "sqlite") {
         soporte_nombre TEXT,
         soporte_mime TEXT,
         valor REAL DEFAULT 0,
+        valor_mano_obra REAL DEFAULT 0,
         kilometraje INTEGER,
+        proximo_cambio_km INTEGER,
+        proximo_cambio_fecha TEXT,
+        creado_por_usuario_id INTEGER,
+        estado TEXT NOT NULL DEFAULT 'completado',
+        vehiculo_varado INTEGER NOT NULL DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (vehiculo_id) REFERENCES vehiculos(id) ON DELETE CASCADE
+        FOREIGN KEY (vehiculo_id) REFERENCES vehiculos(id) ON DELETE CASCADE,
+        FOREIGN KEY (creado_por_usuario_id) REFERENCES usuarios(id)
+      )
+    `);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS notificaciones (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        usuario_id INTEGER NOT NULL,
+        tipo TEXT NOT NULL,
+        prioridad TEXT NOT NULL DEFAULT 'media',
+        mensaje TEXT NOT NULL,
+        leido INTEGER NOT NULL DEFAULT 0,
+        referencia_tipo TEXT,
+        referencia_id INTEGER,
+        fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
       )
     `);
 
@@ -384,7 +429,13 @@ if (env.dbClient === "sqlite") {
     ensureColumn("mantenimientos", "hecho_por", "TEXT"),
     ensureColumn("mantenimientos", "soporte_url", "TEXT"),
     ensureColumn("mantenimientos", "soporte_nombre", "TEXT"),
-    ensureColumn("mantenimientos", "soporte_mime", "TEXT")
+    ensureColumn("mantenimientos", "soporte_mime", "TEXT"),
+    ensureColumn("mantenimientos", "valor_mano_obra", "REAL DEFAULT 0"),
+    ensureColumn("mantenimientos", "proximo_cambio_km", "INTEGER"),
+    ensureColumn("mantenimientos", "proximo_cambio_fecha", "TEXT"),
+    ensureColumn("mantenimientos", "creado_por_usuario_id", "INTEGER"),
+    ensureColumn("mantenimientos", "estado", "TEXT NOT NULL DEFAULT 'completado'"),
+    ensureColumn("mantenimientos", "vehiculo_varado", "INTEGER NOT NULL DEFAULT 0")
   ])
     .then(seedRolesAndPermissions)
     .then(syncUserRoles)
@@ -401,7 +452,13 @@ if (env.dbClient === "sqlite") {
       ensureColumn("mantenimientos", "hecho_por", "TEXT"),
       ensureColumn("mantenimientos", "soporte_url", "TEXT"),
       ensureColumn("mantenimientos", "soporte_nombre", "TEXT"),
-      ensureColumn("mantenimientos", "soporte_mime", "TEXT")
+      ensureColumn("mantenimientos", "soporte_mime", "TEXT"),
+      ensureColumn("mantenimientos", "valor_mano_obra", "NUMERIC(12, 2) DEFAULT 0"),
+      ensureColumn("mantenimientos", "proximo_cambio_km", "INTEGER"),
+      ensureColumn("mantenimientos", "proximo_cambio_fecha", "DATE"),
+      ensureColumn("mantenimientos", "creado_por_usuario_id", "BIGINT REFERENCES usuarios(id)"),
+      ensureColumn("mantenimientos", "estado", "TEXT NOT NULL DEFAULT 'completado'"),
+      ensureColumn("mantenimientos", "vehiculo_varado", "BOOLEAN NOT NULL DEFAULT FALSE")
     ]))
     .then(() => db.run("CREATE INDEX IF NOT EXISTS idx_usuarios_role_id ON usuarios (role_id)"))
     .then(seedRolesAndPermissions)

@@ -3,6 +3,7 @@ const mantenimientosFilterForm = document.getElementById("mantenimientosFilterFo
 const mantenimientoSelect = document.getElementById("vehiculoMantenimiento");
 const mantenimientosList = document.getElementById("mantenimientosList");
 const filterPlaca = document.getElementById("filterPlaca");
+const filterTipo = document.getElementById("filterTipo");
 const filterFechaDesde = document.getElementById("filterFechaDesde");
 const filterFechaHasta = document.getElementById("filterFechaHasta");
 const filterSummary = document.getElementById("filterSummary");
@@ -18,16 +19,27 @@ const repuestoNotasInput = document.getElementById("repuestoNotasInput");
 const addRepuestoButton = document.getElementById("addRepuestoButton");
 const repuestosList = document.getElementById("repuestosList");
 const repuestosEmpty = document.getElementById("repuestosEmpty");
+const valorManoObraInput = document.getElementById("valorManoObraInput");
+const costoTotalDisplay = document.getElementById("costoTotalDisplay");
+const mantenimientoTipo = document.getElementById("mantenimientoTipo");
+const cambioAceiteFields = document.getElementById("cambioAceiteFields");
+const proximoCambioKmInput = document.getElementById("proximoCambioKmInput");
+const proximoCambioFechaInput = document.getElementById("proximoCambioFechaInput");
 const maintenanceDrawer = document.getElementById("maintenanceDrawer");
 const maintenanceDrawerBackdrop = document.getElementById("maintenanceDrawerBackdrop");
 const closeMaintenanceDrawer = document.getElementById("closeMaintenanceDrawer");
 const maintenanceDrawerTitle = document.getElementById("maintenanceDrawerTitle");
 const maintenanceDrawerSubtitle = document.getElementById("maintenanceDrawerSubtitle");
 const maintenanceDrawerBody = document.getElementById("maintenanceDrawerBody");
+const exportMaintenanceButton = document.getElementById("exportMaintenanceButton");
+const exportHistorialButton = document.getElementById("exportHistorialButton");
 
 let repuestosState = [];
 let mantenimientosState = [];
 let vehiculosState = [];
+let totalMantenimientosCount = 0;
+let filtersRequestToken = 0;
+let currentDetailItem = null;
 
 const tiposMantenimiento = {
     revision: "Revision general",
@@ -37,6 +49,13 @@ const tiposMantenimiento = {
     frenos: "Frenos",
     llantas: "Llantas",
     otro: "Otro"
+};
+
+const estadosMantenimiento = {
+    pendiente: "Pendiente de aprobacion",
+    aprobado: "Aprobado",
+    rechazado: "Rechazado",
+    completado: "Completado"
 };
 
 function formatCurrency(value) {
@@ -49,7 +68,11 @@ function formatCurrency(value) {
 
 function formatDate(value) {
     if (!value) return "Sin fecha";
-    return new Date(`${value}T00:00:00`).toLocaleDateString("es-CO", {
+
+    const date = new Date(`${String(value).slice(0, 10)}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return "Sin fecha";
+
+    return date.toLocaleDateString("es-CO", {
         day: "2-digit",
         month: "short",
         year: "numeric"
@@ -81,6 +104,7 @@ function selectedVehicle() {
 }
 
 function fillVehicleSelect(select, vehiculos, placeholder = "Selecciona un vehiculo", valueField = "id") {
+    const previousValue = select.value;
     select.innerHTML = `<option value="">${placeholder}</option>`;
 
     if (!vehiculos.length) {
@@ -95,6 +119,10 @@ function fillVehicleSelect(select, vehiculos, placeholder = "Selecciona un vehic
         option.textContent = `${vehiculo.placa} - ${vehiculo.marca} ${vehiculo.modelo}`;
         select.appendChild(option);
     });
+
+    if (previousValue && Array.from(select.options).some((option) => option.value === previousValue)) {
+        select.value = previousValue;
+    }
 }
 
 function updateKilometrajeValidation() {
@@ -127,6 +155,19 @@ function validateKilometrajeBeforeSubmit() {
     }
 
     return true;
+}
+
+function updateCambioAceiteFields() {
+    const isCambioAceite = mantenimientoTipo.value === "cambio_aceite";
+
+    cambioAceiteFields.classList.toggle("hidden", !isCambioAceite);
+    proximoCambioKmInput.required = isCambioAceite;
+    proximoCambioFechaInput.required = isCambioAceite;
+
+    if (!isCambioAceite) {
+        proximoCambioKmInput.value = "";
+        proximoCambioFechaInput.value = "";
+    }
 }
 
 function parseRepuestos(value) {
@@ -172,6 +213,12 @@ function syncRepuestosField() {
     repuestosData.value = JSON.stringify(repuestosState);
 }
 
+function updateCostoTotal() {
+    const manoObra = Number(valorManoObraInput.value || 0);
+    const totalRepuestos = repuestosState.reduce((sum, item) => sum + Number(item.valor || 0), 0);
+    costoTotalDisplay.value = formatCurrency(manoObra + totalRepuestos);
+}
+
 function renderRepuestosBuilder() {
     repuestosList.innerHTML = repuestosState.map((item, index) => `
         <li class="simple-checklist-item">
@@ -186,6 +233,7 @@ function renderRepuestosBuilder() {
 
     repuestosEmpty.classList.toggle("hidden", repuestosState.length > 0);
     syncRepuestosField();
+    updateCostoTotal();
 
     repuestosList.querySelectorAll(".simple-checklist-remove").forEach((button) => {
         button.addEventListener("click", () => {
@@ -289,6 +337,7 @@ function renderDetailRepuestos(value) {
 }
 
 function openMaintenanceDetail(item) {
+    currentDetailItem = item;
     const vehicleName = `${item.marca || ""} ${item.modelo || ""}`.trim() || "Vehiculo";
 
     maintenanceDrawerTitle.textContent = tiposMantenimiento[item.tipo] || item.tipo || "Mantenimiento";
@@ -297,6 +346,7 @@ function openMaintenanceDetail(item) {
         <dl class="detail-list drawer-detail-list">
             ${detailRow("Vehiculo", vehicleName)}
             ${detailRow("Placa", item.placa || "Sin placa")}
+            ${detailRow("Estado", estadosMantenimiento[item.estado] || item.estado || "Completado")}
             ${detailRow("Fecha", formatDate(item.fecha))}
             ${detailRow("Tipo", tiposMantenimiento[item.tipo] || item.tipo)}
             ${detailRow("Valor", formatCurrency(item.valor))}
@@ -353,6 +403,8 @@ function renderMantenimientos(mantenimientos) {
             <div class="record-meta">
                 <span class="pill">${formatCurrency(item.valor)}</span>
                 <span class="pill">${Number(item.kilometraje || 0).toLocaleString("es-CO")} km</span>
+                <span class="pill">${estadosMantenimiento[item.estado] || item.estado || "Completado"}</span>
+                ${item.vehiculo_varado ? '<span class="pill">Vehiculo varado</span>' : ""}
                 ${renderRepuestosMeta(item.repuestos)}
                 <span class="pill">Autorizado por: ${item.autorizado_por || "No registrado"}</span>
                 <span class="pill">Hecho por: ${item.hecho_por || "No registrado"}</span>
@@ -363,27 +415,19 @@ function renderMantenimientos(mantenimientos) {
     `).join("");
 }
 
-function maintenanceMatchesFilters(item) {
-    const placa = filterPlaca.value.trim().toLowerCase();
-    const fechaDesde = filterFechaDesde.value;
-    const fechaHasta = filterFechaHasta.value;
-    const itemPlaca = String(item.placa || "").toLowerCase();
-    const itemFecha = String(item.fecha || "").slice(0, 10);
-
-    if (placa && itemPlaca !== placa) return false;
-    if (fechaDesde && (!itemFecha || itemFecha < fechaDesde)) return false;
-    if (fechaHasta && (!itemFecha || itemFecha > fechaHasta)) return false;
-
-    return true;
+function currentMaintenanceFilters() {
+    return {
+        placa: filterPlaca.value.trim(),
+        tipo: filterTipo.value,
+        fecha_desde: filterFechaDesde.value,
+        fecha_hasta: filterFechaHasta.value
+    };
 }
 
 function updateFilterSummary(filteredCount) {
-    const total = mantenimientosState.length;
-    const hasFilters = Boolean(
-        filterPlaca.value.trim() ||
-        filterFechaDesde.value ||
-        filterFechaHasta.value
-    );
+    const total = totalMantenimientosCount;
+    const filters = currentMaintenanceFilters();
+    const hasFilters = Boolean(filters.placa || filters.tipo || filters.fecha_desde || filters.fecha_hasta);
 
     if (!total) {
         filterSummary.textContent = "Aun no hay mantenimientos registrados.";
@@ -395,10 +439,26 @@ function updateFilterSummary(filteredCount) {
         : `Mostrando todos los mantenimientos (${total}).`;
 }
 
-function applyMaintenanceFilters() {
-    const filtered = mantenimientosState.filter(maintenanceMatchesFilters);
-    renderMantenimientos(filtered);
-    updateFilterSummary(filtered.length);
+async function applyMaintenanceFilters() {
+    const requestToken = ++filtersRequestToken;
+
+    try {
+        window.VehiAmb.ui.show(loader);
+        const mantenimientos = await window.VehiAmb.api.getMantenimientos(currentMaintenanceFilters());
+        if (requestToken !== filtersRequestToken) return;
+
+        mantenimientosState = mantenimientos;
+        renderMantenimientos(mantenimientos);
+        updateFilterSummary(mantenimientos.length);
+    } catch (error) {
+        if (requestToken !== filtersRequestToken) return;
+
+        console.error(error);
+        mantenimientosList.innerHTML = '<p class="dash-empty">No fue posible cargar el historial de mantenimientos</p>';
+        updateFilterSummary(0);
+    } finally {
+        if (requestToken === filtersRequestToken) window.VehiAmb.ui.hide(loader);
+    }
 }
 
 async function cargarDatos() {
@@ -418,9 +478,9 @@ async function cargarDatos() {
     }
 
     try {
-        const mantenimientos = await window.VehiAmb.api.getMantenimientos();
-        mantenimientosState = mantenimientos;
-        applyMaintenanceFilters();
+        const todosLosMantenimientos = await window.VehiAmb.api.getMantenimientos();
+        totalMantenimientosCount = todosLosMantenimientos.length;
+        await applyMaintenanceFilters();
     } catch (error) {
         console.error(error);
         mantenimientosList.innerHTML = '<p class="dash-empty">No fue posible cargar el historial de mantenimientos</p>';
@@ -446,6 +506,8 @@ mantenimientoForm.addEventListener("submit", async (event) => {
         repuestosState = [];
         renderRepuestosBuilder();
         updateKilometrajeValidation();
+        updateCostoTotal();
+        updateCambioAceiteFields();
         await cargarDatos();
     } catch (error) {
         console.error(error);
@@ -457,12 +519,14 @@ mantenimientoForm.addEventListener("submit", async (event) => {
 
 mantenimientoSelect.addEventListener("change", updateKilometrajeValidation);
 mantenimientoKilometraje.addEventListener("input", updateKilometrajeValidation);
+valorManoObraInput.addEventListener("input", updateCostoTotal);
+mantenimientoTipo.addEventListener("change", updateCambioAceiteFields);
 
 mantenimientosFilterForm.addEventListener("submit", (event) => {
     event.preventDefault();
 });
 
-[filterPlaca, filterFechaDesde, filterFechaHasta].forEach((input) => {
+[filterPlaca, filterTipo, filterFechaDesde, filterFechaHasta].forEach((input) => {
     input.addEventListener("input", applyMaintenanceFilters);
     input.addEventListener("change", applyMaintenanceFilters);
 });
@@ -495,6 +559,41 @@ mantenimientosList.addEventListener("keydown", (event) => {
 
 closeMaintenanceDrawer.addEventListener("click", closeDetailDrawer);
 maintenanceDrawerBackdrop.addEventListener("click", closeDetailDrawer);
+
+exportMaintenanceButton.addEventListener("click", async () => {
+    if (!currentDetailItem) return;
+
+    const originalLabel = exportMaintenanceButton.textContent;
+    exportMaintenanceButton.disabled = true;
+    exportMaintenanceButton.textContent = "Generando...";
+
+    try {
+        await window.VehiAmb.mantenimientos.exportPdf(currentDetailItem);
+    } catch (error) {
+        console.error(error);
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo exportar el PDF", "error");
+    } finally {
+        exportMaintenanceButton.disabled = false;
+        exportMaintenanceButton.textContent = originalLabel;
+    }
+});
+
+exportHistorialButton.addEventListener("click", async () => {
+    const originalLabel = exportHistorialButton.textContent;
+    exportHistorialButton.disabled = true;
+    exportHistorialButton.textContent = "Generando...";
+
+    try {
+        await window.VehiAmb.mantenimientos.exportHistorialPdf(mantenimientosState, currentMaintenanceFilters());
+    } catch (error) {
+        console.error(error);
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo exportar el historial", "error");
+    } finally {
+        exportHistorialButton.disabled = false;
+        exportHistorialButton.textContent = originalLabel;
+    }
+});
+
 document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !maintenanceDrawer.classList.contains("hidden")) {
         closeDetailDrawer();
@@ -511,5 +610,7 @@ repuestoInput.addEventListener("keydown", (event) => {
 
 document.addEventListener("DOMContentLoaded", () => {
     renderRepuestosBuilder();
+    updateCostoTotal();
+    updateCambioAceiteFields();
     cargarDatos();
 });

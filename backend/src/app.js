@@ -13,6 +13,7 @@ const vehiculosRoutes = require("./routes/vehiculos.routes");
 const mantenimientosRoutes = require("./routes/mantenimientos.routes");
 const documentosRoutes = require("./routes/documentos.routes");
 const usuariosRoutes = require("./routes/usuarios.routes");
+const notificacionesRoutes = require("./routes/notificaciones.routes");
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use("/api/vehiculos", requireAuth, vehiculosRoutes);
 app.use("/api/mantenimientos", requireAuth, mantenimientosRoutes);
 app.use("/api/documentos", requireAuth, documentosRoutes);
 app.use("/api/usuarios", requireAuth, usuariosRoutes);
+app.use("/api/notificaciones", requireAuth, notificacionesRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

@@ -14,7 +14,7 @@
             <div class="page-header">
                 <div>
                     <h1>Mantenimientos y revisiones</h1>
-                    <p class="page-kicker">Registra intervenciones, repuestos, soportes de firma y vencimientos futuros</p>
+                    <p class="page-kicker">Registra intervenciones, repuestos, soportes y vencimientos futuros</p>
                 </div>
             </div>
 
@@ -42,7 +42,7 @@
 
                                     <div class="form-group">
                                         <label>Tipo</label>
-                                        <select name="tipo" required>
+                                        <select name="tipo" id="mantenimientoTipo" required>
                                             <option value="revision">Revision general</option>
                                             <option value="preventivo">Mantenimiento preventivo</option>
                                             <option value="correctivo">Mantenimiento correctivo</option>
@@ -54,8 +54,20 @@
                                     </div>
                                 </div>
 
+                                <div class="form-grid hidden" id="cambioAceiteFields">
+                                    <div class="form-group">
+                                        <label>Proximo cambio de aceite (km)</label>
+                                        <input type="number" name="proximo_cambio_km" id="proximoCambioKmInput" min="0">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Proxima fecha de cambio</label>
+                                        <input type="date" name="proximo_cambio_fecha" id="proximoCambioFechaInput">
+                                    </div>
+                                </div>
+
                                 <div class="form-group">
-                                    <label>Que se reviso o realizo</label>
+                                    <label>Descripción o detalles</label>
                                     <textarea name="descripcion" placeholder="Ej: revision de frenos, suspension, luces, niveles y fugas"></textarea>
                                 </div>
 
@@ -69,9 +81,26 @@
                                             <input type="text" id="repuestoNotasInput" placeholder="Notas del repuesto">
                                             <button type="button" id="addRepuestoButton" class="btn-secondary">Agregar</button>
                                         </div>
-                                        <div id="repuestosEmpty" class="field-help">Aun no has agregado repuestos.</div>
+                                        <div id="repuestosEmpty" class="field-help">Aún no has agregado repuestos.</div>
                                         <ul id="repuestosList" class="simple-checklist"></ul>
                                     </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Valor mano de obra</label>
+                                    <input type="number" name="valor_mano_obra" id="valorManoObraInput" min="0" step="1000" value="0">
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Costo total del mantenimiento</label>
+                                    <input type="text" id="costoTotalDisplay" readonly disabled>
+                                </div>
+
+                                <div class="form-group form-checkbox">
+                                    <label>
+                                        <input type="checkbox" name="vehiculo_varado" id="vehiculoVaradoInput">
+                                        Vehiculo varado / en taller (no disponible para asignacion de rutas)
+                                    </label>
                                 </div>
 
                                 <div class="form-grid">
@@ -91,11 +120,6 @@
                                         <label>Kilometraje</label>
                                         <input type="number" name="kilometraje" id="mantenimientoKilometraje" min="0">
                                         <span id="kilometrajeHelp" class="field-help">Selecciona un vehiculo para validar el kilometraje.</span>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label>Valor</label>
-                                        <input type="number" name="valor" min="0" step="1000">
                                     </div>
                                 </div>
 
@@ -127,6 +151,20 @@
                                     </select>
                                 </div>
 
+                                <div class="form-group">
+                                    <label>Tipo de mantenimiento</label>
+                                    <select id="filterTipo">
+                                        <option value="">Todos</option>
+                                        <option value="revision">Revision general</option>
+                                        <option value="preventivo">Preventivo</option>
+                                        <option value="correctivo">Correctivo</option>
+                                        <option value="cambio_aceite">Cambio de aceite</option>
+                                        <option value="llantas">Cambio de llantas</option>
+                                        <option value="frenos">Frenos</option>
+                                        <option value="otro">Otro</option>
+                                    </select>
+                                </div>
+
                                 <div class="form-grid">
                                     <div class="form-group">
                                         <label>Desde</label>
@@ -141,6 +179,7 @@
 
                                 <div class="filter-actions">
                                     <span id="filterSummary" class="field-help">Mostrando todos los mantenimientos.</span>
+                                    <button type="button" id="exportHistorialButton" class="btn-secondary">Exportar historial PDF</button>
                                     <button type="button" id="clearFiltersButton" class="btn-secondary">Limpiar filtros</button>
                                 </div>
                             </form>
@@ -165,7 +204,10 @@
                         <h2 id="maintenanceDrawerTitle">Mantenimiento</h2>
                         <p id="maintenanceDrawerSubtitle">Informacion completa del registro</p>
                     </div>
-                    <button type="button" id="closeMaintenanceDrawer" class="drawer-close" aria-label="Cerrar detalle">×</button>
+                    <div class="detail-drawer-actions">
+                        <button type="button" id="exportMaintenanceButton" class="btn-secondary">Exportar PDF</button>
+                        <button type="button" id="closeMaintenanceDrawer" class="drawer-close" aria-label="Cerrar detalle">×</button>
+                    </div>
                 </div>
                 <div id="maintenanceDrawerBody" class="detail-drawer-body"></div>
             </aside>
@@ -176,6 +218,10 @@
     <script src="assets/js/shared/api.js"></script>
     <script src="assets/js/shared/ui.js"></script>
     <script src="assets/js/shared/sidebar.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="assets/js/shared/pdf-export.js"></script>
     <script src="assets/js/pages/mantenimientos.js"></script>
+    <script src="assets/js/pages/mantenimientos-export.js"></script>
+    <script src="assets/js/pages/mantenimientos-historial-export.js"></script>
 </body>
 </html>

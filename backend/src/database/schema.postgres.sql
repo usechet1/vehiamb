@@ -60,8 +60,26 @@ CREATE TABLE IF NOT EXISTS mantenimientos (
   soporte_nombre TEXT,
   soporte_mime TEXT,
   valor NUMERIC(12, 2) NOT NULL DEFAULT 0,
+  valor_mano_obra NUMERIC(12, 2) NOT NULL DEFAULT 0,
   kilometraje FLOAT,
+  proximo_cambio_km INTEGER,
+  proximo_cambio_fecha DATE,
+  creado_por_usuario_id BIGINT REFERENCES usuarios(id),
+  estado TEXT NOT NULL DEFAULT 'completado',
+  vehiculo_varado BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS notificaciones (
+  id BIGSERIAL PRIMARY KEY,
+  usuario_id BIGINT NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  tipo TEXT NOT NULL,
+  prioridad TEXT NOT NULL DEFAULT 'media',
+  mensaje TEXT NOT NULL,
+  leido BOOLEAN NOT NULL DEFAULT FALSE,
+  referencia_tipo TEXT,
+  referencia_id BIGINT,
+  fecha_creacion TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS documentos (
@@ -90,3 +108,5 @@ CREATE INDEX IF NOT EXISTS idx_usuarios_role_id ON usuarios (role_id);
 CREATE INDEX IF NOT EXISTS idx_mantenimientos_vehiculo_id ON mantenimientos (vehiculo_id);
 CREATE INDEX IF NOT EXISTS idx_documentos_vehiculo_id ON documentos (vehiculo_id);
 CREATE INDEX IF NOT EXISTS idx_cambios_aceite_vehiculo_id ON cambios_aceite (vehiculo_id);
+CREATE INDEX IF NOT EXISTS idx_notificaciones_usuario_id ON notificaciones (usuario_id);
+CREATE INDEX IF NOT EXISTS idx_notificaciones_referencia ON notificaciones (referencia_tipo, referencia_id);

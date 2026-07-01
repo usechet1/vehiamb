@@ -55,7 +55,11 @@ function formatCurrency(value) {
 
 function formatDate(value) {
     if (!value) return "Sin fecha";
-    return new Date(`${value}T00:00:00`).toLocaleDateString("es-CO", {
+
+    const date = new Date(`${String(value).slice(0, 10)}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return "Sin fecha";
+
+    return date.toLocaleDateString("es-CO", {
         day: "2-digit",
         month: "short",
         year: "numeric"
@@ -68,7 +72,9 @@ function daysUntil(value) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const target = new Date(`${value}T00:00:00`);
+    const target = new Date(`${String(value).slice(0, 10)}T00:00:00`);
+    if (Number.isNaN(target.getTime())) return null;
+
     return Math.ceil((target.getTime() - today.getTime()) / 86400000);
 }
 

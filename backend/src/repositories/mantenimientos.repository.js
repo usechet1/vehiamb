@@ -12,20 +12,55 @@ const MANTENIMIENTO_FIELDS = [
   "soporte_nombre",
   "soporte_mime",
   "valor",
-  "kilometraje"
+  "valor_mano_obra",
+  "kilometraje",
+  "proximo_cambio_km",
+  "proximo_cambio_fecha",
+  "creado_por_usuario_id",
+  "estado",
+  "vehiculo_varado"
 ];
 
-async function findAll() {
-  return db.all(`
-    SELECT
-      m.*,
-      v.placa,
-      v.marca,
-      v.modelo
-    FROM mantenimientos m
-    INNER JOIN vehiculos v ON v.id = m.vehiculo_id
-    ORDER BY m.fecha DESC, m.id DESC
-  `);
+async function findAll(filters = {}) {
+  const conditions = [];
+  const values = [];
+
+  if (filters.tipo) {
+    conditions.push("m.tipo = ?");
+    values.push(filters.tipo);
+  }
+
+  if (filters.placa) {
+    conditions.push("v.placa = ?");
+    values.push(filters.placa);
+  }
+
+  if (filters.fechaDesde) {
+    conditions.push("m.fecha >= ?");
+    values.push(filters.fechaDesde);
+  }
+
+  if (filters.fechaHasta) {
+    conditions.push("m.fecha <= ?");
+    values.push(filters.fechaHasta);
+  }
+
+  const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  return db.all(
+    `
+      SELECT
+        m.*,
+        v.placa,
+        v.marca,
+        v.modelo
+      FROM mantenimientos m
+      INNER JOIN vehiculos v ON v.id = m.vehiculo_id
+      ${whereClause}
+      ORDER BY m.fecha DESC, m.id DESC
+    `,
+    values
+  );
 }
 
 async function findByVehicle(vehiculoId) {
@@ -42,6 +77,27 @@ async function findByVehicle(vehiculoId) {
 
 async function findById(id) {
   return db.get("SELECT * FROM mantenimientos WHERE id = ?", [id]);
+}
+
+async function findByIdWithVehiculo(id) {
+  return db.get(
+    `
+      SELECT
+        m.*,
+        v.placa,
+        v.marca,
+        v.modelo
+      FROM mantenimientos m
+      INNER JOIN vehiculos v ON v.id = m.vehiculo_id
+      WHERE m.id = ?
+    `,
+    [id]
+  );
+}
+
+async function updateEstado(id, estado) {
+  await db.run("UPDATE mantenimientos SET estado = ? WHERE id = ?", [estado, id]);
+  return findByIdWithVehiculo(id);
 }
 
 async function create(mantenimiento) {
@@ -67,5 +123,7 @@ module.exports = {
   findAll,
   findByVehicle,
   findById,
-  create
+  findByIdWithVehiculo,
+  create,
+  updateEstado
 };

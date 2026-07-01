@@ -1,3 +1,12 @@
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 function getInitials(name) {
     return String(name || "VA")
         .split(" ")
@@ -17,6 +26,96 @@ function findNextButton(element) {
     }
 
     return null;
+}
+
+const NOTIF_TIPO_LABEL = {
+    aprobacion: "Aprobacion requerida",
+    alerta: "Alerta",
+    info: "Informacion"
+};
+
+function renderNotificaciones(notificaciones, body, badge) {
+    const noLeidas = notificaciones.filter((notificacion) => !notificacion.leido).length;
+
+    badge.textContent = String(noLeidas);
+    badge.classList.toggle("hidden", noLeidas === 0);
+
+    if (!notificaciones.length) {
+        body.innerHTML = '<p class="dash-empty">No tienes notificaciones.</p>';
+        return;
+    }
+
+    body.innerHTML = notificaciones.map((notificacion) => {
+        const esAprobacionPendiente = notificacion.tipo === "aprobacion" && !notificacion.leido;
+        const acciones = esAprobacionPendiente
+            ? `
+                <button type="button" class="btn-primary" data-notif-action="aprobar" data-notif-id="${notificacion.id}">Aprobar</button>
+                <button type="button" class="btn-secondary" data-notif-action="rechazar" data-notif-id="${notificacion.id}">Rechazar</button>
+            `
+            : !notificacion.leido
+                ? `<button type="button" class="btn-secondary" data-notif-action="leido" data-notif-id="${notificacion.id}">Marcar leida</button>`
+                : "";
+
+        return `
+            <article class="notif-item notif-item--${notificacion.tipo}${notificacion.leido ? " notif-item--leido" : ""}">
+                <span class="notif-item-tag">${NOTIF_TIPO_LABEL[notificacion.tipo] || notificacion.tipo}</span>
+                <p>${escapeHtml(notificacion.mensaje)}</p>
+                ${acciones ? `<div class="notif-item-actions">${acciones}</div>` : ""}
+            </article>
+        `;
+    }).join("");
+}
+
+async function setupNotificaciones(aside) {
+    const bellButton = aside.querySelector("#notifBellButton");
+    const panel = aside.querySelector("#notifPanel");
+    const badge = aside.querySelector("#notifBadge");
+    const body = aside.querySelector("#notifPanelBody");
+    if (!bellButton || !panel || !badge || !body) return;
+
+    async function refrescar() {
+        try {
+            const notificaciones = await window.VehiAmb.api.getNotificaciones();
+            renderNotificaciones(notificaciones, body, badge);
+        } catch (error) {
+            console.error("No fue posible cargar las notificaciones:", error);
+        }
+    }
+
+    bellButton.addEventListener("click", () => {
+        panel.classList.toggle("hidden");
+    });
+
+    document.addEventListener("click", (event) => {
+        if (panel.classList.contains("hidden")) return;
+        if (panel.contains(event.target) || bellButton.contains(event.target)) return;
+        panel.classList.add("hidden");
+    });
+
+    body.addEventListener("click", async (event) => {
+        const actionButton = event.target.closest("[data-notif-action]");
+        if (!actionButton) return;
+
+        const { notifAction, notifId } = actionButton.dataset;
+        actionButton.disabled = true;
+
+        try {
+            if (notifAction === "leido") {
+                await window.VehiAmb.api.marcarNotificacionLeida(notifId);
+            } else if (notifAction === "aprobar") {
+                await window.VehiAmb.api.aprobarNotificacion(notifId);
+            } else if (notifAction === "rechazar") {
+                await window.VehiAmb.api.rechazarNotificacion(notifId);
+            }
+            await refrescar();
+        } catch (error) {
+            console.error(error);
+            actionButton.disabled = false;
+        }
+    });
+
+    await refrescar();
+    setInterval(refrescar, 60000);
 }
 
 function removeEmptyMenuGroups(aside) {
@@ -81,6 +180,7 @@ async function cargarSidebar() {
         });
 
         removeEmptyMenuGroups(aside);
+        await setupNotificaciones(aside);
     } catch (error) {
         console.error("No fue posible cargar el usuario del sidebar:", error);
     }

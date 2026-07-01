@@ -78,8 +78,21 @@ window.VehiAmb.api = {
         );
     },
 
-    getMantenimientos() {
-        return requestJson(`${window.VehiAmb.API_URL}/mantenimientos`, undefined, "No se pudieron cargar los mantenimientos");
+    getMantenimientos(filters = {}) {
+        const params = new URLSearchParams();
+
+        if (filters.tipo) params.set("tipo", filters.tipo);
+        if (filters.placa) params.set("placa", filters.placa);
+        if (filters.fecha_desde) params.set("fecha_desde", filters.fecha_desde);
+        if (filters.fecha_hasta) params.set("fecha_hasta", filters.fecha_hasta);
+
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/mantenimientos${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudieron cargar los mantenimientos"
+        );
     },
 
     getMantenimientosByVehicle(vehiculoId) {
@@ -192,6 +205,34 @@ window.VehiAmb.api = {
                 body: JSON.stringify({ permission_ids: permissionIds })
             },
             "No se pudieron actualizar los permisos"
+        );
+    },
+
+    getNotificaciones() {
+        return requestJson(`${window.VehiAmb.API_URL}/notificaciones`, undefined, "No se pudieron cargar las notificaciones");
+    },
+
+    marcarNotificacionLeida(id) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/notificaciones/${id}/leido`,
+            { method: "PATCH" },
+            "No se pudo marcar la notificacion como leida"
+        );
+    },
+
+    aprobarNotificacion(id) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/notificaciones/${id}/aprobar`,
+            { method: "POST" },
+            "No se pudo aprobar el mantenimiento"
+        );
+    },
+
+    rechazarNotificacion(id) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/notificaciones/${id}/rechazar`,
+            { method: "POST" },
+            "No se pudo rechazar el mantenimiento"
         );
     }
 };

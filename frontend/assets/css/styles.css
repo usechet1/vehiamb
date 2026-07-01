@@ -282,6 +282,137 @@ label[for="loginPassword"] {
     padding: 10px 8px 8px;
 }
 
+/* ── Notificaciones ───────────────────────────── */
+.notif-bell-wrap {
+    position: relative;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.notif-bell {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.78);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.notif-bell:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.notif-bell svg {
+    width: 17px;
+    height: 17px;
+}
+
+.notif-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    border: 2px solid var(--color-sidebar);
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 0.62rem;
+    font-weight: 700;
+    line-height: 12px;
+    text-align: center;
+}
+
+.notif-panel {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 0;
+    width: min(340px, 90vw);
+    max-height: 420px;
+    overflow-y: auto;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow);
+    z-index: 1000;
+}
+
+.notif-panel-head {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-ink);
+}
+
+.notif-panel-body {
+    display: flex;
+    flex-direction: column;
+}
+
+.notif-item {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.notif-item:last-child {
+    border-bottom: none;
+}
+
+.notif-item p {
+    color: var(--color-ink-soft);
+    font-size: 0.85rem;
+    line-height: 1.35;
+}
+
+.notif-item-tag {
+    align-self: flex-start;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--color-surface-2);
+    color: var(--color-muted);
+}
+
+.notif-item--aprobacion .notif-item-tag,
+.notif-item--alerta .notif-item-tag {
+    background: rgba(178, 31, 45, 0.12);
+    color: var(--color-primary);
+}
+
+.notif-item--info .notif-item-tag {
+    background: var(--color-warning-bg);
+    color: var(--color-warning);
+}
+
+.notif-item--leido {
+    opacity: 0.55;
+}
+
+.notif-item-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.notif-item-actions .btn-primary,
+.notif-item-actions .btn-secondary {
+    min-height: 32px;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+}
+
 .user-avatar {
     width: 34px;
     height: 34px;
@@ -491,6 +622,21 @@ label[for="loginPassword"] {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23b21f2d' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
     background-position: right 14px center;
     background-repeat: no-repeat;
+}
+
+.form-checkbox label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-ink-soft);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.form-checkbox input[type="checkbox"] {
+    width: 17px;
+    height: 17px;
+    accent-color: var(--color-primary);
 }
 
 .preview {
@@ -1493,6 +1639,13 @@ label[for="loginPassword"] {
 .detail-drawer-head p {
     color: var(--color-muted);
     font-size: 0.9rem;
+}
+
+.detail-drawer-actions {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    flex: 0 0 auto;
 }
 
 .drawer-close {
