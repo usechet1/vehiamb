@@ -3,7 +3,7 @@ const loader = document.getElementById("loader");
 
 function formatKm(value) {
     const number = Number(value || 0);
-    return new Intl.NumberFormat("es-CO").format(number);
+    return new Intl.NumberFormat("es-CO", { maximumFractionDigits: 2 }).format(number);
 }
 
 async function cargarVehiculos() {

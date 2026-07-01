@@ -25,6 +25,20 @@ async function ensureColumn(tableName, columnName, definition) {
   await db.run(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
 }
 
+async function ensureNumericColumn(tableName, columnName, precision = "12, 2") {
+  const row = await db.get(
+    `
+      SELECT data_type
+      FROM information_schema.columns
+      WHERE table_name = ? AND column_name = ?
+    `,
+    [tableName, columnName]
+  );
+
+  if (!row || row.data_type === "numeric") return;
+  await db.run(`ALTER TABLE ${tableName} ALTER COLUMN ${columnName} TYPE NUMERIC(${precision}) USING ${columnName}::numeric`);
+}
+
 const PERMISSIONS = [
   ["dashboard.view", "Inicio", "Ver panel principal"],
   ["vehicles.view", "Vehiculos", "Ver vehiculos"],
@@ -209,9 +223,13 @@ async function ensurePostgresTables() {
       color TEXT,
       combustible TEXT,
       cilindraje INTEGER,
-      capacidad_carga INTEGER,
+      capacidad_carga NUMERIC(12, 2),
       placa TEXT NOT NULL UNIQUE,
-      kilometraje_actual INTEGER NOT NULL DEFAULT 0,
+      kilometraje_actual NUMERIC(12, 2) NOT NULL DEFAULT 0,
+      tipo_vehiculo TEXT,
+      tipo_carroceria TEXT,
+      numero_chasis TEXT,
+      numero_motor TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
@@ -280,6 +298,7 @@ async function ensurePostgresTables() {
   `);
 
   await db.run("CREATE INDEX IF NOT EXISTS idx_vehiculos_placa ON vehiculos (placa)");
+  await db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_vehiculos_numero_chasis ON vehiculos (numero_chasis) WHERE numero_chasis IS NOT NULL");
   await db.run("CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios (email)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_mantenimientos_vehiculo_id ON mantenimientos (vehiculo_id)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_documentos_vehiculo_id ON documentos (vehiculo_id)");
@@ -348,6 +367,10 @@ if (env.dbClient === "sqlite") {
         capacidad_carga INTEGER,
         placa TEXT,
         kilometraje_actual INTEGER,
+        tipo_vehiculo TEXT,
+        tipo_carroceria TEXT,
+        numero_chasis TEXT,
+        numero_motor TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -435,8 +458,13 @@ if (env.dbClient === "sqlite") {
     ensureColumn("mantenimientos", "proximo_cambio_fecha", "TEXT"),
     ensureColumn("mantenimientos", "creado_por_usuario_id", "INTEGER"),
     ensureColumn("mantenimientos", "estado", "TEXT NOT NULL DEFAULT 'completado'"),
-    ensureColumn("mantenimientos", "vehiculo_varado", "INTEGER NOT NULL DEFAULT 0")
+    ensureColumn("mantenimientos", "vehiculo_varado", "INTEGER NOT NULL DEFAULT 0"),
+    ensureColumn("vehiculos", "tipo_vehiculo", "TEXT"),
+    ensureColumn("vehiculos", "tipo_carroceria", "TEXT"),
+    ensureColumn("vehiculos", "numero_chasis", "TEXT"),
+    ensureColumn("vehiculos", "numero_motor", "TEXT")
   ])
+    .then(() => db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_vehiculos_numero_chasis ON vehiculos (numero_chasis) WHERE numero_chasis IS NOT NULL"))
     .then(seedRolesAndPermissions)
     .then(syncUserRoles)
     .then(seedAdminUser)
@@ -458,7 +486,15 @@ if (env.dbClient === "sqlite") {
       ensureColumn("mantenimientos", "proximo_cambio_fecha", "DATE"),
       ensureColumn("mantenimientos", "creado_por_usuario_id", "BIGINT REFERENCES usuarios(id)"),
       ensureColumn("mantenimientos", "estado", "TEXT NOT NULL DEFAULT 'completado'"),
-      ensureColumn("mantenimientos", "vehiculo_varado", "BOOLEAN NOT NULL DEFAULT FALSE")
+      ensureColumn("mantenimientos", "vehiculo_varado", "BOOLEAN NOT NULL DEFAULT FALSE"),
+      ensureColumn("vehiculos", "tipo_vehiculo", "TEXT"),
+      ensureColumn("vehiculos", "tipo_carroceria", "TEXT"),
+      ensureColumn("vehiculos", "numero_chasis", "TEXT"),
+      ensureColumn("vehiculos", "numero_motor", "TEXT")
+    ]))
+    .then(() => Promise.all([
+      ensureNumericColumn("vehiculos", "kilometraje_actual"),
+      ensureNumericColumn("vehiculos", "capacidad_carga")
     ]))
     .then(() => db.run("CREATE INDEX IF NOT EXISTS idx_usuarios_role_id ON usuarios (role_id)"))
     .then(seedRolesAndPermissions)

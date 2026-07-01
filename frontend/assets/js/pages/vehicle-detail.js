@@ -42,7 +42,7 @@ const tiposDocumento = {
 let currentPlate = "";
 
 function formatKm(value) {
-    return `${Number(value || 0).toLocaleString("es-CO")} km`;
+    return `${Number(value || 0).toLocaleString("es-CO", { maximumFractionDigits: 2 })} km`;
 }
 
 function formatCurrency(value) {
@@ -160,6 +160,8 @@ function configureSimitAccess(plate) {
 
 function renderFacts(vehiculo) {
     const facts = [
+        ["Tipo de vehiculo", vehiculo.tipo_vehiculo],
+        ["Tipo de carroceria", vehiculo.tipo_carroceria],
         ["Marca", vehiculo.marca],
         ["Modelo", vehiculo.modelo],
         ["Anio", vehiculo.anio],
@@ -167,6 +169,8 @@ function renderFacts(vehiculo) {
         ["Combustible", vehiculo.combustible],
         ["Cilindraje", vehiculo.cilindraje],
         ["Capacidad de carga", vehiculo.capacidad_carga],
+        ["Numero de chasis (VIN)", vehiculo.numero_chasis],
+        ["Numero de motor", vehiculo.numero_motor],
         ["Creado", formatDate(vehiculo.created_at?.slice(0, 10))]
     ];
 

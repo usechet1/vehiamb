@@ -554,6 +554,86 @@ label[for="loginPassword"] {
     box-shadow: var(--shadow);
 }
 
+.form-card-wide {
+    width: min(100%, 1220px);
+}
+
+/* ── Layout de dos columnas (imagen + formulario) ─ */
+.vehicle-form-layout {
+    display: grid;
+    grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+}
+
+.vehicle-form-image-col {
+    position: sticky;
+    top: 12px;
+}
+
+.vehicle-form-fields-col {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.image-dropzone {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 280px;
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-2);
+    overflow: hidden;
+    transition: var(--transition);
+}
+
+.image-dropzone.dropzone-active {
+    border-color: var(--color-primary);
+    background: rgba(178, 31, 45, 0.05);
+}
+
+.dropzone-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.dropzone-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 24px;
+    text-align: center;
+    pointer-events: none;
+}
+
+.dropzone-placeholder svg {
+    width: 46px;
+    height: 46px;
+    color: var(--color-primary);
+}
+
+.dropzone-placeholder p {
+    color: var(--color-ink-soft);
+    font-size: 0.92rem;
+    font-weight: 650;
+}
+
+.dropzone-preview {
+    width: 100%;
+    height: 100%;
+    min-height: 280px;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+}
+
 .form-card-head {
     padding-bottom: 20px;
     border-bottom: 1px solid var(--color-border);
@@ -571,6 +651,12 @@ label[for="loginPassword"] {
 .form-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.form-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 16px;
 }
 
@@ -622,6 +708,29 @@ label[for="loginPassword"] {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23b21f2d' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
     background-position: right 14px center;
     background-repeat: no-repeat;
+}
+
+.input-uppercase {
+    text-transform: uppercase;
+}
+
+.input-suffix-wrap {
+    position: relative;
+}
+
+.input-suffix-wrap input {
+    padding-right: 46px;
+}
+
+.input-suffix {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    color: var(--color-muted);
+    font-size: 0.8rem;
+    font-weight: 700;
+    pointer-events: none;
 }
 
 .form-checkbox label {
@@ -1794,6 +1903,18 @@ label[for="loginPassword"] {
         grid-template-columns: 1fr;
     }
 
+    .vehicle-form-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .vehicle-form-image-col {
+        position: static;
+    }
+
+    .form-grid-3 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .vehicle-detail-grid,
     .vehicle-records-grid {
         grid-template-columns: 1fr;
@@ -1814,6 +1935,7 @@ label[for="loginPassword"] {
 
     .dash-cards,
     .form-grid,
+    .form-grid-3,
     .vehicle-meta,
     .detail-list,
     .summary-grid {

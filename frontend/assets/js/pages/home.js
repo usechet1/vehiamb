@@ -147,7 +147,7 @@ function pintarKilometraje(vehiculos) {
                 <strong>${escapeHtml(vehiculo.placa || "Sin placa")}</strong>
                 <span class="dash-sub">${escapeHtml(`${vehiculo.marca || ""} ${vehiculo.modelo || ""}`.trim() || "Sin referencia")}</span>
             </div>
-            <span class="dash-fecha-tag">${Number(vehiculo.kilometraje_actual || 0).toLocaleString("es-CO")} km</span>
+            <span class="dash-fecha-tag">${Number(vehiculo.kilometraje_actual || 0).toLocaleString("es-CO", { maximumFractionDigits: 2 })} km</span>
         </li>
     `).join("");
 }

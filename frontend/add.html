@@ -18,93 +18,177 @@
                 </div>
             </div>
 
-            <form id="vehiculoForm" class="form-card form-vertical">
+            <form id="vehiculoForm" class="form-card form-vertical form-card-wide">
                 <div class="form-card-head">
                     <span class="form-step">Ficha tecnica</span>
                     <p>Esta vista ahora captura los mismos datos base que luego ves en la ficha del vehiculo.</p>
                 </div>
 
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Codigo interno</label>
-                        <input type="text" name="codigo_interno" required>
+                <div class="vehicle-form-layout">
+                    <div class="vehicle-form-image-col">
+                        <div class="form-group">
+                            <label>Imagen del vehiculo</label>
+                            <div class="image-dropzone" id="imageDropzone">
+                                <input type="file" name="imagen" id="imagen" accept="image/*" class="dropzone-input">
+                                <div class="dropzone-placeholder" id="dropzonePlaceholder">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/>
+                                        <circle cx="14" cy="17" r="3"/><circle cx="20" cy="17" r="3"/>
+                                        <path d="M14 6h4l3 4"/>
+                                    </svg>
+                                    <p>Arrastra una imagen aqui o haz clic para seleccionarla</p>
+                                    <span class="field-help">Formatos PNG o JPG</span>
+                                </div>
+                                <img id="preview" class="dropzone-preview hidden" alt="Vista previa del vehiculo">
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label>Placa</label>
-                        <input type="text" name="placa" required>
-                    </div>
-                </div>
+                    <div class="vehicle-form-fields-col">
+                        <div class="form-grid-3">
+                            <div class="form-group">
+                                <label>Codigo interno</label>
+                                <input type="text" name="codigo_interno" required>
+                            </div>
 
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="select-marca">Marca</label>
-                        <select name="marca" id="select-marca" required>
-                            <option value="">Selecciona una marca</option>
-                            <option value="Fuso">Fuso</option>
-                            <option value="Hino">Hino</option>
-                            <option value="Chevrolet">Chevrolet</option>
-                            <option value="Toyota">Toyota</option>
-                            <option value="Nissan">Nissan</option>
-                            <option value="Mazda">Mazda</option>
-                            <option value="Kia">Kia</option>
-                            <option value="Hyundai">Hyundai</option>
-                        </select>
-                    </div>
+                            <div class="form-group">
+                                <label>Placa</label>
+                                <input type="text" name="placa" id="input-placa" required class="input-uppercase">
+                            </div>
 
-                    <div class="form-group">
-                        <label>Modelo</label>
-                        <input type="text" name="modelo" required>
-                    </div>
-                </div>
+                            <div class="form-group">
+                                <label for="select-tipo-vehiculo">Tipo de vehiculo</label>
+                                <select name="tipo_vehiculo" id="select-tipo-vehiculo" required>
+                                    <option value="">Selecciona un tipo</option>
+                                    <option value="Automovil">Automovil</option>
+                                    <option value="Camioneta">Camioneta</option>
+                                    <option value="Camion">Camion</option>
+                                    <option value="Turbo">Turbo</option>
+                                    <option value="Tractocamion">Tractocamion</option>
+                                    <option value="Montacargas">Montacargas</option>
+                                    <option value="Motocicleta">Motocicleta</option>
+                                    <option value="Otro">Otro</option>
+                                </select>
+                            </div>
+                        </div>
 
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Año</label>
-                        <input type="number" name="anio" min="1950" max="2100">
-                    </div>
+                        <div class="form-grid-3">
+                            <div class="form-group">
+                                <label for="select-tipo-carroceria">Tipo de carroceria</label>
+                                <select name="tipo_carroceria" id="select-tipo-carroceria">
+                                    <option value="">Selecciona una carroceria</option>
+                                    <option value="Estacas">Estacas</option>
+                                    <option value="Furgon">Furgon</option>
+                                    <option value="Platon">Platon</option>
+                                    <option value="Tanque">Tanque</option>
+                                    <option value="Volqueta">Volqueta</option>
+                                    <option value="Cisterna">Cisterna</option>
+                                    <option value="Pickup">Pickup</option>
+                                    <option value="SUV">SUV</option>
+                                    <option value="Sedan">Sedan</option>
+                                    <option value="Hatchback">Hatchback</option>
+                                    <option value="Otro">Otro</option>
+                                </select>
+                            </div>
 
-                    <div class="form-group">
-                        <label>Color</label>
-                        <input type="text" name="color">
-                    </div>
-                </div>
+                            <div class="form-group">
+                                <label for="select-marca">Marca</label>
+                                <select name="marca" id="select-marca" required>
+                                    <option value="">Selecciona una marca</option>
+                                    <option value="Fuso">Fuso</option>
+                                    <option value="Hino">Hino</option>
+                                    <option value="Chevrolet">Chevrolet</option>
+                                    <option value="Toyota">Toyota</option>
+                                    <option value="Nissan">Nissan</option>
+                                    <option value="Mazda">Mazda</option>
+                                    <option value="Kia">Kia</option>
+                                    <option value="Hyundai">Hyundai</option>
+                                </select>
+                            </div>
 
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Combustible</label>
-                        <select name="combustible">
-                            <option value="">Selecciona un tipo</option>
-                            <option value="Diesel">Diesel</option>
-                            <option value="Gasolina">Gasolina</option>
-                            <option value="Gas">Gas</option>
-                            <option value="Hibrido">Hibrido</option>
-                            <option value="Electrico">Electrico</option>
-                        </select>
-                    </div>
+                            <div class="form-group">
+                                <label>Modelo</label>
+                                <input type="text" name="modelo" required placeholder="Ej: Canter 5.0, Mazda 3 Prime, NPR Reward">
+                            </div>
+                        </div>
 
-                    <div class="form-group">
-                        <label>Kilometraje actual</label>
-                        <input type="number" name="kilometraje_actual" min="0" required>
-                    </div>
-                </div>
+                        <div class="form-grid-3">
+                            <div class="form-group">
+                                <label>Año</label>
+                                <input type="number" name="anio" id="input-anio" min="1950" max="2100">
+                            </div>
 
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Cilindraje</label>
-                        <input type="number" name="cilindraje" min="0" step="1">
-                    </div>
+                            <div class="form-group">
+                                <label for="select-color">Color</label>
+                                <select name="color" id="select-color">
+                                    <option value="">Selecciona un color</option>
+                                    <option value="Blanco">Blanco</option>
+                                    <option value="Negro">Negro</option>
+                                    <option value="Gris">Gris</option>
+                                    <option value="Plata">Plata</option>
+                                    <option value="Rojo">Rojo</option>
+                                    <option value="Azul">Azul</option>
+                                    <option value="Verde">Verde</option>
+                                    <option value="Amarillo">Amarillo</option>
+                                    <option value="Naranja">Naranja</option>
+                                    <option value="Cafe">Cafe</option>
+                                    <option value="Beige">Beige</option>
+                                    <option value="Otro">Otro</option>
+                                </select>
+                            </div>
 
-                    <div class="form-group">
-                        <label>Capacidad de carga</label>
-                        <input type="number" name="capacidad_carga" min="0" step="1">
-                    </div>
-                </div>
+                            <div class="form-group">
+                                <label>Combustible</label>
+                                <select name="combustible">
+                                    <option value="">Selecciona un tipo</option>
+                                    <option value="Diesel">Diesel</option>
+                                    <option value="Gasolina">Gasolina</option>
+                                    <option value="Gas">Gas</option>
+                                    <option value="Hibrido">Hibrido</option>
+                                    <option value="Electrico">Electrico</option>
+                                </select>
+                            </div>
+                        </div>
 
-                <div class="form-group">
-                    <label>Imagen del vehiculo</label>
-                    <input type="file" name="imagen" id="imagen" accept="image/*">
-                    <img id="preview" class="preview hidden" alt="Vista previa del vehiculo">
+                        <div class="form-grid-3">
+                            <div class="form-group">
+                                <label>Kilometraje actual</label>
+                                <div class="input-suffix-wrap">
+                                    <input type="number" name="kilometraje_actual" min="0" step="0.01" required>
+                                    <span class="input-suffix">km</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Cilindraje</label>
+                                <div class="input-suffix-wrap">
+                                    <input type="number" name="cilindraje" id="input-cilindraje" min="0" max="20000" step="1">
+                                    <span class="input-suffix">c.c.</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Capacidad de carga</label>
+                                <div class="input-suffix-wrap">
+                                    <input type="number" name="capacidad_carga" min="0" step="0.01">
+                                    <span class="input-suffix">Kg</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-grid-3">
+                            <div class="form-group">
+                                <label>Numero de chasis (VIN)</label>
+                                <input type="text" name="numero_chasis" maxlength="17" placeholder="Ej: 9BWZZZ377VT004251">
+                                <span class="field-help">Alfanumerico, entre 5 y 17 caracteres. Debe ser unico.</span>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Numero de motor</label>
+                                <input type="text" name="numero_motor" placeholder="Si no esta disponible, dejar en blanco">
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn-primary">

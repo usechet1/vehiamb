@@ -10,7 +10,11 @@ const VEHICULO_FIELDS = [
   "cilindraje",
   "capacidad_carga",
   "placa",
-  "kilometraje_actual"
+  "kilometraje_actual",
+  "tipo_vehiculo",
+  "tipo_carroceria",
+  "numero_chasis",
+  "numero_motor"
 ];
 
 async function findAll() {
