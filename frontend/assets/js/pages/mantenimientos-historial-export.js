@@ -3,6 +3,7 @@
     const LOGO_PATH = "img/vehiamb.png";
     const MARGIN_X = 40;
     const ROW_HEIGHT = 18;
+    const FOOTER_TEXT = () => `Generado por ${APP_NAME} - Software propio de Ambientes Cerámicos - el ${new Date().toLocaleString("es-CO")}`;
 
     function safe(value, fallback = "No registrado") {
         if (value === null || value === undefined || value === "") return fallback;
@@ -99,7 +100,7 @@
 
     function addFooter(doc) {
         const pageCount = doc.internal.getNumberOfPages();
-        const generado = `Generado por ${APP_NAME} el ${new Date().toLocaleString("es-CO")}`;
+        const generado = FOOTER_TEXT();
 
         for (let page = 1; page <= pageCount; page += 1) {
             doc.setPage(page);
@@ -167,7 +168,67 @@
         doc.save(buildFileName());
     }
 
+    function buildExcelFileName() {
+        const fecha = new Date().toISOString().slice(0, 10);
+        return `Historial_Mantenimientos_${fecha}.xlsx`;
+    }
+
+    async function exportHistorialExcel(items, filtros = {}) {
+        if (!items || !items.length) {
+            throw new Error("No hay mantenimientos para exportar con los filtros actuales");
+        }
+
+        const excel = window.VehiAmb.excelExport;
+        const columnCount = COLUMN_WIDTHS.length;
+
+        const workbook = excel.createWorkbook();
+        const sheet = workbook.addWorksheet("Historial");
+        excel.setColumnWidths(sheet, COLUMN_WIDTHS.map((column) => Math.round(column.width / 6)));
+
+        excel.addTitleBar(sheet, {
+            title: "Historial de mantenimientos",
+            subtitle: APP_NAME,
+            columnCount
+        });
+
+        excel.addLabelValueRow(sheet, "Filtros aplicados:", describeFiltros(filtros));
+        excel.addLabelValueRow(sheet, "Total de registros:", items.length);
+        sheet.addRow([]);
+
+        const headerRow = excel.addTableHeaderRow(sheet, COLUMN_WIDTHS.map((column) => column.label));
+
+        items.forEach((item, index) => {
+            const vehiculo = `${item.marca || ""} ${item.modelo || ""}`.trim();
+
+            const row = excel.addTableDataRow(
+                sheet,
+                [
+                    excel.formatDateForExcel(item.fecha),
+                    safe(item.placa),
+                    safe(vehiculo),
+                    safe(tiposMantenimiento[item.tipo] || item.tipo),
+                    safe(estadosMantenimiento[item.estado] || item.estado, "Completado"),
+                    item.kilometraje !== null && item.kilometraje !== undefined
+                        ? Number(item.kilometraje)
+                        : "No registrado",
+                    Number(item.valor || 0),
+                    safe(item.hecho_por)
+                ],
+                { band: index % 2 === 1 }
+            );
+
+            row.getCell(6).numFmt = "#,##0 \"km\"";
+            row.getCell(7).numFmt = "$#,##0";
+        });
+
+        excel.addFooterRow(sheet, FOOTER_TEXT(), columnCount);
+        sheet.views = [{ state: "frozen", ySplit: headerRow.number }];
+
+        await excel.downloadWorkbook(workbook, buildExcelFileName());
+    }
+
     window.VehiAmb = window.VehiAmb || {};
     window.VehiAmb.mantenimientos = window.VehiAmb.mantenimientos || {};
     window.VehiAmb.mantenimientos.exportHistorialPdf = exportHistorialPdf;
+    window.VehiAmb.mantenimientos.exportHistorialExcel = exportHistorialExcel;
 })();

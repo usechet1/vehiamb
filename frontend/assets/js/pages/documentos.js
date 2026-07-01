@@ -214,4 +214,12 @@ clearDocumentosFiltersButton.addEventListener("click", () => {
     applyDocumentosFilters();
 });
 
-document.addEventListener("DOMContentLoaded", cargarDatos);
+document.addEventListener("DOMContentLoaded", async () => {
+    await window.VehiAmb.auth.fetchCurrentUser();
+
+    if (!window.VehiAmb.auth.hasPermission("documents.create")) {
+        document.getElementById("registrarDocumentoSection")?.classList.add("hidden");
+    }
+
+    cargarDatos();
+});

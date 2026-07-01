@@ -106,6 +106,9 @@ function renderCard(vehiculo) {
         ? `<img src="${window.VehiAmb.api.getAssetUrl(vehiculo.imagen_url)}" alt="Imagen de ${vehiculo.placa || "vehiculo"}">`
         : fotoPlaceholder;
 
+    const puedeEditar = window.VehiAmb.auth.hasPermission("vehicles.edit");
+    const puedeRegistrarMantenimiento = window.VehiAmb.auth.hasPermission("maintenance.create");
+
     return `
         <article class="vehicle-card" data-id="${vehiculo.id}">
             <div class="vehicle-card-photo">
@@ -136,8 +139,8 @@ function renderCard(vehiculo) {
 
             <div class="vehicle-card-actions">
                 <a class="btn-secondary" href="vehiculo.html?id=${vehiculo.id}">Ver detalle</a>
-                <a class="btn-secondary" href="add.html?id=${vehiculo.id}">Editar</a>
-                <a class="btn-secondary" href="mantenimientos.html?vehiculo=${vehiculo.id}">Registrar mantenimiento</a>
+                ${puedeEditar ? `<a class="btn-secondary" href="add.html?id=${vehiculo.id}">Editar</a>` : ""}
+                ${puedeRegistrarMantenimiento ? `<a class="btn-secondary" href="mantenimientos.html?vehiculo=${vehiculo.id}">Registrar mantenimiento</a>` : ""}
             </div>
         </article>
     `;
@@ -281,7 +284,8 @@ container.addEventListener("change", async (event) => {
     }
 });
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+    await window.VehiAmb.auth.fetchCurrentUser();
     applyFiltersToForm();
     loadMarcas();
     cargarVehiculos();

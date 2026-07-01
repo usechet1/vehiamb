@@ -33,7 +33,9 @@ const maintenanceDrawerTitle = document.getElementById("maintenanceDrawerTitle")
 const maintenanceDrawerSubtitle = document.getElementById("maintenanceDrawerSubtitle");
 const maintenanceDrawerBody = document.getElementById("maintenanceDrawerBody");
 const exportMaintenanceButton = document.getElementById("exportMaintenanceButton");
+const exportMaintenanceExcelButton = document.getElementById("exportMaintenanceExcelButton");
 const exportHistorialButton = document.getElementById("exportHistorialButton");
+const exportHistorialExcelButton = document.getElementById("exportHistorialExcelButton");
 
 let repuestosState = [];
 let mantenimientosState = [];
@@ -591,6 +593,24 @@ exportMaintenanceButton.addEventListener("click", async () => {
     }
 });
 
+exportMaintenanceExcelButton.addEventListener("click", async () => {
+    if (!currentDetailItem) return;
+
+    const originalLabel = exportMaintenanceExcelButton.textContent;
+    exportMaintenanceExcelButton.disabled = true;
+    exportMaintenanceExcelButton.textContent = "Generando...";
+
+    try {
+        await window.VehiAmb.mantenimientos.exportExcel(currentDetailItem);
+    } catch (error) {
+        console.error(error);
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo exportar el Excel", "error");
+    } finally {
+        exportMaintenanceExcelButton.disabled = false;
+        exportMaintenanceExcelButton.textContent = originalLabel;
+    }
+});
+
 exportHistorialButton.addEventListener("click", async () => {
     const originalLabel = exportHistorialButton.textContent;
     exportHistorialButton.disabled = true;
@@ -604,6 +624,22 @@ exportHistorialButton.addEventListener("click", async () => {
     } finally {
         exportHistorialButton.disabled = false;
         exportHistorialButton.textContent = originalLabel;
+    }
+});
+
+exportHistorialExcelButton.addEventListener("click", async () => {
+    const originalLabel = exportHistorialExcelButton.textContent;
+    exportHistorialExcelButton.disabled = true;
+    exportHistorialExcelButton.textContent = "Generando...";
+
+    try {
+        await window.VehiAmb.mantenimientos.exportHistorialExcel(mantenimientosState, currentMaintenanceFilters());
+    } catch (error) {
+        console.error(error);
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo exportar el historial en Excel", "error");
+    } finally {
+        exportHistorialExcelButton.disabled = false;
+        exportHistorialExcelButton.textContent = originalLabel;
     }
 });
 
@@ -621,7 +657,13 @@ repuestoInput.addEventListener("keydown", (event) => {
     }
 });
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+    await window.VehiAmb.auth.fetchCurrentUser();
+
+    if (!window.VehiAmb.auth.hasPermission("maintenance.create")) {
+        document.getElementById("registrarMantenimientoSection")?.classList.add("hidden");
+    }
+
     renderRepuestosBuilder();
     updateCostoTotal();
     updateCambioAceiteFields();

@@ -3,6 +3,7 @@
     const LOGO_PATH = "img/vehiamb.png";
     const MARGIN_X = 40;
     const PAGE_BOTTOM_LIMIT = 760;
+    const FOOTER_TEXT = () => `Generado por ${APP_NAME} - Software propio de Ambientes Cerámicos - el ${new Date().toLocaleString("es-CO")}`;
 
     function safe(value, fallback = "No registrado") {
         if (value === null || value === undefined || value === "") return fallback;
@@ -152,7 +153,7 @@
 
     function addFooter(doc) {
         const pageCount = doc.internal.getNumberOfPages();
-        const generadoEl = `Generado por ${APP_NAME} - Software propio de Ambientes Ceramicos LTDA el ${new Date().toLocaleString("es-CO")}`;
+        const generadoEl = FOOTER_TEXT();
 
         for (let page = 1; page <= pageCount; page += 1) {
             doc.setPage(page);
@@ -217,7 +218,101 @@
         doc.save(buildFileName(item));
     }
 
+    function buildExcelFileName(item) {
+        const placa = String(item.placa || "SINPLACA").replace(/\s+/g, "").toUpperCase();
+        const fecha = String(item.fecha || "").slice(0, 10) || "sin-fecha";
+        return `Mantenimiento_${placa}_${fecha}.xlsx`;
+    }
+
+    const EXCEL_COLUMN_COUNT = 4;
+
+    async function exportMantenimientoExcel(item) {
+        if (!item) {
+            throw new Error("No hay un mantenimiento seleccionado para exportar");
+        }
+
+        const excel = window.VehiAmb.excelExport;
+        const vehicleName = `${item.marca || ""} ${item.modelo || ""}`.trim();
+        const repuestos = parseRepuestos(item.repuestos);
+        const totalRepuestos = repuestos.reduce((sum, repuesto) => sum + Number(repuesto.valor || 0), 0);
+
+        const workbook = excel.createWorkbook();
+        const sheet = workbook.addWorksheet("Mantenimiento");
+        excel.setColumnWidths(sheet, [26, 24, 16, 30]);
+
+        excel.addTitleBar(sheet, {
+            title: "Reporte de mantenimiento",
+            subtitle: APP_NAME,
+            columnCount: EXCEL_COLUMN_COUNT
+        });
+
+        excel.addSectionHeader(sheet, "Informacion general", EXCEL_COLUMN_COUNT);
+        excel.addLabelValueRow(sheet, "Vehiculo", safe(vehicleName));
+        excel.addLabelValueRow(sheet, "Placa", safe(item.placa));
+        excel.addLabelValueRow(sheet, "Fecha", excel.formatDateForExcel(item.fecha));
+        excel.addLabelValueRow(sheet, "Tipo de mantenimiento", safe(tiposMantenimiento[item.tipo] || item.tipo));
+        excel.addLabelValueRow(sheet, "Estado del vehiculo", item.vehiculo_varado ? "Varado / en taller" : "Disponible");
+        sheet.addRow([]);
+
+        excel.addSectionHeader(sheet, "Detalle del mantenimiento", EXCEL_COLUMN_COUNT);
+        excel.addLabelValueRow(sheet, "Descripcion", safe(item.descripcion));
+        excel.addLabelValueRow(
+            sheet,
+            "Kilometraje registrado",
+            item.kilometraje !== null && item.kilometraje !== undefined
+                ? `${Number(item.kilometraje).toLocaleString("es-CO")} km`
+                : "No registrado"
+        );
+        excel.addLabelValueRow(sheet, "Responsable", safe(item.hecho_por));
+        excel.addLabelValueRow(sheet, "Autorizado por", safe(item.autorizado_por));
+        sheet.addRow([]);
+
+        excel.addSectionHeader(sheet, "Costos", EXCEL_COLUMN_COUNT);
+        const manoObraRow = excel.addLabelValueRow(sheet, "Mano de obra", Number(item.valor_mano_obra || 0));
+        manoObraRow.getCell(2).numFmt = "$#,##0";
+        sheet.addRow([]);
+
+        excel.addSectionHeader(sheet, "Repuestos utilizados", EXCEL_COLUMN_COUNT);
+        excel.addTableHeaderRow(sheet, ["Repuesto", "Proveedor", "Valor", "Notas"]);
+
+        if (repuestos.length) {
+            repuestos.forEach((repuesto, index) => {
+                const row = excel.addTableDataRow(
+                    sheet,
+                    [
+                        safe(repuesto.repuesto),
+                        safe(repuesto.proveedor, "Sin proveedor"),
+                        Number(repuesto.valor || 0),
+                        safe(repuesto.notas, "Sin notas")
+                    ],
+                    { band: index % 2 === 1 }
+                );
+                row.getCell(3).numFmt = "$#,##0";
+            });
+        } else {
+            excel.addTableDataRow(sheet, ["No registrado", "", "", ""]);
+        }
+
+        sheet.addRow([]);
+        const totalRepuestosRow = excel.addLabelValueRow(sheet, "Total de repuestos", totalRepuestos);
+        totalRepuestosRow.getCell(2).numFmt = "$#,##0";
+        const totalRow = excel.addLabelValueRow(sheet, "Costo total del mantenimiento", Number(item.valor || 0));
+        totalRow.getCell(2).numFmt = "$#,##0";
+        totalRow.eachCell((cell) => {
+            cell.font = { bold: true, color: { argb: "FFB21F2D" } };
+        });
+        sheet.addRow([]);
+
+        excel.addSectionHeader(sheet, "Archivos", EXCEL_COLUMN_COUNT);
+        excel.addLabelValueRow(sheet, "Archivo de soporte", safe(item.soporte_nombre));
+
+        excel.addFooterRow(sheet, FOOTER_TEXT(), EXCEL_COLUMN_COUNT);
+
+        await excel.downloadWorkbook(workbook, buildExcelFileName(item));
+    }
+
     window.VehiAmb = window.VehiAmb || {};
     window.VehiAmb.mantenimientos = window.VehiAmb.mantenimientos || {};
     window.VehiAmb.mantenimientos.exportPdf = exportMantenimientoPdf;
+    window.VehiAmb.mantenimientos.exportExcel = exportMantenimientoExcel;
 })();

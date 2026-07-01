@@ -93,20 +93,22 @@
                             <button type="button" id="calendarToday" class="btn-secondary dash-calendar-today-btn">Hoy</button>
                         </div>
                     </div>
-                    <div class="dash-calendar">
-                        <div class="dash-calendar-weekdays">
-                            <span>Lun</span><span>Mar</span><span>Mie</span><span>Jue</span><span>Vie</span><span>Sab</span><span>Dom</span>
+                    <div class="dash-calendar-layout">
+                        <div class="dash-calendar">
+                            <div class="dash-calendar-weekdays">
+                                <span>Lun</span><span>Mar</span><span>Mie</span><span>Jue</span><span>Vie</span><span>Sab</span><span>Dom</span>
+                            </div>
+                            <div class="dash-calendar-grid" id="calendarGrid"></div>
+                            <div class="dash-calendar-legend">
+                                <span><i class="dash-calendar-dot dash-calendar-dot-mantenimiento"></i> Mantenimientos</span>
+                                <span><i class="dash-calendar-dot dash-calendar-dot-vencimiento"></i> Vencimientos</span>
+                            </div>
                         </div>
-                        <div class="dash-calendar-grid" id="calendarGrid"></div>
-                        <div class="dash-calendar-legend">
-                            <span><i class="dash-calendar-dot dash-calendar-dot-mantenimiento"></i> Mantenimientos</span>
-                            <span><i class="dash-calendar-dot dash-calendar-dot-vencimiento"></i> Vencimientos</span>
-                        </div>
-                    </div>
-                    <div class="dash-calendar-agenda">
-                        <p class="dash-calendar-agenda-head" id="calendarAgendaHead">Selecciona un dia</p>
-                        <div id="calendarAgendaList">
-                            <p class="dash-empty">Cargando...</p>
+                        <div class="dash-calendar-agenda">
+                            <p class="dash-calendar-agenda-head" id="calendarAgendaHead">Selecciona un dia</p>
+                            <div id="calendarAgendaList">
+                                <p class="dash-empty">Cargando...</p>
+                            </div>
                         </div>
                     </div>
                 </div>
