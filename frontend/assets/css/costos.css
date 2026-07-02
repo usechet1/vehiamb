@@ -1,0 +1,257 @@
+/* ── Costos vehiculares ────────────────────────────────────────── */
+
+.costos-rango {
+    display: flex;
+    gap: 14px;
+    flex-shrink: 0;
+}
+
+.costos-rango .form-group {
+    min-width: 150px;
+}
+
+.costos-view {
+    animation: costosFadeIn 0.25s ease;
+}
+
+@keyframes costosFadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.costos-search-row {
+    margin-bottom: 16px;
+}
+
+.costos-search-row input {
+    width: 100%;
+    max-width: 320px;
+}
+
+/* ── Cards base ───────────────────────────────────────────────── */
+.costos-card {
+    background: var(--color-surface);
+    border: 0.5px solid var(--color-border);
+    border-radius: 12px;
+    padding: 16px;
+}
+
+/* ── Grid de vehiculos ────────────────────────────────────────── */
+.costos-vehiculos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
+}
+
+.costos-vehiculo-card {
+    background: var(--color-surface);
+    border: 0.5px solid var(--color-border);
+    border-radius: 12px;
+    padding: 16px;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.costos-vehiculo-card:hover {
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow);
+    transform: translateY(-1px);
+}
+
+.costos-vehiculo-placa {
+    font-size: 1.02rem;
+    font-weight: 800;
+    color: var(--color-ink);
+}
+
+.costos-vehiculo-placa.es-cliente {
+    color: var(--color-primary);
+}
+
+.costos-vehiculo-total {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--color-ink);
+}
+
+.costos-vehiculo-meta {
+    display: flex;
+    justify-content: space-between;
+    color: var(--color-muted);
+    font-size: 0.78rem;
+}
+
+.costos-delta {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8rem;
+    font-weight: 800;
+}
+
+.costos-delta.subio { color: #c0392b; }
+.costos-delta.bajo { color: #147a45; }
+.costos-delta.igual { color: var(--color-muted); }
+
+/* ── KPIs ─────────────────────────────────────────────────────── */
+.costos-kpis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.costos-kpi-card {
+    position: relative;
+    background: var(--color-surface);
+    border: 0.5px solid var(--color-border);
+    border-radius: 12px;
+    padding: 16px 16px 14px;
+    overflow: hidden;
+}
+
+.costos-kpi-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--kpi-accent, var(--color-primary));
+}
+
+.costos-kpi-label {
+    color: var(--color-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 6px;
+}
+
+.costos-kpi-valor {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--color-ink);
+    margin-bottom: 6px;
+}
+
+/* ── Graficas ─────────────────────────────────────────────────── */
+.costos-graficas-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.costos-card-wide {
+    grid-column: 1 / -1;
+}
+
+.costos-card-chart h3 {
+    margin-bottom: 12px;
+    color: var(--color-ink);
+    font-size: 0.92rem;
+    font-weight: 800;
+}
+
+.costos-chart-wrap {
+    position: relative;
+    height: 260px;
+}
+
+.costos-chart-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--color-muted);
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+/* ── Tabla de facturas ────────────────────────────────────────── */
+.costos-volver {
+    margin-bottom: 16px;
+}
+
+.costos-facturas-card {
+    padding: 16px;
+}
+
+.costos-facturas-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.costos-facturas-head h3 {
+    color: var(--color-ink);
+    font-size: 0.95rem;
+    font-weight: 800;
+}
+
+.costos-facturas-head input {
+    max-width: 260px;
+}
+
+.import-table th[data-order] {
+    cursor: pointer;
+    user-select: none;
+}
+
+.import-table th[data-order]:hover {
+    color: var(--color-ink);
+}
+
+.import-table th.sorted-asc::after {
+    content: " ▲";
+}
+
+.import-table th.sorted-desc::after {
+    content: " ▼";
+}
+
+/* ── Skeleton loading ─────────────────────────────────────────── */
+.costos-skeleton-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
+    grid-column: 1 / -1;
+}
+
+.costos-skeleton-card {
+    height: 108px;
+    border-radius: 12px;
+    background: linear-gradient(90deg, var(--color-surface-2) 25%, var(--color-border) 50%, var(--color-surface-2) 75%);
+    background-size: 200% 100%;
+    animation: costosSkeletonPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes costosSkeletonPulse {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* ── Responsive (min 1024px segun especificacion) ────────────────── */
+@media (max-width: 1180px) {
+    .costos-graficas-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 900px) {
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .costos-rango {
+        width: 100%;
+    }
+}

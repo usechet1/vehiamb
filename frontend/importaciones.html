@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Importaciones - VehiAmb</title>
+    <title>Consolidado Cargues - VehiAmb</title>
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
@@ -13,8 +13,8 @@
         <main class="content">
             <div class="page-header">
                 <div>
-                    <h1>Importaciones de gastos vehiculares</h1>
-                    <p class="page-kicker">Sincronizacion diaria con el Excel operativo de logistica (CARGUES_BODEGA).</p>
+                    <h1>Consolidado Cargues</h1>
+                    <p class="page-kicker">Sincronizacion diaria con el Excel operativo de logistica.</p>
                 </div>
             </div>
 
@@ -22,14 +22,31 @@
                 <div class="stack">
                     <section class="section-card">
                         <div class="section-card-head">
-                            <h2>Ejecutar importacion manual</h2>
-                            <p>Procesa un dia especifico del Excel bajo demanda, sin esperar al proceso automatico.</p>
+                            <h2>Ejecutar sincronización manual</h2>
+                            <p>Procesa uno o varios dias del Excel bajo demanda, sin esperar al proceso automatico. El periodo se determina por Fecha de Envio.</p>
                         </div>
                         <div class="section-card-body">
                             <form id="importForm" class="compact-form">
                                 <div class="form-group">
-                                    <label>Fecha a procesar (Fecha_factura)</label>
-                                    <input type="date" name="periodo" id="importPeriodo" required>
+                                    <label>Modo</label>
+                                    <div class="import-modo-toggle" role="radiogroup" aria-label="Modo de importacion">
+                                        <label><input type="radio" name="importModo" value="dia" id="importModoDia" checked> Un dia</label>
+                                        <label><input type="radio" name="importModo" value="rango" id="importModoRango"> Rango de fechas</label>
+                                    </div>
+                                </div>
+                                <div class="form-group" id="importGrupoDia">
+                                    <label>Fecha a procesar (Fecha de Envio)</label>
+                                    <input type="date" name="periodo" id="importPeriodo">
+                                </div>
+                                <div class="form-group hidden" id="importGrupoRango">
+                                    <div>
+                                        <label>Desde</label>
+                                        <input type="date" id="importDesde">
+                                    </div>
+                                    <div>
+                                        <label>Hasta</label>
+                                        <input type="date" id="importHasta">
+                                    </div>
                                 </div>
                                 <button type="submit" class="btn-primary" id="importSubmitButton">Ejecutar importacion</button>
                             </form>
@@ -41,7 +58,7 @@
                 <div class="stack">
                     <section class="section-card">
                         <div class="section-card-head">
-                            <h2>Ultima importacion automatica</h2>
+                            <h2>Ultima sincronización automatica</h2>
                             <p>Se ejecuta todos los dias segun IMPORT_SCHEDULE, procesando el dia anterior.</p>
                         </div>
                         <div class="section-card-body" id="importStatusBody">
@@ -53,7 +70,7 @@
 
             <section class="section-card import-history-card">
                 <div class="section-card-head">
-                    <h2>Historial de importaciones</h2>
+                    <h2>Historial de sincronizaciones</h2>
                     <div class="filter-form" style="flex-direction: row; align-items: center; gap: 10px;">
                         <select id="importFiltroEstado">
                             <option value="">Todos los estados</option>
@@ -70,7 +87,7 @@
                         <table class="import-table">
                             <thead>
                                 <tr>
-                                    <th>Fecha importacion</th>
+                                    <th>Fecha sincronización</th>
                                     <th>Periodo</th>
                                     <th>Archivo</th>
                                     <th>Estado</th>
@@ -104,8 +121,8 @@
             <aside id="importDrawer" class="detail-drawer hidden" aria-hidden="true" aria-labelledby="importDrawerTitle">
                 <div class="detail-drawer-head">
                     <div>
-                        <span class="form-step">Detalle de importacion</span>
-                        <h2 id="importDrawerTitle">Importacion</h2>
+                        <span class="form-step">Detalle de sincronización</span>
+                        <h2 id="importDrawerTitle">Sincronización</h2>
                         <p id="importDrawerSubtitle">Metricas e incidencias</p>
                     </div>
                     <button type="button" id="closeImportDrawer" class="drawer-close" aria-label="Cerrar detalle">×</button>

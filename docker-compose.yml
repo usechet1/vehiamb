@@ -29,8 +29,11 @@ services:
       CORS_ORIGIN: http://localhost:8080
       DB_CLIENT: postgres
       DATABASE_URL: postgres://vehiamb:vehiamb_dev@postgres:5432/vehiamb
+      EXCEL_FILE_PATH: /data/CARGUES BODEGA.xlsm
     ports:
       - "3001:3001"
+    volumes:
+      - "./CARGUES BODEGA.xlsm:/data/CARGUES BODEGA.xlsm:ro"
     depends_on:
       postgres:
         condition: service_healthy

@@ -12,6 +12,10 @@ node_modules/
 # Local uploads
 backend/uploads/
 
+# Archivos de datos reales (no deben versionarse)
+*.xlsm
+*.xlsx
+
 # OS/editor
 .DS_Store
 Thumbs.db

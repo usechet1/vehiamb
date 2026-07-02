@@ -389,13 +389,13 @@ window.VehiAmb.api = {
         );
     },
 
-    ejecutarImportacion(periodo) {
+    ejecutarImportacion({ periodo, desde, hasta } = {}) {
         return requestJson(
             `${window.VehiAmb.API_URL}/importaciones/ejecutar`,
             {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ periodo })
+                body: JSON.stringify(desde && hasta ? { desde, hasta } : { periodo })
             },
             "No se pudo ejecutar la importacion"
         );
@@ -403,5 +403,62 @@ window.VehiAmb.api = {
 
     getImportacionesStatus() {
         return requestJson(`${window.VehiAmb.API_URL}/importaciones/status`, undefined, "No se pudo cargar el estado de importaciones");
+    },
+
+    getCostosVehiculos({ desde, hasta } = {}) {
+        const params = new URLSearchParams();
+        if (desde) params.set("desde", desde);
+        if (hasta) params.set("hasta", hasta);
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/costos/vehiculos${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudieron cargar los costos por vehiculo"
+        );
+    },
+
+    getCostosVehiculoKpis(placa, { desde, hasta } = {}) {
+        const params = new URLSearchParams();
+        if (desde) params.set("desde", desde);
+        if (hasta) params.set("hasta", hasta);
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/costos/vehiculos/${encodeURIComponent(placa)}${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudieron cargar los indicadores del vehiculo"
+        );
+    },
+
+    getCostosVehiculoGraficas(placa, { desde, hasta } = {}) {
+        const params = new URLSearchParams();
+        if (desde) params.set("desde", desde);
+        if (hasta) params.set("hasta", hasta);
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/costos/vehiculos/${encodeURIComponent(placa)}/graficas${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudieron cargar las graficas del vehiculo"
+        );
+    },
+
+    getCostosVehiculoFacturas(placa, filters = {}) {
+        const params = new URLSearchParams();
+        if (filters.desde) params.set("desde", filters.desde);
+        if (filters.hasta) params.set("hasta", filters.hasta);
+        if (filters.page) params.set("page", filters.page);
+        if (filters.limit) params.set("limit", filters.limit);
+        if (filters.search) params.set("search", filters.search);
+        if (filters.orderBy) params.set("orderBy", filters.orderBy);
+        if (filters.dir) params.set("dir", filters.dir);
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/costos/vehiculos/${encodeURIComponent(placa)}/facturas${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudieron cargar las facturas del vehiculo"
+        );
     }
 };

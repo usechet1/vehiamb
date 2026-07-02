@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Costos vehiculares - VehiAmb</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <link rel="stylesheet" href="assets/css/costos.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar"></aside>
+
+        <main class="content">
+            <div class="page-header">
+                <div>
+                    <h1 id="costosTitulo">Costos vehiculares</h1>
+                    <p class="page-kicker" id="costosSubtitulo">Gasto operativo por vehiculo a partir de las facturas importadas.</p>
+                </div>
+                <div class="costos-rango">
+                    <div class="form-group">
+                        <label>Desde</label>
+                        <input type="date" id="costosDesde">
+                    </div>
+                    <div class="form-group">
+                        <label>Hasta</label>
+                        <input type="date" id="costosHasta">
+                    </div>
+                </div>
+            </div>
+
+            <div id="costosMensaje" class="mensaje hidden"></div>
+
+            <!-- ── Vista: lista de vehiculos ───────────────────────── -->
+            <section id="costosListaView" class="costos-view">
+                <div class="costos-search-row">
+                    <input type="text" id="costosListaBuscar" placeholder="Buscar placa...">
+                </div>
+                <div id="costosListaGrid" class="costos-vehiculos-grid">
+                    <div class="costos-skeleton-grid">
+                        <div class="costos-skeleton-card"></div>
+                        <div class="costos-skeleton-card"></div>
+                        <div class="costos-skeleton-card"></div>
+                        <div class="costos-skeleton-card"></div>
+                        <div class="costos-skeleton-card"></div>
+                        <div class="costos-skeleton-card"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── Vista: detalle de vehiculo ──────────────────────── -->
+            <section id="costosDetalleView" class="costos-view hidden">
+                <button type="button" id="costosVolverButton" class="btn-secondary costos-volver">← Volver a vehiculos</button>
+
+                <div id="costosKpisGrid" class="costos-kpis-grid"></div>
+
+                <div class="costos-graficas-grid">
+                    <div class="costos-card costos-card-chart">
+                        <h3>Gasto total por dia</h3>
+                        <div class="costos-chart-wrap"><canvas id="chartGastoDiario"></canvas></div>
+                    </div>
+                    <div class="costos-card costos-card-chart">
+                        <h3>Consumo de galones por dia</h3>
+                        <div class="costos-chart-wrap"><canvas id="chartGalonesDiario"></canvas></div>
+                    </div>
+                    <div class="costos-card costos-card-chart">
+                        <h3>Proporcion por tipo de gasto</h3>
+                        <div class="costos-chart-wrap"><canvas id="chartProporcion"></canvas></div>
+                    </div>
+                    <div class="costos-card costos-card-chart">
+                        <h3>Desglose diario por tipo de gasto</h3>
+                        <div class="costos-chart-wrap"><canvas id="chartDesgloseDiario"></canvas></div>
+                    </div>
+                    <div class="costos-card costos-card-chart costos-card-wide">
+                        <h3>Top salas por gasto</h3>
+                        <div class="costos-chart-wrap"><canvas id="chartTopSalas"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="costos-card costos-facturas-card">
+                    <div class="costos-facturas-head">
+                        <h3>Facturas del periodo</h3>
+                        <input type="text" id="costosFacturasBuscar" placeholder="Buscar por numero de factura...">
+                    </div>
+                    <div class="table-scroll">
+                        <table class="import-table" id="costosFacturasTable">
+                            <thead>
+                                <tr>
+                                    <th data-order="numero_factura">Factura</th>
+                                    <th data-order="fecha_factura">Fecha factura</th>
+                                    <th data-order="fecha_envio">Fecha envio</th>
+                                    <th data-order="sala">Sala</th>
+                                    <th data-order="peso_kg">Peso (kg)</th>
+                                    <th data-order="valor_factura">Valor factura</th>
+                                    <th data-order="combustible">Combustible</th>
+                                    <th data-order="galones">Galones</th>
+                                    <th data-order="almuerzos">Almuerzos</th>
+                                    <th data-order="peajes">Peajes</th>
+                                    <th data-order="parqueaderos">Parqueaderos</th>
+                                    <th data-order="total_gasto">Total gasto</th>
+                                    <th>Observaciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="costosFacturasBody">
+                                <tr><td colspan="13" class="dash-empty">Cargando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="filter-actions">
+                        <span id="costosFacturasSummary" class="field-help"></span>
+                        <div class="pagination-buttons">
+                            <button type="button" id="costosFacturasPrev" class="btn-secondary">Anterior</button>
+                            <button type="button" id="costosFacturasNext" class="btn-secondary">Siguiente</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="assets/js/shared/auth.js"></script>
+    <script src="assets/js/shared/api.js"></script>
+    <script src="assets/js/shared/ui.js"></script>
+    <script src="assets/js/shared/notificaciones-config.js"></script>
+    <script src="assets/js/shared/sidebar.js"></script>
+    <script src="assets/js/pages/costos.js"></script>
+</body>
+</html>

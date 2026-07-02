@@ -90,10 +90,13 @@ function parse(validated, periodo) {
 
     const filaExcel = i + 1; // numero de fila tal como se ve en Excel (1-indexado)
     const fechaFacturaIso = excelValueToIsoDate(row[col("fechaFactura")]);
+    const fechaEnvioIso = excelValueToIsoDate(row[col("fechaEnvio")]);
 
-    // No se puede saber a que periodo pertenece una fecha ilegible: se omite
-    // sin generar incidencia en ESTE run (podria pertenecer a otro periodo).
-    if (!fechaFacturaIso || fechaFacturaIso !== periodo) continue;
+    // El periodo de importacion se determina por Fecha de Envio (cuando la
+    // factura llega a bodega), no por Fecha_factura (cuando se emitio). No se
+    // puede saber a que periodo pertenece una fecha ilegible: se omite sin
+    // generar incidencia en ESTE run (podria pertenecer a otro periodo).
+    if (!fechaEnvioIso || fechaEnvioIso !== periodo) continue;
 
     const vehiculoRaw = normalizeVehiculo(row[col("vehiculo")]);
     if (!vehiculoRaw) continue; // "vacio" -> ignorar completamente, sin auditoria
@@ -125,7 +128,7 @@ function parse(validated, periodo) {
       parqueaderos: roundNumber(row[col("parqueaderos")]),
       vehiculoRaw,
       conductorNombre: normalizeText(row[col("conductor")]),
-      fechaEnvio: excelValueToIsoDate(row[col("fechaEnvio")]),
+      fechaEnvio: fechaEnvioIso,
       observaciones: normalizeText(row[col("observaciones")])
     });
   }

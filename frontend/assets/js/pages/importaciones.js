@@ -1,5 +1,11 @@
 const importForm = document.getElementById("importForm");
 const importPeriodo = document.getElementById("importPeriodo");
+const importModoDia = document.getElementById("importModoDia");
+const importModoRango = document.getElementById("importModoRango");
+const importGrupoDia = document.getElementById("importGrupoDia");
+const importGrupoRango = document.getElementById("importGrupoRango");
+const importDesde = document.getElementById("importDesde");
+const importHasta = document.getElementById("importHasta");
 const importSubmitButton = document.getElementById("importSubmitButton");
 const importRunResult = document.getElementById("importRunResult");
 const importStatusBody = document.getElementById("importStatusBody");
@@ -89,6 +95,21 @@ function todayIso() {
 }
 
 importPeriodo.value = todayIso();
+importDesde.value = todayIso();
+importHasta.value = todayIso();
+
+function actualizarModoImportacion() {
+    const esRango = importModoRango.checked;
+    importGrupoDia.classList.toggle("hidden", esRango);
+    importGrupoRango.classList.toggle("hidden", !esRango);
+    importPeriodo.required = !esRango;
+    importDesde.required = esRango;
+    importHasta.required = esRango;
+}
+
+importModoDia.addEventListener("change", actualizarModoImportacion);
+importModoRango.addEventListener("change", actualizarModoImportacion);
+actualizarModoImportacion();
 
 async function cargarStatus() {
     try {
@@ -156,6 +177,39 @@ async function cargarHistorial() {
     }
 }
 
+function renderResultadoImportacion(resultado) {
+    // Un solo dia: trae "estado" propio. Un rango: trae "resultados" (uno por dia) y totales sumados.
+    if (!resultado.resultados) {
+        return `
+            <span class="badge ${ESTADO_CLASS[resultado.estado] || "badge-amarillo"}">${ESTADO_LABEL[resultado.estado] || resultado.estado}</span>
+            <p>Leidos: ${resultado.totalLeidos} · Nuevos: ${resultado.totalNuevos} · Actualizados: ${resultado.totalActualizados} · Omitidos: ${resultado.totalOmitidos} · Errores: ${resultado.totalErrores} (${formatDuracion(resultado.duracionMs)})</p>
+        `;
+    }
+
+    const filasPorDia = resultado.resultados.map((dia) => `
+        <tr>
+            <td>${formatDate(dia.periodo)}</td>
+            <td><span class="badge ${ESTADO_CLASS[dia.estado] || "badge-amarillo"}">${ESTADO_LABEL[dia.estado] || dia.estado}</span></td>
+            <td>${dia.totalLeidos}</td>
+            <td>${dia.totalNuevos}</td>
+            <td>${dia.totalActualizados}</td>
+            <td>${dia.totalOmitidos}</td>
+            <td>${dia.totalErrores}</td>
+        </tr>
+    `).join("");
+
+    return `
+        <p><strong>${resultado.totalDias} dias procesados</strong> (${formatDate(resultado.desde)} a ${formatDate(resultado.hasta)}) en ${formatDuracion(resultado.duracionMs)}</p>
+        <p>Totales — Leidos: ${resultado.totalLeidos} · Nuevos: ${resultado.totalNuevos} · Actualizados: ${resultado.totalActualizados} · Omitidos: ${resultado.totalOmitidos} · Errores: ${resultado.totalErrores}</p>
+        <div class="table-scroll">
+            <table class="import-table import-table-compact">
+                <thead><tr><th>Dia</th><th>Estado</th><th>Leidos</th><th>Nuevos</th><th>Actualizados</th><th>Omitidos</th><th>Errores</th></tr></thead>
+                <tbody>${filasPorDia}</tbody>
+            </table>
+        </div>
+    `;
+}
+
 importForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     importSubmitButton.disabled = true;
@@ -163,13 +217,12 @@ importForm.addEventListener("submit", async (event) => {
 
     try {
         window.VehiAmb.ui.show(loader);
-        const resultado = await window.VehiAmb.api.ejecutarImportacion(importPeriodo.value);
+        const resultado = importModoRango.checked
+            ? await window.VehiAmb.api.ejecutarImportacion({ desde: importDesde.value, hasta: importHasta.value })
+            : await window.VehiAmb.api.ejecutarImportacion({ periodo: importPeriodo.value });
 
         importRunResult.classList.remove("hidden");
-        importRunResult.innerHTML = `
-            <span class="badge ${ESTADO_CLASS[resultado.estado] || "badge-amarillo"}">${ESTADO_LABEL[resultado.estado] || resultado.estado}</span>
-            <p>Leidos: ${resultado.totalLeidos} · Nuevos: ${resultado.totalNuevos} · Actualizados: ${resultado.totalActualizados} · Omitidos: ${resultado.totalOmitidos} · Errores: ${resultado.totalErrores} (${formatDuracion(resultado.duracionMs)})</p>
-        `;
+        importRunResult.innerHTML = renderResultadoImportacion(resultado);
 
         window.VehiAmb.ui.showMessage(mensaje, "Importacion ejecutada correctamente");
         currentPage = 1;

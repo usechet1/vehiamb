@@ -8,14 +8,31 @@ function parsePage(query) {
   };
 }
 
+const FECHA_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
 exports.ejecutar = async (req, res) => {
   const periodo = req.body?.periodo ? String(req.body.periodo).trim() : null;
+  const desde = req.body?.desde ? String(req.body.desde).trim() : null;
+  const hasta = req.body?.hasta ? String(req.body.hasta).trim() : null;
 
-  if (periodo && !/^\d{4}-\d{2}-\d{2}$/.test(periodo)) {
+  if (periodo && !FECHA_REGEX.test(periodo)) {
     throw new HttpError(400, "El periodo debe tener formato YYYY-MM-DD");
   }
 
-  const resultado = await importService.ejecutar({ periodo, usuarioId: req.user.id });
+  if ((desde && !hasta) || (hasta && !desde)) {
+    throw new HttpError(400, "Para procesar un rango se deben enviar desde y hasta juntos");
+  }
+
+  if (desde && hasta) {
+    if (!FECHA_REGEX.test(desde) || !FECHA_REGEX.test(hasta)) {
+      throw new HttpError(400, "desde y hasta deben tener formato YYYY-MM-DD");
+    }
+    if (desde > hasta) {
+      throw new HttpError(400, "desde no puede ser posterior a hasta");
+    }
+  }
+
+  const resultado = await importService.ejecutar({ periodo, desde, hasta, usuarioId: req.user.id });
   res.status(201).json(resultado);
 };
 

@@ -53,7 +53,8 @@ const PERMISSIONS = [
   ["simit.view", "SIMIT", "Consultar SIMIT"],
   ["users.manage", "Usuarios", "Administrar usuarios"],
   ["imports.view", "Importaciones", "Ver importaciones de gastos vehiculares"],
-  ["imports.manage", "Importaciones", "Ejecutar importaciones y resolver incidencias"]
+  ["imports.manage", "Importaciones", "Ejecutar importaciones y resolver incidencias"],
+  ["costs.view", "Costos", "Ver el dashboard de costos vehiculares"]
 ];
 
 const ROLE_PERMISSIONS = {
@@ -69,14 +70,16 @@ const ROLE_PERMISSIONS = {
     "documents.create",
     "simit.view",
     "imports.view",
-    "imports.manage"
+    "imports.manage",
+    "costs.view"
   ],
   Consulta: [
     "dashboard.view",
     "vehicles.view",
     "maintenance.view",
     "documents.view",
-    "simit.view"
+    "simit.view",
+    "costs.view"
   ]
 };
 
@@ -139,7 +142,8 @@ async function seedRolesAndPermissions() {
 // quitar tambien de este mapa o volvera a aparecer en el siguiente arranque.
 const PERMISOS_NUEVOS_POR_ROL = {
   "imports.view": ["Administrador", "Operador"],
-  "imports.manage": ["Administrador", "Operador"]
+  "imports.manage": ["Administrador", "Operador"],
+  "costs.view": ["Administrador", "Operador", "Consulta"]
 };
 
 async function grantPermisosNuevos() {
@@ -445,6 +449,7 @@ async function ensurePostgresTables() {
   await db.run("CREATE INDEX IF NOT EXISTS idx_facturas_vehiculares_vehiculo_id ON facturas_vehiculares (vehiculo_id)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_facturas_vehiculares_fecha_factura ON facturas_vehiculares (fecha_factura)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_facturas_vehiculares_estado_vehiculo ON facturas_vehiculares (estado_vehiculo)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_facturas_vehiculares_placa_original ON facturas_vehiculares (placa_original)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_gastos_operativos_factura_id ON gastos_operativos (factura_id)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_gastos_operativos_tipo_gasto ON gastos_operativos (tipo_gasto)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_incidencias_importacion_importacion_id ON incidencias_importacion (importacion_id)");

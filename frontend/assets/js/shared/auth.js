@@ -17,6 +17,7 @@ const PAGE_PERMISSIONS = {
     "simit.html": "simit.view",
     "notificaciones.html": "dashboard.view",
     "importaciones.html": "imports.view",
+    "costos.html": "costs.view",
     "admin-usuarios.html": "users.manage"
 };
 
