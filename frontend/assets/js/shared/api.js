@@ -251,8 +251,29 @@ window.VehiAmb.api = {
         );
     },
 
-    getNotificaciones() {
-        return requestJson(`${window.VehiAmb.API_URL}/notificaciones`, undefined, "No se pudieron cargar las notificaciones");
+    getNotificaciones(filters = {}) {
+        const params = new URLSearchParams();
+
+        if (filters.estado) params.set("estado", filters.estado);
+        if (filters.prioridad) params.set("prioridad", filters.prioridad);
+        if (filters.categoria) params.set("categoria", filters.categoria);
+        if (filters.vehiculo_id) params.set("vehiculo_id", filters.vehiculo_id);
+        if (filters.fecha_desde) params.set("fecha_desde", filters.fecha_desde);
+        if (filters.fecha_hasta) params.set("fecha_hasta", filters.fecha_hasta);
+        if (filters.search) params.set("search", filters.search);
+        if (filters.agrupar === false) params.set("agrupar", "false");
+
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/notificaciones${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudieron cargar las notificaciones"
+        );
+    },
+
+    getContadorNotificaciones() {
+        return requestJson(`${window.VehiAmb.API_URL}/notificaciones/contador`, undefined, "No se pudo cargar el contador de notificaciones");
     },
 
     marcarNotificacionLeida(id) {
@@ -260,6 +281,38 @@ window.VehiAmb.api = {
             `${window.VehiAmb.API_URL}/notificaciones/${id}/leido`,
             { method: "PATCH" },
             "No se pudo marcar la notificacion como leida"
+        );
+    },
+
+    marcarTodasNotificacionesLeidas() {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/notificaciones/leidas`,
+            { method: "PATCH" },
+            "No se pudieron marcar las notificaciones como leidas"
+        );
+    },
+
+    archivarNotificacion(id) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/notificaciones/${id}/archivar`,
+            { method: "PATCH" },
+            "No se pudo archivar la notificacion"
+        );
+    },
+
+    eliminarNotificacion(id) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/notificaciones/${id}`,
+            { method: "DELETE" },
+            "No se pudo eliminar la notificacion"
+        );
+    },
+
+    eliminarNotificacionesLeidas() {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/notificaciones/leidas`,
+            { method: "DELETE" },
+            "No se pudieron eliminar las notificaciones leidas"
         );
     },
 

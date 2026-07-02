@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notificaciones - VehiAmb</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar"></aside>
+
+        <main class="content">
+            <div class="page-header">
+                <div>
+                    <h1>Centro de notificaciones</h1>
+                    <p class="page-kicker">Mantenimientos, documentacion, incidentes, usuarios y sistema en un solo lugar.</p>
+                </div>
+            </div>
+
+            <section class="section-card">
+                <div class="section-card-head">
+                    <h2>Filtros</h2>
+                    <p>Combina filtros y busqueda para encontrar una notificacion especifica.</p>
+                </div>
+                <div class="section-card-body">
+                    <form id="notifFilterForm" class="filter-form">
+                        <div class="form-group">
+                            <label>Buscar</label>
+                            <input type="text" id="notifSearch" placeholder="Placa, titulo, descripcion, usuario o tipo">
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Estado</label>
+                                <select id="notifFiltroEstado">
+                                    <option value="">Todos</option>
+                                    <option value="no_leida">No leidas</option>
+                                    <option value="leida">Leidas</option>
+                                    <option value="archivada">Archivadas</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Prioridad</label>
+                                <select id="notifFiltroPrioridad">
+                                    <option value="">Todas</option>
+                                    <option value="critica">Critica</option>
+                                    <option value="alta">Alta</option>
+                                    <option value="media">Media</option>
+                                    <option value="informativa">Informativa</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Categoria</label>
+                                <select id="notifFiltroCategoria">
+                                    <option value="">Todas</option>
+                                    <option value="mantenimiento">Mantenimientos</option>
+                                    <option value="documentacion">Documentacion</option>
+                                    <option value="incidente">Incidentes</option>
+                                    <option value="usuario">Usuarios</option>
+                                    <option value="sistema">Sistema</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Vehiculo</label>
+                                <select id="notifFiltroVehiculo">
+                                    <option value="">Todos</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Desde</label>
+                                <input type="date" id="notifFechaDesde">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Hasta</label>
+                                <input type="date" id="notifFechaHasta">
+                            </div>
+                        </div>
+
+                        <div class="filter-actions">
+                            <span id="notifFilterSummary" class="field-help">Cargando notificaciones...</span>
+                            <button type="button" id="notifClearFiltersButton" class="btn-secondary">Limpiar filtros</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <section class="section-card">
+                <div class="section-card-head">
+                    <h2>Notificaciones</h2>
+                    <div class="notif-bulk-actions">
+                        <button type="button" id="notifMarkAllReadButton" class="btn-secondary">Marcar todas leidas</button>
+                        <button type="button" id="notifDeleteReadButton" class="btn-secondary">Eliminar leidas</button>
+                    </div>
+                </div>
+                <div class="section-card-body">
+                    <div id="notifCenterList" class="records-list notif-center-list">
+                        <p class="dash-empty">Cargando...</p>
+                    </div>
+                </div>
+            </section>
+
+            <div id="loader" class="loader hidden"></div>
+            <div id="mensaje" class="mensaje hidden"></div>
+        </main>
+    </div>
+
+    <script src="assets/js/shared/auth.js"></script>
+    <script src="assets/js/shared/api.js"></script>
+    <script src="assets/js/shared/ui.js"></script>
+    <script src="assets/js/shared/notificaciones-config.js"></script>
+    <script src="assets/js/shared/sidebar.js"></script>
+    <script src="assets/js/pages/notificaciones.js"></script>
+</body>
+</html>

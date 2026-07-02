@@ -135,6 +135,22 @@ const MESES = [
     "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
 ];
 
+// Configuracion central de tipos de evento del calendario: letra + color por tipo.
+// Agregar un tipo nuevo (ej. inspeccion: { letter: "I", ... }) es suficiente para que
+// aparezca en el calendario sin tocar la logica de renderizado.
+const CALENDAR_EVENT_TYPES = {
+    mantenimiento: {
+        letter: "M",
+        label: "Mantenimiento",
+        className: "dash-calendar-badge-mantenimiento"
+    },
+    vencimiento: {
+        letter: "V",
+        label: "Vencimiento",
+        className: "dash-calendar-badge-vencimiento"
+    }
+};
+
 let calendarCursor = new Date();
 calendarCursor.setDate(1);
 let calendarSelectedDate = toDateKey(new Date());
@@ -189,6 +205,38 @@ function buildCalendarEvents(mantenimientos, documentos) {
     return eventsByDate;
 }
 
+function buildEventBadgeTooltip(kind, events, dateKey) {
+    const config = CALENDAR_EVENT_TYPES[kind];
+    const dateLabel = formatDate(dateKey);
+
+    const detailLines = events
+        .filter((event) => event.kind === kind)
+        .map((event) => `${escapeHtml(event.title)}<br>${escapeHtml(event.sub)}`)
+        .join("<br><br>");
+
+    return `<strong>${escapeHtml(config.label)}</strong>${detailLines}<br>${dateLabel}`;
+}
+
+function buildDayEventBadges(events, dateKey) {
+    return Object.keys(CALENDAR_EVENT_TYPES)
+        .filter((kind) => events.some((event) => event.kind === kind))
+        .map((kind) => {
+            const config = CALENDAR_EVENT_TYPES[kind];
+            const summary = events
+                .filter((event) => event.kind === kind)
+                .map((event) => `${event.title} - ${event.sub}`)
+                .join(", ");
+
+            return `
+                <span class="dash-calendar-badge-wrap" tabindex="0" aria-label="${escapeHtml(config.label)}: ${escapeHtml(summary)}">
+                    <span class="dash-calendar-badge ${config.className}" aria-hidden="true">${config.letter}</span>
+                    <span class="dash-calendar-tooltip" role="tooltip" aria-hidden="true">${buildEventBadgeTooltip(kind, events, dateKey)}</span>
+                </span>
+            `;
+        })
+        .join("");
+}
+
 function renderCalendarGrid() {
     const grid = document.getElementById("calendarGrid");
     const label = document.getElementById("calendarLabel");
@@ -210,8 +258,6 @@ function renderCalendarGrid() {
     for (let day = 1; day <= daysInMonth; day += 1) {
         const dateKey = toDateKey(new Date(year, month, day));
         const events = calendarEventsByDate.get(dateKey) || [];
-        const hasMantenimiento = events.some((event) => event.kind === "mantenimiento");
-        const hasVencimiento = events.some((event) => event.kind === "vencimiento");
 
         const classes = ["dash-calendar-day"];
         if (dateKey === todayKey) classes.push("is-today");
@@ -221,8 +267,7 @@ function renderCalendarGrid() {
             <div class="${classes.join(" ")}" data-date="${dateKey}">
                 <span class="dash-calendar-day-number">${day}</span>
                 <div class="dash-calendar-day-dots">
-                    ${hasMantenimiento ? '<span class="dash-calendar-dot dash-calendar-dot-mantenimiento"></span>' : ""}
-                    ${hasVencimiento ? '<span class="dash-calendar-dot dash-calendar-dot-vencimiento"></span>' : ""}
+                    ${buildDayEventBadges(events, dateKey)}
                 </div>
             </div>
         `;

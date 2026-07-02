@@ -268,12 +268,19 @@ async function ensurePostgresTables() {
       id BIGSERIAL PRIMARY KEY,
       usuario_id BIGINT NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
       tipo TEXT NOT NULL,
+      categoria TEXT NOT NULL DEFAULT 'sistema',
       prioridad TEXT NOT NULL DEFAULT 'media',
+      titulo TEXT,
       mensaje TEXT NOT NULL,
+      vehiculo_id BIGINT REFERENCES vehiculos(id) ON DELETE SET NULL,
+      accion_tipo TEXT,
+      accion_payload TEXT,
+      estado TEXT NOT NULL DEFAULT 'no_leida',
       leido BOOLEAN NOT NULL DEFAULT FALSE,
       referencia_tipo TEXT,
       referencia_id BIGINT,
-      fecha_creacion TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      fecha_creacion TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
 
@@ -310,6 +317,9 @@ async function ensurePostgresTables() {
   await db.run("CREATE INDEX IF NOT EXISTS idx_cambios_aceite_vehiculo_id ON cambios_aceite (vehiculo_id)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_notificaciones_usuario_id ON notificaciones (usuario_id)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_notificaciones_referencia ON notificaciones (referencia_tipo, referencia_id)");
+  // idx_notificaciones_estado e idx_notificaciones_vehiculo_id se crean mas abajo,
+  // despues de ensureColumn: aqui correrian en cada arranque (incluso con la tabla
+  // ya existente en una base antigua) y fallarian porque esas columnas aun no existen.
 }
 
 if (env.dbClient === "sqlite") {
@@ -414,13 +424,21 @@ if (env.dbClient === "sqlite") {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         usuario_id INTEGER NOT NULL,
         tipo TEXT NOT NULL,
+        categoria TEXT NOT NULL DEFAULT 'sistema',
         prioridad TEXT NOT NULL DEFAULT 'media',
+        titulo TEXT,
         mensaje TEXT NOT NULL,
+        vehiculo_id INTEGER,
+        accion_tipo TEXT,
+        accion_payload TEXT,
+        estado TEXT NOT NULL DEFAULT 'no_leida',
         leido INTEGER NOT NULL DEFAULT 0,
         referencia_tipo TEXT,
         referencia_id INTEGER,
         fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+        FOREIGN KEY (vehiculo_id) REFERENCES vehiculos(id)
       )
     `);
 
@@ -475,9 +493,18 @@ if (env.dbClient === "sqlite") {
     ensureColumn("vehiculos", "estado", "TEXT NOT NULL DEFAULT 'activo'"),
     ensureColumn("vehiculos", "imagen_url", "TEXT"),
     ensureColumn("documentos", "archivo_nombre", "TEXT"),
-    ensureColumn("documentos", "archivo_mime", "TEXT")
+    ensureColumn("documentos", "archivo_mime", "TEXT"),
+    ensureColumn("notificaciones", "categoria", "TEXT NOT NULL DEFAULT 'sistema'"),
+    ensureColumn("notificaciones", "titulo", "TEXT"),
+    ensureColumn("notificaciones", "vehiculo_id", "INTEGER"),
+    ensureColumn("notificaciones", "accion_tipo", "TEXT"),
+    ensureColumn("notificaciones", "accion_payload", "TEXT"),
+    ensureColumn("notificaciones", "estado", "TEXT NOT NULL DEFAULT 'no_leida'"),
+    ensureColumn("notificaciones", "updated_at", "DATETIME DEFAULT CURRENT_TIMESTAMP")
   ])
     .then(() => db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_vehiculos_numero_chasis ON vehiculos (numero_chasis) WHERE numero_chasis IS NOT NULL"))
+    .then(() => db.run("UPDATE notificaciones SET estado = 'leida' WHERE leido = 1 AND estado = 'no_leida'"))
+    .then(() => db.run("UPDATE notificaciones SET vehiculo_id = referencia_id WHERE referencia_tipo = 'vehiculo' AND vehiculo_id IS NULL"))
     .then(seedRolesAndPermissions)
     .then(syncUserRoles)
     .then(seedAdminUser)
@@ -507,7 +534,14 @@ if (env.dbClient === "sqlite") {
       ensureColumn("vehiculos", "estado", "TEXT NOT NULL DEFAULT 'activo'"),
       ensureColumn("vehiculos", "imagen_url", "TEXT"),
       ensureColumn("documentos", "archivo_nombre", "TEXT"),
-      ensureColumn("documentos", "archivo_mime", "TEXT")
+      ensureColumn("documentos", "archivo_mime", "TEXT"),
+      ensureColumn("notificaciones", "categoria", "TEXT NOT NULL DEFAULT 'sistema'"),
+      ensureColumn("notificaciones", "titulo", "TEXT"),
+      ensureColumn("notificaciones", "vehiculo_id", "BIGINT REFERENCES vehiculos(id) ON DELETE SET NULL"),
+      ensureColumn("notificaciones", "accion_tipo", "TEXT"),
+      ensureColumn("notificaciones", "accion_payload", "TEXT"),
+      ensureColumn("notificaciones", "estado", "TEXT NOT NULL DEFAULT 'no_leida'"),
+      ensureColumn("notificaciones", "updated_at", "TIMESTAMPTZ NOT NULL DEFAULT NOW()")
     ]))
     .then(() => Promise.all([
       ensureNumericColumn("vehiculos", "kilometraje_actual"),
@@ -516,6 +550,18 @@ if (env.dbClient === "sqlite") {
     .then(() => db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_vehiculos_numero_chasis ON vehiculos (numero_chasis) WHERE numero_chasis IS NOT NULL"))
     .then(() => db.run("CREATE INDEX IF NOT EXISTS idx_vehiculos_estado ON vehiculos (estado)"))
     .then(() => db.run("CREATE INDEX IF NOT EXISTS idx_usuarios_role_id ON usuarios (role_id)"))
+    .then(() => db.run("CREATE INDEX IF NOT EXISTS idx_notificaciones_estado ON notificaciones (usuario_id, estado)"))
+    .then(() => db.run("CREATE INDEX IF NOT EXISTS idx_notificaciones_vehiculo_id ON notificaciones (vehiculo_id)"))
+    .then(() => db.run("UPDATE notificaciones SET estado = 'leida' WHERE leido = TRUE AND estado = 'no_leida'"))
+    .then(() => db.run("UPDATE notificaciones SET vehiculo_id = referencia_id WHERE referencia_tipo = 'vehiculo' AND vehiculo_id IS NULL"))
+    .then(() => db.run(`
+      UPDATE notificaciones n
+      SET vehiculo_id = m.vehiculo_id
+      FROM mantenimientos m
+      WHERE n.referencia_tipo = 'mantenimiento'
+        AND n.referencia_id = m.id
+        AND n.vehiculo_id IS NULL
+    `))
     .then(seedRolesAndPermissions)
     .then(syncUserRoles)
     .then(seedAdminUser)

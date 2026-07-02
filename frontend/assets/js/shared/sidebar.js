@@ -28,42 +28,90 @@ function findNextButton(element) {
     return null;
 }
 
-const NOTIF_TIPO_LABEL = {
-    aprobacion: "Aprobacion requerida",
-    alerta: "Alerta",
-    info: "Informacion"
+const NOTIF_PANEL_FILTERS = {
+    todas: {},
+    no_leidas: { estado: "no_leida" },
+    criticas: { prioridad: "critica" }
 };
 
-function renderNotificaciones(notificaciones, body, badge) {
-    const noLeidas = notificaciones.filter((notificacion) => !notificacion.leido).length;
+function renderNotifItem(notificacion, { dentroDeGrupo = false } = {}) {
+    const cfg = window.VehiAmb.notifConfig;
+    const prioridad = cfg.prioridadConfig(notificacion.prioridad);
+    const categoria = cfg.categoriaConfig(notificacion.categoria);
+    const accion = cfg.accionConfig(notificacion.accion);
+    const noLeida = notificacion.estado === "no_leida";
 
-    badge.textContent = String(noLeidas);
-    badge.classList.toggle("hidden", noLeidas === 0);
+    const esAprobacionPendiente = notificacion.tipo === "aprobacion_requerida" && noLeida;
+
+    const botones = [];
+    if (esAprobacionPendiente) {
+        botones.push(`<button type="button" class="btn-primary" data-notif-action="aprobar" data-notif-id="${notificacion.id}">Aprobar</button>`);
+        botones.push(`<button type="button" class="btn-secondary" data-notif-action="rechazar" data-notif-id="${notificacion.id}">Rechazar</button>`);
+    } else {
+        if (accion) {
+            botones.push(`<a class="btn-secondary" href="${accion.url}" data-notif-nav="${notificacion.id}">${escapeHtml(accion.label)}</a>`);
+        }
+        if (noLeida) {
+            botones.push(`<button type="button" class="btn-secondary" data-notif-action="leido" data-notif-id="${notificacion.id}">Marcar leida</button>`);
+        }
+    }
+    botones.push(`<button type="button" class="btn-secondary notif-item-icon-btn" data-notif-action="eliminar" data-notif-id="${notificacion.id}" title="Eliminar">✕</button>`);
+
+    const vehiculoLabel = notificacion.vehiculo
+        ? `${notificacion.vehiculo.placa || ""} ${notificacion.vehiculo.marca || ""} ${notificacion.vehiculo.modelo || ""}`.trim()
+        : "";
+
+    return `
+        <article class="notif-item ${prioridad.className}${noLeida ? "" : " notif-item--leido"}"${dentroDeGrupo ? ' data-notif-child="true"' : ""}>
+            <div class="notif-item-head">
+                <span class="notif-item-tag">${categoria.icono} ${escapeHtml(categoria.label)}</span>
+                <span class="notif-item-prioridad" title="Prioridad ${escapeHtml(prioridad.label)}">${prioridad.icono}</span>
+            </div>
+            <strong class="notif-item-titulo">${escapeHtml(notificacion.titulo)}</strong>
+            <p>${escapeHtml(notificacion.mensaje)}</p>
+            <div class="notif-item-meta">
+                ${vehiculoLabel ? `<span class="pill">${escapeHtml(vehiculoLabel)}</span>` : ""}
+                <span class="notif-item-time">${cfg.tiempoTranscurrido(notificacion.fecha_creacion)}</span>
+            </div>
+            ${botones.length ? `<div class="notif-item-actions">${botones.join("")}</div>` : ""}
+        </article>
+    `;
+}
+
+function renderNotifEntry(notificacion) {
+    if (!notificacion.agrupado) return renderNotifItem(notificacion);
+
+    const cfg = window.VehiAmb.notifConfig;
+    const prioridad = cfg.prioridadConfig(notificacion.prioridad);
+    const categoria = cfg.categoriaConfig(notificacion.categoria);
+
+    return `
+        <details class="notif-item notif-item--grupo ${prioridad.className}">
+            <summary>
+                <div class="notif-item-head">
+                    <span class="notif-item-tag">${categoria.icono} ${escapeHtml(categoria.label)}</span>
+                    <span class="notif-item-prioridad">${prioridad.icono}</span>
+                </div>
+                <strong class="notif-item-titulo">${escapeHtml(notificacion.titulo)}</strong>
+                <p>${escapeHtml(notificacion.mensaje)}</p>
+            </summary>
+            <div class="notif-grupo-items">
+                ${notificacion.items.map((item) => renderNotifItem(item, { dentroDeGrupo: true })).join("")}
+            </div>
+        </details>
+    `;
+}
+
+function renderNotificaciones(notificaciones, body, badge, pendientes) {
+    badge.textContent = String(pendientes);
+    badge.classList.toggle("hidden", pendientes === 0);
 
     if (!notificaciones.length) {
         body.innerHTML = '<p class="dash-empty">No tienes notificaciones.</p>';
         return;
     }
 
-    body.innerHTML = notificaciones.map((notificacion) => {
-        const esAprobacionPendiente = notificacion.tipo === "aprobacion" && !notificacion.leido;
-        const acciones = esAprobacionPendiente
-            ? `
-                <button type="button" class="btn-primary" data-notif-action="aprobar" data-notif-id="${notificacion.id}">Aprobar</button>
-                <button type="button" class="btn-secondary" data-notif-action="rechazar" data-notif-id="${notificacion.id}">Rechazar</button>
-            `
-            : !notificacion.leido
-                ? `<button type="button" class="btn-secondary" data-notif-action="leido" data-notif-id="${notificacion.id}">Marcar leida</button>`
-                : "";
-
-        return `
-            <article class="notif-item notif-item--${notificacion.tipo}${notificacion.leido ? " notif-item--leido" : ""}">
-                <span class="notif-item-tag">${NOTIF_TIPO_LABEL[notificacion.tipo] || notificacion.tipo}</span>
-                <p>${escapeHtml(notificacion.mensaje)}</p>
-                ${acciones ? `<div class="notif-item-actions">${acciones}</div>` : ""}
-            </article>
-        `;
-    }).join("");
+    body.innerHTML = notificaciones.map(renderNotifEntry).join("");
 }
 
 async function setupNotificaciones(aside) {
@@ -71,12 +119,18 @@ async function setupNotificaciones(aside) {
     const panel = aside.querySelector("#notifPanel");
     const badge = aside.querySelector("#notifBadge");
     const body = aside.querySelector("#notifPanelBody");
+    const filtrosEl = aside.querySelector("#notifPanelFiltros");
     if (!bellButton || !panel || !badge || !body) return;
+
+    let filtroActivo = "todas";
 
     async function refrescar() {
         try {
-            const notificaciones = await window.VehiAmb.api.getNotificaciones();
-            renderNotificaciones(notificaciones, body, badge);
+            const [notificaciones, contador] = await Promise.all([
+                window.VehiAmb.api.getNotificaciones(NOTIF_PANEL_FILTERS[filtroActivo]),
+                window.VehiAmb.api.getContadorNotificaciones()
+            ]);
+            renderNotificaciones(notificaciones, body, badge, contador.pendientes);
         } catch (error) {
             console.error("No fue posible cargar las notificaciones:", error);
         }
@@ -92,10 +146,25 @@ async function setupNotificaciones(aside) {
         panel.classList.add("hidden");
     });
 
+    filtrosEl?.addEventListener("click", (event) => {
+        const chip = event.target.closest("[data-notif-filtro]");
+        if (!chip) return;
+
+        filtroActivo = chip.dataset.notifFiltro;
+        filtrosEl.querySelectorAll("[data-notif-filtro]").forEach((el) => el.classList.toggle("active", el === chip));
+        refrescar();
+    });
+
     body.addEventListener("click", async (event) => {
+        if (event.target.closest("[data-notif-nav]")) {
+            panel.classList.add("hidden");
+            return;
+        }
+
         const actionButton = event.target.closest("[data-notif-action]");
         if (!actionButton) return;
 
+        event.preventDefault();
         const { notifAction, notifId } = actionButton.dataset;
         actionButton.disabled = true;
 
@@ -106,6 +175,8 @@ async function setupNotificaciones(aside) {
                 await window.VehiAmb.api.aprobarNotificacion(notifId);
             } else if (notifAction === "rechazar") {
                 await window.VehiAmb.api.rechazarNotificacion(notifId);
+            } else if (notifAction === "eliminar") {
+                await window.VehiAmb.api.eliminarNotificacion(notifId);
             }
             await refrescar();
         } catch (error) {

@@ -5,6 +5,9 @@ const CHECK_INTERVAL_MS = Number(process.env.PREVENTIVE_CHECK_INTERVAL_MS || 6 *
 const KM_UMBRAL = 500;
 const DIAS_UMBRAL = 15;
 const HORAS_SIN_DUPLICAR = 72;
+// Informativa: "maintenance.view" (no "maintenance.approve") para que tambien
+// llegue al rol de solo consulta.
+const DESTINATARIO_PERMISSION = "maintenance.view";
 
 async function obtenerProximosCambiosAceite() {
   return db.all(`
@@ -56,12 +59,13 @@ async function evaluarVehiculo(row) {
     ? `${Math.max(kmRestantes, 0).toLocaleString("es-CO")} km`
     : `${Math.max(diasRestantes, 0)} dias`;
 
-  await notificacionesService.notificarUsuariosConPermiso(notificacionesService.APPROVAL_PERMISSION, {
-    tipo: "info",
-    prioridad: "media",
+  await notificacionesService.notificarUsuariosConPermiso(DESTINATARIO_PERMISSION, {
+    tipo: "cambio_aceite_proximo",
     mensaje: `El vehiculo ${row.marca} ${row.modelo} (${row.placa}) esta a ${detalle} de cumplir el limite para su proximo Cambio de Aceite.`,
+    vehiculo_id: row.vehiculo_id,
     referencia_tipo: "vehiculo",
-    referencia_id: row.vehiculo_id
+    referencia_id: row.vehiculo_id,
+    accion: { tipo: "ver_vehiculo", payload: { vehiculo_id: row.vehiculo_id } }
   });
 }
 

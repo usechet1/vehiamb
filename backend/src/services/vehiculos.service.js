@@ -2,6 +2,7 @@ const fs = require("fs/promises");
 const path = require("path");
 const HttpError = require("../errors/http-error");
 const vehiculosRepository = require("../repositories/vehiculos.repository");
+const notificacionesService = require("./notificaciones.service");
 
 const UPLOADS_ROOT = path.resolve(__dirname, "..", "..", "uploads");
 
@@ -244,7 +245,15 @@ async function updateEstadoVehiculo(id, estado) {
     throw new HttpError(404, "Vehículo no encontrado");
   }
 
-  return vehiculosRepository.updateEstado(id, estado);
+  const actualizado = await vehiculosRepository.updateEstado(id, estado);
+
+  notificacionesService
+    .notificarCambioEstadoVehiculo({ vehiculo: actualizado, estadoAnterior: existing.estado, estadoNuevo: estado })
+    .catch((error) => {
+      console.error("No fue posible notificar el cambio de estado del vehiculo:", error.message);
+    });
+
+  return actualizado;
 }
 
 async function deleteVehiculo(id) {

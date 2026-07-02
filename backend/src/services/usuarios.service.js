@@ -2,6 +2,7 @@ const HttpError = require("../errors/http-error");
 const rolesRepository = require("../repositories/roles.repository");
 const usuariosRepository = require("../repositories/usuarios.repository");
 const { hashPassword } = require("../utils/password");
+const notificacionesService = require("./notificaciones.service");
 
 function normalizeEmail(value) {
   return String(value || "").trim().toLowerCase();
@@ -76,7 +77,13 @@ async function createUser(payload) {
     password_hash: await hashPassword(user.password)
   });
 
-  return toSafeUser(created);
+  const safeUser = toSafeUser(created);
+
+  notificacionesService.notificarUsuarioCreado(safeUser).catch((error) => {
+    console.error("No fue posible notificar la creacion de usuario:", error.message);
+  });
+
+  return safeUser;
 }
 
 async function updateUser(id, payload) {
@@ -97,7 +104,15 @@ async function updateUser(id, payload) {
     password_hash: user.password ? await hashPassword(user.password) : null
   });
 
-  return toSafeUser(updated);
+  const safeUser = toSafeUser(updated);
+
+  if (String(existing.role_id) !== String(safeUser.role_id)) {
+    notificacionesService.notificarPermisosActualizados(safeUser).catch((error) => {
+      console.error("No fue posible notificar el cambio de permisos:", error.message);
+    });
+  }
+
+  return safeUser;
 }
 
 async function setUserActive(id, active, currentUserId) {

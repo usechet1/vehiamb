@@ -80,12 +80,19 @@ CREATE TABLE IF NOT EXISTS notificaciones (
   id BIGSERIAL PRIMARY KEY,
   usuario_id BIGINT NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
   tipo TEXT NOT NULL,
+  categoria TEXT NOT NULL DEFAULT 'sistema',
   prioridad TEXT NOT NULL DEFAULT 'media',
+  titulo TEXT,
   mensaje TEXT NOT NULL,
+  vehiculo_id BIGINT REFERENCES vehiculos(id) ON DELETE SET NULL,
+  accion_tipo TEXT,
+  accion_payload TEXT,
+  estado TEXT NOT NULL DEFAULT 'no_leida',
   leido BOOLEAN NOT NULL DEFAULT FALSE,
   referencia_tipo TEXT,
   referencia_id BIGINT,
-  fecha_creacion TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  fecha_creacion TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS documentos (
@@ -120,3 +127,5 @@ CREATE INDEX IF NOT EXISTS idx_documentos_vehiculo_id ON documentos (vehiculo_id
 CREATE INDEX IF NOT EXISTS idx_cambios_aceite_vehiculo_id ON cambios_aceite (vehiculo_id);
 CREATE INDEX IF NOT EXISTS idx_notificaciones_usuario_id ON notificaciones (usuario_id);
 CREATE INDEX IF NOT EXISTS idx_notificaciones_referencia ON notificaciones (referencia_tipo, referencia_id);
+CREATE INDEX IF NOT EXISTS idx_notificaciones_estado ON notificaciones (usuario_id, estado);
+CREATE INDEX IF NOT EXISTS idx_notificaciones_vehiculo_id ON notificaciones (vehiculo_id);
