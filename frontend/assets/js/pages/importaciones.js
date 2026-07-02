@@ -105,6 +105,8 @@ function actualizarModoImportacion() {
     importPeriodo.required = !esRango;
     importDesde.required = esRango;
     importHasta.required = esRango;
+    importModoDia.closest(".import-modo-btn").classList.toggle("is-active", !esRango);
+    importModoRango.closest(".import-modo-btn").classList.toggle("is-active", esRango);
 }
 
 importModoDia.addEventListener("change", actualizarModoImportacion);

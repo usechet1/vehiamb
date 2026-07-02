@@ -30,20 +30,26 @@
                                 <div class="form-group">
                                     <label>Modo</label>
                                     <div class="import-modo-toggle" role="radiogroup" aria-label="Modo de importacion">
-                                        <label><input type="radio" name="importModo" value="dia" id="importModoDia" checked> Un dia</label>
-                                        <label><input type="radio" name="importModo" value="rango" id="importModoRango"> Rango de fechas</label>
+                                        <label class="import-modo-btn is-active" for="importModoDia">
+                                            <input type="radio" name="importModo" value="dia" id="importModoDia" checked>
+                                            Un dia
+                                        </label>
+                                        <label class="import-modo-btn" for="importModoRango">
+                                            <input type="radio" name="importModo" value="rango" id="importModoRango">
+                                            Rango de fechas
+                                        </label>
                                     </div>
                                 </div>
                                 <div class="form-group" id="importGrupoDia">
                                     <label>Fecha a procesar (Fecha de Envio)</label>
                                     <input type="date" name="periodo" id="importPeriodo">
                                 </div>
-                                <div class="form-group hidden" id="importGrupoRango">
-                                    <div>
+                                <div class="import-grupo-rango hidden" id="importGrupoRango">
+                                    <div class="form-group">
                                         <label>Desde</label>
                                         <input type="date" id="importDesde">
                                     </div>
-                                    <div>
+                                    <div class="form-group">
                                         <label>Hasta</label>
                                         <input type="date" id="importHasta">
                                     </div>
