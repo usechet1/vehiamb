@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Importaciones - VehiAmb</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar"></aside>
+
+        <main class="content">
+            <div class="page-header">
+                <div>
+                    <h1>Importaciones de gastos vehiculares</h1>
+                    <p class="page-kicker">Sincronizacion diaria con el Excel operativo de logistica (CARGUES_BODEGA).</p>
+                </div>
+            </div>
+
+            <div class="module-grid">
+                <div class="stack">
+                    <section class="section-card">
+                        <div class="section-card-head">
+                            <h2>Ejecutar importacion manual</h2>
+                            <p>Procesa un dia especifico del Excel bajo demanda, sin esperar al proceso automatico.</p>
+                        </div>
+                        <div class="section-card-body">
+                            <form id="importForm" class="compact-form">
+                                <div class="form-group">
+                                    <label>Fecha a procesar (Fecha_factura)</label>
+                                    <input type="date" name="periodo" id="importPeriodo" required>
+                                </div>
+                                <button type="submit" class="btn-primary" id="importSubmitButton">Ejecutar importacion</button>
+                            </form>
+                            <div id="importRunResult" class="import-run-result hidden"></div>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="stack">
+                    <section class="section-card">
+                        <div class="section-card-head">
+                            <h2>Ultima importacion automatica</h2>
+                            <p>Se ejecuta todos los dias segun IMPORT_SCHEDULE, procesando el dia anterior.</p>
+                        </div>
+                        <div class="section-card-body" id="importStatusBody">
+                            <p class="dash-empty">Cargando...</p>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <section class="section-card import-history-card">
+                <div class="section-card-head">
+                    <h2>Historial de importaciones</h2>
+                    <div class="filter-form" style="flex-direction: row; align-items: center; gap: 10px;">
+                        <select id="importFiltroEstado">
+                            <option value="">Todos los estados</option>
+                            <option value="completado">Completado</option>
+                            <option value="completado_con_errores">Completado con errores</option>
+                            <option value="fallido">Fallido</option>
+                            <option value="en_proceso">En proceso</option>
+                            <option value="pendiente">Pendiente</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="section-card-body">
+                    <div class="table-scroll">
+                        <table class="import-table">
+                            <thead>
+                                <tr>
+                                    <th>Fecha importacion</th>
+                                    <th>Periodo</th>
+                                    <th>Archivo</th>
+                                    <th>Estado</th>
+                                    <th>Nuevos</th>
+                                    <th>Actualizados</th>
+                                    <th>Omitidos</th>
+                                    <th>Errores</th>
+                                    <th>Duracion</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="importTableBody">
+                                <tr><td colspan="10" class="dash-empty">Cargando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="filter-actions">
+                        <span id="importListSummary" class="field-help"></span>
+                        <div class="pagination-buttons">
+                            <button type="button" id="importPrevPage" class="btn-secondary">Anterior</button>
+                            <button type="button" id="importNextPage" class="btn-secondary">Siguiente</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div id="loader" class="loader hidden"></div>
+            <div id="mensaje" class="mensaje hidden"></div>
+
+            <div id="importDrawerBackdrop" class="drawer-backdrop hidden"></div>
+            <aside id="importDrawer" class="detail-drawer hidden" aria-hidden="true" aria-labelledby="importDrawerTitle">
+                <div class="detail-drawer-head">
+                    <div>
+                        <span class="form-step">Detalle de importacion</span>
+                        <h2 id="importDrawerTitle">Importacion</h2>
+                        <p id="importDrawerSubtitle">Metricas e incidencias</p>
+                    </div>
+                    <button type="button" id="closeImportDrawer" class="drawer-close" aria-label="Cerrar detalle">×</button>
+                </div>
+                <div id="importDrawerBody" class="detail-drawer-body"></div>
+            </aside>
+        </main>
+    </div>
+
+    <script src="assets/js/shared/auth.js"></script>
+    <script src="assets/js/shared/api.js"></script>
+    <script src="assets/js/shared/ui.js"></script>
+    <script src="assets/js/shared/notificaciones-config.js"></script>
+    <script src="assets/js/shared/sidebar.js"></script>
+    <script src="assets/js/pages/importaciones.js"></script>
+</body>
+</html>

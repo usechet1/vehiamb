@@ -11,7 +11,12 @@ const env = {
   seedAdminName: process.env.SEED_ADMIN_NAME || "Administrador VehiAmb",
   seedAdminEmail: process.env.SEED_ADMIN_EMAIL || "admin@vehiamb.local",
   seedAdminPassword: process.env.SEED_ADMIN_PASSWORD || "Admin123*",
-  seedAdminRole: process.env.SEED_ADMIN_ROLE || "Administrador"
+  seedAdminRole: process.env.SEED_ADMIN_ROLE || "Administrador",
+  excelFilePath: process.env.EXCEL_FILE_PATH || "",
+  excelRetryAttempts: Number(process.env.EXCEL_RETRY_ATTEMPTS || 3),
+  excelRetryDelayMs: Number(process.env.EXCEL_RETRY_DELAY || 5000),
+  importSchedule: process.env.IMPORT_SCHEDULE || "0 2 * * *",
+  importTimezone: process.env.IMPORT_TIMEZONE || "America/Bogota"
 };
 
 module.exports = env;

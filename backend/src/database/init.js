@@ -51,7 +51,9 @@ const PERMISSIONS = [
   ["documents.view", "Documentos", "Ver documentos"],
   ["documents.create", "Documentos", "Registrar documentos"],
   ["simit.view", "SIMIT", "Consultar SIMIT"],
-  ["users.manage", "Usuarios", "Administrar usuarios"]
+  ["users.manage", "Usuarios", "Administrar usuarios"],
+  ["imports.view", "Importaciones", "Ver importaciones de gastos vehiculares"],
+  ["imports.manage", "Importaciones", "Ejecutar importaciones y resolver incidencias"]
 ];
 
 const ROLE_PERMISSIONS = {
@@ -65,7 +67,9 @@ const ROLE_PERMISSIONS = {
     "maintenance.create",
     "documents.view",
     "documents.create",
-    "simit.view"
+    "simit.view",
+    "imports.view",
+    "imports.manage"
   ],
   Consulta: [
     "dashboard.view",
@@ -123,6 +127,39 @@ async function seedRolesAndPermissions() {
       db.client === "postgres" ? true : 1,
       role.id
     ]);
+  }
+}
+
+// seedRolesAndPermissions() no toca roles ya marcados permisos_configurados=true
+// (para no pisar cambios hechos desde el panel de administracion). Cuando se
+// agrega un permiso nuevo en una version posterior, esta funcion lo asigna
+// explicitamente a los roles pensados para el, sin tocar el resto de la
+// configuracion de esos roles. Es idempotente (ON CONFLICT DO NOTHING); si un
+// administrador quita manualmente uno de estos permisos despues, se debe
+// quitar tambien de este mapa o volvera a aparecer en el siguiente arranque.
+const PERMISOS_NUEVOS_POR_ROL = {
+  "imports.view": ["Administrador", "Operador"],
+  "imports.manage": ["Administrador", "Operador"]
+};
+
+async function grantPermisosNuevos() {
+  for (const [permissionCode, roleNames] of Object.entries(PERMISOS_NUEVOS_POR_ROL)) {
+    const permission = await db.get("SELECT id FROM permisos WHERE codigo = ?", [permissionCode]);
+    if (!permission) continue;
+
+    for (const roleName of roleNames) {
+      const role = await db.get("SELECT id FROM roles WHERE nombre = ?", [roleName]);
+      if (!role) continue;
+
+      await db.run(
+        `
+          INSERT INTO roles_permisos (role_id, permiso_id)
+          VALUES (?, ?)
+          ON CONFLICT (role_id, permiso_id) DO NOTHING
+        `,
+        [role.id, permission.id]
+      );
+    }
   }
 }
 
@@ -310,6 +347,92 @@ async function ensurePostgresTables() {
     )
   `);
 
+  // ── Modulo de importacion de gastos vehiculares (Excel CARGUES_BODEGA) ──
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS importaciones (
+      id BIGSERIAL PRIMARY KEY,
+      nombre_archivo TEXT NOT NULL,
+      hash_archivo TEXT NOT NULL,
+      periodo DATE NOT NULL,
+      fecha_importacion TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      usuario_id BIGINT REFERENCES usuarios(id),
+      estado TEXT NOT NULL DEFAULT 'pendiente',
+      total_leidos INTEGER NOT NULL DEFAULT 0,
+      total_nuevos INTEGER NOT NULL DEFAULT 0,
+      total_actualizados INTEGER NOT NULL DEFAULT 0,
+      total_omitidos INTEGER NOT NULL DEFAULT 0,
+      total_errores INTEGER NOT NULL DEFAULT 0,
+      duracion_ms INTEGER,
+      observaciones TEXT,
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS facturas_vehiculares (
+      id BIGSERIAL PRIMARY KEY,
+      numero_factura TEXT NOT NULL UNIQUE,
+      fecha_factura DATE NOT NULL,
+      valor_factura NUMERIC(14, 2) NOT NULL DEFAULT 0,
+      sala TEXT,
+      peso_kg NUMERIC(12, 3),
+      vehiculo_id BIGINT REFERENCES vehiculos(id) ON DELETE SET NULL,
+      placa_original TEXT,
+      conductor_nombre TEXT,
+      fecha_envio DATE,
+      observaciones TEXT,
+      estado_vehiculo TEXT NOT NULL DEFAULT 'sin_asignar',
+      importacion_creacion_id BIGINT REFERENCES importaciones(id),
+      importacion_ultima_id BIGINT REFERENCES importaciones(id),
+      hash_fila TEXT NOT NULL,
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      actualizado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS gastos_operativos (
+      id BIGSERIAL PRIMARY KEY,
+      factura_id BIGINT NOT NULL REFERENCES facturas_vehiculares(id) ON DELETE CASCADE,
+      tipo_gasto TEXT NOT NULL,
+      valor NUMERIC(14, 3) NOT NULL DEFAULT 0,
+      unidad TEXT NOT NULL,
+      importacion_id BIGINT REFERENCES importaciones(id),
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      actualizado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS incidencias_importacion (
+      id BIGSERIAL PRIMARY KEY,
+      importacion_id BIGINT NOT NULL REFERENCES importaciones(id) ON DELETE CASCADE,
+      fila_excel INTEGER,
+      numero_factura TEXT,
+      placa_original TEXT,
+      tipo_incidencia TEXT NOT NULL,
+      descripcion TEXT NOT NULL,
+      valor_problematico TEXT,
+      resuelta BOOLEAN NOT NULL DEFAULT FALSE,
+      resuelta_por BIGINT REFERENCES usuarios(id),
+      resuelta_en TIMESTAMPTZ,
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS detalle_importacion (
+      id BIGSERIAL PRIMARY KEY,
+      importacion_id BIGINT NOT NULL REFERENCES importaciones(id) ON DELETE CASCADE,
+      factura_id BIGINT REFERENCES facturas_vehiculares(id) ON DELETE SET NULL,
+      numero_factura TEXT NOT NULL,
+      accion TEXT NOT NULL,
+      hash_anterior TEXT,
+      hash_nuevo TEXT,
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
   await db.run("CREATE INDEX IF NOT EXISTS idx_vehiculos_placa ON vehiculos (placa)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios (email)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_mantenimientos_vehiculo_id ON mantenimientos (vehiculo_id)");
@@ -317,6 +440,17 @@ async function ensurePostgresTables() {
   await db.run("CREATE INDEX IF NOT EXISTS idx_cambios_aceite_vehiculo_id ON cambios_aceite (vehiculo_id)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_notificaciones_usuario_id ON notificaciones (usuario_id)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_notificaciones_referencia ON notificaciones (referencia_tipo, referencia_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_importaciones_periodo ON importaciones (periodo)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_importaciones_estado ON importaciones (estado)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_facturas_vehiculares_vehiculo_id ON facturas_vehiculares (vehiculo_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_facturas_vehiculares_fecha_factura ON facturas_vehiculares (fecha_factura)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_facturas_vehiculares_estado_vehiculo ON facturas_vehiculares (estado_vehiculo)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_gastos_operativos_factura_id ON gastos_operativos (factura_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_gastos_operativos_tipo_gasto ON gastos_operativos (tipo_gasto)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_incidencias_importacion_importacion_id ON incidencias_importacion (importacion_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_incidencias_importacion_resuelta ON incidencias_importacion (resuelta)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_detalle_importacion_importacion_id ON detalle_importacion (importacion_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_detalle_importacion_numero_factura ON detalle_importacion (numero_factura)");
   // idx_notificaciones_estado e idx_notificaciones_vehiculo_id se crean mas abajo,
   // despues de ensureColumn: aqui correrian en cada arranque (incluso con la tabla
   // ya existente en una base antigua) y fallarian porque esas columnas aun no existen.
@@ -469,6 +603,101 @@ if (env.dbClient === "sqlite") {
         FOREIGN KEY (vehiculo_id) REFERENCES vehiculos(id) ON DELETE CASCADE
       )
     `);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS importaciones (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre_archivo TEXT NOT NULL,
+        hash_archivo TEXT NOT NULL,
+        periodo TEXT NOT NULL,
+        fecha_importacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+        usuario_id INTEGER,
+        estado TEXT NOT NULL DEFAULT 'pendiente',
+        total_leidos INTEGER NOT NULL DEFAULT 0,
+        total_nuevos INTEGER NOT NULL DEFAULT 0,
+        total_actualizados INTEGER NOT NULL DEFAULT 0,
+        total_omitidos INTEGER NOT NULL DEFAULT 0,
+        total_errores INTEGER NOT NULL DEFAULT 0,
+        duracion_ms INTEGER,
+        observaciones TEXT,
+        creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+      )
+    `);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS facturas_vehiculares (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        numero_factura TEXT NOT NULL UNIQUE,
+        fecha_factura TEXT NOT NULL,
+        valor_factura REAL NOT NULL DEFAULT 0,
+        sala TEXT,
+        peso_kg REAL,
+        vehiculo_id INTEGER,
+        placa_original TEXT,
+        conductor_nombre TEXT,
+        fecha_envio TEXT,
+        observaciones TEXT,
+        estado_vehiculo TEXT NOT NULL DEFAULT 'sin_asignar',
+        importacion_creacion_id INTEGER,
+        importacion_ultima_id INTEGER,
+        hash_fila TEXT NOT NULL,
+        creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
+        actualizado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (vehiculo_id) REFERENCES vehiculos(id) ON DELETE SET NULL,
+        FOREIGN KEY (importacion_creacion_id) REFERENCES importaciones(id),
+        FOREIGN KEY (importacion_ultima_id) REFERENCES importaciones(id)
+      )
+    `);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS gastos_operativos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        factura_id INTEGER NOT NULL,
+        tipo_gasto TEXT NOT NULL,
+        valor REAL NOT NULL DEFAULT 0,
+        unidad TEXT NOT NULL,
+        importacion_id INTEGER,
+        creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
+        actualizado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (factura_id) REFERENCES facturas_vehiculares(id) ON DELETE CASCADE,
+        FOREIGN KEY (importacion_id) REFERENCES importaciones(id)
+      )
+    `);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS incidencias_importacion (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        importacion_id INTEGER NOT NULL,
+        fila_excel INTEGER,
+        numero_factura TEXT,
+        placa_original TEXT,
+        tipo_incidencia TEXT NOT NULL,
+        descripcion TEXT NOT NULL,
+        valor_problematico TEXT,
+        resuelta INTEGER NOT NULL DEFAULT 0,
+        resuelta_por INTEGER,
+        resuelta_en DATETIME,
+        creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (importacion_id) REFERENCES importaciones(id) ON DELETE CASCADE,
+        FOREIGN KEY (resuelta_por) REFERENCES usuarios(id)
+      )
+    `);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS detalle_importacion (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        importacion_id INTEGER NOT NULL,
+        factura_id INTEGER,
+        numero_factura TEXT NOT NULL,
+        accion TEXT NOT NULL,
+        hash_anterior TEXT,
+        hash_nuevo TEXT,
+        creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (importacion_id) REFERENCES importaciones(id) ON DELETE CASCADE,
+        FOREIGN KEY (factura_id) REFERENCES facturas_vehiculares(id) ON DELETE SET NULL
+      )
+    `);
   });
 
   Promise.all([
@@ -506,6 +735,7 @@ if (env.dbClient === "sqlite") {
     .then(() => db.run("UPDATE notificaciones SET estado = 'leida' WHERE leido = 1 AND estado = 'no_leida'"))
     .then(() => db.run("UPDATE notificaciones SET vehiculo_id = referencia_id WHERE referencia_tipo = 'vehiculo' AND vehiculo_id IS NULL"))
     .then(seedRolesAndPermissions)
+    .then(grantPermisosNuevos)
     .then(syncUserRoles)
     .then(seedAdminUser)
     .then(() => console.log("Tablas verificadas/creadas"))
@@ -563,6 +793,7 @@ if (env.dbClient === "sqlite") {
         AND n.vehiculo_id IS NULL
     `))
     .then(seedRolesAndPermissions)
+    .then(grantPermisosNuevos)
     .then(syncUserRoles)
     .then(seedAdminUser)
     .then(() => console.log("Columnas PostgreSQL verificadas"))

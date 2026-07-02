@@ -117,6 +117,82 @@ CREATE TABLE IF NOT EXISTS cambios_aceite (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- ── Modulo de importacion de gastos vehiculares (Excel CARGUES_BODEGA) ──
+CREATE TABLE IF NOT EXISTS importaciones (
+  id BIGSERIAL PRIMARY KEY,
+  nombre_archivo TEXT NOT NULL,
+  hash_archivo TEXT NOT NULL,
+  periodo DATE NOT NULL,
+  fecha_importacion TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  usuario_id BIGINT REFERENCES usuarios(id),
+  estado TEXT NOT NULL DEFAULT 'pendiente',
+  total_leidos INTEGER NOT NULL DEFAULT 0,
+  total_nuevos INTEGER NOT NULL DEFAULT 0,
+  total_actualizados INTEGER NOT NULL DEFAULT 0,
+  total_omitidos INTEGER NOT NULL DEFAULT 0,
+  total_errores INTEGER NOT NULL DEFAULT 0,
+  duracion_ms INTEGER,
+  observaciones TEXT,
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS facturas_vehiculares (
+  id BIGSERIAL PRIMARY KEY,
+  numero_factura TEXT NOT NULL UNIQUE,
+  fecha_factura DATE NOT NULL,
+  valor_factura NUMERIC(14, 2) NOT NULL DEFAULT 0,
+  sala TEXT,
+  peso_kg NUMERIC(12, 3),
+  vehiculo_id BIGINT REFERENCES vehiculos(id) ON DELETE SET NULL,
+  placa_original TEXT,
+  conductor_nombre TEXT,
+  fecha_envio DATE,
+  observaciones TEXT,
+  estado_vehiculo TEXT NOT NULL DEFAULT 'sin_asignar',
+  importacion_creacion_id BIGINT REFERENCES importaciones(id),
+  importacion_ultima_id BIGINT REFERENCES importaciones(id),
+  hash_fila TEXT NOT NULL,
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  actualizado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS gastos_operativos (
+  id BIGSERIAL PRIMARY KEY,
+  factura_id BIGINT NOT NULL REFERENCES facturas_vehiculares(id) ON DELETE CASCADE,
+  tipo_gasto TEXT NOT NULL,
+  valor NUMERIC(14, 3) NOT NULL DEFAULT 0,
+  unidad TEXT NOT NULL,
+  importacion_id BIGINT REFERENCES importaciones(id),
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  actualizado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS incidencias_importacion (
+  id BIGSERIAL PRIMARY KEY,
+  importacion_id BIGINT NOT NULL REFERENCES importaciones(id) ON DELETE CASCADE,
+  fila_excel INTEGER,
+  numero_factura TEXT,
+  placa_original TEXT,
+  tipo_incidencia TEXT NOT NULL,
+  descripcion TEXT NOT NULL,
+  valor_problematico TEXT,
+  resuelta BOOLEAN NOT NULL DEFAULT FALSE,
+  resuelta_por BIGINT REFERENCES usuarios(id),
+  resuelta_en TIMESTAMPTZ,
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS detalle_importacion (
+  id BIGSERIAL PRIMARY KEY,
+  importacion_id BIGINT NOT NULL REFERENCES importaciones(id) ON DELETE CASCADE,
+  factura_id BIGINT REFERENCES facturas_vehiculares(id) ON DELETE SET NULL,
+  numero_factura TEXT NOT NULL,
+  accion TEXT NOT NULL,
+  hash_anterior TEXT,
+  hash_nuevo TEXT,
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS idx_vehiculos_placa ON vehiculos (placa);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_vehiculos_numero_chasis ON vehiculos (numero_chasis) WHERE numero_chasis IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_vehiculos_estado ON vehiculos (estado);
@@ -129,3 +205,14 @@ CREATE INDEX IF NOT EXISTS idx_notificaciones_usuario_id ON notificaciones (usua
 CREATE INDEX IF NOT EXISTS idx_notificaciones_referencia ON notificaciones (referencia_tipo, referencia_id);
 CREATE INDEX IF NOT EXISTS idx_notificaciones_estado ON notificaciones (usuario_id, estado);
 CREATE INDEX IF NOT EXISTS idx_notificaciones_vehiculo_id ON notificaciones (vehiculo_id);
+CREATE INDEX IF NOT EXISTS idx_importaciones_periodo ON importaciones (periodo);
+CREATE INDEX IF NOT EXISTS idx_importaciones_estado ON importaciones (estado);
+CREATE INDEX IF NOT EXISTS idx_facturas_vehiculares_vehiculo_id ON facturas_vehiculares (vehiculo_id);
+CREATE INDEX IF NOT EXISTS idx_facturas_vehiculares_fecha_factura ON facturas_vehiculares (fecha_factura);
+CREATE INDEX IF NOT EXISTS idx_facturas_vehiculares_estado_vehiculo ON facturas_vehiculares (estado_vehiculo);
+CREATE INDEX IF NOT EXISTS idx_gastos_operativos_factura_id ON gastos_operativos (factura_id);
+CREATE INDEX IF NOT EXISTS idx_gastos_operativos_tipo_gasto ON gastos_operativos (tipo_gasto);
+CREATE INDEX IF NOT EXISTS idx_incidencias_importacion_importacion_id ON incidencias_importacion (importacion_id);
+CREATE INDEX IF NOT EXISTS idx_incidencias_importacion_resuelta ON incidencias_importacion (resuelta);
+CREATE INDEX IF NOT EXISTS idx_detalle_importacion_importacion_id ON detalle_importacion (importacion_id);
+CREATE INDEX IF NOT EXISTS idx_detalle_importacion_numero_factura ON detalle_importacion (numero_factura);

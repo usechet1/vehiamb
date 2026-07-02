@@ -330,5 +330,78 @@ window.VehiAmb.api = {
             { method: "POST" },
             "No se pudo rechazar el mantenimiento"
         );
+    },
+
+    getImportaciones(filters = {}) {
+        const params = new URLSearchParams();
+
+        if (filters.estado) params.set("estado", filters.estado);
+        if (filters.periodo) params.set("periodo", filters.periodo);
+        if (filters.page) params.set("page", filters.page);
+        if (filters.limit) params.set("limit", filters.limit);
+
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/importaciones${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudieron cargar las importaciones"
+        );
+    },
+
+    getImportacion(id) {
+        return requestJson(`${window.VehiAmb.API_URL}/importaciones/${id}`, undefined, "No se pudo cargar la importacion");
+    },
+
+    getImportacionDetalle(id, filters = {}) {
+        const params = new URLSearchParams();
+        if (filters.accion) params.set("accion", filters.accion);
+        if (filters.page) params.set("page", filters.page);
+        if (filters.limit) params.set("limit", filters.limit);
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/importaciones/${id}/detalle${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudo cargar el detalle de la importacion"
+        );
+    },
+
+    getImportacionIncidencias(id, filters = {}) {
+        const params = new URLSearchParams();
+        if (filters.resuelta !== undefined) params.set("resuelta", filters.resuelta);
+        if (filters.page) params.set("page", filters.page);
+        if (filters.limit) params.set("limit", filters.limit);
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/importaciones/${id}/incidencias${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudieron cargar las incidencias"
+        );
+    },
+
+    resolverIncidenciaImportacion(id) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/importaciones/incidencias/${id}/resolver`,
+            { method: "PATCH" },
+            "No se pudo marcar la incidencia como resuelta"
+        );
+    },
+
+    ejecutarImportacion(periodo) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/importaciones/ejecutar`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ periodo })
+            },
+            "No se pudo ejecutar la importacion"
+        );
+    },
+
+    getImportacionesStatus() {
+        return requestJson(`${window.VehiAmb.API_URL}/importaciones/status`, undefined, "No se pudo cargar el estado de importaciones");
     }
 };
