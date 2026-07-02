@@ -2,6 +2,7 @@ const fs = require("fs/promises");
 const path = require("path");
 const HttpError = require("../errors/http-error");
 const vehiculosRepository = require("../repositories/vehiculos.repository");
+const vehiculoRepuestosSugeridosRepository = require("../repositories/vehiculo-repuestos-sugeridos.repository");
 const notificacionesService = require("./notificaciones.service");
 
 const UPLOADS_ROOT = path.resolve(__dirname, "..", "..", "uploads");
@@ -264,6 +265,43 @@ async function deleteVehiculo(id) {
   }
 }
 
+const TIPOS_MANTENIMIENTO_VALIDOS = new Set([
+  "revision",
+  "preventivo",
+  "correctivo",
+  "cambio_aceite",
+  "llantas",
+  "frenos",
+  "otro"
+]);
+
+async function getRepuestosSugeridos(vehiculoId, tipoMantenimiento) {
+  const tipo = TIPOS_MANTENIMIENTO_VALIDOS.has(tipoMantenimiento) ? tipoMantenimiento : "cambio_aceite";
+  await getVehiculo(vehiculoId);
+  return vehiculoRepuestosSugeridosRepository.findByVehiculo(vehiculoId, tipo);
+}
+
+async function updateRepuestosSugeridos(vehiculoId, tipoMantenimiento, items) {
+  const tipo = TIPOS_MANTENIMIENTO_VALIDOS.has(tipoMantenimiento) ? tipoMantenimiento : "cambio_aceite";
+  await getVehiculo(vehiculoId);
+
+  if (!Array.isArray(items)) {
+    throw new HttpError(400, "items debe ser un arreglo");
+  }
+
+  const normalizados = items
+    .map((item, index) => ({
+      repuesto_id: Number(item.repuesto_id),
+      cantidad: Number(item.cantidad) > 0 ? Number(item.cantidad) : 1,
+      orden: Number.isFinite(Number(item.orden)) ? Number(item.orden) : index,
+      intervalo_km: item.intervalo_km ? Number(item.intervalo_km) : null
+    }))
+    .filter((item) => item.repuesto_id);
+
+  await vehiculoRepuestosSugeridosRepository.replaceParaVehiculoYTipo(vehiculoId, tipo, normalizados);
+  return vehiculoRepuestosSugeridosRepository.findByVehiculo(vehiculoId, tipo);
+}
+
 module.exports = {
   listVehiculos,
   listVehiculosSimple,
@@ -273,5 +311,7 @@ module.exports = {
   updateVehiculo,
   updateEstadoVehiculo,
   deleteVehiculo,
+  getRepuestosSugeridos,
+  updateRepuestosSugeridos,
   ESTADOS_VEHICULO
 };

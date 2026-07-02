@@ -241,6 +241,28 @@
                         </div>
                     </div>
                 </section>
+
+                <section class="section-card" id="vehicleRepuestosSugeridosSection">
+                    <div class="section-card-head">
+                        <h2>Repuestos sugeridos (Cambio de aceite)</h2>
+                        <p>Kit de repuestos y el intervalo de cambio para este vehiculo. Se preselecciona automaticamente al registrar un cambio de aceite.</p>
+                    </div>
+                    <div class="section-card-body">
+                        <div class="form-group">
+                            <label>Intervalo de cambio (km)</label>
+                            <input type="number" id="repuestoSugeridoIntervaloKm" min="0" placeholder="Ej: 6000">
+                        </div>
+                        <div class="simple-list-entry">
+                            <input type="text" id="repuestoSugeridoInput" placeholder="Buscar repuesto del catalogo...">
+                            <input type="number" id="repuestoSugeridoCantidadInput" placeholder="Cantidad" min="0.001" step="0.001" value="1">
+                            <button type="button" id="addRepuestoSugeridoButton" class="btn-secondary" disabled>Agregar</button>
+                        </div>
+                        <div id="repuestoSugeridoSeleccionadoInfo" class="field-help hidden"></div>
+                        <ul id="repuestosSugeridosList" class="simple-checklist"></ul>
+                        <div id="repuestosSugeridosEmpty" class="field-help">Aun no hay repuestos sugeridos configurados.</div>
+                        <button type="button" id="guardarRepuestosSugeridosButton" class="btn-primary">Guardar repuestos sugeridos</button>
+                    </div>
+                </section>
             </div>
 
             <section id="vehicleSimit" class="section-card hidden">
@@ -268,6 +290,7 @@
     <script src="assets/js/shared/ui.js"></script>
     <script src="assets/js/shared/notificaciones-config.js"></script>
     <script src="assets/js/shared/sidebar.js"></script>
+    <script src="assets/js/shared/repuesto-autocomplete.js"></script>
     <script>
         (function () {
             const statusBadge = document.getElementById("vehicleStatusBadge");

@@ -16,7 +16,10 @@ const env = {
   excelRetryAttempts: Number(process.env.EXCEL_RETRY_ATTEMPTS || 3),
   excelRetryDelayMs: Number(process.env.EXCEL_RETRY_DELAY || 5000),
   importSchedule: process.env.IMPORT_SCHEDULE || "0 2 * * *",
-  importTimezone: process.env.IMPORT_TIMEZONE || "America/Bogota"
+  importTimezone: process.env.IMPORT_TIMEZONE || "America/Bogota",
+  stockExcelFilePath: process.env.STOCK_EXCEL_FILE_PATH || "",
+  stockImportSchedule: process.env.STOCK_IMPORT_SCHEDULE || "0 3 * * *",
+  stockImportTimezone: process.env.STOCK_IMPORT_TIMEZONE || process.env.IMPORT_TIMEZONE || "America/Bogota"
 };
 
 module.exports = env;

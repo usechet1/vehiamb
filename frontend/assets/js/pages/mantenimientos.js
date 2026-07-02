@@ -13,13 +13,18 @@ const mensaje = document.getElementById("mensaje");
 const mantenimientoKilometraje = document.getElementById("mantenimientoKilometraje");
 const kilometrajeHelp = document.getElementById("kilometrajeHelp");
 const repuestosData = document.getElementById("repuestosData");
+const repuestosEstructuradosData = document.getElementById("repuestosEstructuradosData");
 const repuestoInput = document.getElementById("repuestoInput");
 const repuestoProveedorInput = document.getElementById("repuestoProveedorInput");
-const repuestoValorInput = document.getElementById("repuestoValorInput");
+const repuestoCantidadInput = document.getElementById("repuestoCantidadInput");
 const repuestoNotasInput = document.getElementById("repuestoNotasInput");
 const addRepuestoButton = document.getElementById("addRepuestoButton");
+const repuestoSeleccionadoInfo = document.getElementById("repuestoSeleccionadoInfo");
+const repuestoEquivalenciasPicker = document.getElementById("repuestoEquivalenciasPicker");
+const repuestosSugeridosAviso = document.getElementById("repuestosSugeridosAviso");
 const repuestosList = document.getElementById("repuestosList");
 const repuestosEmpty = document.getElementById("repuestosEmpty");
+const viewEtiquetaButton = document.getElementById("viewEtiquetaButton");
 const valorManoObraInput = document.getElementById("valorManoObraInput");
 const costoTotalDisplay = document.getElementById("costoTotalDisplay");
 const mantenimientoTipo = document.getElementById("mantenimientoTipo");
@@ -43,6 +48,8 @@ let vehiculosState = [];
 let totalMantenimientosCount = 0;
 let filtersRequestToken = 0;
 let currentDetailItem = null;
+let repuestoSeleccionado = null;
+let sugeridosRequestToken = 0;
 
 const tiposMantenimiento = {
     revision: "Revision general",
@@ -170,6 +177,88 @@ function updateCambioAceiteFields() {
     if (!isCambioAceite) {
         proximoCambioKmInput.value = "";
         proximoCambioFechaInput.value = "";
+        repuestosSugeridosAviso.classList.add("hidden");
+        return;
+    }
+
+    cargarRepuestosSugeridos();
+}
+
+/**
+ * Cuando el tipo es "cambio de aceite" y hay un vehiculo seleccionado, trae
+ * los repuestos configurados para ese vehiculo (ficha del vehiculo) y los
+ * pre-llena en el builder -- el usuario puede quitarlos o agregar otros.
+ * Cada sugerido pasa por la misma verificacion de disponibilidad que un
+ * repuesto elegido manualmente (principal con stock -> se usa; sin stock ->
+ * se ofrece la primera equivalencia disponible automaticamente).
+ */
+async function cargarRepuestosSugeridos() {
+    const vehiculo = selectedVehicle();
+    if (!vehiculo || mantenimientoTipo.value !== "cambio_aceite") return;
+
+    const requestToken = ++sugeridosRequestToken;
+
+    let sugeridos = [];
+    try {
+        sugeridos = await window.VehiAmb.api.getVehiculoRepuestosSugeridos(vehiculo.id, "cambio_aceite");
+    } catch (error) {
+        return;
+    }
+    if (requestToken !== sugeridosRequestToken || !sugeridos.length) return;
+
+    repuestosState = [];
+
+    const sinStock = [];
+    const intervaloKm = sugeridos.find((item) => item.intervalo_km)?.intervalo_km;
+
+    for (const sugerido of sugeridos) {
+        let disponibilidad;
+        try {
+            disponibilidad = await window.VehiAmb.api.getRepuestoDisponibilidad(sugerido.repuesto_id);
+        } catch (error) {
+            continue;
+        }
+        if (requestToken !== sugeridosRequestToken) return;
+
+        if (disponibilidad.principal.stock_disponible > 0) {
+            repuestosState.push({
+                repuesto: sugerido.nombre,
+                proveedor: "",
+                valor: Number(sugerido.valor_promedio || 0) * Number(sugerido.cantidad || 1),
+                notas: "",
+                repuesto_id: sugerido.repuesto_id,
+                cantidad: Number(sugerido.cantidad || 1),
+                valor_unitario: Number(sugerido.valor_promedio || 0)
+            });
+        } else if (disponibilidad.equivalencias.length) {
+            const elegida = disponibilidad.equivalencias[0];
+            repuestosState.push({
+                repuesto: elegida.nombre,
+                proveedor: "",
+                valor: 0,
+                notas: `Sustituye a ${sugerido.nombre} (sin stock)`,
+                repuesto_id: elegida.id,
+                repuesto_sugerido_id: sugerido.repuesto_id,
+                motivo_sustitucion: "Sin stock del repuesto principal",
+                cantidad: Number(sugerido.cantidad || 1),
+                valor_unitario: 0
+            });
+        } else {
+            sinStock.push(sugerido.nombre);
+        }
+    }
+
+    if (!proximoCambioKmInput.value && intervaloKm) {
+        proximoCambioKmInput.value = Math.round(Number(vehiculo.kilometraje_actual || 0) + Number(intervaloKm));
+    }
+
+    renderRepuestosBuilder();
+
+    if (sinStock.length) {
+        repuestosSugeridosAviso.textContent = `No existen repuestos compatibles disponibles para: ${sinStock.join(", ")}.`;
+        repuestosSugeridosAviso.classList.remove("hidden");
+    } else {
+        repuestosSugeridosAviso.classList.add("hidden");
     }
 }
 
@@ -213,8 +302,25 @@ function parseRepuestos(value) {
     return [];
 }
 
+// El JSON legado (mantenimientos.repuestos) sigue teniendo exactamente estos
+// 4 campos, sin importar los datos internos nuevos que traiga cada item --
+// el render del historial (renderRepuestosMeta/renderDetailRepuestos) no
+// necesita cambiar una linea.
 function syncRepuestosField() {
-    repuestosData.value = JSON.stringify(repuestosState);
+    repuestosData.value = JSON.stringify(
+        repuestosState.map((item) => ({ repuesto: item.repuesto, proveedor: item.proveedor, valor: item.valor, notas: item.notas }))
+    );
+
+    repuestosEstructuradosData.value = JSON.stringify(
+        repuestosState
+            .filter((item) => item.repuesto_id)
+            .map((item) => ({
+                repuesto_id: item.repuesto_id,
+                cantidad: item.cantidad || 1,
+                repuesto_sugerido_id: item.repuesto_sugerido_id || null,
+                motivo_sustitucion: item.motivo_sustitucion || null
+            }))
+    );
 }
 
 function updateCostoTotal() {
@@ -227,7 +333,7 @@ function renderRepuestosBuilder() {
     repuestosList.innerHTML = repuestosState.map((item, index) => `
         <li class="simple-checklist-item">
             <div class="simple-checklist-content">
-                <span class="simple-checklist-label">${item.repuesto}</span>
+                <span class="simple-checklist-label">${item.repuesto}${item.cantidad ? ` × ${item.cantidad}` : ""}</span>
                 <span class="simple-checklist-detail">${item.proveedor || "Sin proveedor"}</span>
                 <span class="simple-checklist-detail">${item.valor ? formatCurrency(item.valor) : "Sin valor"}</span>
                 <span class="simple-checklist-detail">${item.notas || "Sin notas"}</span>
@@ -249,22 +355,98 @@ function renderRepuestosBuilder() {
     });
 }
 
-function addRepuesto() {
-    const repuesto = repuestoInput.value.trim();
-    const proveedor = repuestoProveedorInput.value.trim();
-    const valor = repuestoValorInput.value.trim();
-    const notas = repuestoNotasInput.value.trim();
+function limpiarSeleccionRepuesto() {
+    repuestoSeleccionado = null;
+    repuestoSeleccionadoInfo.classList.add("hidden");
+    repuestoEquivalenciasPicker.classList.add("hidden");
+    repuestoEquivalenciasPicker.innerHTML = "";
+    addRepuestoButton.disabled = true;
+}
 
-    if (!repuesto) return;
+function mostrarEquivalencias(principalNombre, equivalencias) {
+    if (!equivalencias.length) {
+        repuestoEquivalenciasPicker.innerHTML = `<p class="repuesto-sin-stock-aviso">No existen repuestos compatibles disponibles para este mantenimiento.</p>`;
+        repuestoEquivalenciasPicker.classList.remove("hidden");
+        return;
+    }
 
-    repuestosState.push({ repuesto, proveedor, valor, notas });
+    repuestoEquivalenciasPicker.innerHTML = `
+        <p class="field-help">"${principalNombre}" sin existencias. Repuestos compatibles disponibles:</p>
+        ${equivalencias.map((eq) => `
+            <button type="button" class="btn-secondary repuesto-equivalencia-opcion" data-id="${eq.id}" data-nombre="${eq.nombre}">
+                ✔ ${eq.nombre} (${eq.stock_disponible} unidades)
+            </button>
+        `).join("")}
+    `;
+    repuestoEquivalenciasPicker.classList.remove("hidden");
+}
+
+async function seleccionarRepuestoDelAutocomplete(repuesto) {
+    repuestoSeleccionado = repuesto;
+    repuestoEquivalenciasPicker.classList.add("hidden");
+    repuestoEquivalenciasPicker.innerHTML = "";
+
+    let disponibilidad;
+    try {
+        disponibilidad = await window.VehiAmb.api.getRepuestoDisponibilidad(repuesto.id);
+    } catch (error) {
+        disponibilidad = null;
+    }
+
+    const stockDisponible = disponibilidad ? disponibilidad.principal.stock_disponible : Number(repuesto.stock_disponible || 0);
+
+    repuestoSeleccionadoInfo.textContent =
+        `${repuesto.codigo_interno} · ${repuesto.marca || "Sin marca"} · ${formatCurrency(repuesto.valor_promedio)} · ${repuesto.unidad_medida} · Stock: ${stockDisponible}`;
+    repuestoSeleccionadoInfo.classList.remove("hidden");
+    addRepuestoButton.disabled = false;
+
+    if (stockDisponible <= 0 && disponibilidad) {
+        mostrarEquivalencias(repuesto.nombre, disponibilidad.equivalencias);
+    }
+}
+
+function agregarRepuestoAlBuilder(repuesto, cantidad, { repuestoSugeridoId, motivoSustitucion } = {}) {
+    repuestosState.push({
+        repuesto: repuesto.nombre,
+        proveedor: repuestoProveedorInput.value.trim(),
+        valor: Number(repuesto.valor_promedio || 0) * cantidad,
+        notas: repuestoNotasInput.value.trim(),
+        repuesto_id: repuesto.id,
+        repuesto_sugerido_id: repuestoSugeridoId || null,
+        motivo_sustitucion: motivoSustitucion || null,
+        cantidad,
+        valor_unitario: Number(repuesto.valor_promedio || 0)
+    });
+
     repuestoInput.value = "";
     repuestoProveedorInput.value = "";
-    repuestoValorInput.value = "";
+    repuestoCantidadInput.value = "1";
     repuestoNotasInput.value = "";
+    limpiarSeleccionRepuesto();
     renderRepuestosBuilder();
     repuestoInput.focus();
 }
+
+function addRepuesto() {
+    if (!repuestoSeleccionado) return;
+
+    const cantidad = Number(repuestoCantidadInput.value) > 0 ? Number(repuestoCantidadInput.value) : 1;
+    agregarRepuestoAlBuilder(repuestoSeleccionado, cantidad);
+}
+
+repuestoEquivalenciasPicker.addEventListener("click", (event) => {
+    const button = event.target.closest(".repuesto-equivalencia-opcion");
+    if (!button || !repuestoSeleccionado) return;
+
+    const cantidad = Number(repuestoCantidadInput.value) > 0 ? Number(repuestoCantidadInput.value) : 1;
+    agregarRepuestoAlBuilder(
+        { id: Number(button.dataset.id), nombre: button.dataset.nombre, valor_promedio: 0 },
+        cantidad,
+        { repuestoSugeridoId: repuestoSeleccionado.id, motivoSustitucion: `Sin stock de ${repuestoSeleccionado.nombre}` }
+    );
+});
+
+window.VehiAmb.crearRepuestoAutocomplete(repuestoInput, { onSelect: seleccionarRepuestoDelAutocomplete });
 
 function renderRepuestosMeta(value) {
     const repuestos = parseRepuestos(value);
@@ -345,12 +527,34 @@ function renderDetailRepuestos(value) {
     `;
 }
 
-function openMaintenanceDetail(item) {
+function renderRepuestosCatalogo(items) {
+    if (!items.length) return "";
+
+    return `
+        <section class="drawer-section">
+            <h3>Repuestos del catalogo</h3>
+            <div class="detail-parts-list">
+                ${items.map((item) => `
+                    <article class="detail-part-item">
+                        <strong>${escapeHtml(item.nombre)} (${escapeHtml(item.codigo_interno)})</strong>
+                        <span>Cantidad: ${item.cantidad} ${escapeHtml(item.unidad_medida)}</span>
+                        <span>${formatCurrency(item.valor_unitario)} c/u · Total: ${formatCurrency(item.valor_total)}</span>
+                        ${item.repuesto_sugerido_id ? `<p>Sustituyo a ${escapeHtml(item.sugerido_nombre || "")} — ${escapeHtml(item.motivo_sustitucion || "")}</p>` : ""}
+                    </article>
+                `).join("")}
+            </div>
+        </section>
+    `;
+}
+
+async function openMaintenanceDetail(item) {
     currentDetailItem = item;
     const vehicleName = `${item.marca || ""} ${item.modelo || ""}`.trim() || "Vehiculo";
 
     maintenanceDrawerTitle.textContent = tiposMantenimiento[item.tipo] || item.tipo || "Mantenimiento";
     maintenanceDrawerSubtitle.textContent = `${item.placa || "Sin placa"} - ${vehicleName}`;
+    viewEtiquetaButton.classList.toggle("hidden", item.tipo !== "cambio_aceite");
+
     maintenanceDrawerBody.innerHTML = `
         <dl class="detail-list drawer-detail-list">
             ${detailRow("Vehiculo", vehicleName)}
@@ -375,6 +579,8 @@ function openMaintenanceDetail(item) {
             ${renderDetailRepuestos(item.repuestos)}
         </section>
 
+        <div id="repuestosCatalogoSection"></div>
+
         <section class="drawer-section">
             <h3>Archivos adjuntos</h3>
             ${renderDetailAttachment(item)}
@@ -385,7 +591,20 @@ function openMaintenanceDetail(item) {
     window.VehiAmb.ui.show(maintenanceDrawer);
     maintenanceDrawer.setAttribute("aria-hidden", "false");
     closeMaintenanceDrawer.focus();
+
+    try {
+        const repuestosCatalogo = await window.VehiAmb.api.getMantenimientoRepuestos(item.id);
+        const contenedor = document.getElementById("repuestosCatalogoSection");
+        if (contenedor) contenedor.innerHTML = renderRepuestosCatalogo(repuestosCatalogo);
+    } catch (error) {
+        // Mantenimientos viejos (o sin repuestos de catalogo) simplemente no muestran esta seccion.
+    }
 }
+
+viewEtiquetaButton.addEventListener("click", () => {
+    if (!currentDetailItem) return;
+    window.open(`etiqueta-cambio-aceite.html?mantenimiento_id=${currentDetailItem.id}`, "_blank", "noreferrer");
+});
 
 function closeDetailDrawer() {
     window.VehiAmb.ui.hide(maintenanceDrawerBackdrop);
@@ -515,10 +734,17 @@ mantenimientoForm.addEventListener("submit", async (event) => {
 
     try {
         window.VehiAmb.ui.show(loader);
-        await window.VehiAmb.api.createMantenimiento(formData);
-        window.VehiAmb.ui.showMessage(mensaje, "Mantenimiento guardado correctamente");
+        const creado = await window.VehiAmb.api.createMantenimiento(formData);
+
+        if (creado.advertenciasStock?.length) {
+            window.VehiAmb.ui.showMessage(mensaje, `Mantenimiento guardado. Aviso: ${creado.advertenciasStock.join(" · ")}`, "error");
+        } else {
+            window.VehiAmb.ui.showMessage(mensaje, "Mantenimiento guardado correctamente");
+        }
+
         mantenimientoForm.reset();
         repuestosState = [];
+        limpiarSeleccionRepuesto();
         renderRepuestosBuilder();
         updateKilometrajeValidation();
         updateCostoTotal();
@@ -532,7 +758,10 @@ mantenimientoForm.addEventListener("submit", async (event) => {
     }
 });
 
-mantenimientoSelect.addEventListener("change", updateKilometrajeValidation);
+mantenimientoSelect.addEventListener("change", () => {
+    updateKilometrajeValidation();
+    cargarRepuestosSugeridos();
+});
 mantenimientoKilometraje.addEventListener("input", updateKilometrajeValidation);
 valorManoObraInput.addEventListener("input", updateCostoTotal);
 mantenimientoTipo.addEventListener("change", updateCambioAceiteFields);

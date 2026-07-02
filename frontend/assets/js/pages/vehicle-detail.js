@@ -20,6 +20,15 @@ const documentList = document.getElementById("vehicleDocumentList");
 const simitPlate = document.getElementById("simitPlate");
 const openSimitLink = document.getElementById("openSimitLink");
 const copyPlateButton = document.getElementById("copyPlateButton");
+const vehicleRepuestosSugeridosSection = document.getElementById("vehicleRepuestosSugeridosSection");
+const repuestoSugeridoIntervaloKm = document.getElementById("repuestoSugeridoIntervaloKm");
+const repuestoSugeridoInput = document.getElementById("repuestoSugeridoInput");
+const repuestoSugeridoCantidadInput = document.getElementById("repuestoSugeridoCantidadInput");
+const addRepuestoSugeridoButton = document.getElementById("addRepuestoSugeridoButton");
+const repuestoSugeridoSeleccionadoInfo = document.getElementById("repuestoSugeridoSeleccionadoInfo");
+const repuestosSugeridosList = document.getElementById("repuestosSugeridosList");
+const repuestosSugeridosEmpty = document.getElementById("repuestosSugeridosEmpty");
+const guardarRepuestosSugeridosButton = document.getElementById("guardarRepuestosSugeridosButton");
 
 const tiposMantenimiento = {
     revision: "Revision general",
@@ -40,6 +49,9 @@ const tiposDocumento = {
 };
 
 let currentPlate = "";
+let currentVehicleId = "";
+let repuestosSugeridosState = [];
+let repuestoSugeridoSeleccionado = null;
 
 function formatKm(value) {
     return `${Number(value || 0).toLocaleString("es-CO", { maximumFractionDigits: 2 })} km`;
@@ -272,6 +284,89 @@ function renderVehiculo(vehiculo) {
     renderFacts(vehiculo);
 }
 
+function renderRepuestosSugeridosBuilder() {
+    repuestosSugeridosList.innerHTML = repuestosSugeridosState.map((item, index) => `
+        <li class="simple-checklist-item">
+            <div class="simple-checklist-content">
+                <span class="simple-checklist-label">${item.nombre}</span>
+                <span class="simple-checklist-detail">Cantidad: ${item.cantidad}</span>
+            </div>
+            <button type="button" class="simple-checklist-remove" data-index="${index}">Quitar</button>
+        </li>
+    `).join("");
+
+    repuestosSugeridosEmpty.classList.toggle("hidden", repuestosSugeridosState.length > 0);
+
+    repuestosSugeridosList.querySelectorAll(".simple-checklist-remove").forEach((button) => {
+        button.addEventListener("click", () => {
+            repuestosSugeridosState.splice(Number(button.dataset.index), 1);
+            renderRepuestosSugeridosBuilder();
+        });
+    });
+}
+
+async function cargarRepuestosSugeridosVehiculo(vehiculoId) {
+    try {
+        const items = await window.VehiAmb.api.getVehiculoRepuestosSugeridos(vehiculoId, "cambio_aceite");
+        repuestosSugeridosState = items.map((item) => ({
+            repuesto_id: item.repuesto_id,
+            nombre: item.nombre,
+            cantidad: Number(item.cantidad)
+        }));
+        repuestoSugeridoIntervaloKm.value = items.find((item) => item.intervalo_km)?.intervalo_km || "";
+        renderRepuestosSugeridosBuilder();
+    } catch (error) {
+        console.error("No fue posible cargar los repuestos sugeridos:", error);
+    }
+}
+
+if (repuestoSugeridoInput) {
+    window.VehiAmb.crearRepuestoAutocomplete(repuestoSugeridoInput, {
+        onSelect(repuesto) {
+            repuestoSugeridoSeleccionado = repuesto;
+            repuestoSugeridoSeleccionadoInfo.textContent = `${repuesto.codigo_interno} · ${repuesto.marca || "Sin marca"} · Stock: ${Number(repuesto.stock_disponible || 0)}`;
+            repuestoSugeridoSeleccionadoInfo.classList.remove("hidden");
+            addRepuestoSugeridoButton.disabled = false;
+        }
+    });
+}
+
+addRepuestoSugeridoButton?.addEventListener("click", () => {
+    if (!repuestoSugeridoSeleccionado) return;
+
+    const cantidad = Number(repuestoSugeridoCantidadInput.value) > 0 ? Number(repuestoSugeridoCantidadInput.value) : 1;
+    repuestosSugeridosState.push({ repuesto_id: repuestoSugeridoSeleccionado.id, nombre: repuestoSugeridoSeleccionado.nombre, cantidad });
+
+    repuestoSugeridoInput.value = "";
+    repuestoSugeridoCantidadInput.value = "1";
+    repuestoSugeridoSeleccionadoInfo.classList.add("hidden");
+    addRepuestoSugeridoButton.disabled = true;
+    repuestoSugeridoSeleccionado = null;
+    renderRepuestosSugeridosBuilder();
+});
+
+guardarRepuestosSugeridosButton?.addEventListener("click", async () => {
+    if (!currentVehicleId) return;
+
+    guardarRepuestosSugeridosButton.disabled = true;
+    try {
+        await window.VehiAmb.api.updateVehiculoRepuestosSugeridos(currentVehicleId, {
+            tipo_mantenimiento: "cambio_aceite",
+            items: repuestosSugeridosState.map((item, index) => ({
+                repuesto_id: item.repuesto_id,
+                cantidad: item.cantidad,
+                orden: index,
+                intervalo_km: repuestoSugeridoIntervaloKm.value || null
+            }))
+        });
+        window.VehiAmb.ui.showMessage(mensaje, "Repuestos sugeridos guardados correctamente");
+    } catch (error) {
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudieron guardar los repuestos sugeridos", "error");
+    } finally {
+        guardarRepuestosSugeridosButton.disabled = false;
+    }
+});
+
 async function cargarDetalle() {
     const params = new URLSearchParams(window.location.search);
     const vehicleId = params.get("id");
@@ -279,6 +374,12 @@ async function cargarDetalle() {
     if (!vehicleId) {
         window.VehiAmb.ui.showMessage(mensaje, "No se indico el vehiculo a consultar", "error");
         return;
+    }
+
+    currentVehicleId = vehicleId;
+
+    if (vehicleRepuestosSugeridosSection && !window.VehiAmb.auth?.hasPermission?.("vehicles.edit")) {
+        vehicleRepuestosSugeridosSection.classList.add("hidden");
     }
 
     try {
@@ -293,6 +394,9 @@ async function cargarDetalle() {
         renderVehiculo(vehiculo);
         renderMantenimientos(mantenimientos);
         renderDocumentos(documentos);
+        if (!vehicleRepuestosSugeridosSection?.classList.contains("hidden")) {
+            await cargarRepuestosSugeridosVehiculo(vehicleId);
+        }
 
         window.VehiAmb.ui.show(vehicleHero);
         window.VehiAmb.ui.show(vehicleDetail);

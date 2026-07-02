@@ -16,6 +16,9 @@ const usuariosRoutes = require("./routes/usuarios.routes");
 const notificacionesRoutes = require("./routes/notificaciones.routes");
 const importacionesRoutes = require("./routes/importaciones.routes");
 const costosRoutes = require("./routes/costos.routes");
+const repuestosRoutes = require("./routes/repuestos.routes");
+const stockImportacionesRoutes = require("./routes/stock-importaciones.routes");
+const configImportRoutes = require("./routes/config-import.routes");
 
 const app = express();
 
@@ -39,6 +42,9 @@ app.use("/api/usuarios", requireAuth, usuariosRoutes);
 app.use("/api/notificaciones", requireAuth, notificacionesRoutes);
 app.use("/api/importaciones", requireAuth, importacionesRoutes);
 app.use("/api/costos", requireAuth, costosRoutes);
+app.use("/api/repuestos", requireAuth, repuestosRoutes);
+app.use("/api/stock-importaciones", requireAuth, stockImportacionesRoutes);
+app.use("/api/config-import", requireAuth, configImportRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

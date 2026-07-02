@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catalogo de Repuestos - VehiAmb</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar"></aside>
+
+        <main class="content">
+            <div class="page-header">
+                <div>
+                    <h1>Catalogo de Repuestos</h1>
+                    <p class="page-kicker">Administra el catalogo de insumos y consulta el stock disponible.</p>
+                </div>
+            </div>
+
+            <div class="module-grid">
+                <div class="stack">
+                    <section class="section-card">
+                        <div class="section-card-head">
+                            <h2 id="repuestoFormTitle">Registrar repuesto</h2>
+                            <p>El stock se actualiza desde la importacion del Excel de saldos, no desde este formulario.</p>
+                        </div>
+                        <div class="section-card-body">
+                            <form id="repuestoForm" class="compact-form">
+                                <input type="hidden" id="repuestoId">
+
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Codigo interno</label>
+                                        <input type="text" id="repuestoCodigoInterno" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Nombre</label>
+                                        <input type="text" id="repuestoNombre" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Categoria</label>
+                                        <select id="repuestoCategoria">
+                                            <option value="aceite_motor">Aceite Motor</option>
+                                            <option value="filtro_aceite">Filtro Aceite</option>
+                                            <option value="filtro_aire">Filtro Aire</option>
+                                            <option value="filtro_combustible">Filtro Combustible</option>
+                                            <option value="llantas">Llantas</option>
+                                            <option value="baterias">Baterias</option>
+                                            <option value="lubricantes">Lubricantes</option>
+                                            <option value="refrigerantes">Refrigerantes</option>
+                                            <option value="correas">Correas</option>
+                                            <option value="bombillos">Bombillos</option>
+                                            <option value="otros" selected>Otros</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Marca</label>
+                                        <input type="text" id="repuestoMarca">
+                                    </div>
+                                </div>
+
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Referencia</label>
+                                        <input type="text" id="repuestoReferencia">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Unidad de medida</label>
+                                        <input type="text" id="repuestoUnidadMedida" value="UND">
+                                    </div>
+                                </div>
+
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Valor promedio</label>
+                                        <input type="number" id="repuestoValorPromedio" min="0" step="1">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Estado</label>
+                                        <select id="repuestoEstado">
+                                            <option value="activo" selected>Activo</option>
+                                            <option value="inactivo">Inactivo</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Observaciones</label>
+                                    <textarea id="repuestoObservaciones" rows="2"></textarea>
+                                </div>
+
+                                <div class="filter-actions">
+                                    <button type="button" id="repuestoCancelEditButton" class="btn-secondary hidden">Cancelar edicion</button>
+                                    <button type="submit" class="btn-primary" id="repuestoSubmitButton">Guardar repuesto</button>
+                                </div>
+                            </form>
+                        </div>
+                    </section>
+
+                    <section class="section-card hidden" id="equivalenciasSection">
+                        <div class="section-card-head">
+                            <h2>Equivalencias</h2>
+                            <p>Repuestos compatibles del mismo tipo, en orden de prioridad de sugerencia.</p>
+                        </div>
+                        <div class="section-card-body">
+                            <div class="simple-list-entry">
+                                <input type="text" id="equivalenciaInput" placeholder="Buscar repuesto equivalente...">
+                                <button type="button" id="addEquivalenciaButton" class="btn-secondary" disabled>Agregar</button>
+                            </div>
+                            <div id="equivalenciaSeleccionadaInfo" class="field-help hidden"></div>
+                            <ul id="equivalenciasList" class="simple-checklist"></ul>
+                            <div id="equivalenciasEmpty" class="field-help">Este repuesto aun no tiene equivalencias configuradas.</div>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="stack">
+                    <section class="section-card">
+                        <div class="section-card-head">
+                            <h2>Repuestos registrados</h2>
+                            <p>Busca por codigo, nombre o referencia.</p>
+                        </div>
+                        <div class="section-card-body">
+                            <form id="repuestosFilterForm" class="filter-form">
+                                <div class="form-grid-3">
+                                    <div class="form-group">
+                                        <label>Buscar</label>
+                                        <input type="search" id="repuestosSearch" placeholder="Codigo, nombre o referencia...">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Categoria</label>
+                                        <select id="repuestosFiltroCategoria">
+                                            <option value="">Todas</option>
+                                            <option value="aceite_motor">Aceite Motor</option>
+                                            <option value="filtro_aceite">Filtro Aceite</option>
+                                            <option value="filtro_aire">Filtro Aire</option>
+                                            <option value="filtro_combustible">Filtro Combustible</option>
+                                            <option value="llantas">Llantas</option>
+                                            <option value="baterias">Baterias</option>
+                                            <option value="lubricantes">Lubricantes</option>
+                                            <option value="refrigerantes">Refrigerantes</option>
+                                            <option value="correas">Correas</option>
+                                            <option value="bombillos">Bombillos</option>
+                                            <option value="otros">Otros</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Estado</label>
+                                        <select id="repuestosFiltroEstado">
+                                            <option value="">Todos</option>
+                                            <option value="activo">Activo</option>
+                                            <option value="inactivo">Inactivo</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </form>
+
+                            <div class="table-scroll">
+                                <table class="import-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Codigo</th>
+                                            <th>Nombre</th>
+                                            <th>Categoria</th>
+                                            <th>Marca</th>
+                                            <th>Valor promedio</th>
+                                            <th>Stock fisico</th>
+                                            <th>Stock minimo</th>
+                                            <th>Estado</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="repuestosTableBody">
+                                        <tr><td colspan="9" class="dash-empty">Cargando...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="filter-actions">
+                                <span id="repuestosListSummary" class="field-help"></span>
+                                <div class="pagination-buttons">
+                                    <button type="button" id="repuestosPrevPage" class="btn-secondary">Anterior</button>
+                                    <button type="button" id="repuestosNextPage" class="btn-secondary">Siguiente</button>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <div id="loader" class="loader hidden"></div>
+            <div id="mensaje" class="mensaje hidden"></div>
+        </main>
+    </div>
+
+    <script src="assets/js/shared/auth.js"></script>
+    <script src="assets/js/shared/api.js"></script>
+    <script src="assets/js/shared/ui.js"></script>
+    <script src="assets/js/shared/notificaciones-config.js"></script>
+    <script src="assets/js/shared/sidebar.js"></script>
+    <script src="assets/js/shared/repuesto-autocomplete.js"></script>
+    <script src="assets/js/pages/repuestos.js"></script>
+</body>
+</html>

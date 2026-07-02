@@ -18,8 +18,12 @@ const HASH_FIELDS = [
   "observaciones"
 ];
 
-function computeRowHash(record) {
-  const payload = HASH_FIELDS.map((field) => String(record[field] ?? "")).join("|");
+// "fields" es opcional para no romper a los llamadores existentes (facturas
+// vehiculares): si no se pasa, usa HASH_FIELDS. Otros pipelines de
+// importacion (ej. stock de repuestos) pasan su propia lista de campos para
+// reusar esta misma utilidad de hashing sin duplicar la logica SHA-256.
+function computeRowHash(record, fields = HASH_FIELDS) {
+  const payload = fields.map((field) => String(record[field] ?? "")).join("|");
   return crypto.createHash("sha256").update(payload).digest("hex");
 }
 

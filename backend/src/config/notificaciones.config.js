@@ -8,7 +8,8 @@ const CATEGORIAS = {
   documentacion: { label: "Documentacion", icono: "📄" },
   incidente: { label: "Incidentes", icono: "🚨" },
   usuario: { label: "Usuarios", icono: "👤" },
-  sistema: { label: "Sistema", icono: "⚙️" }
+  sistema: { label: "Sistema", icono: "⚙️" },
+  inventario: { label: "Inventario", icono: "📦" }
 };
 
 // orden: menor = mayor urgencia. Las criticas siempre se muestran primero.
@@ -39,7 +40,10 @@ const TIPOS = {
   mantenimiento_aprobado: { categoria: "mantenimiento", prioridad: "informativa", titulo: "Mantenimiento aprobado" },
   mantenimiento_rechazado: { categoria: "mantenimiento", prioridad: "media", titulo: "Mantenimiento rechazado" },
   kilometraje_incoherente: { categoria: "incidente", prioridad: "alta", titulo: "Kilometraje incoherente" },
-  error_sistema: { categoria: "sistema", prioridad: "critica", titulo: "Error del sistema" }
+  error_sistema: { categoria: "sistema", prioridad: "critica", titulo: "Error del sistema" },
+  stock_minimo_alcanzado: { categoria: "inventario", prioridad: "media", titulo: "Stock minimo alcanzado" },
+  stock_agotado: { categoria: "inventario", prioridad: "alta", titulo: "Repuesto agotado" },
+  repuesto_inactivo_configurado: { categoria: "inventario", prioridad: "media", titulo: "Repuesto inactivo configurado" }
 };
 
 // Umbrales (en dias) para generar recordatorios automaticos de vencimiento.

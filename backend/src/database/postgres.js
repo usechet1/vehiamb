@@ -36,10 +36,43 @@ async function close(callback) {
   if (callback) callback();
 }
 
+/**
+ * Ejecuta "fn" dentro de una transaccion (BEGIN/COMMIT/ROLLBACK) sobre un
+ * unico cliente del pool. "fn" recibe un objeto {all,get,run} con la misma
+ * firma que el modulo normal, para que el codigo que corre dentro de la
+ * transaccion se escriba igual que el resto de los repositorios -- solo hay
+ * que inyectarlo en vez de usar el "db" importado a nivel de modulo.
+ */
+async function withTransaction(fn) {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const scoped = {
+      client: "postgres",
+      all: (sql, params = []) => client.query(toPostgresParams(sql), params).then((r) => r.rows),
+      get: (sql, params = []) => client.query(toPostgresParams(sql), params).then((r) => r.rows[0] || null),
+      run: (sql, params = []) =>
+        client.query(toPostgresParams(sql), params).then((r) => ({ changes: r.rowCount, lastID: r.rows[0]?.id || null }))
+    };
+
+    const result = await fn(scoped);
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 module.exports = {
   client: "postgres",
   all,
   get,
   run,
-  close
+  close,
+  withTransaction
 };

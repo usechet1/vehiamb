@@ -43,4 +43,12 @@ router.patch("/:id/estado", requirePermission("vehicles.edit"), asyncHandler(veh
 // DELETE vehículo por id
 router.delete("/:id", requirePermission("vehicles.delete"), asyncHandler(vehiculosController.deleteVehiculo));
 
+// GET/PUT repuestos sugeridos por vehiculo + tipo de mantenimiento
+router.get("/:id/repuestos-sugeridos", requirePermission("vehicles.view"), asyncHandler(vehiculosController.getRepuestosSugeridos));
+router.put(
+  "/:id/repuestos-sugeridos",
+  requirePermission("vehicles.edit"),
+  asyncHandler(vehiculosController.updateRepuestosSugeridos)
+);
+
 module.exports = router;

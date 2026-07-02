@@ -149,6 +149,10 @@ window.VehiAmb.api = {
         );
     },
 
+    getMantenimiento(id) {
+        return requestJson(`${window.VehiAmb.API_URL}/mantenimientos/${id}`, undefined, "No se pudo cargar el mantenimiento");
+    },
+
     createMantenimiento(payload) {
         return requestJson(
             `${window.VehiAmb.API_URL}/mantenimientos`,
@@ -459,6 +463,200 @@ window.VehiAmb.api = {
             `${window.VehiAmb.API_URL}/costos/vehiculos/${encodeURIComponent(placa)}/facturas${query ? `?${query}` : ""}`,
             undefined,
             "No se pudieron cargar las facturas del vehiculo"
+        );
+    },
+
+    getRepuestos(filters = {}) {
+        const params = new URLSearchParams();
+        if (filters.categoria) params.set("categoria", filters.categoria);
+        if (filters.estado) params.set("estado", filters.estado);
+        if (filters.search) params.set("search", filters.search);
+        if (filters.page) params.set("page", filters.page);
+        if (filters.limit) params.set("limit", filters.limit);
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/repuestos${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudieron cargar los repuestos"
+        );
+    },
+
+    buscarRepuestos(term) {
+        const params = new URLSearchParams({ q: term });
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/repuestos/buscar?${params.toString()}`,
+            undefined,
+            "No se pudieron buscar repuestos"
+        );
+    },
+
+    getRepuesto(id) {
+        return requestJson(`${window.VehiAmb.API_URL}/repuestos/${id}`, undefined, "No se pudo cargar el repuesto");
+    },
+
+    createRepuesto(payload) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/repuestos`,
+            { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) },
+            "No se pudo guardar el repuesto"
+        );
+    },
+
+    updateRepuesto(id, payload) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/repuestos/${id}`,
+            { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) },
+            "No se pudo actualizar el repuesto"
+        );
+    },
+
+    getStockImportaciones(filters = {}) {
+        const params = new URLSearchParams();
+        if (filters.estado) params.set("estado", filters.estado);
+        if (filters.page) params.set("page", filters.page);
+        if (filters.limit) params.set("limit", filters.limit);
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/stock-importaciones${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudieron cargar las importaciones de stock"
+        );
+    },
+
+    ejecutarStockImportacion() {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/stock-importaciones/ejecutar`,
+            { method: "POST" },
+            "No se pudo ejecutar la importacion de stock"
+        );
+    },
+
+    getStockImportacionesStatus() {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/stock-importaciones/status`,
+            undefined,
+            "No se pudo cargar el estado de importaciones de stock"
+        );
+    },
+
+    getStockImportacion(id) {
+        return requestJson(`${window.VehiAmb.API_URL}/stock-importaciones/${id}`, undefined, "No se pudo cargar la importacion de stock");
+    },
+
+    getStockImportacionDetalle(id, filters = {}) {
+        const params = new URLSearchParams();
+        if (filters.accion) params.set("accion", filters.accion);
+        if (filters.page) params.set("page", filters.page);
+        if (filters.limit) params.set("limit", filters.limit);
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/stock-importaciones/${id}/detalle${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudo cargar el detalle de la importacion de stock"
+        );
+    },
+
+    getStockImportacionIncidencias(id, filters = {}) {
+        const params = new URLSearchParams();
+        if (filters.resuelta !== undefined) params.set("resuelta", filters.resuelta);
+        if (filters.page) params.set("page", filters.page);
+        if (filters.limit) params.set("limit", filters.limit);
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/stock-importaciones/${id}/incidencias${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudieron cargar las incidencias de stock"
+        );
+    },
+
+    resolverIncidenciaStock(id) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/stock-importaciones/incidencias/${id}/resolver`,
+            { method: "PATCH" },
+            "No se pudo marcar la incidencia como resuelta"
+        );
+    },
+
+    getRepuestoDisponibilidad(id) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/repuestos/${id}/disponibilidad`,
+            undefined,
+            "No se pudo consultar la disponibilidad del repuesto"
+        );
+    },
+
+    getRepuestoEquivalencias(id) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/repuestos/${id}/equivalencias`,
+            undefined,
+            "No se pudieron cargar las equivalencias"
+        );
+    },
+
+    createRepuestoEquivalencia(id, payload) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/repuestos/${id}/equivalencias`,
+            { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) },
+            "No se pudo agregar la equivalencia"
+        );
+    },
+
+    deleteRepuestoEquivalencia(id, equivalenciaId) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/repuestos/${id}/equivalencias/${equivalenciaId}`,
+            { method: "DELETE" },
+            "No se pudo quitar la equivalencia"
+        );
+    },
+
+    getVehiculoRepuestosSugeridos(vehiculoId, tipo = "cambio_aceite") {
+        const params = new URLSearchParams({ tipo });
+        return requestJson(
+            `${window.VehiAmb.API_URL}/vehiculos/${vehiculoId}/repuestos-sugeridos?${params.toString()}`,
+            undefined,
+            "No se pudieron cargar los repuestos sugeridos"
+        );
+    },
+
+    updateVehiculoRepuestosSugeridos(vehiculoId, payload) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/vehiculos/${vehiculoId}/repuestos-sugeridos`,
+            { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) },
+            "No se pudieron guardar los repuestos sugeridos"
+        );
+    },
+
+    getMantenimientoRepuestos(mantenimientoId) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/mantenimientos/${mantenimientoId}/repuestos`,
+            undefined,
+            "No se pudo cargar el detalle de repuestos del mantenimiento"
+        );
+    },
+
+    ejecutarConfigImport(formData) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/config-import/vehiculos-repuestos`,
+            { method: "POST", body: formData },
+            "No se pudo ejecutar la importacion de configuracion"
+        );
+    },
+
+    getConfigImportaciones(filters = {}) {
+        const params = new URLSearchParams();
+        if (filters.page) params.set("page", filters.page);
+        if (filters.limit) params.set("limit", filters.limit);
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/config-import/vehiculos-repuestos${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudieron cargar las importaciones de configuracion"
         );
     }
 };

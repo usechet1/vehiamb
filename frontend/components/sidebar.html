@@ -73,6 +73,46 @@
     Consulta SIMIT
   </button>
 
+  <hr class="nav-divider">
+  <p class="nav-label">Inventario</p>
+
+  <button data-page="repuestos.html" data-permission="inventory.view">
+    <span class="nav-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 8 12 3 3 8l9 5 9-5Z"/>
+        <path d="M3 8v8l9 5 9-5V8"/>
+        <path d="M12 13v8"/>
+      </svg>
+    </span>
+    Catalogo de Repuestos
+  </button>
+
+  <button data-page="stock-importaciones.html" data-permission="inventory.view">
+    <span class="nav-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+    </span>
+    Importacion de Stock
+  </button>
+
+  <hr class="nav-divider">
+  <p class="nav-label">Administracion</p>
+
+  <button data-page="admin-usuarios.html" data-permission="users.manage">
+    <span class="nav-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+    </span>
+    Usuarios
+  </button>
+
   <button data-page="costos.html" data-permission="costs.view">
     <span class="nav-icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -91,7 +131,7 @@
         <line x1="12" y1="15" x2="12" y2="3"/>
       </svg>
     </span>
-    Importaciones
+    Consolidados
   </button>
 
   <button data-page="notificaciones.html" data-permission="dashboard.view">
@@ -102,21 +142,6 @@
       </svg>
     </span>
     Notificaciones
-  </button>
-
-  <hr class="nav-divider">
-  <p class="nav-label">Administracion</p>
-
-  <button data-page="admin-usuarios.html" data-permission="users.manage">
-    <span class="nav-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-        <circle cx="9" cy="7" r="4"/>
-        <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-      </svg>
-    </span>
-    Usuarios
   </button>
 
 </nav>

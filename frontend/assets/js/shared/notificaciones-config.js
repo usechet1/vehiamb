@@ -8,7 +8,8 @@ const CATEGORIAS = {
     documentacion: { label: "Documentacion", icono: "📄" },
     incidente: { label: "Incidentes", icono: "🚨" },
     usuario: { label: "Usuarios", icono: "👤" },
-    sistema: { label: "Sistema", icono: "⚙️" }
+    sistema: { label: "Sistema", icono: "⚙️" },
+    inventario: { label: "Inventario", icono: "📦" }
 };
 
 const PRIORIDADES = {
@@ -39,6 +40,10 @@ const ACCIONES = {
     ver_usuario: {
         label: "Ver usuario",
         url: () => "admin-usuarios.html"
+    },
+    ver_repuesto: {
+        label: "Ver repuesto",
+        url: () => "repuestos.html"
     }
 };
 

@@ -1,6 +1,10 @@
 const HttpError = require("../errors/http-error");
+const db = require("../database/query");
 const mantenimientosRepository = require("../repositories/mantenimientos.repository");
 const vehiculosRepository = require("../repositories/vehiculos.repository");
+const repuestosRepository = require("../repositories/repuestos.repository");
+const repuestosStockRepository = require("../repositories/repuestos-stock.repository");
+const configuracionInventarioRepository = require("../repositories/configuracion-inventario.repository");
 const notificacionesService = require("./notificaciones.service");
 
 const TIPOS_VALIDOS = new Set([
@@ -28,6 +32,32 @@ function toNumberOrNull(value) {
   }
   const parsed = Number(cleanValue);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+// El formulario envia esto por separado del "repuestos" JSON legado (que no
+// se toca): cada item trae el repuesto del catalogo elegido, la cantidad y,
+// si el usuario sustituyo el sugerido original por una equivalencia, cual
+// era ese sugerido y por que.
+function parseRepuestosEstructurados(raw) {
+  if (!raw) return [];
+
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error) {
+    return [];
+  }
+
+  if (!Array.isArray(parsed)) return [];
+
+  return parsed
+    .map((item) => ({
+      repuesto_id: toNumberOrNull(item?.repuesto_id),
+      repuesto_sugerido_id: toNumberOrNull(item?.repuesto_sugerido_id),
+      motivo_sustitucion: item?.motivo_sustitucion ? String(item.motivo_sustitucion).trim() : null,
+      cantidad: toNumberOrNull(item?.cantidad) > 0 ? toNumberOrNull(item.cantidad) : 1
+    }))
+    .filter((item) => item.repuesto_id);
 }
 
 function sumRepuestos(repuestosJson) {
@@ -127,6 +157,86 @@ async function listMantenimientosByVehicle(vehiculoId) {
   return mantenimientosRepository.findByVehicle(vehiculoId);
 }
 
+async function getRepuestosEstructurados(mantenimientoId) {
+  return mantenimientosRepository.findRepuestosEstructurados(mantenimientoId);
+}
+
+async function getMantenimiento(id) {
+  const mantenimiento = await mantenimientosRepository.findByIdWithVehiculo(id);
+  if (!mantenimiento) {
+    throw new HttpError(404, "Mantenimiento no encontrado");
+  }
+  return mantenimiento;
+}
+
+/**
+ * Descuenta stock, registra el movimiento y el detalle normalizado para cada
+ * repuesto del catalogo usado en el mantenimiento -- todo dentro de la misma
+ * transaccion que crea el mantenimiento (atomico: si algo falla, no queda
+ * stock descontado sin mantenimiento, ni mantenimiento sin su descuento).
+ * Nunca bloquea por stock insuficiente salvo que
+ * configuracion_inventario.stock_insuficiente_bloquea = 'true' (hoy siempre
+ * 'false' -- solo se acumulan advertencias).
+ */
+async function consumirRepuestos(mantenimientoId, repuestosEstructurados, currentUser, trx) {
+  const advertencias = [];
+  const bodega = await repuestosStockRepository.findBodegaPrincipal(trx);
+  const bloquear = await configuracionInventarioRepository.getBooleano("stock_insuficiente_bloquea", false);
+
+  for (const item of repuestosEstructurados) {
+    const repuesto = await repuestosRepository.findById(item.repuesto_id);
+    if (!repuesto) continue; // el catalogo pudo cambiar entre que el usuario armo el formulario y guardo
+
+    const stockRow = await repuestosStockRepository.findByRepuestoIdForUpdate(item.repuesto_id, bodega.id, trx);
+    const stockFisicoActual = Number(stockRow?.stock_fisico ?? 0);
+    const stockDisponible = stockFisicoActual - Number(stockRow?.stock_comprometido ?? 0);
+
+    if (stockDisponible < item.cantidad) {
+      const mensaje = `Stock insuficiente para "${repuesto.nombre}": disponible ${stockDisponible}, solicitado ${item.cantidad}`;
+
+      if (bloquear) {
+        throw new HttpError(400, mensaje);
+      }
+
+      advertencias.push(mensaje);
+    }
+
+    await repuestosStockRepository.decrementarStock(item.repuesto_id, bodega.id, item.cantidad, trx);
+
+    await repuestosStockRepository.insertMovimiento(
+      {
+        repuestoId: item.repuesto_id,
+        bodegaId: bodega.id,
+        tipoMovimiento: "salida",
+        cantidad: -item.cantidad,
+        stockResultante: stockFisicoActual - item.cantidad,
+        motivo: `Consumo en mantenimiento #${mantenimientoId}`,
+        referenciaTipo: "mantenimiento",
+        referenciaId: mantenimientoId,
+        usuarioId: currentUser?.id ?? null
+      },
+      trx
+    );
+
+    const valorUnitario = Number(repuesto.valor_promedio || 0);
+
+    await mantenimientosRepository.createRepuestoDetalle(
+      mantenimientoId,
+      {
+        repuesto_id: item.repuesto_id,
+        repuesto_sugerido_id: item.repuesto_sugerido_id,
+        motivo_sustitucion: item.motivo_sustitucion,
+        cantidad: item.cantidad,
+        valor_unitario: valorUnitario,
+        valor_total: valorUnitario * item.cantidad
+      },
+      trx
+    );
+  }
+
+  return advertencias;
+}
+
 async function createMantenimiento(payload, file, currentUser) {
   const mantenimiento = normalizePayload({
     ...payload,
@@ -135,6 +245,8 @@ async function createMantenimiento(payload, file, currentUser) {
     soporte_nombre: file?.originalname || null,
     soporte_mime: file?.mimetype || null
   });
+
+  const repuestosEstructurados = parseRepuestosEstructurados(payload.repuestos_estructurados);
 
   const vehiculo = await vehiculosRepository.findById(mantenimiento.vehiculo_id);
   if (!vehiculo) {
@@ -147,7 +259,17 @@ async function createMantenimiento(payload, file, currentUser) {
     TIPOS_QUE_REQUIEREN_APROBACION.has(mantenimiento.tipo) || mantenimiento.valor > UMBRAL_APROBACION_VALOR;
   mantenimiento.estado = requiereAprobacion ? "pendiente" : "completado";
 
-  const creado = await mantenimientosRepository.create(mantenimiento);
+  let advertenciasStock = [];
+
+  const creado = await db.withTransaction(async (trx) => {
+    const mantenimientoCreado = await mantenimientosRepository.create(mantenimiento, trx);
+
+    if (repuestosEstructurados.length) {
+      advertenciasStock = await consumirRepuestos(mantenimientoCreado.id, repuestosEstructurados, currentUser, trx);
+    }
+
+    return mantenimientoCreado;
+  });
 
   await notificacionesService.evaluarNotificacionesMantenimiento({
     mantenimiento: creado,
@@ -155,11 +277,13 @@ async function createMantenimiento(payload, file, currentUser) {
     requiereAprobacion
   });
 
-  return creado;
+  return { ...creado, advertenciasStock };
 }
 
 module.exports = {
   listMantenimientos,
   listMantenimientosByVehicle,
+  getRepuestosEstructurados,
+  getMantenimiento,
   createMantenimiento
 };

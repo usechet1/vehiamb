@@ -39,3 +39,13 @@ exports.deleteVehiculo = async (req, res) => {
   await vehiculosService.deleteVehiculo(req.params.id);
   res.status(204).send();
 };
+
+exports.getRepuestosSugeridos = async (req, res) => {
+  const items = await vehiculosService.getRepuestosSugeridos(req.params.id, req.query.tipo);
+  res.json(items);
+};
+
+exports.updateRepuestosSugeridos = async (req, res) => {
+  const items = await vehiculosService.updateRepuestosSugeridos(req.params.id, req.body.tipo_mantenimiento, req.body.items);
+  res.json(items);
+};

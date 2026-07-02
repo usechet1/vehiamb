@@ -54,7 +54,9 @@ const PERMISSIONS = [
   ["users.manage", "Usuarios", "Administrar usuarios"],
   ["imports.view", "Importaciones", "Ver importaciones de gastos vehiculares"],
   ["imports.manage", "Importaciones", "Ejecutar importaciones y resolver incidencias"],
-  ["costs.view", "Costos", "Ver el dashboard de costos vehiculares"]
+  ["costs.view", "Costos", "Ver el dashboard de costos vehiculares"],
+  ["inventory.view", "Inventario", "Ver el catalogo de repuestos y el stock"],
+  ["inventory.manage", "Inventario", "Administrar repuestos, ejecutar importaciones de stock y resolver incidencias"]
 ];
 
 const ROLE_PERMISSIONS = {
@@ -71,7 +73,9 @@ const ROLE_PERMISSIONS = {
     "simit.view",
     "imports.view",
     "imports.manage",
-    "costs.view"
+    "costs.view",
+    "inventory.view",
+    "inventory.manage"
   ],
   Consulta: [
     "dashboard.view",
@@ -79,7 +83,8 @@ const ROLE_PERMISSIONS = {
     "maintenance.view",
     "documents.view",
     "simit.view",
-    "costs.view"
+    "costs.view",
+    "inventory.view"
   ]
 };
 
@@ -143,7 +148,9 @@ async function seedRolesAndPermissions() {
 const PERMISOS_NUEVOS_POR_ROL = {
   "imports.view": ["Administrador", "Operador"],
   "imports.manage": ["Administrador", "Operador"],
-  "costs.view": ["Administrador", "Operador", "Consulta"]
+  "costs.view": ["Administrador", "Operador", "Consulta"],
+  "inventory.view": ["Administrador", "Operador", "Consulta"],
+  "inventory.manage": ["Administrador", "Operador"]
 };
 
 async function grantPermisosNuevos() {
@@ -437,6 +444,174 @@ async function ensurePostgresTables() {
     )
   `);
 
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS repuestos (
+      id BIGSERIAL PRIMARY KEY,
+      codigo_interno TEXT NOT NULL UNIQUE,
+      nombre TEXT NOT NULL,
+      categoria TEXT NOT NULL DEFAULT 'otros',
+      marca TEXT,
+      referencia TEXT,
+      unidad_medida TEXT NOT NULL DEFAULT 'UND',
+      valor_promedio NUMERIC(14, 2) NOT NULL DEFAULT 0,
+      estado TEXT NOT NULL DEFAULT 'activo',
+      observaciones TEXT,
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      actualizado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS bodegas (
+      id BIGSERIAL PRIMARY KEY,
+      nombre TEXT NOT NULL,
+      codigo TEXT NOT NULL UNIQUE,
+      estado TEXT NOT NULL DEFAULT 'activa',
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS repuestos_stock (
+      id BIGSERIAL PRIMARY KEY,
+      repuesto_id BIGINT NOT NULL REFERENCES repuestos(id) ON DELETE CASCADE,
+      bodega_id BIGINT NOT NULL REFERENCES bodegas(id),
+      stock_fisico NUMERIC(14, 3) NOT NULL DEFAULT 0,
+      stock_minimo NUMERIC(14, 3) NOT NULL DEFAULT 0,
+      stock_comprometido NUMERIC(14, 3) NOT NULL DEFAULT 0,
+      ubicacion_original TEXT,
+      hash_fila TEXT,
+      actualizado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (repuesto_id, bodega_id)
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS movimientos_stock (
+      id BIGSERIAL PRIMARY KEY,
+      repuesto_id BIGINT NOT NULL REFERENCES repuestos(id),
+      bodega_id BIGINT NOT NULL REFERENCES bodegas(id),
+      tipo_movimiento TEXT NOT NULL,
+      cantidad NUMERIC(14, 3) NOT NULL,
+      stock_resultante NUMERIC(14, 3) NOT NULL,
+      motivo TEXT,
+      referencia_tipo TEXT,
+      referencia_id BIGINT,
+      usuario_id BIGINT REFERENCES usuarios(id),
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS importaciones_stock (
+      id BIGSERIAL PRIMARY KEY,
+      nombre_archivo TEXT NOT NULL,
+      hash_archivo TEXT NOT NULL,
+      usuario_id BIGINT REFERENCES usuarios(id),
+      estado TEXT NOT NULL DEFAULT 'pendiente',
+      total_leidos INTEGER NOT NULL DEFAULT 0,
+      total_nuevos INTEGER NOT NULL DEFAULT 0,
+      total_actualizados INTEGER NOT NULL DEFAULT 0,
+      total_omitidos INTEGER NOT NULL DEFAULT 0,
+      total_errores INTEGER NOT NULL DEFAULT 0,
+      duracion_ms INTEGER,
+      observaciones TEXT,
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS incidencias_importacion_stock (
+      id BIGSERIAL PRIMARY KEY,
+      importacion_id BIGINT NOT NULL REFERENCES importaciones_stock(id) ON DELETE CASCADE,
+      fila_excel INTEGER,
+      codigo_interno TEXT,
+      tipo_incidencia TEXT NOT NULL,
+      descripcion TEXT NOT NULL,
+      valor_problematico TEXT,
+      resuelta BOOLEAN NOT NULL DEFAULT FALSE,
+      resuelta_por BIGINT REFERENCES usuarios(id),
+      resuelta_en TIMESTAMPTZ,
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS detalle_importacion_stock (
+      id BIGSERIAL PRIMARY KEY,
+      importacion_id BIGINT NOT NULL REFERENCES importaciones_stock(id) ON DELETE CASCADE,
+      repuesto_id BIGINT REFERENCES repuestos(id) ON DELETE SET NULL,
+      codigo_interno TEXT NOT NULL,
+      accion TEXT NOT NULL,
+      hash_anterior TEXT,
+      hash_nuevo TEXT,
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS vehiculo_repuestos_sugeridos (
+      id BIGSERIAL PRIMARY KEY,
+      vehiculo_id BIGINT NOT NULL REFERENCES vehiculos(id) ON DELETE CASCADE,
+      tipo_mantenimiento TEXT NOT NULL DEFAULT 'cambio_aceite',
+      repuesto_id BIGINT NOT NULL REFERENCES repuestos(id) ON DELETE CASCADE,
+      cantidad NUMERIC(10, 3) NOT NULL DEFAULT 1,
+      orden INTEGER NOT NULL DEFAULT 0,
+      intervalo_km INTEGER,
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (vehiculo_id, tipo_mantenimiento, repuesto_id)
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS repuestos_equivalencias (
+      id BIGSERIAL PRIMARY KEY,
+      repuesto_principal_id BIGINT NOT NULL REFERENCES repuestos(id) ON DELETE CASCADE,
+      repuesto_equivalente_id BIGINT NOT NULL REFERENCES repuestos(id) ON DELETE CASCADE,
+      prioridad INTEGER NOT NULL DEFAULT 1,
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (repuesto_principal_id, repuesto_equivalente_id),
+      CHECK (repuesto_principal_id <> repuesto_equivalente_id)
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS mantenimiento_repuestos (
+      id BIGSERIAL PRIMARY KEY,
+      mantenimiento_id BIGINT NOT NULL REFERENCES mantenimientos(id) ON DELETE CASCADE,
+      repuesto_id BIGINT NOT NULL REFERENCES repuestos(id),
+      repuesto_sugerido_id BIGINT REFERENCES repuestos(id),
+      motivo_sustitucion TEXT,
+      cantidad NUMERIC(10, 3) NOT NULL DEFAULT 1,
+      valor_unitario NUMERIC(14, 2) NOT NULL DEFAULT 0,
+      valor_total NUMERIC(14, 2) NOT NULL DEFAULT 0,
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS configuracion_inventario (
+      clave TEXT PRIMARY KEY,
+      valor TEXT NOT NULL
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS importaciones_config_vehiculos (
+      id BIGSERIAL PRIMARY KEY,
+      nombre_archivo TEXT NOT NULL,
+      usuario_id BIGINT REFERENCES usuarios(id),
+      estado TEXT NOT NULL DEFAULT 'pendiente',
+      total_sugeridos_creados INTEGER NOT NULL DEFAULT 0,
+      total_equivalencias_creadas INTEGER NOT NULL DEFAULT 0,
+      total_omitidos INTEGER NOT NULL DEFAULT 0,
+      total_incidencias INTEGER NOT NULL DEFAULT 0,
+      detalle_incidencias JSONB,
+      duracion_ms INTEGER,
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
   await db.run("CREATE INDEX IF NOT EXISTS idx_vehiculos_placa ON vehiculos (placa)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios (email)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_mantenimientos_vehiculo_id ON mantenimientos (vehiculo_id)");
@@ -456,6 +631,29 @@ async function ensurePostgresTables() {
   await db.run("CREATE INDEX IF NOT EXISTS idx_incidencias_importacion_resuelta ON incidencias_importacion (resuelta)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_detalle_importacion_importacion_id ON detalle_importacion (importacion_id)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_detalle_importacion_numero_factura ON detalle_importacion (numero_factura)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_repuestos_categoria ON repuestos (categoria)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_repuestos_estado ON repuestos (estado)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_repuestos_stock_repuesto_id ON repuestos_stock (repuesto_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_movimientos_stock_repuesto_id ON movimientos_stock (repuesto_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_importaciones_stock_estado ON importaciones_stock (estado)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_incidencias_importacion_stock_importacion_id ON incidencias_importacion_stock (importacion_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_incidencias_importacion_stock_resuelta ON incidencias_importacion_stock (resuelta)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_detalle_importacion_stock_importacion_id ON detalle_importacion_stock (importacion_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_vehiculo_repuestos_sugeridos_vehiculo_id ON vehiculo_repuestos_sugeridos (vehiculo_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_repuestos_equivalencias_principal_id ON repuestos_equivalencias (repuesto_principal_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_mantenimiento_repuestos_mantenimiento_id ON mantenimiento_repuestos (mantenimiento_id)");
+
+  await db.run(`
+    INSERT INTO bodegas (nombre, codigo)
+    VALUES ('Bodega Principal', 'PRINCIPAL')
+    ON CONFLICT (codigo) DO NOTHING
+  `);
+
+  await db.run(`
+    INSERT INTO configuracion_inventario (clave, valor)
+    VALUES ('stock_insuficiente_bloquea', 'false')
+    ON CONFLICT (clave) DO NOTHING
+  `);
   // idx_notificaciones_estado e idx_notificaciones_vehiculo_id se crean mas abajo,
   // despues de ensureColumn: aqui correrian en cada arranque (incluso con la tabla
   // ya existente en una base antigua) y fallarian porque esas columnas aun no existen.

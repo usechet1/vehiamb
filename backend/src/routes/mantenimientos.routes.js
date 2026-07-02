@@ -9,6 +9,8 @@ const compressImage = require("../middlewares/compress-image");
 
 router.get("/", requirePermission("maintenance.view"), asyncHandler(mantenimientosController.getMantenimientos));
 router.get("/vehiculo/:vehiculoId", requirePermission("maintenance.view"), asyncHandler(mantenimientosController.getMantenimientosByVehicle));
+router.get("/:id/repuestos", requirePermission("maintenance.view"), asyncHandler(mantenimientosController.getRepuestosEstructurados));
+router.get("/:id", requirePermission("maintenance.view"), asyncHandler(mantenimientosController.getMantenimientoById));
 router.post(
   "/",
   requirePermission("maintenance.create"),

@@ -100,23 +100,52 @@ async function updateEstado(id, estado) {
   return findByIdWithVehiculo(id);
 }
 
-async function create(mantenimiento) {
+// "dbClient" es opcional: por defecto usa el modulo de BD normal, pero
+// createMantenimiento en el service lo invoca dentro de una transaccion
+// (withTransaction) cuando hay repuestos que descontar de stock, para que la
+// creacion del mantenimiento y el movimiento de stock sean atomicos.
+async function create(mantenimiento, dbClient = db) {
   const placeholders = MANTENIMIENTO_FIELDS.map(() => "?").join(", ");
   const values = MANTENIMIENTO_FIELDS.map((field) => mantenimiento[field] ?? null);
 
-  if (db.client === "postgres") {
-    return db.get(
-      `INSERT INTO mantenimientos (${MANTENIMIENTO_FIELDS.join(", ")}) VALUES (${placeholders}) RETURNING *`,
-      values
-    );
-  }
-
-  const result = await db.run(
-    `INSERT INTO mantenimientos (${MANTENIMIENTO_FIELDS.join(", ")}) VALUES (${placeholders})`,
+  return dbClient.get(
+    `INSERT INTO mantenimientos (${MANTENIMIENTO_FIELDS.join(", ")}) VALUES (${placeholders}) RETURNING *`,
     values
   );
+}
 
-  return findById(result.lastID);
+async function createRepuestoDetalle(mantenimientoId, detalle, dbClient = db) {
+  return dbClient.run(
+    `
+      INSERT INTO mantenimiento_repuestos
+        (mantenimiento_id, repuesto_id, repuesto_sugerido_id, motivo_sustitucion, cantidad, valor_unitario, valor_total)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `,
+    [
+      mantenimientoId,
+      detalle.repuesto_id,
+      detalle.repuesto_sugerido_id ?? null,
+      detalle.motivo_sustitucion ?? null,
+      detalle.cantidad,
+      detalle.valor_unitario,
+      detalle.valor_total
+    ]
+  );
+}
+
+async function findRepuestosEstructurados(mantenimientoId) {
+  return db.all(
+    `
+      SELECT mr.*, r.codigo_interno, r.nombre, r.categoria, r.unidad_medida,
+             rs.codigo_interno AS sugerido_codigo_interno, rs.nombre AS sugerido_nombre
+      FROM mantenimiento_repuestos mr
+      INNER JOIN repuestos r ON r.id = mr.repuesto_id
+      LEFT JOIN repuestos rs ON rs.id = mr.repuesto_sugerido_id
+      WHERE mr.mantenimiento_id = ?
+      ORDER BY mr.id ASC
+    `,
+    [mantenimientoId]
+  );
 }
 
 module.exports = {
@@ -125,5 +154,7 @@ module.exports = {
   findById,
   findByIdWithVehiculo,
   create,
+  createRepuestoDetalle,
+  findRepuestosEstructurados,
   updateEstado
 };

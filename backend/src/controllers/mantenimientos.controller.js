@@ -20,3 +20,13 @@ exports.createMantenimiento = async (req, res) => {
   const mantenimiento = await mantenimientosService.createMantenimiento(req.body, req.file, req.user);
   res.status(201).json(mantenimiento);
 };
+
+exports.getRepuestosEstructurados = async (req, res) => {
+  const items = await mantenimientosService.getRepuestosEstructurados(req.params.id);
+  res.json(items);
+};
+
+exports.getMantenimientoById = async (req, res) => {
+  const mantenimiento = await mantenimientosService.getMantenimiento(req.params.id);
+  res.json(mantenimiento);
+};

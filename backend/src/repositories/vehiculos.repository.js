@@ -143,6 +143,10 @@ async function findById(id) {
   return db.get("SELECT * FROM vehiculos WHERE id = ?", [id]);
 }
 
+async function findByPlaca(placa) {
+  return db.get("SELECT * FROM vehiculos WHERE placa = ?", [placa]);
+}
+
 async function create(vehiculo) {
   const placeholders = CREATE_FIELDS.map(() => "?").join(", ");
   const values = CREATE_FIELDS.map((field) => vehiculo[field] ?? null);
@@ -195,6 +199,7 @@ module.exports = {
   findAllSimple,
   findDistinctMarcas,
   findById,
+  findByPlaca,
   create,
   update,
   updateEstado,
