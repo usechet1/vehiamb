@@ -16,9 +16,16 @@ const simitDrawerTitle = document.getElementById("simitDrawerTitle");
 const simitDrawerSubtitle = document.getElementById("simitDrawerSubtitle");
 const simitDrawerBody = document.getElementById("simitDrawerBody");
 const simitDrawerConsultarButton = document.getElementById("simitDrawerConsultarButton");
+const exportSimitPdfButton = document.getElementById("exportSimitPdfButton");
+const exportSimitExcelButton = document.getElementById("exportSimitExcelButton");
 
 let flotaState = [];
 let currentDrawerVehiculoId = null;
+// Contexto completo del vehiculo actualmente abierto en el drawer (fila de
+// flota, historial de consultas y detalle/comparendos de la ultima
+// consulta), para que los botones de exportar PDF/Excel no tengan que
+// volver a pedir nada al backend.
+let currentDrawerContext = null;
 
 const ESTADO_LABELS = {
     nunca_consultado: "Nunca consultado",
@@ -260,6 +267,7 @@ async function openSimitDetail(vehiculoId) {
     if (!row) return;
 
     currentDrawerVehiculoId = vehiculoId;
+    currentDrawerContext = null;
     simitDrawerTitle.textContent = row.placa || "Vehiculo";
     simitDrawerSubtitle.textContent = `${row.marca || ""} ${row.modelo || ""}`.trim() || "Sin informacion de vehiculo";
     simitDrawerBody.innerHTML = '<p class="dash-empty">Cargando historial SIMIT...</p>';
@@ -274,6 +282,7 @@ async function openSimitDetail(vehiculoId) {
         const ultima = historial[0];
         const detalle = ultima ? await window.VehiAmb.api.getSimitConsultaDetalle(ultima.id) : null;
         const estado = deriveEstadoCartera(row);
+        currentDrawerContext = { row, historial, detalle, estado };
 
         simitDrawerBody.innerHTML = `
             <dl class="detail-list drawer-detail-list">
@@ -318,6 +327,7 @@ function closeDetailDrawer() {
     window.VehiAmb.ui.hide(simitDrawer);
     simitDrawer.setAttribute("aria-hidden", "true");
     currentDrawerVehiculoId = null;
+    currentDrawerContext = null;
 }
 
 async function consultarVehiculoManual(vehiculoId) {
@@ -404,6 +414,42 @@ document.addEventListener("keydown", (event) => {
 
 simitDrawerConsultarButton.addEventListener("click", () => {
     if (currentDrawerVehiculoId) consultarVehiculoManual(currentDrawerVehiculoId);
+});
+
+exportSimitPdfButton.addEventListener("click", async () => {
+    if (!currentDrawerContext) return;
+
+    const originalLabel = exportSimitPdfButton.textContent;
+    exportSimitPdfButton.disabled = true;
+    exportSimitPdfButton.textContent = "Generando...";
+
+    try {
+        await window.VehiAmb.simit.exportComparendosPdf(currentDrawerContext);
+    } catch (error) {
+        console.error(error);
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo exportar el PDF", "error");
+    } finally {
+        exportSimitPdfButton.disabled = false;
+        exportSimitPdfButton.textContent = originalLabel;
+    }
+});
+
+exportSimitExcelButton.addEventListener("click", async () => {
+    if (!currentDrawerContext) return;
+
+    const originalLabel = exportSimitExcelButton.textContent;
+    exportSimitExcelButton.disabled = true;
+    exportSimitExcelButton.textContent = "Generando...";
+
+    try {
+        await window.VehiAmb.simit.exportComparendosExcel(currentDrawerContext);
+    } catch (error) {
+        console.error(error);
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo exportar el Excel", "error");
+    } finally {
+        exportSimitExcelButton.disabled = false;
+        exportSimitExcelButton.textContent = originalLabel;
+    }
 });
 
 document.addEventListener("DOMContentLoaded", cargarFlota);

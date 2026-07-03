@@ -59,6 +59,23 @@ function parseValor(text) {
   return digits ? Number(digits) : 0;
 }
 
+// El sitio muestra las fechas como DD/MM/YYYY. Postgres, con el DateStyle por
+// defecto, interpreta "17/04/2026" como MM/DD/YYYY y falla con "date/time
+// field value out of range" (mes 17 no existe). Se normaliza a ISO
+// (YYYY-MM-DD) aqui, en el borde del scraper, para que el resto del sistema
+// nunca tenga que lidiar con el formato de origen.
+function toIsoDate(fechaDDMMYYYY) {
+  if (!fechaDDMMYYYY) return null;
+
+  const match = fechaDDMMYYYY.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (!match) return null;
+
+  const [, dia, mes, anio] = match;
+  const anioCompleto = anio.length === 2 ? `20${anio}` : anio;
+
+  return `${anioCompleto}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`;
+}
+
 function detectarEstado(text) {
   const encontrado = ESTADO_KEYWORDS.find(({ pattern }) => pattern.test(text || ""));
   return encontrado ? encontrado.estado : "pendiente";
@@ -156,7 +173,7 @@ async function extraerMuestraComparendos(page) {
 
     resultados.push({
       numero_comparendo: numeroMatch ? numeroMatch[0] : celdas.tipo.split("\n")[0].trim(),
-      fecha_infraccion: fechaMatch ? fechaMatch[0] : null,
+      fecha_infraccion: fechaMatch ? toIsoDate(fechaMatch[0]) : null,
       descripcion: (celdas.infraccionDetalle || celdas.infraccionResumen || null),
       valor: parseValor(celdas.valorAPagar),
       estado: detectarEstado(celdas.estado),
@@ -170,6 +187,28 @@ async function extraerMuestraComparendos(page) {
 async function hayCaptcha(page) {
   const marcador = await page.$(config.SELECTORS.captchaMarker);
   return Boolean(marcador);
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Cortes de conexion (ERR_CONNECTION_CLOSED/RESET/EMPTY_RESPONSE) suelen ser
+// transitorios -- el sitio esta detras de Cloudflare y puede cortar la
+// conexion momentaneamente ante trafico repetido en poco tiempo, sin que
+// signifique un bloqueo permanente. Se reintenta una vez con una espera corta
+// antes de reportar la consulta como fallida.
+const ERRORES_RED_REINTENTABLES = /ERR_CONNECTION_CLOSED|ERR_CONNECTION_RESET|ERR_EMPTY_RESPONSE|ERR_CONNECTION_REFUSED|ERR_NETWORK_CHANGED/;
+
+async function irConReintento(page, url, opciones) {
+  try {
+    return await page.goto(url, opciones);
+  } catch (error) {
+    if (!ERRORES_RED_REINTENTABLES.test(error.message)) throw error;
+
+    await sleep(5000);
+    return page.goto(url, opciones);
+  }
 }
 
 async function scrapePlaca(placa) {
@@ -200,7 +239,7 @@ async function scrapePlaca(placa) {
     const page = await browser.newPage({ userAgent: config.BROWSER_USER_AGENT });
     page.setDefaultTimeout(config.NAVIGATION_TIMEOUT_MS);
 
-    await page.goto(config.SIMIT_BASE_URL, { waitUntil: "domcontentloaded" });
+    await irConReintento(page, config.SIMIT_BASE_URL, { waitUntil: "domcontentloaded" });
     // Le da tiempo al SPA (Angular) y al widget de Turnstile a terminar de
     // renderizar/resolverse antes de buscar el formulario.
     await page.waitForTimeout(3000);
@@ -241,9 +280,18 @@ async function scrapePlaca(placa) {
     }
 
     await page.waitForTimeout(500);
-    const [resumen, comparendos] = await Promise.all([leerResumen(page), extraerMuestraComparendos(page)]);
+    // Secuencial, no en paralelo: extraerMuestraComparendos cambia el tamano
+    // de pagina (#pageLengthSelect), lo que dispara un re-render de Angular
+    // que puede dejar momentaneamente vacia la tarjeta Resumen. Si se lee en
+    // paralelo, leerResumen puede capturar ese estado transitorio y devolver
+    // 0 aunque si existan comparendos (bug detectado con datos reales).
+    const resumen = await leerResumen(page);
+    const comparendos = await extraerMuestraComparendos(page);
 
-    const totalComparendos = resumen?.totalComparendos ?? comparendos.length;
+    // Salvaguarda: el conteo real extraido de la tabla nunca puede superar al
+    // del Resumen. Si el Resumen llego en 0 (u otro valor inconsistente) pero
+    // si se extrajeron filas reales, se confia en lo efectivamente encontrado.
+    const totalComparendos = Math.max(resumen?.totalComparendos ?? 0, comparendos.length);
     const valorTotal = resumen ? resumen.valorTotal : comparendos.reduce((sum, item) => sum + Number(item.valor || 0), 0);
     const estadoCartera = calcularEstadoCartera({
       totalComparendosResumen: totalComparendos,

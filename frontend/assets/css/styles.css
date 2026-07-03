@@ -2431,6 +2431,12 @@ label[for="loginPassword"] {
     flex: 0 0 auto;
 }
 
+.detail-drawer-actions .btn-secondary {
+    min-height: 36px;
+    padding: 8px 12px;
+    font-size: 0.82rem;
+}
+
 .drawer-close {
     display: inline-grid;
     flex: 0 0 auto;
