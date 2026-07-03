@@ -16,87 +16,59 @@
                     <h1>Vehículos</h1>
                     <p class="page-kicker">Consulta el parque automotor registrado</p>
                 </div>
-                <a class="header-action" href="add.html">Nuevo vehículo</a>
+                <div class="page-header-right">
+                    <p class="dash-fecha" id="fecha-hoy" aria-label="Fecha de hoy"></p>
+                    <a class="header-action" href="add.html">Nuevo vehículo</a>
+                </div>
             </div>
 
-            <section class="section-card">
-                <div class="section-card-head">
-                    <h2>Buscar y filtrar</h2>
-                    <p>Encuentra rapidamente un vehiculo por placa, codigo interno, marca, modelo, VIN o numero de motor.</p>
-                </div>
-                <div class="section-card-body">
-                    <form id="vehiculosFilterForm" class="filter-form">
-                        <div class="form-group">
-                            <label for="searchInput">Busqueda</label>
-                            <input type="search" id="searchInput" placeholder="Ej: ABC123, Canter, 9BWZZZ377VT004251...">
-                        </div>
+            <form id="vehiculosFilterForm" class="vehicles-toolbar">
+                <input type="search" id="searchInput" class="vehicles-toolbar-search" placeholder="Buscar por placa, código, marca, modelo, VIN...">
 
-                        <div class="form-grid-3">
-                            <div class="form-group">
-                                <label for="filterEstado">Estado</label>
-                                <select id="filterEstado">
-                                    <option value="">Todos</option>
-                                    <option value="activo">Activo</option>
-                                    <option value="reparacion">En reparacion</option>
-                                    <option value="fuera_servicio">Fuera de servicio</option>
-                                </select>
-                            </div>
+                <select id="filterEstado" aria-label="Filtrar por estado">
+                    <option value="">Estado: todos</option>
+                    <option value="activo">Activo</option>
+                    <option value="reparacion">En reparación</option>
+                    <option value="fuera_servicio">Fuera de servicio</option>
+                </select>
 
-                            <div class="form-group">
-                                <label for="filterTipoVehiculo">Tipo de vehiculo</label>
-                                <select id="filterTipoVehiculo">
-                                    <option value="">Todos</option>
-                                    <option value="Automovil">Automovil</option>
-                                    <option value="Camioneta">Camioneta</option>
-                                    <option value="Camion">Camion</option>
-                                    <option value="Turbo">Turbo</option>
-                                    <option value="Tractocamion">Tractocamion</option>
-                                    <option value="Montacargas">Montacargas</option>
-                                    <option value="Motocicleta">Motocicleta</option>
-                                    <option value="Otro">Otro</option>
-                                </select>
-                            </div>
+                <select id="filterTipoVehiculo" aria-label="Filtrar por tipo de vehículo">
+                    <option value="">Tipo: todos</option>
+                    <option value="Automovil">Automóvil</option>
+                    <option value="Camioneta">Camioneta</option>
+                    <option value="Camion">Camión</option>
+                    <option value="Turbo">Turbo</option>
+                    <option value="Tractocamion">Tractocamión</option>
+                    <option value="Montacargas">Montacargas</option>
+                    <option value="Motocicleta">Motocicleta</option>
+                    <option value="Otro">Otro</option>
+                </select>
 
-                            <div class="form-group">
-                                <label for="filterMarca">Marca</label>
-                                <select id="filterMarca">
-                                    <option value="">Todas</option>
-                                </select>
-                            </div>
-                        </div>
+                <select id="filterMarca" aria-label="Filtrar por marca">
+                    <option value="">Marca: todas</option>
+                </select>
 
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="sortSelect">Ordenar por</label>
-                                <select id="sortSelect">
-                                    <option value="recientes">Mas recientes</option>
-                                    <option value="antiguos">Mas antiguos</option>
-                                    <option value="placa_asc">Placa A-Z</option>
-                                    <option value="placa_desc">Placa Z-A</option>
-                                    <option value="km_mayor">Kilometraje mayor</option>
-                                    <option value="km_menor">Kilometraje menor</option>
-                                    <option value="proximo_mantenimiento">Proximo mantenimiento</option>
-                                </select>
-                            </div>
+                <select id="sortSelect" aria-label="Ordenar por">
+                    <option value="recientes">Más recientes</option>
+                    <option value="antiguos">Más antiguos</option>
+                    <option value="placa_asc">Placa A-Z</option>
+                    <option value="placa_desc">Placa Z-A</option>
+                    <option value="km_mayor">Kilometraje mayor</option>
+                    <option value="km_menor">Kilometraje menor</option>
+                    <option value="proximo_mantenimiento">Próximo mantenimiento</option>
+                </select>
 
-                            <div class="form-group">
-                                <label for="pageSizeSelect">Vehiculos por pagina</label>
-                                <select id="pageSizeSelect">
-                                    <option value="10">10</option>
-                                    <option value="20">20</option>
-                                    <option value="50">50</option>
-                                    <option value="100">100</option>
-                                </select>
-                            </div>
-                        </div>
+                <select id="pageSizeSelect" aria-label="Vehículos por página">
+                    <option value="10">10 por página</option>
+                    <option value="20">20 por página</option>
+                    <option value="50">50 por página</option>
+                    <option value="100">100 por página</option>
+                </select>
 
-                        <div class="filter-actions">
-                            <span id="filterSummary" class="field-help">Cargando vehiculos...</span>
-                            <button type="button" id="clearFiltersButton" class="btn-secondary">Limpiar filtros</button>
-                        </div>
-                    </form>
-                </div>
-            </section>
+                <button type="button" id="clearFiltersButton" class="btn-secondary">Limpiar filtros</button>
+            </form>
+
+            <p id="filterSummary" class="field-help vehicles-toolbar-summary">Cargando vehículos...</p>
 
             <div id="loader" class="loader hidden"></div>
 
@@ -109,17 +81,17 @@
                     <circle cx="7.5" cy="16" r="1.2"/>
                     <circle cx="16.5" cy="16" r="1.2"/>
                 </svg>
-                <p>No se encontraron vehiculos con los filtros seleccionados.</p>
+                <p>No se encontraron vehículos con los filtros seleccionados.</p>
                 <button type="button" id="emptyStateClearButton" class="btn-secondary">Limpiar filtros</button>
             </div>
 
             <div id="paginationBar" class="pagination-bar hidden">
-                <span id="paginationSummary" class="field-help">Pagina 1 de 1 · 0 vehiculos encontrados</span>
+                <span id="paginationSummary" class="field-help">Página 1 de 1 · 0 vehículos encontrados</span>
                 <div class="pagination-controls">
                     <button type="button" id="paginationFirst" class="btn-secondary">Primera</button>
                     <button type="button" id="paginationPrev" class="btn-secondary">Anterior</button>
                     <button type="button" id="paginationNext" class="btn-secondary">Siguiente</button>
-                    <button type="button" id="paginationLast" class="btn-secondary">Ultima</button>
+                    <button type="button" id="paginationLast" class="btn-secondary">Última</button>
                 </div>
             </div>
         </main>

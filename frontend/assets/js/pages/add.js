@@ -1,3 +1,11 @@
+document.getElementById("fecha-hoy").textContent =
+    new Date().toLocaleDateString("es-CO", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+    });
+
 const form = document.getElementById("vehiculoForm");
 const loader = document.getElementById("loader");
 const mensaje = document.getElementById("mensaje");
@@ -19,7 +27,7 @@ const cancelButton = document.getElementById("cancelButton");
 const vehicleId = new URLSearchParams(window.location.search).get("id");
 const isEditMode = Boolean(vehicleId);
 
-const ANIO_MIN = 1900;
+const ANIO_MIN = 1950;
 const ANIO_REGEX = /^\d{4}$/;
 
 function validarAnioField() {
@@ -102,8 +110,35 @@ async function cargarVehiculoParaEditar() {
     }
 }
 
+const CODIGO_INTERNO_PREFIJO = "AC-";
+const inputCodigoInterno = document.getElementById("input-codigo-interno");
+
+async function generarCodigoInternoAutomatico() {
+    if (!inputCodigoInterno) return;
+
+    try {
+        const vehiculos = await window.VehiAmb.api.getVehiculosCatalogo();
+        const regexCodigo = new RegExp(`^${CODIGO_INTERNO_PREFIJO}(\\d+)$`, "i");
+
+        const maxNumero = (vehiculos || []).reduce((max, vehiculo) => {
+            const match = regexCodigo.exec(String(vehiculo.codigo_interno || "").trim());
+            if (!match) return max;
+            return Math.max(max, Number(match[1]));
+        }, 0);
+
+        inputCodigoInterno.value = `${CODIGO_INTERNO_PREFIJO}${String(maxNumero + 1).padStart(4, "0")}`;
+    } catch (error) {
+        console.error(error);
+        inputCodigoInterno.readOnly = false;
+        inputCodigoInterno.placeholder = `Ej: ${CODIGO_INTERNO_PREFIJO}0001`;
+        window.VehiAmb.ui.showMessage(mensaje, "No fue posible generar el código automático, ingrésalo manualmente", "error");
+    }
+}
+
 if (isEditMode) {
     cargarVehiculoParaEditar();
+} else {
+    generarCodigoInternoAutomatico();
 }
 
 inputPlaca?.addEventListener("input", () => {
@@ -227,6 +262,7 @@ form.addEventListener("submit", async (event) => {
         window.VehiAmb.ui.showMessage(mensaje, "Vehículo guardado correctamente");
         form.reset();
         updateImagePreview();
+        generarCodigoInternoAutomatico();
     } catch (error) {
         console.error(error);
         window.VehiAmb.ui.showMessage(mensaje, error.message || "Error al guardar el vehículo", "error");

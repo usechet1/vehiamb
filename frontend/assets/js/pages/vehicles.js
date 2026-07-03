@@ -1,9 +1,20 @@
+document.getElementById("fecha-hoy").textContent =
+    new Date().toLocaleDateString("es-CO", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+    });
+
 const container = document.getElementById("vehiculosContainer");
 const loader = document.getElementById("loader");
 const emptyState = document.getElementById("vehiculosEmptyState");
 const paginationBar = document.getElementById("paginationBar");
 const paginationSummary = document.getElementById("paginationSummary");
 const filterSummary = document.getElementById("filterSummary");
+
+const vehiculosFilterForm = document.getElementById("vehiculosFilterForm");
+vehiculosFilterForm?.addEventListener("submit", (event) => event.preventDefault());
 
 const searchInput = document.getElementById("searchInput");
 const filterEstado = document.getElementById("filterEstado");
@@ -33,7 +44,7 @@ const DEFAULT_FILTERS = {
 
 const ESTADOS = {
     activo: { label: "Activo", badge: "badge-verde" },
-    reparacion: { label: "En reparacion", badge: "badge-amarillo" },
+    reparacion: { label: "En reparación", badge: "badge-amarillo" },
     fuera_servicio: { label: "Fuera de servicio", badge: "badge-rojo" }
 };
 
@@ -80,7 +91,7 @@ async function loadMarcas() {
         const marcas = await window.VehiAmb.api.getMarcasVehiculos();
         const previousValue = filters.marca;
 
-        filterMarca.innerHTML = '<option value="">Todas</option>' + marcas
+        filterMarca.innerHTML = '<option value="">Marca: todas</option>' + marcas
             .map((marca) => `<option value="${marca}">${marca}</option>`)
             .join("");
 
@@ -103,7 +114,7 @@ function renderCard(vehiculo) {
         </svg>
     `;
     const foto = vehiculo.imagen_url
-        ? `<img src="${window.VehiAmb.api.getAssetUrl(vehiculo.imagen_url)}" alt="Imagen de ${vehiculo.placa || "vehiculo"}">`
+        ? `<img src="${window.VehiAmb.api.getAssetUrl(vehiculo.imagen_url)}" alt="Imagen de ${vehiculo.placa || "vehículo"}">`
         : fotoPlaceholder;
 
     const puedeEditar = window.VehiAmb.auth.hasPermission("vehicles.edit");
@@ -128,8 +139,12 @@ function renderCard(vehiculo) {
 
             <dl class="vehicle-meta">
                 <div>
-                    <dt>Codigo</dt>
+                    <dt>Código</dt>
                     <dd>${vehiculo.codigo_interno || "--"}</dd>
+                </div>
+                <div>
+                    <dt>Modelo</dt>
+                    <dd>${vehiculo.anio || "--"}</dd>
                 </div>
                 <div>
                     <dt>Kilometraje</dt>
@@ -138,9 +153,26 @@ function renderCard(vehiculo) {
             </dl>
 
             <div class="vehicle-card-actions">
-                <a class="btn-secondary" href="vehiculo.html?id=${vehiculo.id}">Ver detalle</a>
-                ${puedeEditar ? `<a class="btn-secondary" href="add.html?id=${vehiculo.id}">Editar</a>` : ""}
-                ${puedeRegistrarMantenimiento ? `<a class="btn-secondary" href="mantenimientos.html?vehiculo=${vehiculo.id}">Registrar mantenimiento</a>` : ""}
+                <a class="vehicle-card-icon-btn" href="vehiculo.html?id=${vehiculo.id}" title="Ver detalle" aria-label="Ver detalle">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </a>
+                ${puedeEditar ? `
+                <a class="vehicle-card-icon-btn" href="add.html?id=${vehiculo.id}" title="Editar" aria-label="Editar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/>
+                    </svg>
+                </a>` : ""}
+                ${puedeRegistrarMantenimiento ? `
+                <a class="vehicle-card-icon-btn" href="mantenimientos.html?vehiculo=${vehiculo.id}" title="Registrar mantenimiento" aria-label="Registrar mantenimiento">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9"/>
+                        <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L13 14l-4 1 1-4Z"/>
+                    </svg>
+                </a>` : ""}
             </div>
         </article>
     `;
@@ -155,7 +187,7 @@ function renderPagination(meta) {
     }
 
     window.VehiAmb.ui.show(paginationBar);
-    paginationSummary.textContent = `Pagina ${meta.page} de ${meta.totalPages} · ${meta.total} vehiculos encontrados`;
+    paginationSummary.textContent = `Página ${meta.page} de ${meta.totalPages} · ${meta.total} vehículos encontrados`;
 
     paginationFirst.disabled = meta.page <= 1;
     paginationPrev.disabled = meta.page <= 1;
@@ -166,7 +198,7 @@ function renderPagination(meta) {
 async function cargarVehiculos() {
     try {
         window.VehiAmb.ui.show(loader);
-        filterSummary.textContent = "Cargando vehiculos...";
+        filterSummary.textContent = "Cargando vehículos...";
 
         const resultado = await window.VehiAmb.api.getVehiculos(filters);
 
@@ -179,20 +211,20 @@ async function cargarVehiculos() {
             container.innerHTML = "";
             window.VehiAmb.ui.show(emptyState);
             window.VehiAmb.ui.hide(paginationBar);
-            filterSummary.textContent = "0 vehiculos encontrados.";
+            filterSummary.textContent = "0 vehículos encontrados.";
             return;
         }
 
         window.VehiAmb.ui.hide(emptyState);
         container.innerHTML = resultado.items.map(renderCard).join("");
         renderPagination(resultado);
-        filterSummary.textContent = `${resultado.total} vehiculos encontrados.`;
+        filterSummary.textContent = `${resultado.total} vehículos encontrados.`;
     } catch (error) {
         console.error("Error cargando vehiculos:", error);
-        container.innerHTML = '<p class="dash-empty">No fue posible cargar los vehiculos</p>';
+        container.innerHTML = '<p class="dash-empty">No fue posible cargar los vehículos</p>';
         window.VehiAmb.ui.hide(emptyState);
         window.VehiAmb.ui.hide(paginationBar);
-        filterSummary.textContent = "No fue posible cargar los vehiculos.";
+        filterSummary.textContent = "No fue posible cargar los vehículos.";
     } finally {
         window.VehiAmb.ui.hide(loader);
     }
