@@ -197,7 +197,7 @@
         layout.row("Autorizado por", item.autorizado_por);
 
         layout.spacer();
-        layout.sectionTitle("Costos");
+        layout.sectionTitle("Gastos");
         layout.row("Mano de obra", formatCurrency(item.valor_mano_obra));
         layout.spacer(2);
         addRepuestosTable(doc, layout, repuestos);
@@ -205,7 +205,7 @@
         layout.row("Total de repuestos", formatCurrency(totalRepuestos));
 
         doc.setFont(undefined, "bold");
-        layout.row("Costo total del mantenimiento", formatCurrency(item.valor));
+        layout.row("Gasto total del mantenimiento", formatCurrency(item.valor));
         doc.setFont(undefined, "normal");
 
         layout.spacer();
@@ -267,7 +267,7 @@
         excel.addLabelValueRow(sheet, "Autorizado por", safe(item.autorizado_por));
         sheet.addRow([]);
 
-        excel.addSectionHeader(sheet, "Costos", EXCEL_COLUMN_COUNT);
+        excel.addSectionHeader(sheet, "Gastos", EXCEL_COLUMN_COUNT);
         const manoObraRow = excel.addLabelValueRow(sheet, "Mano de obra", Number(item.valor_mano_obra || 0));
         manoObraRow.getCell(2).numFmt = "$#,##0";
         sheet.addRow([]);
@@ -296,7 +296,7 @@
         sheet.addRow([]);
         const totalRepuestosRow = excel.addLabelValueRow(sheet, "Total de repuestos", totalRepuestos);
         totalRepuestosRow.getCell(2).numFmt = "$#,##0";
-        const totalRow = excel.addLabelValueRow(sheet, "Costo total del mantenimiento", Number(item.valor || 0));
+        const totalRow = excel.addLabelValueRow(sheet, "Gasto total del mantenimiento", Number(item.valor || 0));
         totalRow.getCell(2).numFmt = "$#,##0";
         totalRow.eachCell((cell) => {
             cell.font = { bold: true, color: { argb: "FFB21F2D" } };

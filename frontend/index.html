@@ -6,7 +6,7 @@
     <title>Parque Automotor - VehiAmb</title>
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
-<body>
+<body class="static-page">
     <div class="layout">
         <aside class="sidebar" id="sidebar"></aside>
 
@@ -14,77 +14,50 @@
             <div class="dash-header">
                 <div>
                     <h1>Panel operativo</h1>
-                    <p class="dash-fecha" id="fecha-hoy"></p>
                 </div>
-                <div class="ops-summary" aria-label="Estado operativo">
-                    <span class="status-dot"></span>
-                    Operacion estable
-                </div>
+                <p class="dash-fecha" id="fecha-hoy" aria-label="Fecha de hoy"></p>
             </div>
 
             <div class="dash-cards">
                 <div class="dash-card dash-card-fleet">
                     <div class="dash-card-icon" data-symbol="V" aria-hidden="true"></div>
                     <div>
-                        <span class="dash-card-label">Vehiculos</span>
+                        <span class="dash-card-label">Vehículos</span>
                         <strong class="dash-card-value" id="total-vehiculos">--</strong>
                     </div>
                 </div>
                 <div class="dash-card dash-card-docs">
                     <div class="dash-card-icon" data-symbol="!" aria-hidden="true"></div>
                     <div>
-                        <span class="dash-card-label">Por vencer</span>
+                        <span class="dash-card-label">Documentos por vencer</span>
                         <strong class="dash-card-value" id="total-por-vencer">--</strong>
                     </div>
                 </div>
                 <div class="dash-card dash-card-service">
                     <div class="dash-card-icon" data-symbol="M" aria-hidden="true"></div>
                     <div>
-                        <span class="dash-card-label">Mantenimientos</span>
+                        <span class="dash-card-label">Mantenimientos del mes</span>
                         <strong class="dash-card-value" id="total-mantenimientos">--</strong>
                     </div>
                 </div>
                 <div class="dash-card dash-card-routes">
-                    <div class="dash-card-icon" data-symbol="D" aria-hidden="true"></div>
+                    <div class="dash-card-icon" data-symbol="$" aria-hidden="true"></div>
                     <div>
-                        <span class="dash-card-label">Documentos</span>
-                        <strong class="dash-card-value" id="total-documentos">--</strong>
+                        <span class="dash-card-label">Gasto del mes</span>
+                        <div class="dash-card-value-row">
+                            <strong class="dash-card-value" id="total-costo-mes">--</strong>
+                            <span class="dash-card-delta" id="costoMesDelta"></span>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="dash-workspace">
-                <div class="dash-panel dash-panel-main">
-                    <div class="dash-panel-head">
-                        <div>
-                            <h3 class="dash-panel-title">Vencimientos cercanos</h3>
-                            <p class="dash-panel-subtitle">Documentos vencidos o por vencer en los proximos 30 dias.</p>
-                        </div>
-                        <a class="dash-panel-link" href="documentos.html">Gestionar</a>
-                    </div>
-                    <div class="dash-list" id="lista-vencimientos">
-                        <p class="dash-empty">Cargando...</p>
-                    </div>
-                </div>
-
-                <div class="dash-panel">
-                    <div class="dash-panel-head">
-                        <div>
-                            <h3 class="dash-panel-title">Mantenimientos recientes</h3>
-                            <p class="dash-panel-subtitle">Ultimas intervenciones registradas.</p>
-                        </div>
-                        <a class="dash-panel-link" href="mantenimientos.html">Ver todo</a>
-                    </div>
-                    <ul class="dash-list" id="lista-mantenimientos">
-                        <li class="dash-empty">Cargando...</li>
-                    </ul>
-                </div>
-
                 <div class="dash-panel dash-panel-main dash-panel-calendar">
                     <div class="dash-panel-head">
                         <div>
                             <h3 class="dash-panel-title">Calendario de mantenimientos y vencimientos</h3>
-                            <p class="dash-panel-subtitle">Vista mensual de trabajos programados y documentos por vencer.</p>
+                            <p class="dash-panel-subtitle">Vista mensual de eventos programados y realizados.</p>
                         </div>
                         <div class="dash-calendar-nav">
                             <button type="button" id="calendarPrev" class="dash-calendar-nav-btn" aria-label="Mes anterior">&#8249;</button>
@@ -96,7 +69,7 @@
                     <div class="dash-calendar-layout">
                         <div class="dash-calendar">
                             <div class="dash-calendar-weekdays">
-                                <span>Lun</span><span>Mar</span><span>Mie</span><span>Jue</span><span>Vie</span><span>Sab</span><span>Dom</span>
+                                <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
                             </div>
                             <div class="dash-calendar-grid" id="calendarGrid"></div>
                             <div class="dash-calendar-legend">
@@ -105,11 +78,37 @@
                             </div>
                         </div>
                         <div class="dash-calendar-agenda">
-                            <p class="dash-calendar-agenda-head" id="calendarAgendaHead">Selecciona un dia</p>
+                            <p class="dash-calendar-agenda-head" id="calendarAgendaHead">Selecciona un día</p>
                             <div id="calendarAgendaList">
                                 <p class="dash-empty">Cargando...</p>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <div class="dash-panel">
+                    <div class="dash-panel-head">
+                        <div>
+                            <h3 class="dash-panel-title">Estado de la flota</h3>
+                            <p class="dash-panel-subtitle">Distribución de vehículos por estado operativo.</p>
+                        </div>
+                        <a class="dash-panel-link" href="dashboard.html">Gestionar</a>
+                    </div>
+                    <div id="fleetStatus" class="fleet-status">
+                        <p class="dash-empty">Cargando...</p>
+                    </div>
+                </div>
+
+                <div class="dash-panel">
+                    <div class="dash-panel-head">
+                        <div>
+                            <h3 class="dash-panel-title">Gastos del mes</h3>
+                            <p class="dash-panel-subtitle">Detalle de gastos del mes en curso.</p>
+                        </div>
+                        <a class="dash-panel-link" href="costos.html">Ver detalle</a>
+                    </div>
+                    <div id="costosMes" class="costos-mes">
+                        <p class="dash-empty">Cargando...</p>
                     </div>
                 </div>
             </div>

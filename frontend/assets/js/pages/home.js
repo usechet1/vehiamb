@@ -7,7 +7,7 @@ document.getElementById("fecha-hoy").textContent =
     });
 
 const tiposMantenimiento = {
-    revision: "Revision general",
+    revision: "Revisión general",
     preventivo: "Preventivo",
     correctivo: "Correctivo",
     cambio_aceite: "Cambio de aceite",
@@ -18,9 +18,9 @@ const tiposMantenimiento = {
 
 const tiposDocumento = {
     soat: "SOAT",
-    tecnomecanica: "Tecnomecanica",
+    tecnomecanica: "Tecnomecánica",
     seguro: "Seguro",
-    tarjeta_operacion: "Tarjeta de operacion",
+    tarjeta_operacion: "Tarjeta de operación",
     otro: "Otro"
 };
 
@@ -55,12 +55,34 @@ function daysUntil(value) {
     return Math.ceil((target - today) / 86400000);
 }
 
-function documentStatus(days) {
-    if (days === null) return { label: "Sin fecha", className: "badge-rojo" };
-    if (days < 0) return { label: `Vencido hace ${Math.abs(days)} dias`, className: "badge-rojo" };
-    if (days === 0) return { label: "Vence hoy", className: "badge-rojo" };
-    if (days <= 30) return { label: `${days} dias`, className: "badge-amarillo" };
-    return { label: `${days} dias`, className: "badge-verde" };
+function formatCurrency(value) {
+    return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(Number(value || 0));
+}
+
+function perteneceAMes(fecha, mes, anio) {
+    if (!fecha) return false;
+    const date = new Date(`${String(fecha).slice(0, 10)}T00:00:00`);
+    return !Number.isNaN(date.getTime()) && date.getMonth() === mes && date.getFullYear() === anio;
+}
+
+function esDelMesActual(fecha) {
+    const ahora = new Date();
+    return perteneceAMes(fecha, ahora.getMonth(), ahora.getFullYear());
+}
+
+// Variacion porcentual compacta (solo "▲/▼ XX%") para el badge junto al valor
+// de la tarjeta KPI -- version corta de la que se usaba en el panel de abajo.
+function calcularDeltaCompacto(totalActual, totalAnterior) {
+    if (totalAnterior > 0) {
+        const variacion = ((totalActual - totalAnterior) / totalAnterior) * 100;
+        if (Math.abs(variacion) < 1) return { className: "is-flat", texto: "Igual" };
+        return {
+            className: variacion > 0 ? "is-up" : "is-down",
+            texto: `${variacion > 0 ? "▲" : "▼"} ${Math.abs(Math.round(variacion))}%`
+        };
+    }
+    if (totalActual > 0) return { className: "is-up", texto: "Nuevo" };
+    return { className: "is-flat", texto: "Sin datos" };
 }
 
 function pintarResumen(vehiculos, mantenimientos = [], documentos = []) {
@@ -69,65 +91,107 @@ function pintarResumen(vehiculos, mantenimientos = [], documentos = []) {
         return days !== null && days <= 30;
     });
 
+    const ahora = new Date();
+    const mesAnteriorDate = new Date(ahora.getFullYear(), ahora.getMonth() - 1, 1);
+
+    const mantenimientosDelMes = mantenimientos.filter((item) => esDelMesActual(item.fecha));
+    const mantenimientosMesAnterior = mantenimientos.filter((item) => perteneceAMes(item.fecha, mesAnteriorDate.getMonth(), mesAnteriorDate.getFullYear()));
+
+    const costoMes = mantenimientosDelMes.reduce((sum, item) => sum + Number(item.valor || 0), 0);
+    const costoMesAnterior = mantenimientosMesAnterior.reduce((sum, item) => sum + Number(item.valor || 0), 0);
+    const delta = calcularDeltaCompacto(costoMes, costoMesAnterior);
+
     document.getElementById("total-vehiculos").textContent = vehiculos.length;
     document.getElementById("total-por-vencer").textContent = vencimientosCercanos.length;
-    document.getElementById("total-mantenimientos").textContent = mantenimientos.length;
-    document.getElementById("total-documentos").textContent = documentos.length;
+    document.getElementById("total-mantenimientos").textContent = mantenimientosDelMes.length;
+    document.getElementById("total-costo-mes").textContent = formatCurrency(costoMes);
+
+    const deltaEl = document.getElementById("costoMesDelta");
+    deltaEl.textContent = delta.texto;
+    deltaEl.className = `dash-card-delta ${delta.className}`;
 }
 
-function pintarVencimientos(documentos) {
-    const container = document.getElementById("lista-vencimientos");
-    const proximos = documentos
-        .map((documento) => ({ ...documento, days: daysUntil(documento.fecha_vencimiento) }))
-        .filter((documento) => documento.days !== null && documento.days <= 30)
-        .sort((a, b) => a.days - b.days)
-        .slice(0, 7);
+const ESTADOS_VEHICULO = {
+    activo: { label: "Activo", color: "var(--color-success)" },
+    reparacion: { label: "En reparación", color: "var(--color-warning)" },
+    fuera_servicio: { label: "Fuera de servicio", color: "var(--color-primary)" }
+};
 
-    if (!proximos.length) {
-        container.innerHTML = '<p class="dash-empty">No hay vencimientos cercanos.</p>';
+function pintarFlotaEstado(vehiculos) {
+    const container = document.getElementById("fleetStatus");
+
+    if (!vehiculos.length) {
+        container.innerHTML = '<p class="dash-empty">Aún no hay vehículos registrados.</p>';
         return;
     }
 
-    container.innerHTML = proximos.map((documento) => {
-        const status = documentStatus(documento.days);
-        const title = tiposDocumento[documento.tipo] || documento.tipo || "Documento";
-        const vehicle = `${documento.placa || "Sin placa"} - ${documento.marca || ""} ${documento.modelo || ""}`.trim();
+    const conteos = new Map();
+    vehiculos.forEach((vehiculo) => {
+        const clave = ESTADOS_VEHICULO[vehiculo.estado] ? vehiculo.estado : "otro";
+        conteos.set(clave, (conteos.get(clave) || 0) + 1);
+    });
 
+    const total = vehiculos.length;
+    const filas = [...conteos.entries()].sort((a, b) => b[1] - a[1]);
+
+    const barra = filas.map(([estado, cantidad]) => {
+        const config = ESTADOS_VEHICULO[estado] || { color: "var(--color-muted)" };
+        const porcentaje = (cantidad / total) * 100;
+        return `<span class="fleet-status-segment" style="width:${porcentaje}%;background:${config.color}"></span>`;
+    }).join("");
+
+    const filasHtml = filas.map(([estado, cantidad]) => {
+        const config = ESTADOS_VEHICULO[estado] || { label: "Otro", color: "var(--color-muted)" };
+        const porcentaje = Math.round((cantidad / total) * 100);
         return `
-            <article class="dash-list-item dash-list-item-rich">
-                <div>
-                    <strong>${escapeHtml(title)}</strong>
-                    <span class="dash-sub">${escapeHtml(vehicle)}</span>
-                </div>
-                <div class="dash-item-side">
-                    <span class="dash-fecha-tag">${formatDate(documento.fecha_vencimiento)}</span>
-                    <span class="badge ${status.className}">${status.label}</span>
-                </div>
-            </article>
+            <div class="fleet-status-row">
+                <span class="fleet-status-row-label">
+                    <span class="fleet-status-dot" style="background:${config.color}"></span>
+                    ${escapeHtml(config.label)}
+                </span>
+                <span class="fleet-status-row-value">${cantidad}<span>(${porcentaje}%)</span></span>
+            </div>
         `;
     }).join("");
+
+    container.innerHTML = `
+        <div class="fleet-status-bar">${barra}</div>
+        <div class="fleet-status-list">${filasHtml}</div>
+    `;
 }
 
-function pintarMantenimientos(mantenimientos) {
-    const container = document.getElementById("lista-mantenimientos");
-    const recientes = [...mantenimientos]
-        .sort((a, b) => String(b.fecha || "").localeCompare(String(a.fecha || "")))
-        .slice(0, 5);
+// El total y el delta vs. el mes anterior ya se muestran en la tarjeta KPI
+// de arriba -- este panel es puramente el detalle: gasto por tipo de
+// mantenimiento del mes en curso, usando todo el recuadro.
+function pintarCostosMes(mantenimientos) {
+    const container = document.getElementById("costosMes");
+    const delMesActual = mantenimientos.filter((item) => esDelMesActual(item.fecha));
 
-    if (!recientes.length) {
-        container.innerHTML = '<li class="dash-empty">Sin mantenimientos registrados</li>';
+    const porTipo = new Map();
+    delMesActual.forEach((item) => {
+        const tipo = tiposMantenimiento[item.tipo] || item.tipo || "Otro";
+        porTipo.set(tipo, (porTipo.get(tipo) || 0) + Number(item.valor || 0));
+    });
+
+    const filas = [...porTipo.entries()]
+        .filter(([, valor]) => valor > 0)
+        .sort((a, b) => b[1] - a[1]);
+
+    if (!filas.length) {
+        container.innerHTML = '<p class="dash-empty">Sin gastos registrados este mes.</p>';
         return;
     }
 
-    container.innerHTML = recientes.map((mantenimiento) => `
-        <li class="dash-list-item">
-            <div>
-                <strong>${escapeHtml(tiposMantenimiento[mantenimiento.tipo] || mantenimiento.tipo || "Mantenimiento")}</strong>
-                <span class="dash-sub">${escapeHtml(mantenimiento.placa || "Sin placa")}</span>
-            </div>
-            <span class="dash-fecha-tag">${formatDate(mantenimiento.fecha)}</span>
-        </li>
-    `).join("");
+    container.innerHTML = `
+        <div class="costos-mes-breakdown">
+            ${filas.map(([tipo, valor]) => `
+                <div class="costos-mes-breakdown-row">
+                    <span>${escapeHtml(tipo)}</span>
+                    <span>${formatCurrency(valor)}</span>
+                </div>
+            `).join("")}
+        </div>
+    `;
 }
 
 const MESES = [
@@ -186,7 +250,7 @@ function buildCalendarEvents(mantenimientos, documentos) {
         if (mantenimiento.tipo === "cambio_aceite" && mantenimiento.proximo_cambio_fecha) {
             addEvent(mantenimiento.proximo_cambio_fecha, {
                 kind: "mantenimiento",
-                title: `Proximo cambio de aceite - ${mantenimiento.placa || "Sin placa"}`,
+                title: `Próximo cambio de aceite - ${mantenimiento.placa || "Sin placa"}`,
                 sub: vehicle
             });
         }
@@ -283,11 +347,11 @@ function renderCalendarAgenda() {
 
     const selectedDate = new Date(`${calendarSelectedDate}T00:00:00`);
     head.textContent = Number.isNaN(selectedDate.getTime())
-        ? "Selecciona un dia"
+        ? "Selecciona un día"
         : selectedDate.toLocaleDateString("es-CO", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
 
     if (!events.length) {
-        list.innerHTML = '<p class="dash-empty">Sin mantenimientos ni vencimientos este dia.</p>';
+        list.innerHTML = '<p class="dash-empty">Sin mantenimientos ni vencimientos este día.</p>';
         return;
     }
 
@@ -352,22 +416,22 @@ async function inicializarDashboard() {
 
     if (vehiculosResult.status === "rejected") {
         console.error(vehiculosResult.reason);
+        document.getElementById("fleetStatus").innerHTML =
+            '<p class="dash-empty">No fue posible cargar los vehículos</p>';
+    } else {
+        pintarFlotaEstado(vehiculos);
     }
 
     if (mantenimientosResult.status === "rejected") {
         console.error(mantenimientosResult.reason);
-        document.getElementById("lista-mantenimientos").innerHTML =
-            '<li class="dash-empty">No fue posible cargar los mantenimientos</li>';
+        document.getElementById("costosMes").innerHTML =
+            '<p class="dash-empty">No fue posible cargar los mantenimientos</p>';
     } else {
-        pintarMantenimientos(mantenimientos);
+        pintarCostosMes(mantenimientos);
     }
 
     if (documentosResult.status === "rejected") {
         console.error(documentosResult.reason);
-        document.getElementById("lista-vencimientos").innerHTML =
-            '<p class="dash-empty">No fue posible cargar los vencimientos</p>';
-    } else {
-        pintarVencimientos(documentos);
     }
 
     if (mantenimientosResult.status === "rejected" && documentosResult.status === "rejected") {

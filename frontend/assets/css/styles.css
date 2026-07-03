@@ -1,3 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Questrial&display=swap');
+
+html {
+    font-size: 17px;
+}
+
 :root {
     --color-primary: #b21f2d;
     --color-primary-dark: #8f1924;
@@ -38,7 +44,7 @@ body {
         var(--color-bg);
     background-attachment: fixed;
     color: var(--color-ink);
-    font-family: "Segoe UI", Arial, sans-serif;
+    font-family: "Questrial", "Segoe UI", Arial, sans-serif;
 }
 
 button,
@@ -775,6 +781,16 @@ label[for="loginPassword"] {
     text-transform: uppercase;
 }
 
+/* Mismo estilo de titulo que .section-card-head h2 (usado en vehiculo.html,
+   documentos.html, repuestos.html, etc.) para que add.html no desentone. */
+.form-card-title {
+    margin: 0 0 4px;
+    color: var(--color-ink);
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
 .form-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1010,8 +1026,12 @@ label[for="loginPassword"] {
 .dash-cards {
     display: grid;
     grid-template-columns: repeat(4, minmax(150px, 1fr));
-    gap: 16px;
-    margin-bottom: 26px;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.dash-header {
+    margin-bottom: 12px;
 }
 
 .dash-card,
@@ -1029,8 +1049,8 @@ label[for="loginPassword"] {
     display: flex;
     align-items: center;
     gap: 15px;
-    min-height: 104px;
-    padding: 19px;
+    min-height: 78px;
+    padding: 12px 19px;
 }
 
 .dash-card::before {
@@ -1083,6 +1103,38 @@ label[for="loginPassword"] {
     line-height: 1;
 }
 
+.dash-card-value-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.dash-card-delta {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.dash-card-delta.is-up {
+    background: #fff0f2;
+    color: var(--color-primary);
+}
+
+.dash-card-delta.is-down {
+    background: var(--color-success-bg);
+    color: var(--color-success);
+}
+
+.dash-card-delta.is-flat {
+    background: var(--color-surface-2);
+    color: var(--color-muted);
+}
+
 .dash-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
@@ -1092,7 +1144,7 @@ label[for="loginPassword"] {
 .dash-workspace {
     display: grid;
     grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
-    gap: 18px;
+    gap: 14px;
     align-items: start;
 }
 
@@ -1109,7 +1161,7 @@ label[for="loginPassword"] {
     align-items: flex-start;
     justify-content: space-between;
     gap: 16px;
-    padding: 16px 18px;
+    padding: 12px 18px;
     border-bottom: 1px solid var(--color-border);
     background: var(--color-surface-2);
 }
@@ -1316,6 +1368,93 @@ label[for="loginPassword"] {
     gap: 7px;
 }
 
+/* ── Estado de la flota (panel resumen) ──────────── */
+.fleet-status {
+    padding: 14px 18px;
+}
+
+.fleet-status-bar {
+    display: flex;
+    width: 100%;
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--color-surface-2);
+    margin-bottom: 16px;
+}
+
+.fleet-status-segment {
+    height: 100%;
+}
+
+.fleet-status-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.fleet-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.89rem;
+}
+
+.fleet-status-row-label {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--color-ink-soft);
+}
+
+.fleet-status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+}
+
+.fleet-status-row-value {
+    font-weight: 800;
+    color: var(--color-ink);
+}
+
+.fleet-status-row-value span {
+    margin-left: 4px;
+    color: var(--color-muted);
+    font-weight: 600;
+    font-size: 0.78rem;
+}
+
+/* ── Gastos del mes (panel resumen: puro detalle, el total y el delta
+   viven en la tarjeta KPI de arriba) ─────────────── */
+.costos-mes {
+    padding: 14px 18px;
+}
+
+.costos-mes-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.costos-mes-breakdown-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 0.89rem;
+}
+
+.costos-mes-breakdown-row span:first-child {
+    color: var(--color-ink-soft);
+}
+
+.costos-mes-breakdown-row span:last-child {
+    font-weight: 700;
+    color: var(--color-ink);
+}
+
 .dash-sub {
     display: block;
     margin-top: 3px;
@@ -1393,18 +1532,18 @@ label[for="loginPassword"] {
 }
 
 .dash-calendar {
-    padding: 14px;
+    padding: 12px;
 }
 
 .dash-calendar-weekdays,
 .dash-calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 4px;
+    gap: 3px;
 }
 
 .dash-calendar-weekdays {
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     color: var(--color-muted);
     font-size: 0.68rem;
     font-weight: 800;
@@ -1416,8 +1555,8 @@ label[for="loginPassword"] {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    min-height: 48px;
-    padding: 4px 6px;
+    min-height: 34px;
+    padding: 2px 6px;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     background: var(--color-surface);

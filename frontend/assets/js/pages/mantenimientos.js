@@ -22,6 +22,7 @@ const addRepuestoButton = document.getElementById("addRepuestoButton");
 const repuestoSeleccionadoInfo = document.getElementById("repuestoSeleccionadoInfo");
 const repuestoEquivalenciasPicker = document.getElementById("repuestoEquivalenciasPicker");
 const repuestosSugeridosAviso = document.getElementById("repuestosSugeridosAviso");
+const repuestoBusquedaAviso = document.getElementById("repuestoBusquedaAviso");
 const repuestosList = document.getElementById("repuestosList");
 const repuestosEmpty = document.getElementById("repuestosEmpty");
 const viewEtiquetaButton = document.getElementById("viewEtiquetaButton");
@@ -50,6 +51,11 @@ let filtersRequestToken = 0;
 let currentDetailItem = null;
 let repuestoSeleccionado = null;
 let sugeridosRequestToken = 0;
+
+// Set de ids de repuestos permitidos para el vehiculo+tipo actual (cambio de
+// aceite unicamente): el sugerido del vehiculo + sus equivalencias. `null`
+// significa "sin restriccion" (tipos distintos a cambio_aceite).
+let repuestosPermitidosVehiculo = null;
 
 const tiposMantenimiento = {
     revision: "Revision general",
@@ -178,10 +184,46 @@ function updateCambioAceiteFields() {
         proximoCambioKmInput.value = "";
         proximoCambioFechaInput.value = "";
         repuestosSugeridosAviso.classList.add("hidden");
+        repuestosPermitidosVehiculo = null;
+        actualizarEstadoBusquedaRepuesto();
         return;
     }
 
     cargarRepuestosSugeridos();
+}
+
+/**
+ * Habilita/deshabilita el buscador de repuestos y muestra el aviso
+ * correspondiente segun si hay restriccion vigente por vehiculo (solo aplica
+ * a cambio_aceite: el excel de configuracion define que repuestos usa cada
+ * vehiculo puntual, no se puede mezclar con los de otro).
+ */
+function actualizarEstadoBusquedaRepuesto() {
+    const isCambioAceite = mantenimientoTipo.value === "cambio_aceite";
+
+    if (!isCambioAceite) {
+        repuestoInput.disabled = false;
+        repuestoInput.placeholder = "Buscar repuesto del catalogo...";
+        repuestoBusquedaAviso.classList.add("hidden");
+        return;
+    }
+
+    const vehiculo = selectedVehicle();
+    const sinPermitidos = !repuestosPermitidosVehiculo || repuestosPermitidosVehiculo.size === 0;
+
+    repuestoInput.disabled = !vehiculo || sinPermitidos;
+
+    if (!vehiculo) {
+        repuestoInput.placeholder = "Selecciona un vehiculo primero...";
+        repuestoBusquedaAviso.classList.add("hidden");
+    } else if (sinPermitidos) {
+        repuestoInput.placeholder = "Sin repuestos configurados para este vehiculo";
+        repuestoBusquedaAviso.textContent = "Este vehiculo no tiene repuestos configurados para cambio de aceite. Configuralos desde su ficha.";
+        repuestoBusquedaAviso.classList.remove("hidden");
+    } else {
+        repuestoInput.placeholder = "Buscar entre los repuestos configurados para este vehiculo...";
+        repuestoBusquedaAviso.classList.add("hidden");
+    }
 }
 
 /**
@@ -191,10 +233,28 @@ function updateCambioAceiteFields() {
  * Cada sugerido pasa por la misma verificacion de disponibilidad que un
  * repuesto elegido manualmente (principal con stock -> se usa; sin stock ->
  * se ofrece la primera equivalencia disponible automaticamente).
+ *
+ * Ademas calcula el set de repuestos "permitidos" para este vehiculo (los
+ * configurados + sus equivalencias) para restringir el buscador manual: no
+ * se puede usar en un vehiculo un repuesto que el excel/ficha configuro para
+ * otro vehiculo distinto.
  */
 async function cargarRepuestosSugeridos() {
     const vehiculo = selectedVehicle();
-    if (!vehiculo || mantenimientoTipo.value !== "cambio_aceite") return;
+    limpiarSeleccionRepuesto();
+    repuestoInput.value = "";
+
+    if (mantenimientoTipo.value !== "cambio_aceite") {
+        repuestosPermitidosVehiculo = null;
+        actualizarEstadoBusquedaRepuesto();
+        return;
+    }
+
+    if (!vehiculo) {
+        repuestosPermitidosVehiculo = new Set();
+        actualizarEstadoBusquedaRepuesto();
+        return;
+    }
 
     const requestToken = ++sugeridosRequestToken;
 
@@ -204,7 +264,23 @@ async function cargarRepuestosSugeridos() {
     } catch (error) {
         return;
     }
-    if (requestToken !== sugeridosRequestToken || !sugeridos.length) return;
+    if (requestToken !== sugeridosRequestToken) return;
+
+    const permitidos = new Set(sugeridos.map((item) => item.repuesto_id));
+    try {
+        const equivalenciasPorSugerido = await Promise.all(
+            sugeridos.map((item) => window.VehiAmb.api.getRepuestoEquivalencias(item.repuesto_id).catch(() => []))
+        );
+        equivalenciasPorSugerido.forEach((lista) => lista.forEach((eq) => permitidos.add(eq.repuesto_equivalente_id)));
+    } catch (error) {
+        // Si fallan las equivalencias, al menos queda la restriccion por los sugeridos.
+    }
+    if (requestToken !== sugeridosRequestToken) return;
+
+    repuestosPermitidosVehiculo = permitidos;
+    actualizarEstadoBusquedaRepuesto();
+
+    if (!sugeridos.length) return;
 
     repuestosState = [];
 
@@ -401,7 +477,14 @@ async function seleccionarRepuestoDelAutocomplete(repuesto) {
     addRepuestoButton.disabled = false;
 
     if (stockDisponible <= 0 && disponibilidad) {
-        mostrarEquivalencias(repuesto.nombre, disponibilidad.equivalencias);
+        // Las equivalencias tambien se restringen al set permitido del
+        // vehiculo: un repuesto puede ser equivalente de otro en el catalogo
+        // general sin estar configurado para este vehiculo puntual.
+        const restringir = mantenimientoTipo.value === "cambio_aceite" && repuestosPermitidosVehiculo;
+        const equivalenciasPermitidas = restringir
+            ? disponibilidad.equivalencias.filter((eq) => repuestosPermitidosVehiculo.has(eq.id))
+            : disponibilidad.equivalencias;
+        mostrarEquivalencias(repuesto.nombre, equivalenciasPermitidas);
     }
 }
 
@@ -446,7 +529,16 @@ repuestoEquivalenciasPicker.addEventListener("click", (event) => {
     );
 });
 
-window.VehiAmb.crearRepuestoAutocomplete(repuestoInput, { onSelect: seleccionarRepuestoDelAutocomplete });
+async function buscarRepuestosParaMantenimiento(term) {
+    const resultados = await window.VehiAmb.api.buscarRepuestos(term);
+    if (mantenimientoTipo.value !== "cambio_aceite" || !repuestosPermitidosVehiculo) return resultados;
+    return resultados.filter((repuesto) => repuestosPermitidosVehiculo.has(repuesto.id));
+}
+
+window.VehiAmb.crearRepuestoAutocomplete(repuestoInput, {
+    onSelect: seleccionarRepuestoDelAutocomplete,
+    buscarFn: buscarRepuestosParaMantenimiento
+});
 
 function renderRepuestosMeta(value) {
     const repuestos = parseRepuestos(value);

@@ -406,7 +406,7 @@ async function cargarDetalleVehiculo(placa) {
 function mostrarVistaLista() {
     costosListaView.classList.remove("hidden");
     costosDetalleView.classList.add("hidden");
-    costosTitulo.textContent = "Costos vehiculares";
+    costosTitulo.textContent = "Gastos vehiculares";
     costosSubtitulo.textContent = "Gasto operativo por vehiculo a partir de las facturas importadas.";
 }
 

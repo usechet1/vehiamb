@@ -31,7 +31,7 @@
         { key: "tipo", label: "Tipo", width: 105 },
         { key: "estado", label: "Estado", width: 112 },
         { key: "km", label: "Km", width: 58 },
-        { key: "valor", label: "Costo total", width: 95 },
+        { key: "valor", label: "Gasto total", width: 95 },
         { key: "responsable", label: "Hecho por", width: 112 }
     ];
 

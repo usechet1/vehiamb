@@ -6,77 +6,169 @@
     <title>Etiqueta de cambio de aceite - VehiAmb</title>
     <style>
         * { box-sizing: border-box; }
+        .hidden { display: none !important; }
+
+        :root {
+            --color-primary: #b21f2d;
+            --color-primary-dark: #8f1924;
+            --color-ink: #18202b;
+            --color-muted: #697386;
+            --color-border: #e3e7ee;
+        }
+
         body {
             margin: 0;
-            padding: 24px;
-            font-family: Arial, Helvetica, sans-serif;
-            color: #1a1a1a;
-            background: #f2f2f2;
+            padding: 32px 16px;
+            font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+            color: var(--color-ink);
+            background: linear-gradient(160deg, #eef1f5 0%, #e4e9f0 100%);
         }
+
         .etiqueta {
-            max-width: 420px;
+            max-width: 430px;
             margin: 0 auto;
             background: #fff;
-            border: 2px solid #111;
-            border-radius: 10px;
-            padding: 18px;
+            border-radius: 16px;
+            padding: 0;
+            overflow: hidden;
+            box-shadow: 0 18px 40px rgba(24, 32, 43, 0.14);
+            border: 1px solid var(--color-border);
         }
+
+        .etiqueta-logo-wrap {
+            text-align: center;
+            padding: 20px 20px 14px;
+            background: #fff;
+        }
+
+        .etiqueta-logo {
+            height: 64px;
+            width: auto;
+        }
+
         .etiqueta-head {
             text-align: center;
-            border-bottom: 2px dashed #111;
-            padding-bottom: 10px;
-            margin-bottom: 12px;
+            padding: 16px 20px 20px;
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            color: #fff;
         }
+
         .etiqueta-head h1 {
-            font-size: 1.1rem;
-            margin: 0 0 4px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 1.6px;
+            text-transform: uppercase;
+            margin: 0 0 10px;
+            opacity: 0.92;
         }
+
         .etiqueta-placa {
-            font-size: 1.8rem;
+            font-size: 2rem;
             font-weight: 900;
-            letter-spacing: 2px;
+            letter-spacing: 3px;
+            background: rgba(255, 255, 255, 0.16);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            border-radius: 10px;
+            padding: 6px 14px;
+            display: inline-block;
         }
+
+        .etiqueta-body {
+            padding: 18px 20px 20px;
+        }
+
         .etiqueta-fila {
             display: flex;
             justify-content: space-between;
             gap: 10px;
-            padding: 5px 0;
-            font-size: 0.88rem;
-            border-bottom: 1px solid #ddd;
+            padding: 8px 0;
+            font-size: 0.9rem;
+            border-bottom: 1px solid var(--color-border);
         }
-        .etiqueta-fila strong { color: #555; }
+
+        .etiqueta-fila:last-of-type { border-bottom: none; }
+        .etiqueta-fila strong { color: var(--color-muted); font-weight: 600; }
+        .etiqueta-fila span { font-weight: 600; }
+
         .etiqueta-proximo {
-            margin-top: 10px;
-            padding: 10px;
-            background: #fff3cd;
-            border: 1px solid #e0b400;
-            border-radius: 8px;
+            margin-top: 14px;
+            padding: 12px 14px;
+            background: #fff3da;
+            border: 1px solid #f0c467;
+            border-radius: 10px;
             text-align: center;
+        }
+
+        .etiqueta-proximo .etiqueta-proximo-label {
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #a15c09;
+            margin-bottom: 3px;
+        }
+
+        .etiqueta-proximo .etiqueta-proximo-valor {
+            font-size: 1.05rem;
             font-weight: 800;
+            color: var(--color-ink);
         }
+
+        .etiqueta-section-title {
+            margin: 18px 0 6px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--color-muted);
+        }
+
         .etiqueta-lista {
-            margin: 10px 0 0;
-            padding-left: 18px;
-            font-size: 0.85rem;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            font-size: 0.88rem;
         }
+
+        .etiqueta-lista li {
+            padding: 7px 10px;
+            background: #f8fafc;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            margin-bottom: 6px;
+        }
+
+        .etiqueta-lista li:last-child { margin-bottom: 0; }
+
+        .etiqueta-footer {
+            text-align: center;
+            padding: 10px 20px 16px;
+            font-size: 0.72rem;
+            color: var(--color-muted);
+        }
+
         .etiqueta-acciones {
-            max-width: 420px;
-            margin: 16px auto 0;
+            max-width: 430px;
+            margin: 18px auto 0;
             text-align: center;
         }
+
         .etiqueta-acciones button {
             padding: 10px 18px;
             border-radius: 8px;
-            border: 1px solid #b21f2d;
-            background: #b21f2d;
+            border: 1px solid var(--color-primary);
+            background: var(--color-primary);
             color: #fff;
             font-weight: 700;
             cursor: pointer;
         }
-        #estadoCarga { text-align: center; padding: 40px; color: #666; }
+
+        #estadoCarga { text-align: center; padding: 40px; color: var(--color-muted); }
+
         @media print {
             body { background: #fff; padding: 0; }
-            .etiqueta { border-width: 1px; }
+            .etiqueta { border-width: 1px; box-shadow: none; }
             .etiqueta-acciones { display: none; }
         }
     </style>
@@ -84,16 +176,25 @@
 <body>
     <div id="estadoCarga">Cargando etiqueta...</div>
     <div class="etiqueta hidden" id="etiqueta">
+        <div class="etiqueta-logo-wrap">
+            <img src="img/logo_amb.png" alt="Logo" class="etiqueta-logo">
+        </div>
         <div class="etiqueta-head">
-            <h1>Cambio de Aceite - VehiAmb</h1>
+            <h1>Cambio de aceite</h1>
             <div class="etiqueta-placa" id="etqPlaca">---</div>
         </div>
-        <div class="etiqueta-fila"><strong>Fecha</strong><span id="etqFecha">--</span></div>
-        <div class="etiqueta-fila"><strong>Kilometraje actual</strong><span id="etqKm">--</span></div>
-        <div class="etiqueta-fila"><strong>Responsable</strong><span id="etqResponsable">--</span></div>
-        <div class="etiqueta-proximo">Proximo cambio: <span id="etqProximo">--</span></div>
-        <p style="margin: 12px 0 4px; font-weight: 800;">Aceite y filtros reemplazados</p>
-        <ul class="etiqueta-lista" id="etqRepuestos"></ul>
+        <div class="etiqueta-body">
+            <div class="etiqueta-fila"><strong>Fecha</strong><span id="etqFecha">--</span></div>
+            <div class="etiqueta-fila"><strong>Kilometraje actual</strong><span id="etqKm">--</span></div>
+            <div class="etiqueta-fila"><strong>Responsable</strong><span id="etqResponsable">--</span></div>
+            <div class="etiqueta-proximo">
+                <span class="etiqueta-proximo-label">Proximo cambio</span>
+                <span class="etiqueta-proximo-valor" id="etqProximo">--</span>
+            </div>
+            <p class="etiqueta-section-title">Aceite y filtros reemplazados</p>
+            <ul class="etiqueta-lista" id="etqRepuestos"></ul>
+        </div>
+        <div class="etiqueta-footer" id="etqFooter"></div>
     </div>
     <div class="etiqueta-acciones hidden" id="etiquetaAcciones">
         <button type="button" onclick="window.print()">Imprimir / Descargar PDF</button>
@@ -109,6 +210,26 @@
             return new Date(`${String(value).slice(0, 10)}T00:00:00`).toLocaleDateString("es-CO", {
                 day: "2-digit", month: "long", year: "numeric"
             });
+        }
+
+        // Mantenimientos creados antes del catalogo de repuestos (o sin
+        // repuestos ligados) no tienen filas en mantenimiento_repuestos --
+        // en ese caso se recurre al campo legado "repuestos" (texto libre)
+        // para que la etiqueta igual muestre lo que se reemplazo.
+        function parseRepuestosLegado(value) {
+            if (!value) return [];
+
+            try {
+                const parsed = typeof value === "string" ? JSON.parse(value) : value;
+                if (!Array.isArray(parsed)) return [];
+
+                return parsed
+                    .map((item) => (typeof item === "string" ? { repuesto: item } : item))
+                    .map((item) => String(item.repuesto || item.nombre || "").trim())
+                    .filter(Boolean);
+            } catch (error) {
+                return [];
+            }
         }
 
         async function cargar() {
@@ -142,9 +263,17 @@
                 const relevantes = repuestos.filter((item) => CATEGORIAS_ETIQUETA.has(item.categoria));
                 const lista = document.getElementById("etqRepuestos");
 
-                lista.innerHTML = relevantes.length
-                    ? relevantes.map((item) => `<li>${item.nombre} (${item.codigo_interno}) × ${item.cantidad}</li>`).join("")
-                    : "<li>Sin repuestos del catalogo registrados para este mantenimiento.</li>";
+                if (relevantes.length) {
+                    lista.innerHTML = relevantes.map((item) => `<li>${item.nombre} (${item.codigo_interno}) × ${item.cantidad}</li>`).join("");
+                } else {
+                    const legado = parseRepuestosLegado(mantenimiento.repuestos);
+                    lista.innerHTML = legado.length
+                        ? legado.map((nombre) => `<li>${nombre}</li>`).join("")
+                        : "<li>Sin repuestos registrados para este mantenimiento.</li>";
+                }
+
+                document.getElementById("etqFooter").textContent =
+                    `Generado por VehiAmb - Software propio de Ambientes Cerámicos - el ${new Date().toLocaleString("es-CO")}`;
 
                 estadoCarga.classList.add("hidden");
                 document.getElementById("etiqueta").classList.remove("hidden");
