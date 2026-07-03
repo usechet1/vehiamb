@@ -658,5 +658,50 @@ window.VehiAmb.api = {
             undefined,
             "No se pudieron cargar las importaciones de configuracion"
         );
+    },
+
+    getSimitEstadoFlota(filters = {}) {
+        const params = new URLSearchParams();
+        if (filters.estado_cartera) params.set("estado_cartera", filters.estado_cartera);
+        if (filters.placa) params.set("placa", filters.placa);
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/simit/flota${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudo cargar el estado SIMIT de la flota"
+        );
+    },
+
+    getSimitHistorialVehiculo(vehiculoId) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/simit/vehiculo/${vehiculoId}/historial`,
+            undefined,
+            "No se pudo cargar el historial de consultas SIMIT"
+        );
+    },
+
+    getSimitConsultaDetalle(consultaId) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/simit/consultas/${consultaId}`,
+            undefined,
+            "No se pudo cargar el detalle de la consulta SIMIT"
+        );
+    },
+
+    consultarSimitVehiculo(vehiculoId) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/simit/vehiculo/${vehiculoId}/consultar`,
+            { method: "POST" },
+            "No se pudo consultar el estado SIMIT del vehiculo"
+        );
+    },
+
+    actualizarSimitFlota() {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/simit/actualizar-flota`,
+            { method: "POST" },
+            "No se pudo actualizar el estado SIMIT de la flota"
+        );
     }
 };

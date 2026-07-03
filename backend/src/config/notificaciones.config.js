@@ -43,7 +43,10 @@ const TIPOS = {
   error_sistema: { categoria: "sistema", prioridad: "critica", titulo: "Error del sistema" },
   stock_minimo_alcanzado: { categoria: "inventario", prioridad: "media", titulo: "Stock minimo alcanzado" },
   stock_agotado: { categoria: "inventario", prioridad: "alta", titulo: "Repuesto agotado" },
-  repuesto_inactivo_configurado: { categoria: "inventario", prioridad: "media", titulo: "Repuesto inactivo configurado" }
+  repuesto_inactivo_configurado: { categoria: "inventario", prioridad: "media", titulo: "Repuesto inactivo configurado" },
+  simit_multa_detectada: { categoria: "incidente", prioridad: "alta", titulo: "Nuevo comparendo detectado en SIMIT" },
+  simit_estado_cambiado: { categoria: "incidente", prioridad: "media", titulo: "Cambio de estado en SIMIT" },
+  simit_consulta_fallo: { categoria: "sistema", prioridad: "media", titulo: "Consulta SIMIT fallida" }
 };
 
 // Umbrales (en dias) para generar recordatorios automaticos de vencimiento.

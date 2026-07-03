@@ -14,58 +14,70 @@
             <div class="page-header">
                 <div>
                     <h1>Consulta SIMIT</h1>
-                    <p class="page-kicker">Selecciona un vehiculo para copiar la placa y abrir la consulta oficial</p>
+                    <p class="page-kicker">Estado de comparendos por placa, historial de consultas y novedades de la flota</p>
                 </div>
+                <button type="button" id="actualizarFlotaButton" class="header-action">Actualizar toda la flota</button>
             </div>
 
-            <div class="module-grid">
-                <div class="stack">
-                    <section class="section-card">
-                        <div class="section-card-head">
-                            <h2>Vehiculo a consultar</h2>
-                            <p>La placa queda lista para pegarla en el portal SIMIT.</p>
-                        </div>
-                        <div class="section-card-body">
-                            <form id="simitForm" class="compact-form">
-                                <div class="form-group">
-                                    <label>Vehiculo</label>
-                                    <select id="vehiculoSimit" required>
-                                        <option value="">Selecciona un vehiculo</option>
-                                    </select>
-                                </div>
-
-                                <div class="simit-panel">
-                                    <div class="simit-plate-wrap">
-                                        <span class="dash-card-label">Placa seleccionada</span>
-                                        <strong id="simitPlate" class="simit-plate">---</strong>
-                                    </div>
-                                    <div class="simit-actions">
-                                        <button id="copyPlateButton" type="button" class="btn-secondary">Copiar placa</button>
-                                        <a id="openSimitLink" class="header-action simit-link" href="https://www.fcm.org.co/simit/#/estado-cuenta" target="_blank" rel="noreferrer">Abrir SIMIT</a>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </section>
+            <section class="section-card">
+                <div class="section-card-head">
+                    <h2>Resumen de la flota</h2>
+                    <p>Basado en la ultima consulta registrada de cada vehiculo.</p>
                 </div>
+                <div class="section-card-body">
+                    <div id="simitSummaryRow" class="simit-summary-row"></div>
 
-                <div class="stack">
-                    <section class="section-card">
-                        <div class="section-card-head">
-                            <h2>Placas disponibles</h2>
-                            <p>Vehiculos registrados en la flota.</p>
-                        </div>
-                        <div class="section-card-body">
-                            <div id="simitVehicleList" class="records-list">
-                                <p class="dash-empty">Cargando...</p>
+                    <form id="simitFilterForm" class="filter-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Placa</label>
+                                <input type="text" id="filterSimitPlaca" placeholder="Buscar por placa">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Estado de cartera</label>
+                                <select id="filterSimitEstado">
+                                    <option value="">Todos los estados</option>
+                                    <option value="nunca_consultado">Nunca consultado</option>
+                                    <option value="sin_multas">Sin multas</option>
+                                    <option value="con_multas">Con multas</option>
+                                    <option value="cobro_coactivo">Cobro coactivo</option>
+                                    <option value="acuerdo_pago">Acuerdo de pago</option>
+                                    <option value="desconocido">Desconocido / error</option>
+                                </select>
                             </div>
                         </div>
-                    </section>
+
+                        <div class="filter-actions">
+                            <span id="simitFilterSummary" class="field-help">Cargando vehiculos...</span>
+                            <button type="button" id="clearSimitFiltersButton" class="btn-secondary">Limpiar filtros</button>
+                        </div>
+                    </form>
+
+                    <div id="simitFlotaList" class="records-list">
+                        <p class="dash-empty">Cargando...</p>
+                    </div>
                 </div>
-            </div>
+            </section>
 
             <div id="loader" class="loader hidden"></div>
             <div id="mensaje" class="mensaje hidden"></div>
+
+            <div id="simitDrawerBackdrop" class="drawer-backdrop hidden"></div>
+            <aside id="simitDrawer" class="detail-drawer hidden" aria-hidden="true" aria-labelledby="simitDrawerTitle">
+                <div class="detail-drawer-head">
+                    <div>
+                        <span class="form-step">Detalle SIMIT</span>
+                        <h2 id="simitDrawerTitle">Vehiculo</h2>
+                        <p id="simitDrawerSubtitle">Comparendos e historial de consultas</p>
+                    </div>
+                    <div class="detail-drawer-actions">
+                        <button type="button" id="simitDrawerConsultarButton" class="btn-secondary">Consultar ahora</button>
+                        <button type="button" id="closeSimitDrawer" class="drawer-close" aria-label="Cerrar detalle">×</button>
+                    </div>
+                </div>
+                <div id="simitDrawerBody" class="detail-drawer-body"></div>
+            </aside>
         </main>
     </div>
 

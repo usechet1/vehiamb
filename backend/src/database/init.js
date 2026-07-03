@@ -612,6 +612,38 @@ async function ensurePostgresTables() {
     )
   `);
 
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS simit_consultas (
+      id BIGSERIAL PRIMARY KEY,
+      vehiculo_id BIGINT NOT NULL REFERENCES vehiculos(id) ON DELETE CASCADE,
+      placa TEXT NOT NULL,
+      fecha_consulta TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      origen TEXT NOT NULL DEFAULT 'manual',
+      estado_consulta TEXT NOT NULL DEFAULT 'ok',
+      estado_cartera TEXT NOT NULL DEFAULT 'desconocido',
+      total_comparendos INTEGER NOT NULL DEFAULT 0,
+      valor_total NUMERIC(14, 2) NOT NULL DEFAULT 0,
+      mensaje_error TEXT,
+      resultado_raw JSONB,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS simit_comparendos (
+      id BIGSERIAL PRIMARY KEY,
+      consulta_id BIGINT NOT NULL REFERENCES simit_consultas(id) ON DELETE CASCADE,
+      vehiculo_id BIGINT NOT NULL REFERENCES vehiculos(id) ON DELETE CASCADE,
+      numero_comparendo TEXT NOT NULL,
+      fecha_infraccion DATE,
+      descripcion TEXT,
+      valor NUMERIC(14, 2) NOT NULL DEFAULT 0,
+      estado TEXT NOT NULL DEFAULT 'pendiente',
+      detalle_json JSONB,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
   await db.run("CREATE INDEX IF NOT EXISTS idx_vehiculos_placa ON vehiculos (placa)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios (email)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_mantenimientos_vehiculo_id ON mantenimientos (vehiculo_id)");
@@ -642,6 +674,9 @@ async function ensurePostgresTables() {
   await db.run("CREATE INDEX IF NOT EXISTS idx_vehiculo_repuestos_sugeridos_vehiculo_id ON vehiculo_repuestos_sugeridos (vehiculo_id)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_repuestos_equivalencias_principal_id ON repuestos_equivalencias (repuesto_principal_id)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_mantenimiento_repuestos_mantenimiento_id ON mantenimiento_repuestos (mantenimiento_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_simit_consultas_vehiculo_id ON simit_consultas (vehiculo_id, fecha_consulta DESC)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_simit_comparendos_consulta_id ON simit_comparendos (consulta_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_simit_comparendos_vehiculo_numero ON simit_comparendos (vehiculo_id, numero_comparendo)");
 
   await db.run(`
     INSERT INTO bodegas (nombre, codigo)

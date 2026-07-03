@@ -1911,6 +1911,19 @@ label[for="loginPassword"] {
     min-height: 46px;
 }
 
+.simit-summary-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.simit-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+
 .module-grid {
     display: grid;
     grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
@@ -2532,6 +2545,11 @@ label[for="loginPassword"] {
 .pill-danger {
     background: #fff0f2;
     color: var(--color-primary);
+}
+
+.pill-success {
+    background: var(--color-success-bg);
+    color: var(--color-success);
 }
 
 @media (max-width: 1100px) {
