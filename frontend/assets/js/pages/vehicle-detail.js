@@ -1,11 +1,16 @@
-const SIMIT_URL = "https://www.fcm.org.co/simit/#/estado-cuenta";
+document.getElementById("fecha-hoy").textContent =
+    new Date().toLocaleDateString("es-CO", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+    });
 
 const loader = document.getElementById("loader");
 const mensaje = document.getElementById("mensaje");
 const vehicleHero = document.getElementById("vehicleHero");
 const vehicleDetail = document.getElementById("vehicleDetail");
 const vehicleRecords = document.getElementById("vehicleRecords");
-const vehicleSimit = document.getElementById("vehicleSimit");
 const vehicleTitle = document.getElementById("vehicleTitle");
 const vehicleSubtitle = document.getElementById("vehicleSubtitle");
 const vehiclePlate = document.getElementById("vehiclePlate");
@@ -13,13 +18,12 @@ const vehicleName = document.getElementById("vehicleName");
 const vehicleCode = document.getElementById("vehicleCode");
 const vehicleKm = document.getElementById("vehicleKm");
 const vehicleFacts = document.getElementById("vehicleFacts");
-const maintenanceCount = document.getElementById("vehicleMaintenanceCount");
-const documentCount = document.getElementById("vehicleDocumentCount");
 const maintenanceList = document.getElementById("vehicleMaintenanceList");
 const documentList = document.getElementById("vehicleDocumentList");
-const simitPlate = document.getElementById("simitPlate");
-const openSimitLink = document.getElementById("openSimitLink");
-const copyPlateButton = document.getElementById("copyPlateButton");
+const vehicleSimitSection = document.getElementById("vehicleSimitSection");
+const vehicleSimitBody = document.getElementById("vehicleSimitBody");
+const consultarSimitButton = document.getElementById("consultarSimitButton");
+const exportHojaVidaButton = document.getElementById("exportHojaVidaButton");
 const vehicleRepuestosSugeridosSection = document.getElementById("vehicleRepuestosSugeridosSection");
 const repuestoSugeridoIntervaloKm = document.getElementById("repuestoSugeridoIntervaloKm");
 const repuestoSugeridoInput = document.getElementById("repuestoSugeridoInput");
@@ -31,7 +35,7 @@ const repuestosSugeridosEmpty = document.getElementById("repuestosSugeridosEmpty
 const guardarRepuestosSugeridosButton = document.getElementById("guardarRepuestosSugeridosButton");
 
 const tiposMantenimiento = {
-    revision: "Revision general",
+    revision: "Revisión general",
     preventivo: "Preventivo",
     correctivo: "Correctivo",
     cambio_aceite: "Cambio de aceite",
@@ -41,15 +45,36 @@ const tiposMantenimiento = {
 };
 
 const tiposDocumento = {
-    tecnomecanica: "Tecnomecanica",
+    tecnomecanica: "Tecnomecánica",
     soat: "SOAT",
     seguro: "Seguro",
-    tarjeta_operacion: "Tarjeta de operacion",
+    tarjeta_operacion: "Tarjeta de operación",
     otro: "Otro"
 };
 
-let currentPlate = "";
+const ESTADO_SIMIT_LABELS = {
+    nunca_consultado: "Nunca consultado",
+    sin_multas: "Sin multas",
+    con_multas: "Con multas",
+    cobro_coactivo: "Cobro coactivo",
+    acuerdo_pago: "Acuerdo de pago",
+    desconocido: "Desconocido / error"
+};
+
+const ESTADO_SIMIT_PILL_CLASS = {
+    nunca_consultado: "pill",
+    sin_multas: "pill-success",
+    con_multas: "pill-danger",
+    cobro_coactivo: "pill-danger",
+    acuerdo_pago: "pill-warning",
+    desconocido: "pill"
+};
+
 let currentVehicleId = "";
+let currentVehiculo = null;
+let currentMantenimientos = [];
+let currentDocumentos = [];
+let currentSimit = null;
 let repuestosSugeridosState = [];
 let repuestoSugeridoSeleccionado = null;
 
@@ -75,6 +100,17 @@ function formatDate(value) {
         day: "2-digit",
         month: "short",
         year: "numeric"
+    });
+}
+
+function formatDateTime(value) {
+    if (!value) return "Nunca";
+    return new Date(value).toLocaleString("es-CO", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
     });
 }
 
@@ -147,44 +183,19 @@ function renderRepuestosMeta(value) {
     `).join("");
 }
 
-async function copyPlateToClipboard() {
-    if (!currentPlate) return;
-
-    try {
-        await navigator.clipboard.writeText(currentPlate);
-        window.VehiAmb.ui.showMessage(mensaje, "Placa copiada. Ya puedes pegarla en SIMIT.");
-    } catch (error) {
-        console.error(error);
-        window.VehiAmb.ui.showMessage(mensaje, "No fue posible copiar la placa automaticamente", "error");
-    }
-}
-
-function configureSimitAccess(plate) {
-    currentPlate = plate || "";
-    simitPlate.textContent = currentPlate || "---";
-    openSimitLink.href = SIMIT_URL;
-
-    copyPlateButton.addEventListener("click", copyPlateToClipboard);
-    openSimitLink.addEventListener("click", () => {
-        if (currentPlate && navigator.clipboard?.writeText) {
-            navigator.clipboard.writeText(currentPlate).catch(() => {});
-        }
-    });
-}
-
 function renderFacts(vehiculo) {
     const facts = [
-        ["Tipo de vehiculo", vehiculo.tipo_vehiculo],
-        ["Tipo de carroceria", vehiculo.tipo_carroceria],
+        ["Tipo de vehículo", vehiculo.tipo_vehiculo],
+        ["Tipo de carrocería", vehiculo.tipo_carroceria],
         ["Marca", vehiculo.marca],
-        ["Modelo", vehiculo.modelo],
-        ["Anio", vehiculo.anio],
+        ["Línea", vehiculo.modelo],
+        ["Modelo", vehiculo.anio],
         ["Color", vehiculo.color],
         ["Combustible", vehiculo.combustible],
         ["Cilindraje", vehiculo.cilindraje],
         ["Capacidad de carga", vehiculo.capacidad_carga],
-        ["Numero de chasis (VIN)", vehiculo.numero_chasis],
-        ["Numero de motor", vehiculo.numero_motor],
+        ["Número de chasis (VIN)", vehiculo.numero_chasis],
+        ["Número de motor", vehiculo.numero_motor],
         ["Creado", formatDate(vehiculo.created_at?.slice(0, 10))]
     ];
 
@@ -197,10 +208,8 @@ function renderFacts(vehiculo) {
 }
 
 function renderMantenimientos(mantenimientos) {
-    maintenanceCount.textContent = mantenimientos.length;
-
     if (!mantenimientos.length) {
-        maintenanceList.innerHTML = '<p class="dash-empty">Este vehiculo aun no tiene mantenimientos registrados</p>';
+        maintenanceList.innerHTML = '<p class="dash-empty">Este vehículo aún no tiene mantenimientos registrados</p>';
         return;
     }
 
@@ -209,7 +218,7 @@ function renderMantenimientos(mantenimientos) {
             <div class="record-top">
                 <div>
                     <span class="record-title">${tiposMantenimiento[item.tipo] || item.tipo}</span>
-                    <span class="record-sub">${item.descripcion || "Sin detalle de revision"}</span>
+                    <span class="record-sub">${item.descripcion || "Sin detalle de revisión"}</span>
                 </div>
                 <span class="pill">${formatDate(item.fecha)}</span>
             </div>
@@ -231,10 +240,8 @@ function renderMantenimientos(mantenimientos) {
 }
 
 function renderDocumentos(documentos) {
-    documentCount.textContent = documentos.length;
-
     if (!documentos.length) {
-        documentList.innerHTML = '<p class="dash-empty">Este vehiculo aun no tiene vencimientos agendados</p>';
+        documentList.innerHTML = '<p class="dash-empty">Este vehículo aún no tiene vencimientos agendados</p>';
         return;
     }
 
@@ -248,20 +255,20 @@ function renderDocumentos(documentos) {
         const statusText = days === null
             ? "Sin fecha"
             : days < 0
-                ? `Vencido hace ${Math.abs(days)} dias`
-                : `Vence en ${days} dias`;
+                ? `Vencido hace ${Math.abs(days)} días`
+                : `Vence en ${days} días`;
 
         return `
             <article class="record-item">
                 <div class="record-top">
                     <div>
                         <span class="record-title">${tiposDocumento[item.tipo] || item.tipo}</span>
-                        <span class="record-sub">${item.numero_documento || "Sin numero de documento"}</span>
+                        <span class="record-sub">${item.numero_documento || "Sin número de documento"}</span>
                     </div>
                     <span class="pill ${pillClass}">${statusText}</span>
                 </div>
                 <div class="record-meta">
-                    <span class="pill">Expedicion: ${formatDate(item.fecha_expedicion)}</span>
+                    <span class="pill">Expedición: ${formatDate(item.fecha_expedicion)}</span>
                     <span class="pill">Vencimiento: ${formatDate(item.fecha_vencimiento)}</span>
                 </div>
             </article>
@@ -269,18 +276,103 @@ function renderDocumentos(documentos) {
     }).join("");
 }
 
-function renderVehiculo(vehiculo) {
-    const title = `${vehiculo.marca || "Vehiculo"} ${vehiculo.modelo || ""}`.trim();
+function deriveEstadoSimit(ultima) {
+    if (!ultima) return "nunca_consultado";
+    if (ultima.estado_consulta !== "ok") return "desconocido";
+    return ultima.estado_cartera || "desconocido";
+}
 
-    document.title = `${vehiculo.placa || "Vehiculo"} - VehiAmb`;
+function renderSimitEstado(historial) {
+    const ultima = historial?.[0] || null;
+    const estado = deriveEstadoSimit(ultima);
+    const pillClass = ESTADO_SIMIT_PILL_CLASS[estado] || "pill";
+    const label = ESTADO_SIMIT_LABELS[estado] || estado;
+
+    vehicleSimitBody.innerHTML = `
+        <dl class="detail-list">
+            <div>
+                <dt>Estado actual</dt>
+                <dd><span class="pill ${pillClass}">${label}</span></dd>
+            </div>
+            <div>
+                <dt>Comparendos vigentes</dt>
+                <dd>${ultima?.total_comparendos ?? 0}</dd>
+            </div>
+            <div>
+                <dt>Valor total</dt>
+                <dd>${formatCurrency(ultima?.valor_total)}</dd>
+            </div>
+            <div>
+                <dt>Última consulta</dt>
+                <dd>${formatDateTime(ultima?.fecha_consulta)}</dd>
+            </div>
+        </dl>
+        ${ultima?.mensaje_error ? `<p class="dash-empty detail-empty">Último error: ${ultima.mensaje_error}</p>` : ""}
+    `;
+}
+
+async function cargarSimitEstado(vehiculoId) {
+    try {
+        const historial = await window.VehiAmb.api.getSimitHistorialVehiculo(vehiculoId);
+        const ultima = historial?.[0];
+        const detalle = ultima ? await window.VehiAmb.api.getSimitConsultaDetalle(ultima.id) : null;
+        currentSimit = { historial, detalle, estado: deriveEstadoSimit(ultima) };
+        renderSimitEstado(historial);
+    } catch (error) {
+        console.error("No fue posible cargar el estado SIMIT:", error);
+        currentSimit = null;
+        vehicleSimitBody.innerHTML = '<p class="dash-empty detail-empty">No fue posible cargar el estado SIMIT de este vehículo.</p>';
+    }
+}
+
+consultarSimitButton?.addEventListener("click", async () => {
+    if (!currentVehicleId) return;
+
+    consultarSimitButton.disabled = true;
+    try {
+        window.VehiAmb.ui.show(loader);
+        await window.VehiAmb.api.consultarSimitVehiculo(currentVehicleId);
+        window.VehiAmb.ui.showMessage(mensaje, "Consulta SIMIT actualizada correctamente");
+        await cargarSimitEstado(currentVehicleId);
+    } catch (error) {
+        console.error(error);
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo consultar el estado SIMIT", "error");
+    } finally {
+        consultarSimitButton.disabled = false;
+        window.VehiAmb.ui.hide(loader);
+    }
+});
+
+exportHojaVidaButton?.addEventListener("click", async () => {
+    if (!currentVehiculo) return;
+
+    exportHojaVidaButton.disabled = true;
+    try {
+        await window.VehiAmb.vehiculoExport.exportHojaVidaPdf({
+            vehiculo: currentVehiculo,
+            mantenimientos: currentMantenimientos,
+            documentos: currentDocumentos,
+            simit: currentSimit
+        });
+    } catch (error) {
+        console.error(error);
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo exportar la hoja de vida", "error");
+    } finally {
+        exportHojaVidaButton.disabled = false;
+    }
+});
+
+function renderVehiculo(vehiculo) {
+    const title = `${vehiculo.marca || "Vehículo"} ${vehiculo.modelo || ""}`.trim();
+
+    document.title = `${vehiculo.placa || "Vehículo"} - VehiAmb`;
     vehicleTitle.textContent = title;
     vehicleSubtitle.textContent = `Ficha operativa de ${vehiculo.placa || "la unidad"}`;
     vehiclePlate.textContent = vehiculo.placa || "SIN PLACA";
     vehicleName.textContent = title;
-    vehicleCode.textContent = `Codigo interno: ${vehiculo.codigo_interno || "--"}`;
+    vehicleCode.textContent = `Código interno: ${vehiculo.codigo_interno || "--"}`;
     vehicleKm.textContent = formatKm(vehiculo.kilometraje_actual);
 
-    configureSimitAccess(vehiculo.placa || "");
     renderFacts(vehiculo);
 }
 
@@ -372,7 +464,7 @@ async function cargarDetalle() {
     const vehicleId = params.get("id");
 
     if (!vehicleId) {
-        window.VehiAmb.ui.showMessage(mensaje, "No se indico el vehiculo a consultar", "error");
+        window.VehiAmb.ui.showMessage(mensaje, "No se indicó el vehículo a consultar", "error");
         return;
     }
 
@@ -380,6 +472,11 @@ async function cargarDetalle() {
 
     if (vehicleRepuestosSugeridosSection && !window.VehiAmb.auth?.hasPermission?.("vehicles.edit")) {
         vehicleRepuestosSugeridosSection.classList.add("hidden");
+    }
+
+    const puedeVerSimit = window.VehiAmb.auth?.hasPermission?.("simit.view");
+    if (vehicleSimitSection && puedeVerSimit) {
+        vehicleSimitSection.classList.remove("hidden");
     }
 
     try {
@@ -391,20 +488,26 @@ async function cargarDetalle() {
             window.VehiAmb.api.getDocumentosByVehicle(vehicleId)
         ]);
 
+        currentVehiculo = vehiculo;
+        currentMantenimientos = mantenimientos;
+        currentDocumentos = documentos;
+
         renderVehiculo(vehiculo);
         renderMantenimientos(mantenimientos);
         renderDocumentos(documentos);
         if (!vehicleRepuestosSugeridosSection?.classList.contains("hidden")) {
             await cargarRepuestosSugeridosVehiculo(vehicleId);
         }
+        if (puedeVerSimit) {
+            await cargarSimitEstado(vehicleId);
+        }
 
         window.VehiAmb.ui.show(vehicleHero);
         window.VehiAmb.ui.show(vehicleDetail);
         window.VehiAmb.ui.show(vehicleRecords);
-        window.VehiAmb.ui.show(vehicleSimit);
     } catch (error) {
         console.error(error);
-        window.VehiAmb.ui.showMessage(mensaje, "No fue posible cargar la ficha del vehiculo", "error");
+        window.VehiAmb.ui.showMessage(mensaje, "No fue posible cargar la ficha del vehículo", "error");
     } finally {
         window.VehiAmb.ui.hide(loader);
     }

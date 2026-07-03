@@ -3,61 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ficha del vehiculo - VehiAmb</title>
+    <title>Ficha del vehículo - VehiAmb</title>
     <link rel="stylesheet" href="assets/css/styles.css">
     <style>
-        .vehicle-status-panel {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 10px;
-        }
-
-        .vehicle-status-options {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: flex-end;
-            gap: 8px;
-            border: 0;
-        }
-
-        .vehicle-status-options legend {
-            width: 1px;
-            height: 1px;
-            overflow: hidden;
-            position: absolute;
-            clip: rect(0 0 0 0);
-            white-space: nowrap;
-        }
-
-        .vehicle-status-option {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            min-height: 30px;
-            padding: 5px 9px;
-            border: 1px solid var(--color-border);
-            border-radius: 999px;
-            background: var(--color-surface);
-            color: var(--color-ink-soft);
-            font-size: 0.76rem;
-            font-weight: 800;
-            cursor: pointer;
-            transition: border-color var(--transition), background var(--transition), color var(--transition);
-        }
-
-        .vehicle-status-option input {
-            width: 14px;
-            height: 14px;
-            accent-color: var(--color-primary);
-        }
-
-        .vehicle-status-option:has(input:checked) {
-            border-color: var(--color-primary);
-            background: #fff7f8;
-            color: var(--color-primary);
-        }
-
         .vehicle-image-card {
             display: flex;
             flex-direction: column;
@@ -113,17 +61,14 @@
             font-size: 0.82rem;
         }
 
-        .vehicle-summary-counters {
-            display: none;
+        .vehicle-simit-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 14px;
         }
 
         @media (max-width: 620px) {
-            .vehicle-status-panel,
-            .vehicle-status-options {
-                align-items: flex-start;
-                justify-content: flex-start;
-            }
-
             .vehicle-image-meta {
                 flex-direction: column;
             }
@@ -137,13 +82,17 @@
         <main class="content">
             <div class="page-header">
                 <div>
-                    <a class="back-link" href="dashboard.html">Volver a vehiculos</a>
-                    <h1 id="vehicleTitle">Ficha del vehiculo</h1>
-                    <p class="page-kicker" id="vehicleSubtitle">Informacion operativa, mantenimientos y vencimientos</p>
+                    <a class="back-link" href="dashboard.html">Volver a vehículos</a>
+                    <h1 id="vehicleTitle">Ficha del vehículo</h1>
+                    <p class="page-kicker" id="vehicleSubtitle">Información operativa, mantenimientos y vencimientos</p>
                 </div>
-                <div class="vehicle-detail-actions">
-                    <a class="btn-secondary" id="editVehicleLink" href="add.html">Editar vehiculo</a>
-                    <a class="header-action" href="mantenimientos.html">Registrar mantenimiento</a>
+                <div class="page-header-right">
+                    <p class="dash-fecha" id="fecha-hoy" aria-label="Fecha de hoy"></p>
+                    <div class="vehicle-detail-actions">
+                        <button type="button" id="exportHojaVidaButton" class="btn-secondary btn-pdf">Exportar PDF</button>
+                        <a class="btn-secondary" id="editVehicleLink" href="add.html">Editar vehículo</a>
+                        <a class="header-action" href="mantenimientos.html">Registrar mantenimiento</a>
+                    </div>
                 </div>
             </div>
 
@@ -154,27 +103,14 @@
                 <div class="vehicle-hero-main">
                     <span class="plate vehicle-hero-plate" id="vehiclePlate">---</span>
                     <h2 id="vehicleName">---</h2>
-                    <p id="vehicleCode">Codigo interno: --</p>
+                    <p id="vehicleCode">Código interno: --</p>
                 </div>
                 <div class="vehicle-hero-status">
-                    <div class="vehicle-status-panel">
-                        <span id="vehicleStatusBadge" class="badge badge-verde">Activo</span>
-                        <fieldset class="vehicle-status-options" id="vehicleStatusOptions">
-                            <legend>Estado del vehiculo</legend>
-                            <label class="vehicle-status-option">
-                                <input type="radio" name="vehicleStatus" value="activo" checked>
-                                Activo
-                            </label>
-                            <label class="vehicle-status-option">
-                                <input type="radio" name="vehicleStatus" value="reparacion">
-                                En reparacion
-                            </label>
-                            <label class="vehicle-status-option">
-                                <input type="radio" name="vehicleStatus" value="fuera_servicio">
-                                Fuera de servicio
-                            </label>
-                        </fieldset>
-                    </div>
+                    <select id="vehicleStatusSelect" class="vehicle-status-select badge badge-verde" aria-label="Estado del vehículo">
+                        <option value="activo">Activo</option>
+                        <option value="reparacion">En reparación</option>
+                        <option value="fuera_servicio">Fuera de servicio</option>
+                    </select>
                     <span id="vehicleKm" class="pill">-- km</span>
                 </div>
             </section>
@@ -182,8 +118,8 @@
             <div id="vehicleDetail" class="vehicle-detail-grid hidden">
                 <section class="section-card">
                     <div class="section-card-head">
-                        <h2>Datos del vehiculo</h2>
-                        <p>Ficha base de identificacion y operacion.</p>
+                        <h2>Datos del vehículo</h2>
+                        <p>Ficha base de identificación y operación.</p>
                     </div>
                     <div class="section-card-body">
                         <dl class="detail-list" id="vehicleFacts"></dl>
@@ -192,13 +128,13 @@
 
                 <section class="section-card">
                     <div class="section-card-head">
-                        <h2>Imagen del vehiculo</h2>
+                        <h2>Imagen del vehículo</h2>
                         <p>Referencia visual de esta unidad.</p>
                     </div>
                     <div class="section-card-body">
                         <div class="vehicle-image-card">
                             <div class="vehicle-image-frame">
-                                <img id="vehicleImage" class="hidden" src="" alt="Imagen del vehiculo">
+                                <img id="vehicleImage" class="hidden" src="" alt="Imagen del vehículo">
                                 <div id="vehicleImagePlaceholder" class="vehicle-image-placeholder">Sin imagen disponible</div>
                             </div>
                             <div class="vehicle-image-meta">
@@ -208,10 +144,6 @@
                                     <p id="vehicleImageModel">Modelo no disponible</p>
                                 </div>
                             </div>
-                        </div>
-                        <div class="vehicle-summary-counters" aria-hidden="true">
-                            <span id="vehicleMaintenanceCount">0</span>
-                            <span id="vehicleDocumentCount">0</span>
                         </div>
                     </div>
                 </section>
@@ -233,7 +165,7 @@
                 <section class="section-card">
                     <div class="section-card-head">
                         <h2>Vencimientos</h2>
-                        <p>Tecnomecanica, SOAT, seguros y documentos futuros.</p>
+                        <p>Tecnomecánica, SOAT, seguros y documentos futuros.</p>
                     </div>
                     <div class="section-card-body">
                         <div id="vehicleDocumentList" class="records-list">
@@ -242,10 +174,26 @@
                     </div>
                 </section>
 
+                <section class="section-card hidden" id="vehicleSimitSection">
+                    <div class="section-card-head">
+                        <h2>Estado SIMIT</h2>
+                        <p>Comparendos vigentes según la última consulta a la plataforma oficial.</p>
+                    </div>
+                    <div class="section-card-body">
+                        <div id="vehicleSimitBody">
+                            <p class="dash-empty">Cargando estado SIMIT...</p>
+                        </div>
+                        <div class="vehicle-simit-actions">
+                            <button type="button" id="consultarSimitButton" class="btn-secondary">Consultar SIMIT ahora</button>
+                            <a class="btn-secondary" href="simit.html">Ver módulo SIMIT completo</a>
+                        </div>
+                    </div>
+                </section>
+
                 <section class="section-card" id="vehicleRepuestosSugeridosSection">
                     <div class="section-card-head">
                         <h2>Repuestos sugeridos (Cambio de aceite)</h2>
-                        <p>Kit de repuestos y el intervalo de cambio para este vehiculo. Se preselecciona automaticamente al registrar un cambio de aceite.</p>
+                        <p>Kit de repuestos y el intervalo de cambio para este vehículo. Se preselecciona automáticamente al registrar un cambio de aceite.</p>
                     </div>
                     <div class="section-card-body">
                         <div class="form-group">
@@ -253,35 +201,17 @@
                             <input type="number" id="repuestoSugeridoIntervaloKm" min="0" placeholder="Ej: 6000">
                         </div>
                         <div class="simple-list-entry">
-                            <input type="text" id="repuestoSugeridoInput" placeholder="Buscar repuesto del catalogo...">
+                            <input type="text" id="repuestoSugeridoInput" placeholder="Buscar repuesto del catálogo...">
                             <input type="number" id="repuestoSugeridoCantidadInput" placeholder="Cantidad" min="0.001" step="0.001" value="1">
                             <button type="button" id="addRepuestoSugeridoButton" class="btn-secondary" disabled>Agregar</button>
                         </div>
                         <div id="repuestoSugeridoSeleccionadoInfo" class="field-help hidden"></div>
                         <ul id="repuestosSugeridosList" class="simple-checklist"></ul>
-                        <div id="repuestosSugeridosEmpty" class="field-help">Aun no hay repuestos sugeridos configurados.</div>
+                        <div id="repuestosSugeridosEmpty" class="field-help">Aún no hay repuestos sugeridos configurados.</div>
                         <button type="button" id="guardarRepuestosSugeridosButton" class="btn-primary">Guardar repuestos sugeridos</button>
                     </div>
                 </section>
             </div>
-
-            <section id="vehicleSimit" class="section-card hidden">
-                <div class="section-card-head">
-                    <h2>Consulta SIMIT</h2>
-                    <p>Version preliminar para abrir la consulta oficial y llevar la placa lista.</p>
-                </div>
-                <div class="simit-panel">
-                    <div class="simit-plate-wrap">
-                        <span class="dash-card-label">Placa a consultar</span>
-                        <strong id="simitPlate" class="simit-plate">---</strong>
-                        <p class="record-sub">El portal oficial se abre en otra pestaña. La placa queda lista para copiar y pegar.</p>
-                    </div>
-                    <div class="simit-actions">
-                        <button id="copyPlateButton" type="button" class="btn-secondary">Copiar placa</button>
-                        <a id="openSimitLink" class="header-action simit-link" href="https://www.fcm.org.co/simit/#/estado-cuenta" target="_blank" rel="noreferrer">Abrir SIMIT</a>
-                    </div>
-                </div>
-            </section>
         </main>
     </div>
 
@@ -291,10 +221,12 @@
     <script src="assets/js/shared/notificaciones-config.js"></script>
     <script src="assets/js/shared/sidebar.js"></script>
     <script src="assets/js/shared/repuesto-autocomplete.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="assets/js/shared/pdf-export.js"></script>
+    <script src="assets/js/pages/vehiculo-export.js"></script>
     <script>
         (function () {
-            const statusBadge = document.getElementById("vehicleStatusBadge");
-            const statusOptions = document.getElementById("vehicleStatusOptions");
+            const statusSelect = document.getElementById("vehicleStatusSelect");
             const vehicleImage = document.getElementById("vehicleImage");
             const vehicleImagePlaceholder = document.getElementById("vehicleImagePlaceholder");
             const vehicleImagePlate = document.getElementById("vehicleImagePlate");
@@ -316,7 +248,7 @@
 
             const ESTADO_BADGES = {
                 activo: { label: "Activo", clase: "badge-verde" },
-                reparacion: { label: "En reparacion", clase: "badge-amarillo" },
+                reparacion: { label: "En reparación", clase: "badge-amarillo" },
                 fuera_servicio: { label: "Fuera de servicio", clase: "badge-rojo" }
             };
 
@@ -336,7 +268,7 @@
             }
 
             function renderVehicleImageCard(vehiculo) {
-                const title = `${vehiculo.marca || "Vehiculo"} ${vehiculo.modelo || ""}`.trim();
+                const title = `${vehiculo.marca || "Vehículo"} ${vehiculo.modelo || ""}`.trim();
                 const imageSource = getVehicleImageSource(vehiculo);
 
                 vehicleImage.onerror = function () {
@@ -353,7 +285,7 @@
 
                 if (imageSource) {
                     vehicleImage.src = imageSource;
-                    vehicleImage.alt = `Imagen del vehiculo ${vehiculo.placa || title}`;
+                    vehicleImage.alt = `Imagen del vehículo ${vehiculo.placa || title}`;
                     window.VehiAmb.ui.show(vehicleImage);
                     window.VehiAmb.ui.hide(vehicleImagePlaceholder);
                     return;
@@ -364,25 +296,17 @@
                 window.VehiAmb.ui.show(vehicleImagePlaceholder);
             }
 
-            function updateStatusBadge(value) {
+            function updateStatusSelect(value) {
                 const estadoInfo = ESTADO_BADGES[value] || ESTADO_BADGES.activo;
 
-                statusBadge.textContent = estadoInfo.label;
-                Object.values(ESTADO_BADGES).forEach((info) => statusBadge.classList.remove(info.clase));
-                statusBadge.classList.add(estadoInfo.clase);
+                statusSelect.value = value;
+                Object.values(ESTADO_BADGES).forEach((info) => statusSelect.classList.remove(info.clase));
+                statusSelect.classList.add(estadoInfo.clase);
             }
 
-            function setEstadoInicial(estado) {
-                const radio = statusOptions?.querySelector(`input[value="${estado}"]`);
-                if (radio) radio.checked = true;
-                updateStatusBadge(estado);
-            }
-
-            statusOptions?.addEventListener("change", async (event) => {
-                if (event.target.name !== "vehicleStatus") return;
-
+            statusSelect?.addEventListener("change", async (event) => {
                 const nuevoEstado = event.target.value;
-                updateStatusBadge(nuevoEstado);
+                updateStatusSelect(nuevoEstado);
 
                 if (!vehicleId || !window.VehiAmb?.api?.updateEstadoVehiculo) return;
 
@@ -390,7 +314,7 @@
                     await window.VehiAmb.api.updateEstadoVehiculo(vehicleId, nuevoEstado);
                 } catch (error) {
                     console.error("No fue posible actualizar el estado:", error);
-                    window.VehiAmb.ui?.showMessage?.(mensaje, "No fue posible actualizar el estado del vehiculo", "error");
+                    window.VehiAmb.ui?.showMessage?.(mensaje, "No fue posible actualizar el estado del vehículo", "error");
                 }
             });
 
@@ -399,7 +323,7 @@
                 window.VehiAmb.api.getVehiculo = async function (...args) {
                     const vehiculo = await getVehiculo.apply(this, args);
                     renderVehicleImageCard(vehiculo);
-                    setEstadoInicial(vehiculo.estado || "activo");
+                    updateStatusSelect(vehiculo.estado || "activo");
                     return vehiculo;
                 };
             }

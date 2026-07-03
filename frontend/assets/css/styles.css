@@ -2081,45 +2081,6 @@ label[for="loginPassword"] {
     gap: 10px;
 }
 
-.simit-panel {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    padding: 20px;
-    background: linear-gradient(135deg, rgba(178, 31, 45, 0.05), rgba(178, 31, 45, 0));
-    border-radius: var(--radius-md);
-}
-
-.simit-plate-wrap {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 12px 20px;
-    background: var(--color-surface);
-    border: 1.5px dashed var(--color-primary);
-    border-radius: var(--radius-sm);
-}
-
-.simit-plate {
-    color: var(--color-primary-dark);
-    font-size: clamp(1.3rem, 2vw, 1.9rem);
-    font-weight: 800;
-    letter-spacing: 0.14em;
-}
-
-.simit-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: center;
-    justify-content: flex-end;
-}
-
-.simit-link {
-    min-height: 46px;
-}
-
 .simit-summary-row {
     display: flex;
     flex-wrap: wrap;
@@ -2966,16 +2927,6 @@ label[for="loginPassword"] {
         justify-content: flex-start;
     }
 
-    .simit-panel {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .simit-actions {
-        width: 100%;
-        justify-content: stretch;
-    }
-
     .filter-actions {
         align-items: stretch;
         flex-direction: column;
@@ -2984,12 +2935,6 @@ label[for="loginPassword"] {
     .filter-actions-buttons {
         flex-direction: column;
         align-items: stretch;
-    }
-
-    .simit-actions .btn-secondary,
-    .simit-actions .simit-link {
-        width: 100%;
-        justify-content: center;
     }
 
     .detail-drawer {
