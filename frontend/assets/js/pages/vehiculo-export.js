@@ -43,6 +43,25 @@
         return String(value);
     }
 
+    const ROW_LINE_HEIGHT = 12;
+
+    // Dibuja una fila de tabla cuyas columnas pueden ajustarse a varias lineas
+    // (splitTextToSize) y calcula la altura real de la fila en base al mayor
+    // numero de lineas entre columnas, para que filas con texto largo no se
+    // sobrepongan con la siguiente.
+    function drawTableRow(doc, layout, columns, values) {
+        const wrapped = columns.map((column, index) => doc.splitTextToSize(String(values[index] ?? ""), column.width));
+        const maxLines = Math.max(1, ...wrapped.map((lines) => lines.length));
+
+        layout.ensureSpace(maxLines * ROW_LINE_HEIGHT + 6);
+
+        columns.forEach((column, index) => {
+            doc.text(wrapped[index], column.x, layout.y);
+        });
+
+        layout.y += maxLines * ROW_LINE_HEIGHT + 6;
+    }
+
     function formatCurrency(value) {
         return new Intl.NumberFormat("es-CO", {
             style: "currency",
@@ -188,30 +207,32 @@
             return;
         }
 
-        const colX = [MARGIN_X, MARGIN_X + 65, MARGIN_X + 175, MARGIN_X + 280, MARGIN_X + 360, MARGIN_X + 460];
+        const columns = [
+            { key: "fecha", label: "Fecha", x: MARGIN_X, width: 58 },
+            { key: "tipo", label: "Tipo", x: MARGIN_X + 62, width: 88 },
+            { key: "detalle", label: "Detalle", x: MARGIN_X + 154, width: 140 },
+            { key: "km", label: "Km", x: MARGIN_X + 298, width: 50 },
+            { key: "valor", label: "Valor", x: MARGIN_X + 352, width: 65 },
+            { key: "hecho_por", label: "Hecho por", x: MARGIN_X + 421, width: 94 }
+        ];
 
         doc.setFontSize(10);
         doc.setFont(undefined, "bold");
-        doc.text("Fecha", colX[0], layout.y);
-        doc.text("Tipo", colX[1], layout.y);
-        doc.text("Detalle", colX[2], layout.y);
-        doc.text("Km", colX[3], layout.y);
-        doc.text("Valor", colX[4], layout.y);
-        doc.text("Hecho por", colX[5], layout.y);
+        columns.forEach((column) => doc.text(column.label, column.x, layout.y));
         layout.spacer(6);
         doc.line(MARGIN_X, layout.y, layout.pageWidth - MARGIN_X, layout.y);
         layout.spacer(14);
         doc.setFont(undefined, "normal");
 
         mantenimientos.forEach((item) => {
-            layout.ensureSpace(16);
-            doc.text(window.VehiAmb.pdfExport.formatDateForPdf(item.fecha), colX[0], layout.y);
-            doc.text(safe(tiposMantenimiento[item.tipo] || item.tipo), colX[1], layout.y, { maxWidth: 105 });
-            doc.text(safe(item.descripcion, "Sin detalle"), colX[2], layout.y, { maxWidth: 75 });
-            doc.text(formatKm(item.kilometraje), colX[3], layout.y);
-            doc.text(formatCurrency(item.valor), colX[4], layout.y);
-            doc.text(safe(item.hecho_por), colX[5], layout.y, { maxWidth: 90 });
-            layout.spacer(16);
+            drawTableRow(doc, layout, columns, [
+                window.VehiAmb.pdfExport.formatDateForPdf(item.fecha),
+                safe(tiposMantenimiento[item.tipo] || item.tipo),
+                safe(item.descripcion, "Sin detalle"),
+                formatKm(item.kilometraje),
+                formatCurrency(item.valor),
+                safe(item.hecho_por)
+            ]);
         });
 
         layout.spacer(8);
@@ -228,26 +249,28 @@
             return;
         }
 
-        const colX = [MARGIN_X, MARGIN_X + 140, MARGIN_X + 250, MARGIN_X + 360];
+        const columns = [
+            { key: "tipo", label: "Tipo", x: MARGIN_X, width: 130 },
+            { key: "numero", label: "Número", x: MARGIN_X + 140, width: 120 },
+            { key: "expedicion", label: "Expedición", x: MARGIN_X + 270, width: 90 },
+            { key: "vencimiento", label: "Vencimiento", x: MARGIN_X + 370, width: 90 }
+        ];
 
         doc.setFontSize(10);
         doc.setFont(undefined, "bold");
-        doc.text("Tipo", colX[0], layout.y);
-        doc.text("Número", colX[1], layout.y);
-        doc.text("Expedición", colX[2], layout.y);
-        doc.text("Vencimiento", colX[3], layout.y);
+        columns.forEach((column) => doc.text(column.label, column.x, layout.y));
         layout.spacer(6);
         doc.line(MARGIN_X, layout.y, layout.pageWidth - MARGIN_X, layout.y);
         layout.spacer(14);
         doc.setFont(undefined, "normal");
 
         documentos.forEach((item) => {
-            layout.ensureSpace(16);
-            doc.text(safe(tiposDocumento[item.tipo] || item.tipo), colX[0], layout.y, { maxWidth: 130 });
-            doc.text(safe(item.numero_documento), colX[1], layout.y, { maxWidth: 100 });
-            doc.text(window.VehiAmb.pdfExport.formatDateForPdf(item.fecha_expedicion), colX[2], layout.y);
-            doc.text(window.VehiAmb.pdfExport.formatDateForPdf(item.fecha_vencimiento), colX[3], layout.y);
-            layout.spacer(16);
+            drawTableRow(doc, layout, columns, [
+                safe(tiposDocumento[item.tipo] || item.tipo),
+                safe(item.numero_documento),
+                window.VehiAmb.pdfExport.formatDateForPdf(item.fecha_expedicion),
+                window.VehiAmb.pdfExport.formatDateForPdf(item.fecha_vencimiento)
+            ]);
         });
 
         layout.spacer(8);
@@ -267,27 +290,29 @@
             return;
         }
 
-        const colX = [MARGIN_X, MARGIN_X + 100, MARGIN_X + 150, MARGIN_X + 340, MARGIN_X + 420];
+        const columns = [
+            { key: "numero", label: "Número", x: MARGIN_X, width: 68 },
+            { key: "fecha", label: "Fecha", x: MARGIN_X + 74, width: 60 },
+            { key: "descripcion", label: "Descripción", x: MARGIN_X + 140, width: 230 },
+            { key: "valor", label: "Valor", x: MARGIN_X + 374, width: 65 },
+            { key: "estado", label: "Estado", x: MARGIN_X + 443, width: 72 }
+        ];
 
         doc.setFont(undefined, "bold");
-        doc.text("Número", colX[0], layout.y);
-        doc.text("Fecha", colX[1], layout.y);
-        doc.text("Descripción", colX[2], layout.y);
-        doc.text("Valor", colX[3], layout.y);
-        doc.text("Estado", colX[4], layout.y);
+        columns.forEach((column) => doc.text(column.label, column.x, layout.y));
         layout.spacer(6);
         doc.line(MARGIN_X, layout.y, layout.pageWidth - MARGIN_X, layout.y);
         layout.spacer(14);
         doc.setFont(undefined, "normal");
 
         comparendos.forEach((item) => {
-            layout.ensureSpace(16);
-            doc.text(safe(item.numero_comparendo), colX[0], layout.y, { maxWidth: 45 });
-            doc.text(item.fecha_infraccion ? window.VehiAmb.pdfExport.formatDateForPdf(item.fecha_infraccion) : "Sin fecha", colX[1], layout.y);
-            doc.text(safe(item.descripcion, "Sin descripción"), colX[2], layout.y, { maxWidth: 185 });
-            doc.text(formatCurrency(item.valor), colX[3], layout.y);
-            doc.text(safe(item.estado), colX[4], layout.y);
-            layout.spacer(16);
+            drawTableRow(doc, layout, columns, [
+                safe(item.numero_comparendo),
+                item.fecha_infraccion ? window.VehiAmb.pdfExport.formatDateForPdf(item.fecha_infraccion) : "Sin fecha",
+                safe(item.descripcion, "Sin descripción"),
+                formatCurrency(item.valor),
+                safe(item.estado)
+            ]);
         });
 
         layout.spacer(8);
