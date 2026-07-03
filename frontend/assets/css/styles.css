@@ -702,6 +702,9 @@ label[for="loginPassword"] {
 .vehicle-form-image-col {
     position: sticky;
     top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
 }
 
 .vehicle-form-fields-col {
@@ -789,6 +792,24 @@ label[for="loginPassword"] {
     font-size: 1.05rem;
     font-weight: 700;
     letter-spacing: 0.01em;
+}
+
+/* Subtitulo de agrupacion dentro de un form-card largo (ej. add.html):
+   separa visualmente bloques de campos relacionados sin necesitar
+   section-cards independientes. */
+.form-section-title {
+    margin: 4px 0 -6px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-muted);
+    font-size: 0.76rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.form-section-title:first-child {
+    margin-top: 0;
 }
 
 .form-grid {
@@ -2271,6 +2292,15 @@ label[for="loginPassword"] {
     gap: 10px;
 }
 
+.form-grid-3-chasis-row {
+    align-items: end;
+}
+
+.form-actions-chasis-row {
+    grid-column: span 2;
+    justify-content: flex-end;
+}
+
 .form-actions .btn-primary,
 .form-actions .btn-secondary {
     width: auto;
@@ -2453,6 +2483,11 @@ label[for="loginPassword"] {
 .field-help {
     color: var(--color-muted);
     font-size: 0.8rem;
+}
+
+.required-mark {
+    color: var(--color-primary);
+    font-weight: 700;
 }
 
 .records-list {
