@@ -1,8 +1,10 @@
 (function () {
     const APP_NAME = "VehiAmb";
-    const LOGO_PATH = "img/vehiamb.png";
+    const LOGO_PATH = "img/membrete_logo.png";
+    const MEMBRETE_FOOTER_PATH = "img/membrete_footer.png";
+    const MEMBRETE_FOOTER_ASPECT = 2550 / 315;
     const MARGIN_X = 40;
-    const PAGE_BOTTOM_LIMIT = 760;
+    const PAGE_BOTTOM_LIMIT = 720;
     const FOOTER_TEXT = () => `Generado por ${APP_NAME} - Software propio de Ambientes Cerámicos - el ${new Date().toLocaleString("es-CO")}`;
 
     const tiposMantenimiento = {
@@ -173,7 +175,7 @@
     async function addHeader(doc, layout, vehiculo) {
         try {
             const logoDataUrl = await window.VehiAmb.pdfExport.loadAsDataUrl(LOGO_PATH);
-            doc.addImage(logoDataUrl, "PNG", MARGIN_X, layout.y, 90, 44);
+            doc.addImage(logoDataUrl, "PNG", MARGIN_X, layout.y, 90, 47);
         } catch (error) {
             console.error("No se pudo cargar el logo para el PDF:", error);
         }
@@ -339,16 +341,29 @@
         addComparendosTable(doc, layout, simit.detalle?.comparendos);
     }
 
-    function addFooter(doc) {
+    async function addFooter(doc) {
         const pageCount = doc.internal.getNumberOfPages();
         const generado = FOOTER_TEXT();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const bandHeight = pageWidth / MEMBRETE_FOOTER_ASPECT;
+
+        let footerDataUrl = null;
+        try {
+            footerDataUrl = await window.VehiAmb.pdfExport.loadAsDataUrl(MEMBRETE_FOOTER_PATH);
+        } catch (error) {
+            console.error("No se pudo cargar el membrete de pie de página para el PDF:", error);
+        }
 
         for (let page = 1; page <= pageCount; page += 1) {
             doc.setPage(page);
             const pageHeight = doc.internal.pageSize.getHeight();
             doc.setFontSize(8);
             doc.setTextColor(120, 128, 140);
-            doc.text(generado, MARGIN_X, pageHeight - 24);
+            doc.text(generado, MARGIN_X, pageHeight - bandHeight - 10);
+
+            if (footerDataUrl) {
+                doc.addImage(footerDataUrl, "PNG", 0, pageHeight - bandHeight, pageWidth, bandHeight);
+            }
         }
     }
 
@@ -396,7 +411,7 @@
         addDocumentosTable(doc, layout, documentos);
         addSimitSection(doc, layout, simit);
 
-        addFooter(doc);
+        await addFooter(doc);
 
         doc.save(buildFileName(vehiculo));
     }

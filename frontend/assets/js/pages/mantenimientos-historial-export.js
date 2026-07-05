@@ -1,6 +1,8 @@
 (function () {
     const APP_NAME = "VehiAmb";
-    const LOGO_PATH = "img/vehiamb.png";
+    const LOGO_PATH = "img/membrete_logo.png";
+    const MEMBRETE_FOOTER_PATH = "img/membrete_footer.png";
+    const MEMBRETE_FOOTER_ASPECT = 2550 / 315;
     const MARGIN_X = 40;
     const ROW_HEIGHT = 18;
     const FOOTER_TEXT = () => `Generado por ${APP_NAME} - Software propio de Ambientes Cerámicos - el ${new Date().toLocaleString("es-CO")}`;
@@ -47,7 +49,7 @@
     async function addHeader(doc, layout, filtros, totalRegistros) {
         try {
             const logoDataUrl = await window.VehiAmb.pdfExport.loadAsDataUrl(LOGO_PATH);
-            doc.addImage(logoDataUrl, "PNG", MARGIN_X, layout.y, 90, 44);
+            doc.addImage(logoDataUrl, "PNG", MARGIN_X, layout.y, 90, 47);
         } catch (error) {
             console.error("No se pudo cargar el logo para el PDF:", error);
         }
@@ -98,18 +100,30 @@
         doc.setFont(undefined, "normal");
     }
 
-    function addFooter(doc) {
+    async function addFooter(doc) {
         const pageCount = doc.internal.getNumberOfPages();
         const generado = FOOTER_TEXT();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const bandHeight = pageWidth / MEMBRETE_FOOTER_ASPECT;
+
+        let footerDataUrl = null;
+        try {
+            footerDataUrl = await window.VehiAmb.pdfExport.loadAsDataUrl(MEMBRETE_FOOTER_PATH);
+        } catch (error) {
+            console.error("No se pudo cargar el membrete de pie de página para el PDF:", error);
+        }
 
         for (let page = 1; page <= pageCount; page += 1) {
             doc.setPage(page);
             const pageHeight = doc.internal.pageSize.getHeight();
-            const pageWidth = doc.internal.pageSize.getWidth();
             doc.setFontSize(8);
             doc.setTextColor(120, 128, 140);
-            doc.text(generado, MARGIN_X, pageHeight - 24);
-            doc.text(`Pagina ${page} de ${pageCount}`, pageWidth - MARGIN_X, pageHeight - 24, { align: "right" });
+            doc.text(generado, MARGIN_X, pageHeight - bandHeight - 10);
+            doc.text(`Pagina ${page} de ${pageCount}`, pageWidth - MARGIN_X, pageHeight - bandHeight - 10, { align: "right" });
+
+            if (footerDataUrl) {
+                doc.addImage(footerDataUrl, "PNG", 0, pageHeight - bandHeight, pageWidth, bandHeight);
+            }
         }
     }
 
@@ -121,7 +135,7 @@
         const doc = window.VehiAmb.pdfExport.createDocument({ orientation: "landscape" });
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
-        const bottomLimit = pageHeight - 50;
+        const bottomLimit = pageHeight - (pageWidth / MEMBRETE_FOOTER_ASPECT) - 30;
 
         let y = 40;
         const layout = {
@@ -163,7 +177,7 @@
             layout.y += ROW_HEIGHT;
         });
 
-        addFooter(doc);
+        await addFooter(doc);
 
         doc.save(buildFileName());
     }
