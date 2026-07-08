@@ -199,6 +199,59 @@ function removeEmptyMenuGroups(aside) {
     });
 }
 
+function setupMobileNav(aside) {
+    const layout = document.querySelector(".layout");
+    if (!layout || document.querySelector(".mobile-topbar")) return;
+
+    const topbar = document.createElement("div");
+    topbar.className = "mobile-topbar";
+    topbar.innerHTML = `
+        <button type="button" class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Abrir menú" aria-expanded="false">
+            <span class="mobile-menu-icon"></span>
+        </button>
+        <img src="img/vehiamb_white.png" alt="VehiAmb" class="mobile-topbar-logo">
+    `;
+    layout.insertBefore(topbar, layout.firstChild);
+
+    const backdrop = document.createElement("div");
+    backdrop.className = "sidebar-backdrop";
+    document.body.appendChild(backdrop);
+
+    const toggleButton = topbar.querySelector("#mobileMenuToggle");
+
+    function closeMenu() {
+        aside.classList.remove("is-open");
+        backdrop.classList.remove("is-visible");
+        document.body.classList.remove("sidebar-open-lock");
+        toggleButton.setAttribute("aria-expanded", "false");
+    }
+
+    function openMenu() {
+        aside.classList.add("is-open");
+        backdrop.classList.add("is-visible");
+        document.body.classList.add("sidebar-open-lock");
+        toggleButton.setAttribute("aria-expanded", "true");
+    }
+
+    toggleButton.addEventListener("click", () => {
+        if (aside.classList.contains("is-open")) {
+            closeMenu();
+        } else {
+            openMenu();
+        }
+    });
+
+    backdrop.addEventListener("click", closeMenu);
+
+    aside.addEventListener("click", (event) => {
+        if (event.target.closest("button[data-page]")) closeMenu();
+    });
+
+    window.addEventListener("resize", () => {
+        if (window.innerWidth > 900) closeMenu();
+    });
+}
+
 async function cargarSidebar() {
     const aside = document.getElementById("sidebar");
     if (!aside) return;
@@ -231,6 +284,8 @@ async function cargarSidebar() {
             </nav>
         `;
     }
+
+    setupMobileNav(aside);
 
     const nameEl = aside.querySelector("#sidebarUserName");
     const roleEl = aside.querySelector("#sidebarUserRole");

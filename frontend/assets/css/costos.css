@@ -2,6 +2,7 @@
 
 .costos-rango {
     display: flex;
+    flex-wrap: wrap;
     gap: 14px;
     flex-shrink: 0;
 }
@@ -263,5 +264,35 @@
 
     .costos-rango {
         width: 100%;
+    }
+
+    .costos-kpis-grid,
+    .costos-vehiculos-grid,
+    .costos-skeleton-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+}
+
+@media (max-width: 620px) {
+    .costos-rango .form-group {
+        min-width: 0;
+        flex: 1 1 140px;
+    }
+
+    .costos-facturas-head {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .costos-facturas-head input {
+        max-width: none;
+    }
+
+    .costos-search-row input {
+        max-width: none;
+    }
+
+    .costos-sync {
+        flex-wrap: wrap;
     }
 }
