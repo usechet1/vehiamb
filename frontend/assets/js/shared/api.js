@@ -1,16 +1,8 @@
 window.VehiAmb = window.VehiAmb || {};
 
-window.VehiAmb.API_URL = window.VehiAmb.API_URL || (
-    window.location.port === "8080"
-        ? "/api"
-        : "http://localhost:3001/api"
-);
+window.VehiAmb.API_URL = window.VehiAmb.API_URL || "/api";
 
-window.VehiAmb.ASSET_BASE_URL = window.VehiAmb.ASSET_BASE_URL || (
-    window.location.port === "8080"
-        ? ""
-        : "http://localhost:3001"
-);
+window.VehiAmb.ASSET_BASE_URL = window.VehiAmb.ASSET_BASE_URL || "";
 
 async function requestJson(url, options, errorMessage) {
     const sessionToken = window.VehiAmb.auth?.getToken?.() || "";

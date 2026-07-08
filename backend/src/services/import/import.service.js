@@ -27,6 +27,12 @@ function ayer() {
   return fecha.toISOString().slice(0, 10);
 }
 
+function hoy() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+const ESTADOS_CON_HASH_VIGENTE = ["completado", "completado_con_errores", "sin_cambios"];
+
 const MAX_DIAS_RANGO = 92;
 
 function generarRangoFechas(desde, hasta) {
@@ -53,6 +59,43 @@ function generarRangoFechas(desde, hasta) {
  */
 async function ejecutarPeriodo({ periodoObjetivo, hash, nombreArchivo, validated, usuarioId }) {
   const inicioPeriodo = Date.now();
+
+  const ultima = await importacionesRepository.findUltimaPorPeriodo(periodoObjetivo);
+  if (ultima && ESTADOS_CON_HASH_VIGENTE.includes(ultima.estado) && ultima.hash_archivo === hash) {
+    const sinCambios = await importacionesRepository.create({
+      nombre_archivo: nombreArchivo,
+      hash_archivo: hash,
+      periodo: periodoObjetivo,
+      usuario_id: usuarioId,
+      estado: "sin_cambios"
+    });
+
+    const duracionMs = Date.now() - inicioPeriodo;
+    await importacionesRepository.actualizarResultado(sinCambios.id, {
+      estado: "sin_cambios",
+      totalLeidos: 0,
+      totalNuevos: 0,
+      totalActualizados: 0,
+      totalOmitidos: 0,
+      totalErrores: 0,
+      duracionMs,
+      observaciones: "El archivo no cambio desde la ultima sincronizacion de este periodo."
+    });
+
+    console.log(`[ImportService] Importacion #${sinCambios.id} (${periodoObjetivo}): sin cambios, se omite el reprocesamiento`);
+
+    return {
+      importacionId: sinCambios.id,
+      periodo: periodoObjetivo,
+      estado: "sin_cambios",
+      duracionMs,
+      totalLeidos: 0,
+      totalNuevos: 0,
+      totalActualizados: 0,
+      totalOmitidos: 0,
+      totalErrores: 0
+    };
+  }
 
   const importacion = await importacionesRepository.create({
     nombre_archivo: nombreArchivo,
@@ -128,6 +171,42 @@ function sumarTotales(resultados) {
 }
 
 /**
+ * Si el FileProvider no pudo entregar el archivo (unidad de red no montada,
+ * ruta incorrecta, o bloqueado tras agotar los reintentos), igual se deja
+ * constancia en el historial de "importaciones" -- de lo contrario una falla
+ * de infraestructura pasaria completamente desapercibida para el usuario.
+ * No hay hash real que registrar (nunca se llego a leer el archivo).
+ */
+async function registrarFalloObtencionArchivo({ periodos, usuarioId, error }) {
+  const nombreArchivo = env.excelFilePath ? path.basename(env.excelFilePath) : "desconocido";
+
+  await Promise.all(
+    periodos.map((periodoObjetivo) =>
+      importacionesRepository
+        .create({
+          nombre_archivo: nombreArchivo,
+          hash_archivo: "N/A",
+          periodo: periodoObjetivo,
+          usuario_id: usuarioId,
+          estado: "fallido"
+        })
+        .then((importacion) =>
+          importacionesRepository.actualizarResultado(importacion.id, {
+            estado: "fallido",
+            totalLeidos: 0,
+            totalNuevos: 0,
+            totalActualizados: 0,
+            totalOmitidos: 0,
+            totalErrores: 0,
+            duracionMs: 0,
+            observaciones: `No fue posible acceder al archivo de origen: ${error.message}`
+          })
+        )
+    )
+  );
+}
+
+/**
  * Orquesta el flujo completo de una importacion: obtiene el archivo (via el
  * FileProvider configurado) UNA sola vez, lo valida, y procesa uno o varios
  * dias contra esa misma copia -- cada dia deja su propio registro de
@@ -146,7 +225,16 @@ async function ejecutar({ periodo, desde, hasta, usuarioId = null } = {}) {
       `(${periodos[0]}${periodos.length > 1 ? ` a ${periodos[periodos.length - 1]}` : ""}), usuario: ${usuarioId ?? "automatico"}`
   );
 
-  const { path: filePath, cleanup } = await provider.getFile();
+  let filePath;
+  let cleanup;
+
+  try {
+    ({ path: filePath, cleanup } = await provider.getFile());
+  } catch (error) {
+    console.error("[ImportService] No fue posible obtener el archivo de origen:", error.message);
+    await registrarFalloObtencionArchivo({ periodos, usuarioId, error });
+    throw error;
+  }
 
   try {
     const hash = await hashArchivo(filePath);
@@ -217,5 +305,6 @@ module.exports = {
   obtenerIncidencias,
   resolverIncidencia,
   estadoUltimaAutomatica,
-  ayer
+  ayer,
+  hoy
 };

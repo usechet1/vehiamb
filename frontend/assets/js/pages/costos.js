@@ -3,6 +3,9 @@ const costosHastaInput = document.getElementById("costosHasta");
 const costosTitulo = document.getElementById("costosTitulo");
 const costosSubtitulo = document.getElementById("costosSubtitulo");
 const costosMensaje = document.getElementById("costosMensaje");
+const costosSync = document.getElementById("costosSync");
+const costosSyncButton = document.getElementById("costosSyncButton");
+const costosSyncEstado = document.getElementById("costosSyncEstado");
 
 const costosListaView = document.getElementById("costosListaView");
 const costosListaGrid = document.getElementById("costosListaGrid");
@@ -500,6 +503,78 @@ window.addEventListener("popstate", () => {
     window.__costosPlacaActual = estado.placa;
     renderVistaActual({ actualizarUrl: false });
 });
+
+// ── Sincronizacion de cargues (unidad de red T:) ──────────────────
+
+const ESTADO_SYNC_LABEL = {
+    pendiente: "Pendiente",
+    en_proceso: "En proceso",
+    completado: "Completado",
+    completado_con_errores: "Completado con errores",
+    sin_cambios: "Sin cambios",
+    fallido: "Fallido"
+};
+
+function formatDateTimeCorta(value) {
+    if (!value) return "--";
+    return new Date(value).toLocaleString("es-CO", {
+        day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit"
+    });
+}
+
+function hoyIso() {
+    return new Date().toISOString().slice(0, 10);
+}
+
+function renderSyncEstado(item) {
+    if (!item) {
+        costosSyncEstado.textContent = "Aun no se ha sincronizado ningun cargue.";
+        return;
+    }
+
+    const estado = ESTADO_SYNC_LABEL[item.estado] || item.estado;
+    costosSyncEstado.textContent =
+        `Ultima sincronizacion: ${formatDateTimeCorta(item.creado_en)} (${estado}) ` +
+        `· Nuevos: ${item.total_nuevos} · Actualizados: ${item.total_actualizados}`;
+}
+
+async function cargarEstadoSync() {
+    try {
+        const { ultimaImportacionAutomatica } = await window.VehiAmb.api.getImportacionesStatus();
+        renderSyncEstado(ultimaImportacionAutomatica);
+    } catch (error) {
+        console.error(error);
+        costosSyncEstado.textContent = "No fue posible cargar el estado de sincronizacion.";
+    }
+}
+
+costosSyncButton?.addEventListener("click", async () => {
+    costosSyncButton.disabled = true;
+    const textoOriginal = costosSyncButton.textContent;
+    costosSyncButton.textContent = "Sincronizando...";
+
+    try {
+        const resultado = await window.VehiAmb.api.ejecutarImportacion({ periodo: hoyIso() });
+        const estado = ESTADO_SYNC_LABEL[resultado.estado] || resultado.estado;
+        window.VehiAmb.ui.showMessage(
+            costosMensaje,
+            `Sincronizacion ${estado.toLowerCase()}: ${resultado.totalNuevos} nuevos, ${resultado.totalActualizados} actualizados, ${resultado.totalErrores} errores`,
+            resultado.estado === "fallido" ? "error" : "success"
+        );
+        await Promise.all([cargarEstadoSync(), renderVistaActual()]);
+    } catch (error) {
+        console.error(error);
+        window.VehiAmb.ui.showMessage(costosMensaje, error.message || "No se pudo sincronizar los cargues", "error");
+    } finally {
+        costosSyncButton.disabled = false;
+        costosSyncButton.textContent = textoOriginal;
+    }
+});
+
+if (window.VehiAmb.auth?.hasPermission?.("imports.manage")) {
+    costosSync.classList.remove("hidden");
+    cargarEstadoSync();
+}
 
 // ── Inicializacion ───────────────────────────────────────────────
 

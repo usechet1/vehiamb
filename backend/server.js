@@ -5,6 +5,7 @@ const preventivoCambioAceiteJob = require("./src/jobs/preventivo-cambio-aceite.j
 const documentosVencimientoJob = require("./src/jobs/documentos-vencimiento.job");
 const mantenimientosProximosJob = require("./src/jobs/mantenimientos-proximos.job");
 const importSchedulerJob = require("./src/jobs/import-scheduler.job");
+const gastosSyncJob = require("./src/jobs/gastos-sync.job");
 const stockImportSchedulerJob = require("./src/jobs/stock-import-scheduler.job");
 const stockAlertasJob = require("./src/jobs/stock-alertas.job");
 const simitConsultaJob = require("./src/jobs/simit-consulta.job");
@@ -15,6 +16,7 @@ const server = app.listen(env.port, () => {
   documentosVencimientoJob.start();
   mantenimientosProximosJob.start();
   importSchedulerJob.start();
+  gastosSyncJob.start();
   stockImportSchedulerJob.start();
   stockAlertasJob.start();
   simitConsultaJob.start();

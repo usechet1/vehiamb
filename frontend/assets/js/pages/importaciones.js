@@ -32,6 +32,7 @@ const ESTADO_LABEL = {
     en_proceso: "En proceso",
     completado: "Completado",
     completado_con_errores: "Completado con errores",
+    sin_cambios: "Sin cambios",
     fallido: "Fallido"
 };
 
@@ -40,6 +41,7 @@ const ESTADO_CLASS = {
     en_proceso: "badge-amarillo",
     completado: "badge-verde",
     completado_con_errores: "badge-amarillo",
+    sin_cambios: "badge-gris",
     fallido: "badge-rojo"
 };
 

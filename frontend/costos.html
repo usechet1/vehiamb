@@ -17,14 +17,20 @@
                     <h1 id="costosTitulo">Gastos vehiculares</h1>
                     <p class="page-kicker" id="costosSubtitulo">Gasto operativo por vehiculo a partir de las facturas importadas.</p>
                 </div>
-                <div class="costos-rango">
-                    <div class="form-group">
-                        <label>Desde</label>
-                        <input type="date" id="costosDesde">
+                <div class="page-header-right">
+                    <div id="costosSync" class="costos-sync hidden">
+                        <button type="button" id="costosSyncButton" class="btn-secondary">Sincronizar cargues</button>
+                        <span id="costosSyncEstado" class="field-help">Cargando estado...</span>
                     </div>
-                    <div class="form-group">
-                        <label>Hasta</label>
-                        <input type="date" id="costosHasta">
+                    <div class="costos-rango">
+                        <div class="form-group">
+                            <label>Desde</label>
+                            <input type="date" id="costosDesde">
+                        </div>
+                        <div class="form-group">
+                            <label>Hasta</label>
+                            <input type="date" id="costosHasta">
+                        </div>
                     </div>
                 </div>
             </div>

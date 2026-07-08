@@ -114,4 +114,17 @@ async function findUltimaAutomatica() {
   );
 }
 
-module.exports = { findById, create, actualizarResultado, findAll, findUltimaAutomatica };
+async function findUltimaPorPeriodo(periodo) {
+  return db.get(
+    `
+      SELECT *
+      FROM importaciones
+      WHERE periodo = ?
+      ORDER BY creado_en DESC, id DESC
+      LIMIT 1
+    `,
+    [periodo]
+  );
+}
+
+module.exports = { findById, create, actualizarResultado, findAll, findUltimaAutomatica, findUltimaPorPeriodo };

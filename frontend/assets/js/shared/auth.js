@@ -1,9 +1,5 @@
 window.VehiAmb = window.VehiAmb || {};
-window.VehiAmb.API_URL = window.VehiAmb.API_URL || (
-    window.location.port === "8080"
-        ? "/api"
-        : "http://localhost:3001/api"
-);
+window.VehiAmb.API_URL = window.VehiAmb.API_URL || "/api";
 
 const LOGIN_PAGE = "login.html";
 const AUTH_STORAGE_KEY = "vehiamb.auth";

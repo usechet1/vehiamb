@@ -27,6 +27,9 @@ app.use(cors({ origin: env.corsOrigin }));
 app.use(express.json({ limit: "1mb" }));
 app.use("/uploads", express.static(path.resolve(__dirname, "..", "uploads")));
 
+const frontendDir = path.resolve(__dirname, "..", "..", "frontend");
+app.use(express.static(frontendDir));
+
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",

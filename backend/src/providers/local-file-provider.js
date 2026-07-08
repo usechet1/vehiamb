@@ -28,6 +28,8 @@ class LocalFileProvider extends FileProvider {
       throw new Error("EXCEL_FILE_PATH no esta configurado");
     }
 
+    await this.validarSourcePath();
+
     const extension = path.extname(this.sourcePath) || ".xlsm";
     let lastError;
 
@@ -58,6 +60,34 @@ class LocalFileProvider extends FileProvider {
     throw new Error(
       `No fue posible leer el archivo Excel tras ${this.retryAttempts} intentos (¿esta bloqueado o la ruta es incorrecta?): ${lastError.message}`
     );
+  }
+
+  /**
+   * Chequea existencia y tipo antes de intentar copiar. Estos son errores de
+   * configuracion (ruta mal escrita, apunta a una carpeta), no transitorios:
+   * fallar de una vez evita gastar los reintentos/retraso del bloque de
+   * copia, que solo tiene sentido para un archivo bloqueado momentaneamente.
+   */
+  async validarSourcePath() {
+    let stats;
+    try {
+      stats = await fs.stat(this.sourcePath);
+    } catch (error) {
+      if (error.code === "ENOENT") {
+        throw new Error(`No se encontro el archivo en la ruta configurada: "${this.sourcePath}"`);
+      }
+      throw new Error(`No fue posible acceder a la ruta configurada "${this.sourcePath}": ${error.message}`);
+    }
+
+    if (stats.isDirectory()) {
+      throw new Error(
+        `EXCEL_FILE_PATH apunta a una carpeta, no a un archivo: "${this.sourcePath}". Debe incluir el nombre exacto del archivo .xlsm.`
+      );
+    }
+
+    if (stats.size === 0) {
+      throw new Error(`El archivo en "${this.sourcePath}" esta vacio.`);
+    }
   }
 }
 

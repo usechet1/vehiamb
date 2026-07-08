@@ -1303,6 +1303,11 @@ label[for="loginPassword"] {
     color: var(--color-warning);
 }
 
+.badge-gris {
+    background: var(--color-surface-2);
+    color: var(--color-muted);
+}
+
 /* ── Importaciones de gastos vehiculares ─────────── */
 .table-scroll {
     overflow-x: auto;

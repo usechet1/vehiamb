@@ -29,12 +29,18 @@ services:
       CORS_ORIGIN: http://localhost:8080
       DB_CLIENT: postgres
       DATABASE_URL: postgres://vehiamb:vehiamb_dev@postgres:5432/vehiamb
-      EXCEL_FILE_PATH: /data/CARGUES BODEGA.xlsm
+      # El contenedor es Linux: no puede resolver rutas UNC (\\servidor\...) por
+      # si solo. DESPACHOS_HOST_PATH (definida en .env, ver .env.example) debe
+      # apuntar, desde el HOST donde corre Docker, a la carpeta ya montada del
+      # recurso compartido (una unidad de red mapeada en Windows, o un mount
+      # CIFS en Linux). Ese host path se monta abajo en /mnt/despachos dentro
+      # del contenedor, y EXCEL_FILE_PATH apunta a esa ruta interna.
+      EXCEL_FILE_PATH: /mnt/despachos/CARGUES BODEGA.xlsm
       STOCK_EXCEL_FILE_PATH: /data/saldo-real.xlsx
     ports:
       - "3001:3001"
     volumes:
-      - "./CARGUES BODEGA.xlsm:/data/CARGUES BODEGA.xlsm:ro"
+      - "${DESPACHOS_HOST_PATH}:/mnt/despachos:ro"
       - "./saldo-real.xlsx:/data/saldo-real.xlsx:ro"
     depends_on:
       postgres:
