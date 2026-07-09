@@ -2653,6 +2653,29 @@ label[for="loginPassword"] {
     gap: 10px;
 }
 
+/* Los inputs/select de .simple-list-entry no estaban dentro de un
+   .form-group, asi que no heredaban el estilo estandar (borde redondeado,
+   padding, foco) y quedaban con la apariencia por defecto del navegador --
+   se veian "sueltos" frente al resto de los campos de la app. */
+.simple-list-entry input,
+.simple-list-entry select {
+    width: 100%;
+    min-height: 44px;
+    padding: 11px 12px;
+    border: 1px solid #cfd7e2;
+    border-radius: var(--radius-sm);
+    background: #fff;
+    color: var(--color-ink);
+    outline: 0;
+    transition: var(--transition);
+}
+
+.simple-list-entry input:focus,
+.simple-list-entry select:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(178, 31, 45, 0.12);
+}
+
 .repuesto-no-encontrado {
     display: flex;
     align-items: center;
@@ -3384,6 +3407,11 @@ label[for="loginPassword"] {
 /* ── Autocomplete de repuestos ───────────────────────────────────── */
 .repuesto-autocomplete-wrap {
     position: relative;
+}
+
+.repuesto-autocomplete-wrap input {
+    display: block;
+    width: 100%;
 }
 
 .repuesto-autocomplete-list {

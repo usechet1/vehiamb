@@ -68,9 +68,61 @@
             margin-top: 14px;
         }
 
+        #vehicleRepuestosSugeridosSection .section-card-head p + p {
+            margin-top: 6px;
+        }
+
+        /* Intervalo de cambio: un solo numero corto no necesita un input a
+           todo el ancho de la tarjeta. Label a la izquierda, input angosto
+           a la derecha, en vez del form-group vertical de ancho completo. */
+        #vehicleRepuestosSugeridosSection .form-group:has(#repuestoSugeridoIntervaloKm) {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        #vehicleRepuestosSugeridosSection #repuestoSugeridoIntervaloKm {
+            width: 110px;
+            flex: none;
+        }
+
+        /* .simple-list-entry trae una plantilla de 5 columnas pensada para el
+           formulario de repuestos de mantenimientos.html. Esta tarjeta vive
+           en la columna angosta de vehicle-records-grid y solo tiene 3
+           campos (buscar, cantidad, boton): con la plantilla de 5 columnas
+           sobraban 2 columnas vacias que comprimian los campos reales y el
+           texto se desbordaba de su input. El buscador ocupa su propia fila
+           completa; cantidad (angosto, solo lleva un numero corto) y el
+           boton van debajo, alineados a la izquierda en vez de estirarse. */
+        #vehicleRepuestosSugeridosSection .simple-list-entry {
+            grid-template-columns: 100px auto;
+            justify-content: start;
+            grid-template-areas:
+                "buscar buscar"
+                "cantidad boton";
+        }
+
+        #vehicleRepuestosSugeridosSection .simple-list-entry .repuesto-autocomplete-wrap {
+            grid-area: buscar;
+        }
+
+        #vehicleRepuestosSugeridosSection .simple-list-entry #repuestoSugeridoCantidadInput {
+            grid-area: cantidad;
+        }
+
+        #vehicleRepuestosSugeridosSection .simple-list-entry #addRepuestoSugeridoButton {
+            grid-area: boton;
+        }
+
         @media (max-width: 620px) {
-            .vehicle-image-meta {
+            #vehicleRepuestosSugeridosSection .form-group:has(#repuestoSugeridoIntervaloKm) {
                 flex-direction: column;
+                align-items: stretch;
+            }
+
+            #vehicleRepuestosSugeridosSection #repuestoSugeridoIntervaloKm {
+                width: 100%;
             }
         }
     </style>
@@ -196,6 +248,7 @@
                     <div class="section-card-head">
                         <h2>Repuestos sugeridos (Cambio de aceite)</h2>
                         <p>Kit de repuestos y el intervalo de cambio para este vehículo. Se preselecciona automáticamente al registrar un cambio de aceite.</p>
+                        <p class="field-help">Se sincroniza automáticamente desde el Excel de cambio de aceite; edítalo aquí solo para corregir un dato o para vehículos que no están incluidos en ese Excel.</p>
                     </div>
                     <div class="section-card-body">
                         <div class="form-group">
