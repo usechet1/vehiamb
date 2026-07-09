@@ -13,24 +13,26 @@
         <main class="content">
             <div class="page-header">
                 <div>
-                    <h1>Documentos del vehiculo</h1>
-                    <p class="page-kicker">Controla Tecnomecanica, SOAT, seguros y otros vencimientos</p>
+                    <h1>Documentos del vehículo</h1>
+                    <p class="page-kicker">Controla Tecnomecánica, SOAT, seguros y otros vencimientos</p>
                 </div>
             </div>
+
+            <div class="kpis-grid" id="documentosKpisGrid"></div>
 
             <div class="module-grid">
                 <div class="stack" id="registrarDocumentoSection">
                     <section class="section-card">
                         <div class="section-card-head">
                             <h2>Registrar documento</h2>
-                            <p>Agenda documentos asociados a cada vehiculo y sus fechas clave.</p>
+                            <p>Agenda documentos asociados a cada vehículo y sus fechas clave.</p>
                         </div>
                         <div class="section-card-body">
                             <form id="documentoForm" class="compact-form">
                                 <div class="form-group">
-                                    <label>Vehiculo</label>
+                                    <label>Vehículo</label>
                                     <select name="vehiculo_id" id="vehiculoDocumento" required>
-                                        <option value="">Selecciona un vehiculo</option>
+                                        <option value="">Selecciona un vehículo</option>
                                     </select>
                                 </div>
 
@@ -38,23 +40,23 @@
                                     <div class="form-group">
                                         <label>Tipo</label>
                                         <select name="tipo" required>
-                                            <option value="tecnomecanica">Tecnomecanica</option>
+                                            <option value="tecnomecanica">Tecnomecánica</option>
                                             <option value="soat">SOAT</option>
                                             <option value="seguro">Seguro</option>
-                                            <option value="tarjeta_operacion">Tarjeta de operacion</option>
+                                            <option value="tarjeta_operacion">Tarjeta de operación</option>
                                             <option value="otro">Otro</option>
                                         </select>
                                     </div>
 
                                     <div class="form-group">
-                                        <label>Numero</label>
+                                        <label>Número</label>
                                         <input type="text" name="numero_documento">
                                     </div>
                                 </div>
 
                                 <div class="form-grid">
                                     <div class="form-group">
-                                        <label>Expedicion</label>
+                                        <label>Expedición</label>
                                         <input type="date" name="fecha_expedicion">
                                     </div>
 
@@ -80,7 +82,7 @@
                     <section class="section-card">
                         <div class="section-card-head">
                             <h2>Documentos registrados</h2>
-                            <p>Vencimientos de Tecnomecanica, SOAT, seguros y documentos.</p>
+                            <p>Vencimientos de Tecnomecánica, SOAT, seguros y documentos.</p>
                         </div>
                         <div class="section-card-body">
                             <form id="documentosFilterForm" class="filter-form">
@@ -96,10 +98,10 @@
                                         <label>Tipo de documento</label>
                                         <select id="filterDocumentoTipo">
                                             <option value="">Todos</option>
-                                            <option value="tecnomecanica">Tecnomecanica</option>
+                                            <option value="tecnomecanica">Tecnomecánica</option>
                                             <option value="soat">SOAT</option>
                                             <option value="seguro">Seguro</option>
-                                            <option value="tarjeta_operacion">Tarjeta de operacion</option>
+                                            <option value="tarjeta_operacion">Tarjeta de operación</option>
                                             <option value="otro">Otro</option>
                                         </select>
                                     </div>
@@ -129,7 +131,9 @@
                 </div>
             </div>
 
-            <div id="loader" class="loader hidden"></div>
+            <div id="loader" class="loader hidden">
+                <video src="img/loader.mp4" autoplay loop muted playsinline></video>
+            </div>
             <div id="mensaje" class="mensaje hidden"></div>
         </main>
     </div>

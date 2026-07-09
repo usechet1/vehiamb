@@ -22,16 +22,18 @@
             <section class="section-card">
                 <div class="section-card-head">
                     <h2>Resumen de la flota</h2>
-                    <p>Basado en la ultima consulta registrada de cada vehiculo.</p>
+                    <p>Basado en la última consulta registrada de cada vehículo.</p>
                 </div>
                 <div class="section-card-body">
-                    <div id="simitSummaryRow" class="simit-summary-row"></div>
+                    <div id="simitKpisGrid" class="kpis-grid"></div>
 
                     <form id="simitFilterForm" class="filter-form">
                         <div class="form-grid">
                             <div class="form-group">
                                 <label>Placa</label>
-                                <input type="text" id="filterSimitPlaca" placeholder="Buscar por placa">
+                                <select id="filterSimitPlaca">
+                                    <option value="">Todas las placas</option>
+                                </select>
                             </div>
 
                             <div class="form-group">
@@ -49,7 +51,7 @@
                         </div>
 
                         <div class="filter-actions">
-                            <span id="simitFilterSummary" class="field-help">Cargando vehiculos...</span>
+                            <span id="simitFilterSummary" class="field-help">Cargando vehículos...</span>
                             <button type="button" id="clearSimitFiltersButton" class="btn-secondary">Limpiar filtros</button>
                         </div>
                     </form>
@@ -60,22 +62,27 @@
                 </div>
             </section>
 
-            <div id="loader" class="loader hidden"></div>
+            <div id="loader" class="loader hidden">
+                <video src="img/loader.mp4" autoplay loop muted playsinline></video>
+            </div>
             <div id="mensaje" class="mensaje hidden"></div>
 
             <div id="simitDrawerBackdrop" class="drawer-backdrop hidden"></div>
             <aside id="simitDrawer" class="detail-drawer hidden" aria-hidden="true" aria-labelledby="simitDrawerTitle">
-                <div class="detail-drawer-head">
-                    <div>
-                        <span class="form-step">Detalle SIMIT</span>
-                        <h2 id="simitDrawerTitle">Vehiculo</h2>
-                        <p id="simitDrawerSubtitle">Comparendos e historial de consultas</p>
+                <div class="detail-drawer-head detail-drawer-head-simit">
+                    <div class="detail-drawer-head-row">
+                        <div>
+                            <span class="form-step">Detalle SIMIT</span>
+                            <h2 id="simitDrawerTitle">Vehículo</h2>
+                            <p id="simitDrawerSubtitle">Comparendos e historial de consultas</p>
+                        </div>
+                        <button type="button" id="closeSimitDrawer" class="drawer-close" aria-label="Cerrar detalle">×</button>
                     </div>
                     <div class="detail-drawer-actions">
                         <button type="button" id="simitDrawerConsultarButton" class="btn-secondary">Consultar ahora</button>
+                        <button type="button" id="simitDrawerPagarButton" class="btn-secondary btn-pagar">Consultar y pagar en SIMIT ↗</button>
                         <button type="button" id="exportSimitPdfButton" class="btn-secondary btn-pdf">Exportar PDF</button>
                         <button type="button" id="exportSimitExcelButton" class="btn-secondary btn-excel">Exportar Excel</button>
-                        <button type="button" id="closeSimitDrawer" class="drawer-close" aria-label="Cerrar detalle">×</button>
                     </div>
                 </div>
                 <div id="simitDrawerBody" class="detail-drawer-body"></div>

@@ -192,16 +192,16 @@
 
         await addHeader(doc, layout);
 
-        layout.sectionTitle("Informacion general");
-        layout.row("Vehiculo", vehicleName);
+        layout.sectionTitle("Información general");
+        layout.row("Vehículo", vehicleName);
         layout.row("Placa", item.placa);
         layout.row("Fecha", window.VehiAmb.pdfExport.formatDateForPdf(item.fecha));
         layout.row("Tipo de mantenimiento", tiposMantenimiento[item.tipo] || item.tipo);
-        layout.row("Estado del vehiculo", item.vehiculo_varado ? "Varado / en taller" : "Disponible");
+        layout.row("Estado del vehículo", item.vehiculo_varado ? "Varado / en taller" : "Disponible");
 
         layout.spacer();
         layout.sectionTitle("Detalle del mantenimiento");
-        layout.row("Descripcion", item.descripcion);
+        layout.row("Descripción", item.descripcion);
         layout.row(
             "Kilometraje registrado",
             item.kilometraje !== null && item.kilometraje !== undefined
@@ -261,16 +261,16 @@
             columnCount: EXCEL_COLUMN_COUNT
         });
 
-        excel.addSectionHeader(sheet, "Informacion general", EXCEL_COLUMN_COUNT);
-        excel.addLabelValueRow(sheet, "Vehiculo", safe(vehicleName));
+        excel.addSectionHeader(sheet, "Información general", EXCEL_COLUMN_COUNT);
+        excel.addLabelValueRow(sheet, "Vehículo", safe(vehicleName));
         excel.addLabelValueRow(sheet, "Placa", safe(item.placa));
         excel.addLabelValueRow(sheet, "Fecha", excel.formatDateForExcel(item.fecha));
         excel.addLabelValueRow(sheet, "Tipo de mantenimiento", safe(tiposMantenimiento[item.tipo] || item.tipo));
-        excel.addLabelValueRow(sheet, "Estado del vehiculo", item.vehiculo_varado ? "Varado / en taller" : "Disponible");
+        excel.addLabelValueRow(sheet, "Estado del vehículo", item.vehiculo_varado ? "Varado / en taller" : "Disponible");
         sheet.addRow([]);
 
         excel.addSectionHeader(sheet, "Detalle del mantenimiento", EXCEL_COLUMN_COUNT);
-        excel.addLabelValueRow(sheet, "Descripcion", safe(item.descripcion));
+        excel.addLabelValueRow(sheet, "Descripción", safe(item.descripcion));
         excel.addLabelValueRow(
             sheet,
             "Kilometraje registrado",

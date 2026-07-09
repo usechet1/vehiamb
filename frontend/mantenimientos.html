@@ -18,19 +18,28 @@
                 </div>
             </div>
 
+            <div class="kpis-grid" id="mantenimientosKpisGrid"></div>
+
+            <div class="tabs" role="tablist">
+                <button type="button" class="tab-button active" id="tabHistorialButton" role="tab" aria-selected="true" data-tab="historial">Historial</button>
+                <button type="button" class="tab-button" id="tabRegistrarButton" role="tab" aria-selected="false" data-tab="registrar">Registrar mantenimiento</button>
+            </div>
+
             <div class="stack">
-                <section class="section-card" id="registrarMantenimientoSection">
+                <section class="section-card hidden" id="registrarMantenimientoSection">
                     <div class="section-card-head">
                         <h2>Registrar mantenimiento</h2>
-                        <p>Revision, preventivo, correctivo, aceite, frenos, llantas u otro trabajo.</p>
+                        <p>Revisión, preventivo, correctivo, aceite, frenos, llantas u otro trabajo.</p>
                     </div>
                     <div class="section-card-body">
                         <form id="mantenimientoForm" class="compact-form">
+                            <h3 class="form-section-title">Datos generales</h3>
+
                             <div class="form-grid-3">
                                 <div class="form-group">
-                                    <label>Vehiculo</label>
+                                    <label>Vehículo</label>
                                     <select name="vehiculo_id" id="vehiculoMantenimiento" required>
-                                        <option value="">Selecciona un vehiculo</option>
+                                        <option value="">Selecciona un vehículo</option>
                                     </select>
                                 </div>
 
@@ -42,7 +51,7 @@
                                 <div class="form-group">
                                     <label>Tipo</label>
                                     <select name="tipo" id="mantenimientoTipo" required>
-                                        <option value="revision">Revision general</option>
+                                        <option value="revision">Revisión general</option>
                                         <option value="preventivo">Mantenimiento preventivo</option>
                                         <option value="correctivo">Mantenimiento correctivo</option>
                                         <option value="cambio_aceite">Cambio de aceite</option>
@@ -55,12 +64,12 @@
 
                             <div class="form-grid hidden" id="cambioAceiteFields">
                                 <div class="form-group">
-                                    <label>Proximo cambio de aceite (km)</label>
+                                    <label>Próximo cambio de aceite (km)</label>
                                     <input type="number" name="proximo_cambio_km" id="proximoCambioKmInput" min="0">
                                 </div>
 
                                 <div class="form-group">
-                                    <label>Proxima fecha de cambio</label>
+                                    <label>Próxima fecha de cambio</label>
                                     <input type="date" name="proximo_cambio_fecha" id="proximoCambioFechaInput">
                                 </div>
                             </div>
@@ -70,6 +79,33 @@
                                 <textarea name="descripcion" placeholder="Ej: revision de frenos, suspension, luces, niveles y fugas"></textarea>
                             </div>
 
+                            <div class="form-grid-3">
+                                <div class="form-group">
+                                    <label>Kilometraje</label>
+                                    <input type="text" inputmode="decimal" name="kilometraje" id="mantenimientoKilometraje">
+                                    <span id="kilometrajeHelp" class="field-help">Selecciona un vehículo para validar el kilometraje.</span>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Autorizado por</label>
+                                    <input type="text" name="autorizado_por" placeholder="Nombre de quien autoriza">
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Hecho por</label>
+                                    <input type="text" name="hecho_por" placeholder="Taller, técnico o responsable">
+                                </div>
+                            </div>
+
+                            <div class="form-group form-checkbox">
+                                <label>
+                                    <input type="checkbox" name="vehiculo_varado" id="vehiculoVaradoInput">
+                                    Vehículo varado / en taller (no disponible para asignación de rutas)
+                                </label>
+                            </div>
+
+                            <h3 class="form-section-title">Repuestos y costos</h3>
+
                             <div class="form-group">
                                 <label>Repuestos utilizados</label>
                                 <input type="hidden" name="repuestos" id="repuestosData">
@@ -78,62 +114,63 @@
                                 <div id="repuestoBusquedaAviso" class="field-help hidden"></div>
                                 <div class="simple-list-builder">
                                     <div class="simple-list-entry">
-                                        <input type="text" id="repuestoInput" placeholder="Buscar repuesto del catalogo...">
+                                        <input type="text" id="repuestoInput" placeholder="Buscar repuesto del catálogo...">
                                         <input type="text" id="repuestoProveedorInput" placeholder="Proveedor">
-                                        <input type="number" id="repuestoCantidadInput" placeholder="Cantidad" min="0.001" step="0.001" value="1">
+                                        <input type="number" id="repuestoCantidadInput" placeholder="Cantidad (1 por defecto)" min="1" step="1">
                                         <input type="text" id="repuestoNotasInput" placeholder="Notas del repuesto">
                                         <button type="button" id="addRepuestoButton" class="btn-secondary" disabled>Agregar</button>
                                     </div>
                                     <div id="repuestoSeleccionadoInfo" class="field-help hidden"></div>
                                     <div id="repuestoEquivalenciasPicker" class="hidden"></div>
+
+                                    <div id="repuestoNoEncontradoAviso" class="repuesto-no-encontrado hidden">
+                                        <p class="field-help">No se encontró ese repuesto en el catálogo.</p>
+                                        <button type="button" id="mostrarCrearRepuestoButton" class="btn-secondary">+ Crear repuesto nuevo</button>
+                                    </div>
+
+                                    <div id="repuestoCrearForm" class="simple-list-entry hidden">
+                                        <input type="text" id="nuevoRepuestoCodigoInput" placeholder="Código interno">
+                                        <input type="text" id="nuevoRepuestoNombreInput" placeholder="Nombre del repuesto">
+                                        <select id="nuevoRepuestoCategoriaInput">
+                                            <option value="otros">Otros</option>
+                                            <option value="aceite_motor">Aceite Motor</option>
+                                            <option value="filtro_aceite">Filtro Aceite</option>
+                                            <option value="filtro_aire">Filtro Aire</option>
+                                            <option value="filtro_combustible">Filtro Combustible</option>
+                                            <option value="llantas">Llantas</option>
+                                            <option value="baterias">Baterias</option>
+                                            <option value="lubricantes">Lubricantes</option>
+                                            <option value="refrigerantes">Refrigerantes</option>
+                                            <option value="correas">Correas</option>
+                                            <option value="bombillos">Bombillos</option>
+                                        </select>
+                                        <input type="text" id="nuevoRepuestoValorInput" inputmode="numeric" placeholder="Valor unitario">
+                                        <button type="button" id="crearRepuestoButton" class="btn-secondary" disabled>Crear y agregar</button>
+                                    </div>
+
                                     <div id="repuestosEmpty" class="field-help">Aún no has agregado repuestos.</div>
                                     <ul id="repuestosList" class="simple-checklist"></ul>
                                 </div>
                             </div>
 
-                            <div class="form-grid-3">
+                            <div class="form-grid">
                                 <div class="form-group">
                                     <label>Valor mano de obra</label>
-                                    <input type="number" name="valor_mano_obra" id="valorManoObraInput" min="0" step="1000" value="0">
+                                    <input type="text" inputmode="numeric" name="valor_mano_obra" id="valorManoObraInput" value="$ 0">
                                 </div>
 
                                 <div class="form-group">
                                     <label>Gasto total del mantenimiento</label>
                                     <input type="text" id="costoTotalDisplay" readonly disabled>
                                 </div>
-
-                                <div class="form-group">
-                                    <label>Kilometraje</label>
-                                    <input type="number" name="kilometraje" id="mantenimientoKilometraje" min="0">
-                                    <span id="kilometrajeHelp" class="field-help">Selecciona un vehiculo para validar el kilometraje.</span>
-                                </div>
                             </div>
 
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label>Autorizado por</label>
-                                    <input type="text" name="autorizado_por" placeholder="Nombre de quien autoriza">
-                                </div>
+                            <h3 class="form-section-title">Adjuntos</h3>
 
-                                <div class="form-group">
-                                    <label>Hecho por</label>
-                                    <input type="text" name="hecho_por" placeholder="Taller, tecnico o responsable">
-                                </div>
-                            </div>
-
-                            <div class="form-grid">
-                                <div class="form-group form-checkbox">
-                                    <label>
-                                        <input type="checkbox" name="vehiculo_varado" id="vehiculoVaradoInput">
-                                        Vehiculo varado / en taller (no disponible para asignacion de rutas)
-                                    </label>
-                                </div>
-
-                                <div class="form-group">
-                                    <label>Adjuntos</label>
-                                    <input type="file" name="soporte" accept=".pdf,image/png,image/jpeg,image/webp">
-                                    <p class="field-help">Soporta PDF, PNG, JPG o WEBP hasta 5 MB.</p>
-                                </div>
+                            <div class="form-group">
+                                <label>Soporte del mantenimiento</label>
+                                <input type="file" name="soporte" accept=".pdf,image/png,image/jpeg,image/webp">
+                                <p class="field-help">Soporta PDF, PNG, JPG o WEBP hasta 5 MB.</p>
                             </div>
 
                             <button type="submit" class="btn-primary">Guardar mantenimiento</button>
@@ -141,10 +178,10 @@
                     </div>
                 </section>
 
-                <section class="section-card">
+                <section class="section-card" id="historialMantenimientosSection">
                     <div class="section-card-head">
                         <h2>Historial reciente</h2>
-                        <p>Ultimas revisiones y mantenimientos registrados.</p>
+                        <p>Últimas revisiones y mantenimientos registrados.</p>
                     </div>
                     <div class="section-card-body">
                         <form id="mantenimientosFilterForm" class="filter-form">
@@ -160,7 +197,7 @@
                                     <label>Tipo de mantenimiento</label>
                                     <select id="filterTipo">
                                         <option value="">Todos</option>
-                                        <option value="revision">Revision general</option>
+                                        <option value="revision">Revisión general</option>
                                         <option value="preventivo">Preventivo</option>
                                         <option value="correctivo">Correctivo</option>
                                         <option value="cambio_aceite">Cambio de aceite</option>
@@ -198,7 +235,9 @@
                 </section>
             </div>
 
-            <div id="loader" class="loader hidden"></div>
+            <div id="loader" class="loader hidden">
+                <video src="img/loader.mp4" autoplay loop muted playsinline></video>
+            </div>
             <div id="mensaje" class="mensaje hidden"></div>
 
             <div id="maintenanceDrawerBackdrop" class="drawer-backdrop hidden"></div>
@@ -207,7 +246,7 @@
                     <div>
                         <span class="form-step">Detalle de mantenimiento</span>
                         <h2 id="maintenanceDrawerTitle">Mantenimiento</h2>
-                        <p id="maintenanceDrawerSubtitle">Informacion completa del registro</p>
+                        <p id="maintenanceDrawerSubtitle">Información completa del registro</p>
                     </div>
                     <div class="detail-drawer-actions">
                         <button type="button" id="viewEtiquetaButton" class="btn-secondary hidden">Ver etiqueta</button>

@@ -1,5 +1,10 @@
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
 const XLSX = require("xlsx");
 const HttpError = require("../../errors/http-error");
+const env = require("../../config/env");
+const { crearFileProvider } = require("../../providers/file-provider.factory");
 const configExcelParser = require("./config-excel-parser.service");
 const vehiculosRepository = require("../../repositories/vehiculos.repository");
 const repuestosRepository = require("../../repositories/repuestos.repository");
@@ -10,6 +15,16 @@ const importacionesConfigRepository = require("../../repositories/importaciones-
 const HOJA_KITS = "CAMBIO DE ACEITE VEHICULOS ";
 const HOJA_VEHICULOS = "VEHICULOS ";
 const MAX_INCIDENCIAS_GUARDADAS = 200;
+
+function hashArchivo(filePath) {
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash("sha256");
+    const stream = fs.createReadStream(filePath);
+    stream.on("data", (chunk) => hash.update(chunk));
+    stream.on("end", () => resolve(hash.digest("hex")));
+    stream.on("error", reject);
+  });
+}
 
 async function resolverRepuestoCache(cache, codigoInterno) {
   if (cache.has(codigoInterno)) return cache.get(codigoInterno);
@@ -26,24 +41,110 @@ async function resolverVehiculoCache(cache, placa) {
 }
 
 /**
- * Importador bootstrap (boton manual, sin cron, sin sincronizacion
- * incremental): lee las hojas "CAMBIO DE ACEITE VEHICULOS " y "VEHICULOS "
- * del Excel real de configuracion y crea vehiculo_repuestos_sugeridos +
- * repuestos_equivalencias que aun no existan. Nunca pisa lo que el usuario
- * ya haya configurado a mano (ON CONFLICT DO NOTHING en ambas tablas) y
- * nunca bloquea por una fila problematica: placas/codigos no reconocidos
- * quedan como incidencia y se sigue con el resto del archivo.
+ * Registra en el historial una corrida que nunca llego a leer el archivo
+ * (unidad de red no disponible, ruta incorrecta, bloqueado tras agotar
+ * reintentos) -- igual criterio que import.service.js/stock-import.service.js:
+ * mejor un registro "fallido" visible que un error silencioso.
  */
-async function ejecutar({ buffer, nombreArchivo, usuarioId }) {
-  const inicio = Date.now();
+async function registrarFalloObtencionArchivo({ nombreArchivo, usuarioId, error, duracionMs }) {
+  return importacionesConfigRepository.create({
+    nombre_archivo: nombreArchivo,
+    hash_archivo: null,
+    usuario_id: usuarioId,
+    estado: "fallido",
+    total_incidencias: 1,
+    detalle_incidencias: [{ hoja: "archivo", motivo: "no_disponible", valor: error.message }],
+    duracion_ms: duracionMs
+  });
+}
 
-  let workbook;
+/**
+ * Importador bootstrap (sin sincronizacion incremental, sin concepto de
+ * "periodo"): lee las hojas "CAMBIO DE ACEITE VEHICULOS " y "VEHICULOS " del
+ * Excel de configuracion (via el FileProvider apuntado a CONFIG_EXCEL_FILE_PATH)
+ * y crea vehiculo_repuestos_sugeridos + repuestos_equivalencias que aun no
+ * existan. Nunca pisa lo que el usuario ya haya configurado a mano
+ * (ON CONFLICT DO NOTHING en ambas tablas) y nunca bloquea por una fila
+ * problematica: placas/codigos no reconocidos quedan como incidencia y se
+ * sigue con el resto del archivo. Se dispara por cron (config-sync.job.js) o
+ * manualmente desde POST /api/config-import/vehiculos-repuestos.
+ */
+async function ejecutar({ usuarioId = null } = {}) {
+  if (!env.configExcelFilePath) {
+    throw new HttpError(400, "CONFIG_EXCEL_FILE_PATH no esta configurado");
+  }
+
+  const inicio = Date.now();
+  const provider = crearFileProvider({
+    sourcePath: env.configExcelFilePath,
+    retryAttempts: env.excelRetryAttempts,
+    retryDelayMs: env.excelRetryDelayMs
+  });
+  const nombreArchivo = path.basename(env.configExcelFilePath);
+
+  console.log(`[ConfigImportService] Iniciando importacion de configuracion (usuario: ${usuarioId ?? "automatico"})`);
+
+  let filePath;
+  let cleanup;
+
   try {
-    workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
+    ({ path: filePath, cleanup } = await provider.getFile());
   } catch (error) {
+    console.error("[ConfigImportService] No fue posible obtener el archivo de origen:", error.message);
+    await registrarFalloObtencionArchivo({ nombreArchivo, usuarioId, error, duracionMs: Date.now() - inicio });
+    throw error;
+  }
+
+  try {
+    return await procesarArchivo({ filePath, nombreArchivo, usuarioId, inicio });
+  } finally {
+    await cleanup();
+  }
+}
+
+async function procesarArchivo({ filePath, nombreArchivo, usuarioId, inicio }) {
+  let hash;
+  let workbook;
+
+  try {
+    hash = await hashArchivo(filePath);
+    workbook = XLSX.readFile(filePath, { cellDates: true });
+  } catch (error) {
+    const duracionMs = Date.now() - inicio;
+    console.error("[ConfigImportService] No fue posible leer el archivo Excel:", error.message);
+    await importacionesConfigRepository.create({
+      nombre_archivo: nombreArchivo,
+      hash_archivo: hash ?? null,
+      usuario_id: usuarioId,
+      estado: "fallido",
+      total_incidencias: 1,
+      detalle_incidencias: [{ hoja: "archivo", motivo: "error_lectura", valor: error.message }],
+      duracion_ms: duracionMs
+    });
     throw new HttpError(422, `No fue posible abrir el archivo Excel: ${error.message}`);
   }
 
+  try {
+    return await sincronizarConfiguracion({ workbook, hash, nombreArchivo, usuarioId, inicio });
+  } catch (error) {
+    const duracionMs = Date.now() - inicio;
+    console.error("[ConfigImportService] La importacion fallo:", error);
+
+    await importacionesConfigRepository.create({
+      nombre_archivo: nombreArchivo,
+      hash_archivo: hash,
+      usuario_id: usuarioId,
+      estado: "fallido",
+      total_incidencias: 1,
+      detalle_incidencias: [{ hoja: "archivo", motivo: "error_procesamiento", valor: error.message }],
+      duracion_ms: duracionMs
+    });
+
+    throw error;
+  }
+}
+
+async function sincronizarConfiguracion({ workbook, hash, nombreArchivo, usuarioId, inicio }) {
   const hojaKits = workbook.Sheets[HOJA_KITS];
   const hojaVehiculos = workbook.Sheets[HOJA_VEHICULOS];
 
@@ -152,6 +253,7 @@ async function ejecutar({ buffer, nombreArchivo, usuarioId }) {
 
   const registro = await importacionesConfigRepository.create({
     nombre_archivo: nombreArchivo,
+    hash_archivo: hash,
     usuario_id: usuarioId,
     estado: "completado",
     total_sugeridos_creados: totalSugeridosCreados,
@@ -177,4 +279,8 @@ async function listar(filtros) {
   return importacionesConfigRepository.findAll(filtros);
 }
 
-module.exports = { ejecutar, listar };
+async function estadoUltimaAutomatica() {
+  return importacionesConfigRepository.findUltimaAutomatica();
+}
+
+module.exports = { ejecutar, listar, estadoUltimaAutomatica };

@@ -362,6 +362,7 @@ CREATE TABLE IF NOT EXISTS configuracion_inventario (
 CREATE TABLE IF NOT EXISTS importaciones_config_vehiculos (
   id BIGSERIAL PRIMARY KEY,
   nombre_archivo TEXT NOT NULL,
+  hash_archivo TEXT,
   usuario_id BIGINT REFERENCES usuarios(id),
   estado TEXT NOT NULL DEFAULT 'pendiente',
   total_sugeridos_creados INTEGER NOT NULL DEFAULT 0,

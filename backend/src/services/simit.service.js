@@ -93,11 +93,11 @@ async function notificarFallo({ vehiculo, consulta }) {
 async function consultarVehiculo(vehiculoId, { origen = "manual" } = {}) {
   const vehiculo = await vehiculosRepository.findById(vehiculoId);
   if (!vehiculo) {
-    throw new HttpError(404, "Vehiculo no encontrado");
+    throw new HttpError(404, "Vehículo no encontrado");
   }
 
   if (!vehiculo.placa) {
-    throw new HttpError(400, "El vehiculo no tiene placa registrada");
+    throw new HttpError(400, "El vehículo no tiene placa registrada");
   }
 
   const resultado = await simitScraper.scrapePlaca(vehiculo.placa);
@@ -184,7 +184,7 @@ async function listarEstadoFlota(filters = {}) {
 async function listarHistorialVehiculo(vehiculoId) {
   const vehiculo = await vehiculosRepository.findById(vehiculoId);
   if (!vehiculo) {
-    throw new HttpError(404, "Vehiculo no encontrado");
+    throw new HttpError(404, "Vehículo no encontrado");
   }
 
   return simitConsultasRepository.findByVehiculo(vehiculoId);

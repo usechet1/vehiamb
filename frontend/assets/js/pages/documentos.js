@@ -8,16 +8,17 @@ const filterDocumentoFechaDesde = document.getElementById("filterDocumentoFechaD
 const filterDocumentoFechaHasta = document.getElementById("filterDocumentoFechaHasta");
 const documentosFilterSummary = document.getElementById("documentosFilterSummary");
 const clearDocumentosFiltersButton = document.getElementById("clearDocumentosFiltersButton");
+const documentosKpisGrid = document.getElementById("documentosKpisGrid");
 const loader = document.getElementById("loader");
 const mensaje = document.getElementById("mensaje");
 
 let documentosState = [];
 
 const tiposDocumento = {
-    tecnomecanica: "Tecnomecanica",
+    tecnomecanica: "Tecnomecánica",
     soat: "SOAT",
     seguro: "Seguro",
-    tarjeta_operacion: "Tarjeta de operacion",
+    tarjeta_operacion: "Tarjeta de operación",
     otro: "Otro"
 };
 
@@ -46,12 +47,12 @@ function daysUntil(value) {
     return Math.ceil((target.getTime() - today.getTime()) / 86400000);
 }
 
-function fillVehicleSelect(select, vehiculos, placeholder = "Selecciona un vehiculo", valueField = "id") {
+function fillVehicleSelect(select, vehiculos, placeholder = "Selecciona un vehículo", valueField = "id") {
     const previousValue = select.value;
     select.innerHTML = `<option value="">${placeholder}</option>`;
 
     if (!vehiculos.length) {
-        select.innerHTML = '<option value="">Primero registra un vehiculo</option>';
+        select.innerHTML = '<option value="">Primero registra un vehículo</option>';
         return;
     }
 
@@ -67,36 +68,83 @@ function fillVehicleSelect(select, vehiculos, placeholder = "Selecciona un vehic
     }
 }
 
+function ordenarPorUrgencia(documentos) {
+    return [...documentos].sort((a, b) => {
+        const daysA = daysUntil(a.fecha_vencimiento);
+        const daysB = daysUntil(b.fecha_vencimiento);
+        if (daysA === null && daysB === null) return 0;
+        if (daysA === null) return 1;
+        if (daysB === null) return -1;
+        return daysA - daysB;
+    });
+}
+
+function calcularKpisDocumentos(documentos) {
+    return documentos.reduce((acc, item) => {
+        const days = daysUntil(item.fecha_vencimiento);
+        if (days === null) return acc;
+        if (days < 0) acc.vencidos += 1;
+        else if (days <= 30) acc.porVencer += 1;
+        else acc.vigentes += 1;
+        return acc;
+    }, { vencidos: 0, porVencer: 0, vigentes: 0 });
+}
+
+function renderKpisDocumentos(documentos) {
+    const kpis = calcularKpisDocumentos(documentos);
+
+    documentosKpisGrid.innerHTML = `
+        <div class="kpi-card" style="--kpi-accent: var(--color-ink-soft)">
+            <div class="kpi-label">Total documentos</div>
+            <div class="kpi-value">${documentos.length}</div>
+        </div>
+        <div class="kpi-card" style="--kpi-accent: var(--color-primary)">
+            <div class="kpi-label">Vencidos</div>
+            <div class="kpi-value">${kpis.vencidos}</div>
+        </div>
+        <div class="kpi-card" style="--kpi-accent: var(--color-warning)">
+            <div class="kpi-label">Por vencer (30 dias)</div>
+            <div class="kpi-value">${kpis.porVencer}</div>
+        </div>
+        <div class="kpi-card" style="--kpi-accent: var(--color-success)">
+            <div class="kpi-label">Vigentes</div>
+            <div class="kpi-value">${kpis.vigentes}</div>
+        </div>
+    `;
+}
+
 function renderDocumentos(documentos) {
     if (!documentos.length) {
         documentosList.innerHTML = '<p class="dash-empty">No hay documentos para los filtros seleccionados</p>';
         return;
     }
 
-    documentosList.innerHTML = documentos.map((item) => {
+    documentosList.innerHTML = ordenarPorUrgencia(documentos).map((item) => {
         const days = daysUntil(item.fecha_vencimiento);
         const pillClass = days !== null && days < 0
             ? "pill-danger"
             : days !== null && days <= 30
                 ? "pill-warning"
-                : "";
+                : days !== null
+                    ? "pill-success"
+                    : "";
         const statusText = days === null
             ? "Sin fecha"
             : days < 0
-                ? `Vencido hace ${Math.abs(days)} dias`
-                : `Vence en ${days} dias`;
+                ? `Vencido hace ${Math.abs(days)} días`
+                : `Vence en ${days} días`;
 
         return `
             <article class="record-item">
                 <div class="record-top">
                     <div>
                         <span class="record-title">${tiposDocumento[item.tipo] || item.tipo}</span>
-                        <span class="record-sub">${item.placa || "Sin placa"} - ${item.numero_documento || "Sin numero"}</span>
+                        <span class="record-sub">${item.placa || "Sin placa"} - ${item.numero_documento || "Sin número"}</span>
                     </div>
                     <span class="pill ${pillClass}">${statusText}</span>
                 </div>
                 <div class="record-meta">
-                    <span class="pill">Expedicion: ${formatDate(item.fecha_expedicion)}</span>
+                    <span class="pill">Expedición: ${formatDate(item.fecha_expedicion)}</span>
                     <span class="pill">Vencimiento: ${formatDate(item.fecha_vencimiento)}</span>
                     ${item.archivo_url ? '<span class="pill">Adjunto disponible</span>' : ""}
                 </div>
@@ -135,7 +183,7 @@ function updateDocumentosFilterSummary(filteredCount) {
     );
 
     if (!total) {
-        documentosFilterSummary.textContent = "Aun no hay documentos registrados.";
+        documentosFilterSummary.textContent = "Aún no hay documentos registrados.";
         return;
     }
 
@@ -147,6 +195,7 @@ function updateDocumentosFilterSummary(filteredCount) {
 function applyDocumentosFilters() {
     const filtered = documentosState.filter(documentMatchesFilters);
     renderDocumentos(filtered);
+    renderKpisDocumentos(filtered);
     updateDocumentosFilterSummary(filtered.length);
 }
 
@@ -159,7 +208,7 @@ async function cargarDatos() {
         fillVehicleSelect(filterDocumentoPlaca, vehiculos, "Todas las placas", "placa");
     } catch (error) {
         console.error(error);
-        window.VehiAmb.ui.showMessage(mensaje, "No fue posible cargar los vehiculos", "error");
+        window.VehiAmb.ui.showMessage(mensaje, "No fue posible cargar los vehículos", "error");
         window.VehiAmb.ui.hide(loader);
         return;
     }
@@ -172,7 +221,7 @@ async function cargarDatos() {
         console.error(error);
         documentosList.innerHTML = '<p class="dash-empty">No fue posible cargar los documentos</p>';
         updateDocumentosFilterSummary(0);
-        window.VehiAmb.ui.showMessage(mensaje, "Los vehiculos cargaron, pero no fue posible cargar los documentos", "error");
+        window.VehiAmb.ui.showMessage(mensaje, "Los vehículos cargaron, pero no fue posible cargar los documentos", "error");
     } finally {
         window.VehiAmb.ui.hide(loader);
     }

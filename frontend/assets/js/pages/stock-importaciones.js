@@ -16,9 +16,9 @@ const stockImportDrawerTitle = document.getElementById("stockImportDrawerTitle")
 const stockImportDrawerSubtitle = document.getElementById("stockImportDrawerSubtitle");
 const stockImportDrawerBody = document.getElementById("stockImportDrawerBody");
 
-const configImportFile = document.getElementById("configImportFile");
-const configImportSubmitButton = document.getElementById("configImportSubmitButton");
+const configImportSyncButton = document.getElementById("configImportSyncButton");
 const configImportResult = document.getElementById("configImportResult");
+const configImportStatusBody = document.getElementById("configImportStatusBody");
 
 let currentPage = 1;
 let totalPages = 1;
@@ -94,6 +94,28 @@ async function cargarStatus() {
         `;
     } catch (error) {
         stockImportStatusBody.innerHTML = '<p class="dash-empty">No fue posible cargar el estado</p>';
+    }
+}
+
+async function cargarConfigImportStatus() {
+    try {
+        const { ultimaImportacionAutomatica } = await window.VehiAmb.api.getConfigImportStatus();
+
+        if (!ultimaImportacionAutomatica) {
+            configImportStatusBody.innerHTML = '<p class="dash-empty">Aun no se ha ejecutado ninguna sincronizacion automatica.</p>';
+            return;
+        }
+
+        const item = ultimaImportacionAutomatica;
+        configImportStatusBody.innerHTML = `
+            <div class="record-meta">
+                <span class="badge ${ESTADO_CLASS[item.estado] || "badge-amarillo"}">${ESTADO_LABEL[item.estado] || item.estado}</span>
+                <span class="pill">${formatDateTime(item.creado_en)}</span>
+            </div>
+            <p class="field-help">Sugeridos creados: ${item.total_sugeridos_creados} · Equivalencias creadas: ${item.total_equivalencias_creadas} · Omitidos: ${item.total_omitidos} · Incidencias: ${item.total_incidencias}</p>
+        `;
+    } catch (error) {
+        configImportStatusBody.innerHTML = '<p class="dash-empty">No fue posible cargar el estado</p>';
     }
 }
 
@@ -293,38 +315,31 @@ document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !stockImportDrawer.classList.contains("hidden")) closeDrawer();
 });
 
-configImportSubmitButton.addEventListener("click", async () => {
-    const archivo = configImportFile.files[0];
-    if (!archivo) {
-        window.VehiAmb.ui.showMessage(mensaje, "Selecciona el archivo Excel de configuracion", "error");
-        return;
-    }
-
-    const formData = new FormData();
-    formData.append("archivo", archivo);
-
-    configImportSubmitButton.disabled = true;
+configImportSyncButton.addEventListener("click", async () => {
+    configImportSyncButton.disabled = true;
     configImportResult.classList.add("hidden");
 
     try {
         window.VehiAmb.ui.show(loader);
-        const resultado = await window.VehiAmb.api.ejecutarConfigImport(formData);
+        const resultado = await window.VehiAmb.api.ejecutarConfigImport();
 
         configImportResult.classList.remove("hidden");
         configImportResult.innerHTML = `
             <p>Sugeridos creados: ${resultado.totalSugeridosCreados} · Equivalencias creadas: ${resultado.totalEquivalenciasCreadas} · Omitidos: ${resultado.totalOmitidos} · Incidencias: ${resultado.totalIncidencias}</p>
         `;
-        window.VehiAmb.ui.showMessage(mensaje, "Importacion de configuracion ejecutada correctamente");
+        window.VehiAmb.ui.showMessage(mensaje, "Sincronizacion de configuracion ejecutada correctamente");
+        await cargarConfigImportStatus();
     } catch (error) {
         configImportResult.classList.remove("hidden");
-        configImportResult.innerHTML = `<span class="badge badge-rojo">Error</span><p>${error.message || "No se pudo ejecutar la importacion"}</p>`;
+        configImportResult.innerHTML = `<span class="badge badge-rojo">Error</span><p>${error.message || "No se pudo ejecutar la sincronizacion"}</p>`;
     } finally {
         window.VehiAmb.ui.hide(loader);
-        configImportSubmitButton.disabled = false;
+        configImportSyncButton.disabled = false;
     }
 });
 
 document.addEventListener("DOMContentLoaded", () => {
     cargarHistorial();
     cargarStatus();
+    cargarConfigImportStatus();
 });

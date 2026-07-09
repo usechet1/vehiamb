@@ -20,7 +20,9 @@ const env = {
   gastosSyncSchedule: process.env.GASTOS_SYNC_SCHEDULE || "0 * * * *",
   stockExcelFilePath: process.env.STOCK_EXCEL_FILE_PATH || "",
   stockImportSchedule: process.env.STOCK_IMPORT_SCHEDULE || "0 3 * * *",
-  stockImportTimezone: process.env.STOCK_IMPORT_TIMEZONE || process.env.IMPORT_TIMEZONE || "America/Bogota"
+  stockImportTimezone: process.env.STOCK_IMPORT_TIMEZONE || process.env.IMPORT_TIMEZONE || "America/Bogota",
+  configExcelFilePath: process.env.CONFIG_EXCEL_FILE_PATH || "",
+  configSyncSchedule: process.env.CONFIG_SYNC_SCHEDULE || "0 4 * * *"
 };
 
 module.exports = env;

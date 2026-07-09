@@ -2,6 +2,7 @@ const mantenimientoForm = document.getElementById("mantenimientoForm");
 const mantenimientosFilterForm = document.getElementById("mantenimientosFilterForm");
 const mantenimientoSelect = document.getElementById("vehiculoMantenimiento");
 const mantenimientosList = document.getElementById("mantenimientosList");
+const mantenimientosKpisGrid = document.getElementById("mantenimientosKpisGrid");
 const filterPlaca = document.getElementById("filterPlaca");
 const filterTipo = document.getElementById("filterTipo");
 const filterFechaDesde = document.getElementById("filterFechaDesde");
@@ -25,6 +26,14 @@ const repuestosSugeridosAviso = document.getElementById("repuestosSugeridosAviso
 const repuestoBusquedaAviso = document.getElementById("repuestoBusquedaAviso");
 const repuestosList = document.getElementById("repuestosList");
 const repuestosEmpty = document.getElementById("repuestosEmpty");
+const repuestoNoEncontradoAviso = document.getElementById("repuestoNoEncontradoAviso");
+const mostrarCrearRepuestoButton = document.getElementById("mostrarCrearRepuestoButton");
+const repuestoCrearForm = document.getElementById("repuestoCrearForm");
+const nuevoRepuestoCodigoInput = document.getElementById("nuevoRepuestoCodigoInput");
+const nuevoRepuestoNombreInput = document.getElementById("nuevoRepuestoNombreInput");
+const nuevoRepuestoCategoriaInput = document.getElementById("nuevoRepuestoCategoriaInput");
+const nuevoRepuestoValorInput = document.getElementById("nuevoRepuestoValorInput");
+const crearRepuestoButton = document.getElementById("crearRepuestoButton");
 const viewEtiquetaButton = document.getElementById("viewEtiquetaButton");
 const valorManoObraInput = document.getElementById("valorManoObraInput");
 const costoTotalDisplay = document.getElementById("costoTotalDisplay");
@@ -42,6 +51,10 @@ const exportMaintenanceButton = document.getElementById("exportMaintenanceButton
 const exportMaintenanceExcelButton = document.getElementById("exportMaintenanceExcelButton");
 const exportHistorialButton = document.getElementById("exportHistorialButton");
 const exportHistorialExcelButton = document.getElementById("exportHistorialExcelButton");
+const tabHistorialButton = document.getElementById("tabHistorialButton");
+const tabRegistrarButton = document.getElementById("tabRegistrarButton");
+const historialMantenimientosSection = document.getElementById("historialMantenimientosSection");
+const registrarMantenimientoSection = document.getElementById("registrarMantenimientoSection");
 
 let repuestosState = [];
 let mantenimientosState = [];
@@ -58,7 +71,7 @@ let sugeridosRequestToken = 0;
 let repuestosPermitidosVehiculo = null;
 
 const tiposMantenimiento = {
-    revision: "Revision general",
+    revision: "Revisión general",
     preventivo: "Preventivo",
     correctivo: "Correctivo",
     cambio_aceite: "Cambio de aceite",
@@ -68,11 +81,74 @@ const tiposMantenimiento = {
 };
 
 const estadosMantenimiento = {
-    pendiente: "Pendiente de aprobacion",
+    pendiente: "Pendiente de aprobación",
     aprobado: "Aprobado",
     rechazado: "Rechazado",
     completado: "Completado"
 };
+
+const badgeClassEstadoMantenimiento = {
+    pendiente: "badge-amarillo",
+    aprobado: "badge-verde",
+    rechazado: "badge-rojo",
+    completado: "badge-verde"
+};
+
+function renderEstadoBadge(estado) {
+    const label = estadosMantenimiento[estado] || estado || "Completado";
+    const badgeClass = badgeClassEstadoMantenimiento[estado] || "badge-gris";
+    return `<span class="badge ${badgeClass}">${label}</span>`;
+}
+
+function calcularKpisMantenimientos(mantenimientos) {
+    const mesActual = new Date().toISOString().slice(0, 7);
+    const vehiculosVistos = new Set();
+    let pendientes = 0;
+    let varados = 0;
+    let esteMes = 0;
+    let gastoEsteMes = 0;
+
+    for (const item of mantenimientos) {
+        if (item.estado === "pendiente") pendientes += 1;
+
+        // mantenimientos ya viene ordenado fecha DESC, id DESC: la primera
+        // vez que aparece un vehiculo_id es su mantenimiento mas reciente.
+        if (!vehiculosVistos.has(item.vehiculo_id)) {
+            vehiculosVistos.add(item.vehiculo_id);
+            if (item.vehiculo_varado) varados += 1;
+        }
+
+        if (String(item.fecha || "").slice(0, 7) === mesActual) {
+            esteMes += 1;
+            gastoEsteMes += Number(item.valor || 0);
+        }
+    }
+
+    return { pendientes, varados, esteMes, gastoEsteMes };
+}
+
+function renderKpisMantenimientos(mantenimientos) {
+    const kpis = calcularKpisMantenimientos(mantenimientos);
+
+    mantenimientosKpisGrid.innerHTML = `
+        <div class="kpi-card" style="--kpi-accent: var(--color-warning)">
+            <div class="kpi-label">Pendientes de aprobación</div>
+            <div class="kpi-value">${kpis.pendientes}</div>
+        </div>
+        <div class="kpi-card" style="--kpi-accent: var(--color-primary)">
+            <div class="kpi-label">Vehículos varados</div>
+            <div class="kpi-value">${kpis.varados}</div>
+        </div>
+        <div class="kpi-card" style="--kpi-accent: var(--color-success)">
+            <div class="kpi-label">Mantenimientos este mes</div>
+            <div class="kpi-value">${kpis.esteMes}</div>
+        </div>
+        <div class="kpi-card" style="--kpi-accent: var(--color-success)">
+            <div class="kpi-label">Gasto este mes</div>
+            <div class="kpi-value">${formatCurrency(kpis.gastoEsteMes)}</div>
+        </div>
+    `;
+}
 
 function formatCurrency(value) {
     return new Intl.NumberFormat("es-CO", {
@@ -119,7 +195,7 @@ function selectedVehicle() {
     return vehiculosState.find((vehiculo) => String(vehiculo.id) === String(mantenimientoSelect.value));
 }
 
-function fillVehicleSelect(select, vehiculos, placeholder = "Selecciona un vehiculo", valueField = "id") {
+function fillVehicleSelect(select, vehiculos, placeholder = "Selecciona un vehículo", valueField = "id") {
     const previousValue = select.value;
     select.innerHTML = `<option value="">${placeholder}</option>`;
 
@@ -145,17 +221,16 @@ function updateKilometrajeValidation() {
     const vehiculo = selectedVehicle();
     const minKm = Number(vehiculo?.kilometraje_actual || 0);
 
-    mantenimientoKilometraje.min = String(minKm);
     mantenimientoKilometraje.setCustomValidity("");
 
     if (!vehiculo) {
-        kilometrajeHelp.textContent = "Selecciona un vehiculo para validar el kilometraje.";
+        kilometrajeHelp.textContent = "Selecciona un vehículo para validar el kilometraje.";
         return;
     }
 
     kilometrajeHelp.textContent = `Kilometraje actual registrado: ${minKm.toLocaleString("es-CO")} km. El nuevo valor no puede ser menor.`;
 
-    const value = mantenimientoKilometraje.value;
+    const value = window.VehiAmb.ui.parseFormattedNumber(mantenimientoKilometraje.value);
     if (value !== "" && Number(value) < minKm) {
         mantenimientoKilometraje.setCustomValidity(`El kilometraje debe ser mayor o igual a ${minKm.toLocaleString("es-CO")} km.`);
     }
@@ -203,7 +278,7 @@ function actualizarEstadoBusquedaRepuesto() {
 
     if (!isCambioAceite) {
         repuestoInput.disabled = false;
-        repuestoInput.placeholder = "Buscar repuesto del catalogo...";
+        repuestoInput.placeholder = "Buscar repuesto del catálogo...";
         repuestoBusquedaAviso.classList.add("hidden");
         return;
     }
@@ -214,14 +289,14 @@ function actualizarEstadoBusquedaRepuesto() {
     repuestoInput.disabled = !vehiculo || sinPermitidos;
 
     if (!vehiculo) {
-        repuestoInput.placeholder = "Selecciona un vehiculo primero...";
+        repuestoInput.placeholder = "Selecciona un vehículo primero...";
         repuestoBusquedaAviso.classList.add("hidden");
     } else if (sinPermitidos) {
-        repuestoInput.placeholder = "Sin repuestos configurados para este vehiculo";
-        repuestoBusquedaAviso.textContent = "Este vehiculo no tiene repuestos configurados para cambio de aceite. Configuralos desde su ficha.";
+        repuestoInput.placeholder = "Sin repuestos configurados para este vehículo";
+        repuestoBusquedaAviso.textContent = "Este vehículo no tiene repuestos configurados para cambio de aceite. Configúralos desde su ficha.";
         repuestoBusquedaAviso.classList.remove("hidden");
     } else {
-        repuestoInput.placeholder = "Buscar entre los repuestos configurados para este vehiculo...";
+        repuestoInput.placeholder = "Buscar entre los repuestos configurados para este vehículo...";
         repuestoBusquedaAviso.classList.add("hidden");
     }
 }
@@ -400,7 +475,7 @@ function syncRepuestosField() {
 }
 
 function updateCostoTotal() {
-    const manoObra = Number(valorManoObraInput.value || 0);
+    const manoObra = Number(window.VehiAmb.ui.parseFormattedMoneda(valorManoObraInput.value));
     const totalRepuestos = repuestosState.reduce((sum, item) => sum + Number(item.valor || 0), 0);
     costoTotalDisplay.value = formatCurrency(manoObra + totalRepuestos);
 }
@@ -503,7 +578,7 @@ function agregarRepuestoAlBuilder(repuesto, cantidad, { repuestoSugeridoId, moti
 
     repuestoInput.value = "";
     repuestoProveedorInput.value = "";
-    repuestoCantidadInput.value = "1";
+    repuestoCantidadInput.value = "";
     repuestoNotasInput.value = "";
     limpiarSeleccionRepuesto();
     renderRepuestosBuilder();
@@ -516,6 +591,70 @@ function addRepuesto() {
     const cantidad = Number(repuestoCantidadInput.value) > 0 ? Number(repuestoCantidadInput.value) : 1;
     agregarRepuestoAlBuilder(repuestoSeleccionado, cantidad);
 }
+
+// Si la busqueda en el catalogo no encuentra nada, se ofrece crear el
+// repuesto ahi mismo (codigo interno + nombre son los unicos obligatorios en
+// el backend) y agregarlo de una vez al mantenimiento actual.
+function ocultarCrearRepuesto() {
+    repuestoNoEncontradoAviso.classList.add("hidden");
+    repuestoCrearForm.classList.add("hidden");
+}
+
+function mostrarAvisoRepuestoNoEncontrado(term) {
+    if (!term) {
+        ocultarCrearRepuesto();
+        return;
+    }
+
+    repuestoCrearForm.classList.add("hidden");
+    repuestoNoEncontradoAviso.classList.remove("hidden");
+}
+
+function actualizarEstadoCrearRepuesto() {
+    crearRepuestoButton.disabled = !nuevoRepuestoCodigoInput.value.trim() || !nuevoRepuestoNombreInput.value.trim();
+}
+
+mostrarCrearRepuestoButton.addEventListener("click", () => {
+    repuestoNoEncontradoAviso.classList.add("hidden");
+    repuestoCrearForm.classList.remove("hidden");
+    nuevoRepuestoNombreInput.value = repuestoInput.value.trim();
+    nuevoRepuestoCodigoInput.value = "";
+    nuevoRepuestoValorInput.value = "";
+    actualizarEstadoCrearRepuesto();
+    nuevoRepuestoCodigoInput.focus();
+});
+
+nuevoRepuestoCodigoInput.addEventListener("input", actualizarEstadoCrearRepuesto);
+nuevoRepuestoNombreInput.addEventListener("input", actualizarEstadoCrearRepuesto);
+nuevoRepuestoValorInput.addEventListener("input", () => window.VehiAmb.ui.formatearMonedaEnVivo(nuevoRepuestoValorInput));
+
+crearRepuestoButton.addEventListener("click", async () => {
+    const payload = {
+        codigo_interno: nuevoRepuestoCodigoInput.value.trim(),
+        nombre: nuevoRepuestoNombreInput.value.trim(),
+        categoria: nuevoRepuestoCategoriaInput.value,
+        valor_promedio: Number(window.VehiAmb.ui.parseFormattedMoneda(nuevoRepuestoValorInput.value))
+    };
+
+    crearRepuestoButton.disabled = true;
+    try {
+        const nuevoRepuesto = await window.VehiAmb.api.createRepuesto(payload);
+        const cantidad = Number(repuestoCantidadInput.value) > 0 ? Number(repuestoCantidadInput.value) : 1;
+        agregarRepuestoAlBuilder(nuevoRepuesto, cantidad);
+
+        nuevoRepuestoCodigoInput.value = "";
+        nuevoRepuestoNombreInput.value = "";
+        nuevoRepuestoCategoriaInput.value = "otros";
+        nuevoRepuestoValorInput.value = "";
+        ocultarCrearRepuesto();
+        window.VehiAmb.ui.showMessage(mensaje, "Repuesto creado y agregado al catálogo");
+    } catch (error) {
+        console.error(error);
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo crear el repuesto", "error");
+    } finally {
+        actualizarEstadoCrearRepuesto();
+    }
+});
 
 repuestoEquivalenciasPicker.addEventListener("click", (event) => {
     const button = event.target.closest(".repuesto-equivalencia-opcion");
@@ -537,7 +676,8 @@ async function buscarRepuestosParaMantenimiento(term) {
 
 window.VehiAmb.crearRepuestoAutocomplete(repuestoInput, {
     onSelect: seleccionarRepuestoDelAutocomplete,
-    buscarFn: buscarRepuestosParaMantenimiento
+    buscarFn: buscarRepuestosParaMantenimiento,
+    onSinResultados: mostrarAvisoRepuestoNoEncontrado
 });
 
 function renderRepuestosMeta(value) {
@@ -641,7 +781,7 @@ function renderRepuestosCatalogo(items) {
 
 async function openMaintenanceDetail(item) {
     currentDetailItem = item;
-    const vehicleName = `${item.marca || ""} ${item.modelo || ""}`.trim() || "Vehiculo";
+    const vehicleName = `${item.marca || ""} ${item.modelo || ""}`.trim() || "Vehículo";
 
     maintenanceDrawerTitle.textContent = tiposMantenimiento[item.tipo] || item.tipo || "Mantenimiento";
     maintenanceDrawerSubtitle.textContent = `${item.placa || "Sin placa"} - ${vehicleName}`;
@@ -649,7 +789,7 @@ async function openMaintenanceDetail(item) {
 
     maintenanceDrawerBody.innerHTML = `
         <dl class="detail-list drawer-detail-list">
-            ${detailRow("Vehiculo", vehicleName)}
+            ${detailRow("Vehículo", vehicleName)}
             ${detailRow("Placa", item.placa || "Sin placa")}
             ${detailRow("Estado", estadosMantenimiento[item.estado] || item.estado || "Completado")}
             ${detailRow("Fecha", formatDate(item.fecha))}
@@ -658,12 +798,12 @@ async function openMaintenanceDetail(item) {
             ${detailRow("Kilometraje", `${Number(item.kilometraje || 0).toLocaleString("es-CO")} km`)}
             ${detailRow("Autorizado por", item.autorizado_por || "No registrado")}
             ${detailRow("Realizado por", item.hecho_por || "No registrado")}
-            ${detailRow("Fecha de creacion", formatDateTime(item.created_at))}
+            ${detailRow("Fecha de creación", formatDateTime(item.created_at))}
         </dl>
 
         <section class="drawer-section">
-            <h3>Descripcion / trabajo realizado</h3>
-            <p>${escapeHtml(item.descripcion || "Sin detalle de revision")}</p>
+            <h3>Descripción / trabajo realizado</h3>
+            <p>${escapeHtml(item.descripcion || "Sin detalle de revisión")}</p>
         </section>
 
         <section class="drawer-section">
@@ -719,12 +859,12 @@ function renderMantenimientos(mantenimientos) {
                 </div>
                 <span class="pill">${formatDate(item.fecha)}</span>
             </div>
-            <p>${item.descripcion || "Sin detalle de revision"}</p>
+            <p>${item.descripcion || "Sin detalle de revisión"}</p>
             <div class="record-meta">
                 <span class="pill">${formatCurrency(item.valor)}</span>
                 <span class="pill">${Number(item.kilometraje || 0).toLocaleString("es-CO")} km</span>
-                <span class="pill">${estadosMantenimiento[item.estado] || item.estado || "Completado"}</span>
-                ${item.vehiculo_varado ? '<span class="pill">Vehiculo varado</span>' : ""}
+                ${renderEstadoBadge(item.estado)}
+                ${item.vehiculo_varado ? '<span class="pill">Vehículo varado</span>' : ""}
                 ${renderRepuestosMeta(item.repuestos)}
                 <span class="pill">Autorizado por: ${item.autorizado_por || "No registrado"}</span>
                 <span class="pill">Hecho por: ${item.hecho_por || "No registrado"}</span>
@@ -750,7 +890,7 @@ function updateFilterSummary(filteredCount) {
     const hasFilters = Boolean(filters.placa || filters.tipo || filters.fecha_desde || filters.fecha_hasta);
 
     if (!total) {
-        filterSummary.textContent = "Aun no hay mantenimientos registrados.";
+        filterSummary.textContent = "Aún no hay mantenimientos registrados.";
         return;
     }
 
@@ -798,7 +938,7 @@ async function cargarDatos() {
         updateKilometrajeValidation();
     } catch (error) {
         console.error(error);
-        window.VehiAmb.ui.showMessage(mensaje, "No fue posible cargar los vehiculos", "error");
+        window.VehiAmb.ui.showMessage(mensaje, "No fue posible cargar los vehículos", "error");
         window.VehiAmb.ui.hide(loader);
         return;
     }
@@ -806,12 +946,13 @@ async function cargarDatos() {
     try {
         const todosLosMantenimientos = await window.VehiAmb.api.getMantenimientos();
         totalMantenimientosCount = todosLosMantenimientos.length;
+        renderKpisMantenimientos(todosLosMantenimientos);
         await applyMaintenanceFilters();
     } catch (error) {
         console.error(error);
         mantenimientosList.innerHTML = '<p class="dash-empty">No fue posible cargar el historial de mantenimientos</p>';
         updateFilterSummary(0);
-        window.VehiAmb.ui.showMessage(mensaje, "Los vehiculos cargaron, pero no fue posible cargar el historial", "error");
+        window.VehiAmb.ui.showMessage(mensaje, "Los vehículos cargaron, pero no fue posible cargar el historial", "error");
     } finally {
         window.VehiAmb.ui.hide(loader);
     }
@@ -823,6 +964,8 @@ mantenimientoForm.addEventListener("submit", async (event) => {
     if (!validateKilometrajeBeforeSubmit()) return;
 
     const formData = new FormData(mantenimientoForm);
+    formData.set("kilometraje", window.VehiAmb.ui.parseFormattedNumber(mantenimientoKilometraje.value));
+    formData.set("valor_mano_obra", window.VehiAmb.ui.parseFormattedMoneda(valorManoObraInput.value));
 
     try {
         window.VehiAmb.ui.show(loader);
@@ -842,6 +985,7 @@ mantenimientoForm.addEventListener("submit", async (event) => {
         updateCostoTotal();
         updateCambioAceiteFields();
         await cargarDatos();
+        switchTab("historial");
     } catch (error) {
         console.error(error);
         window.VehiAmb.ui.showMessage(mensaje, error.message || "Error al guardar el mantenimiento", "error");
@@ -854,8 +998,14 @@ mantenimientoSelect.addEventListener("change", () => {
     updateKilometrajeValidation();
     cargarRepuestosSugeridos();
 });
-mantenimientoKilometraje.addEventListener("input", updateKilometrajeValidation);
-valorManoObraInput.addEventListener("input", updateCostoTotal);
+mantenimientoKilometraje.addEventListener("input", () => {
+    window.VehiAmb.ui.formatearNumeroEnVivo(mantenimientoKilometraje);
+    updateKilometrajeValidation();
+});
+valorManoObraInput.addEventListener("input", () => {
+    window.VehiAmb.ui.formatearMonedaEnVivo(valorManoObraInput);
+    updateCostoTotal();
+});
 mantenimientoTipo.addEventListener("change", updateCambioAceiteFields);
 
 mantenimientosFilterForm.addEventListener("submit", (event) => {
@@ -866,6 +1016,21 @@ mantenimientosFilterForm.addEventListener("submit", (event) => {
     input.addEventListener("input", applyMaintenanceFilters);
     input.addEventListener("change", applyMaintenanceFilters);
 });
+
+function switchTab(tab) {
+    const esRegistrar = tab === "registrar";
+
+    tabRegistrarButton.classList.toggle("active", esRegistrar);
+    tabHistorialButton.classList.toggle("active", !esRegistrar);
+    tabRegistrarButton.setAttribute("aria-selected", String(esRegistrar));
+    tabHistorialButton.setAttribute("aria-selected", String(!esRegistrar));
+
+    window.VehiAmb.ui[esRegistrar ? "show" : "hide"](registrarMantenimientoSection);
+    window.VehiAmb.ui[esRegistrar ? "hide" : "show"](historialMantenimientosSection);
+}
+
+tabHistorialButton.addEventListener("click", () => switchTab("historial"));
+tabRegistrarButton.addEventListener("click", () => switchTab("registrar"));
 
 clearFiltersButton.addEventListener("click", () => {
     mantenimientosFilterForm.reset();

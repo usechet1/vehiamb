@@ -631,11 +631,19 @@ window.VehiAmb.api = {
         );
     },
 
-    ejecutarConfigImport(formData) {
+    ejecutarConfigImport() {
         return requestJson(
             `${window.VehiAmb.API_URL}/config-import/vehiculos-repuestos`,
-            { method: "POST", body: formData },
+            { method: "POST" },
             "No se pudo ejecutar la importacion de configuracion"
+        );
+    },
+
+    getConfigImportStatus() {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/config-import/vehiculos-repuestos/status`,
+            undefined,
+            "No se pudo cargar el estado de la importacion de configuracion"
         );
     },
 

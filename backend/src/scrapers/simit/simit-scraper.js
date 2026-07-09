@@ -212,7 +212,11 @@ async function irConReintento(page, url, opciones) {
 }
 
 async function scrapePlaca(placa) {
-  const placaNormalizada = String(placa || "").trim().toUpperCase();
+  // SIMIT solo reconoce la placa sin separadores (ej. "AAA123"), pero el
+  // catalogo de vehiculos puede tenerla guardada con guion ("AAA-123") por
+  // legibilidad. Se quita cualquier caracter no alfanumerico antes de
+  // consultar.
+  const placaNormalizada = String(placa || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
 
   if (!placaNormalizada) {
     return emptyResult({

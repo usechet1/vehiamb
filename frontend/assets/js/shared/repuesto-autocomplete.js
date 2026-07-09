@@ -4,7 +4,7 @@
 // esta ya) y le agrega una lista desplegable de sugerencias.
 window.VehiAmb = window.VehiAmb || {};
 
-function crearRepuestoAutocomplete(inputEl, { onSelect, buscarFn } = {}) {
+function crearRepuestoAutocomplete(inputEl, { onSelect, buscarFn, onSinResultados } = {}) {
     const buscar = buscarFn || ((term) => window.VehiAmb.api.buscarRepuestos(term));
     if (!inputEl.parentElement.classList.contains("repuesto-autocomplete-wrap")) {
         const wrap = document.createElement("div");
@@ -53,12 +53,15 @@ function crearRepuestoAutocomplete(inputEl, { onSelect, buscarFn } = {}) {
     function seleccionar(repuesto) {
         inputEl.value = repuesto.nombre;
         ocultar();
+        onSinResultados?.(null);
         onSelect?.(repuesto);
     }
 
     inputEl.addEventListener("input", () => {
         clearTimeout(debounceTimer);
         const term = inputEl.value.trim();
+
+        onSinResultados?.(null);
 
         if (term.length < 2) {
             ocultar();
@@ -69,6 +72,7 @@ function crearRepuestoAutocomplete(inputEl, { onSelect, buscarFn } = {}) {
             try {
                 resultados = await buscar(term);
                 renderizar();
+                if (!resultados.length) onSinResultados?.(term);
             } catch (error) {
                 ocultar();
             }

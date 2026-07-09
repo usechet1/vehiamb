@@ -150,44 +150,13 @@ inputPlaca?.addEventListener("input", () => {
 // Kilometraje, cilindraje y capacidad de carga se escriben como texto para
 // poder mostrar el separador de miles ("." estilo es-CO) mientras el usuario
 // digita -- el valor real (sin puntos, con "." como decimal) se restituye
-// justo antes de enviar el formulario, en parseFormattedNumber().
-function formatearNumeroEnVivo(input) {
-    const posicionDesdeElFinal = input.value.length - input.selectionStart;
-
-    let raw = input.value.replace(/[^\d,]/g, "");
-    const primeraComa = raw.indexOf(",");
-    if (primeraComa !== -1) {
-        raw = raw.slice(0, primeraComa + 1) + raw.slice(primeraComa + 1).replaceAll(",", "");
-    }
-
-    let [parteEntera, parteDecimal] = raw.split(",");
-    parteEntera = parteEntera.replace(/^0+(?=\d)/, "");
-    const parteEnteraFormateada = parteEntera.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-
-    input.value = parteDecimal !== undefined ? `${parteEnteraFormateada},${parteDecimal}` : parteEnteraFormateada;
-
-    const nuevaPosicion = input.value.length - posicionDesdeElFinal;
-    input.setSelectionRange(nuevaPosicion, nuevaPosicion);
-}
-
-function formatearNumeroParaMostrar(value) {
-    if (value === null || value === undefined || value === "") return "";
-
-    const numero = Number(value);
-    if (!Number.isFinite(numero)) return String(value);
-
-    const [parteEntera, parteDecimal] = String(numero).split(".");
-    const parteEnteraFormateada = parteEntera.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    return parteDecimal ? `${parteEnteraFormateada},${parteDecimal}` : parteEnteraFormateada;
-}
-
-function parseFormattedNumber(value) {
-    if (value === null || value === undefined) return "";
-    return String(value).replaceAll(".", "").replace(",", ".");
-}
+// justo antes de enviar el formulario, en parseFormattedNumber(). La logica
+// vive en window.VehiAmb.ui para reutilizarla en otras paginas.
+const formatearNumeroParaMostrar = window.VehiAmb.ui.formatearNumeroParaMostrar;
+const parseFormattedNumber = window.VehiAmb.ui.parseFormattedNumber;
 
 camposNumericosFormateados.forEach((input) => {
-    input.addEventListener("input", () => formatearNumeroEnVivo(input));
+    input.addEventListener("input", () => window.VehiAmb.ui.formatearNumeroEnVivo(input));
 });
 
 function updateImagePreview() {

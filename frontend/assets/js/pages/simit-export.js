@@ -92,7 +92,7 @@
         layout.ensureSpace(20);
         doc.setFontSize(10);
         doc.setFont(undefined, "bold");
-        doc.text("Comparendos de la ultima consulta", MARGIN_X, layout.y);
+        doc.text("Comparendos de la última consulta", MARGIN_X, layout.y);
         layout.spacer(14);
 
         if (!comparendos || !comparendos.length) {
@@ -105,9 +105,9 @@
         const colX = [MARGIN_X, MARGIN_X + 100, MARGIN_X + 150, MARGIN_X + 340, MARGIN_X + 420];
 
         doc.setFont(undefined, "bold");
-        doc.text("Numero", colX[0], layout.y);
+        doc.text("Número", colX[0], layout.y);
         doc.text("Fecha", colX[1], layout.y);
-        doc.text("Descripcion", colX[2], layout.y);
+        doc.text("Descripción", colX[2], layout.y);
         doc.text("Valor", colX[3], layout.y);
         doc.text("Estado", colX[4], layout.y);
         layout.spacer(6);
@@ -119,7 +119,7 @@
             layout.ensureSpace(16);
             doc.text(safe(item.numero_comparendo), colX[0], layout.y, { maxWidth: 95 });
             doc.text(item.fecha_infraccion ? window.VehiAmb.pdfExport.formatDateForPdf(item.fecha_infraccion) : "Sin fecha", colX[1], layout.y);
-            doc.text(safe(item.descripcion, "Sin descripcion"), colX[2], layout.y, { maxWidth: 185 });
+            doc.text(safe(item.descripcion, "Sin descripción"), colX[2], layout.y, { maxWidth: 185 });
             doc.text(formatCurrency(item.valor), colX[3], layout.y);
             doc.text(safe(item.estado), colX[4], layout.y);
             layout.spacer(16);
@@ -136,7 +136,7 @@
 
         if (!historial || !historial.length) {
             doc.setFont(undefined, "normal");
-            doc.text("Este vehiculo aun no tiene consultas SIMIT registradas.", MARGIN_X, layout.y);
+            doc.text("Este vehículo aún no tiene consultas SIMIT registradas.", MARGIN_X, layout.y);
             layout.spacer(16);
             return;
         }
@@ -159,7 +159,7 @@
             layout.ensureSpace(16);
             const estadoConsultaOk = item.estado_consulta === "ok";
             doc.text(formatDateTime(item.fecha_consulta), colX[0], layout.y);
-            doc.text(item.origen === "masivo" ? "Actualizacion flota" : "Manual", colX[1], layout.y);
+            doc.text(item.origen === "masivo" ? "Actualización flota" : "Manual", colX[1], layout.y);
             doc.text(estadoConsultaOk ? "OK" : safe(item.estado_consulta), colX[2], layout.y);
             doc.text(estadoLabel(estadoConsultaOk ? item.estado_cartera : "desconocido"), colX[3], layout.y);
             doc.text(String(item.total_comparendos ?? 0), colX[4], layout.y);
@@ -196,7 +196,7 @@
 
     async function exportComparendosPdf({ row, historial, detalle, estado }) {
         if (!row) {
-            throw new Error("No hay un vehiculo seleccionado para exportar");
+            throw new Error("No hay un vehículo seleccionado para exportar");
         }
 
         const doc = window.VehiAmb.pdfExport.createDocument();
@@ -205,14 +205,14 @@
 
         await addHeader(doc, layout);
 
-        layout.sectionTitle("Informacion general");
-        layout.row("Vehiculo", vehicleName);
+        layout.sectionTitle("Información general");
+        layout.row("Vehículo", vehicleName);
         layout.row("Placa", row.placa);
         layout.row("Estado actual", estadoLabel(estado));
         layout.row("Comparendos vigentes", row.total_comparendos ?? 0);
         layout.row("Valor total", formatCurrency(row.valor_total));
-        layout.row("Ultima consulta", formatDateTime(row.fecha_consulta));
-        if (row.mensaje_error) layout.row("Ultimo error", row.mensaje_error);
+        layout.row("Última consulta", formatDateTime(row.fecha_consulta));
+        if (row.mensaje_error) layout.row("Último error", row.mensaje_error);
 
         layout.spacer();
         addComparendosTable(doc, layout, detalle?.comparendos);
@@ -229,7 +229,7 @@
 
     async function exportComparendosExcel({ row, historial, detalle, estado }) {
         if (!row) {
-            throw new Error("No hay un vehiculo seleccionado para exportar");
+            throw new Error("No hay un vehículo seleccionado para exportar");
         }
 
         const excel = window.VehiAmb.excelExport;
@@ -246,19 +246,19 @@
             columnCount: EXCEL_COLUMN_COUNT
         });
 
-        excel.addSectionHeader(sheet, "Informacion general", EXCEL_COLUMN_COUNT);
-        excel.addLabelValueRow(sheet, "Vehiculo", safe(vehicleName));
+        excel.addSectionHeader(sheet, "Información general", EXCEL_COLUMN_COUNT);
+        excel.addLabelValueRow(sheet, "Vehículo", safe(vehicleName));
         excel.addLabelValueRow(sheet, "Placa", safe(row.placa));
         excel.addLabelValueRow(sheet, "Estado actual", estadoLabel(estado));
         excel.addLabelValueRow(sheet, "Comparendos vigentes", row.total_comparendos ?? 0);
         const valorRow = excel.addLabelValueRow(sheet, "Valor total", Number(row.valor_total || 0));
         valorRow.getCell(2).numFmt = "$#,##0";
-        excel.addLabelValueRow(sheet, "Ultima consulta", formatDateTime(row.fecha_consulta));
-        if (row.mensaje_error) excel.addLabelValueRow(sheet, "Ultimo error", safe(row.mensaje_error));
+        excel.addLabelValueRow(sheet, "Última consulta", formatDateTime(row.fecha_consulta));
+        if (row.mensaje_error) excel.addLabelValueRow(sheet, "Último error", safe(row.mensaje_error));
         sheet.addRow([]);
 
-        excel.addSectionHeader(sheet, "Comparendos de la ultima consulta", EXCEL_COLUMN_COUNT);
-        excel.addTableHeaderRow(sheet, ["Numero", "Fecha", "Descripcion", "Valor", "Estado", ""]);
+        excel.addSectionHeader(sheet, "Comparendos de la última consulta", EXCEL_COLUMN_COUNT);
+        excel.addTableHeaderRow(sheet, ["Número", "Fecha", "Descripción", "Valor", "Estado", ""]);
 
         if (comparendos.length) {
             comparendos.forEach((item, index) => {
@@ -267,7 +267,7 @@
                     [
                         safe(item.numero_comparendo),
                         item.fecha_infraccion ? excel.formatDateForExcel(item.fecha_infraccion) : "Sin fecha",
-                        safe(item.descripcion, "Sin descripcion"),
+                        safe(item.descripcion, "Sin descripción"),
                         Number(item.valor || 0),
                         safe(item.estado),
                         ""
@@ -291,7 +291,7 @@
                     sheet,
                     [
                         formatDateTime(item.fecha_consulta),
-                        item.origen === "masivo" ? "Actualizacion flota" : "Manual",
+                        item.origen === "masivo" ? "Actualización flota" : "Manual",
                         estadoConsultaOk ? "OK" : safe(item.estado_consulta),
                         estadoLabel(estadoConsultaOk ? item.estado_cartera : "desconocido"),
                         Number(item.total_comparendos ?? 0),
@@ -302,7 +302,7 @@
                 dataRow.getCell(6).numFmt = "$#,##0";
             });
         } else {
-            excel.addTableDataRow(sheet, ["Este vehiculo aun no tiene consultas SIMIT registradas.", "", "", "", "", ""]);
+            excel.addTableDataRow(sheet, ["Este vehículo aún no tiene consultas SIMIT registradas.", "", "", "", "", ""]);
         }
 
         excel.addFooterRow(sheet, FOOTER_TEXT(), EXCEL_COLUMN_COUNT);

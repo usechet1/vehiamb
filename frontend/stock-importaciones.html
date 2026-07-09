@@ -45,19 +45,32 @@
                 </div>
             </div>
 
-            <section class="section-card">
-                <div class="section-card-head">
-                    <h2>Importar configuracion de vehiculos (repuestos sugeridos + equivalencias)</h2>
-                    <p>Carga bootstrap, de una sola vez: crea lo que no existe, nunca pisa lo que ya configuraste a mano desde la ficha del vehiculo o el catalogo. Solo aplica a mantenimientos de tipo Cambio de aceite.</p>
+            <div class="module-grid">
+                <div class="stack">
+                    <section class="section-card">
+                        <div class="section-card-head">
+                            <h2>Importar configuracion de vehiculos (repuestos sugeridos + equivalencias)</h2>
+                            <p>Carga bootstrap: crea lo que no existe, nunca pisa lo que ya configuraste a mano desde la ficha del vehiculo o el catalogo. Solo aplica a mantenimientos de tipo Cambio de aceite. Se sincroniza sola todos los dias; este boton la ejecuta ahora mismo.</p>
+                        </div>
+                        <div class="section-card-body">
+                            <button type="button" class="btn-primary" id="configImportSyncButton">Sincronizar ahora</button>
+                            <div id="configImportResult" class="import-run-result hidden"></div>
+                        </div>
+                    </section>
                 </div>
-                <div class="section-card-body">
-                    <div class="simple-list-entry">
-                        <input type="file" id="configImportFile" accept=".xlsx,.xls">
-                        <button type="button" class="btn-primary" id="configImportSubmitButton">Ejecutar importacion</button>
-                    </div>
-                    <div id="configImportResult" class="import-run-result hidden"></div>
+
+                <div class="stack">
+                    <section class="section-card">
+                        <div class="section-card-head">
+                            <h2>Ultima sincronizacion de configuracion</h2>
+                            <p>Se ejecuta todos los dias segun CONFIG_SYNC_SCHEDULE.</p>
+                        </div>
+                        <div class="section-card-body" id="configImportStatusBody">
+                            <p class="dash-empty">Cargando...</p>
+                        </div>
+                    </section>
                 </div>
-            </section>
+            </div>
 
             <section class="section-card import-history-card">
                 <div class="section-card-head">
@@ -104,7 +117,9 @@
                 </div>
             </section>
 
-            <div id="loader" class="loader hidden"></div>
+            <div id="loader" class="loader hidden">
+                <video src="img/loader.mp4" autoplay loop muted playsinline></video>
+            </div>
             <div id="mensaje" class="mensaje hidden"></div>
 
             <div id="stockImportDrawerBackdrop" class="drawer-backdrop hidden"></div>

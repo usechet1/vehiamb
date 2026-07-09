@@ -1009,7 +1009,8 @@ if (env.dbClient === "sqlite") {
       ensureColumn("notificaciones", "accion_tipo", "TEXT"),
       ensureColumn("notificaciones", "accion_payload", "TEXT"),
       ensureColumn("notificaciones", "estado", "TEXT NOT NULL DEFAULT 'no_leida'"),
-      ensureColumn("notificaciones", "updated_at", "TIMESTAMPTZ NOT NULL DEFAULT NOW()")
+      ensureColumn("notificaciones", "updated_at", "TIMESTAMPTZ NOT NULL DEFAULT NOW()"),
+      ensureColumn("importaciones_config_vehiculos", "hash_archivo", "TEXT")
     ]))
     .then(() => Promise.all([
       ensureNumericColumn("vehiculos", "kilometraje_actual"),

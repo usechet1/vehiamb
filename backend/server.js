@@ -9,6 +9,7 @@ const gastosSyncJob = require("./src/jobs/gastos-sync.job");
 const stockImportSchedulerJob = require("./src/jobs/stock-import-scheduler.job");
 const stockAlertasJob = require("./src/jobs/stock-alertas.job");
 const simitConsultaJob = require("./src/jobs/simit-consulta.job");
+const configSyncJob = require("./src/jobs/config-sync.job");
 
 const server = app.listen(env.port, () => {
   console.log(`Servidor corriendo en puerto ${env.port}`);
@@ -20,6 +21,7 @@ const server = app.listen(env.port, () => {
   stockImportSchedulerJob.start();
   stockAlertasJob.start();
   simitConsultaJob.start();
+  configSyncJob.start();
 });
 
 function shutdown(signal) {

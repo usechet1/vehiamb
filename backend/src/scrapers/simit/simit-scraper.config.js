@@ -16,10 +16,11 @@
 // - Tarjeta de agregados: ".bg-estado-section" con labels "Comparendos",
 //   "Multas", "Acuerdos de pago", "Total" (fuente autoritativa de los
 //   totales, no depende de la paginacion de la tabla).
-// - emptyState (placa/documento SIN multas) NO se pudo verificar: no hay una
-//   placa de prueba conocida sin comparendos. Sigue siendo una estimacion; si
-//   el scraper reporta "error" de forma consistente para placas que deberian
-//   estar limpias, revisar este selector primero.
+// - emptyState (placa/documento SIN multas): verificado el 2026-07-09 con
+//   placa real sin comparendos (WLN504). El bloque no tiene una clase CSS
+//   propia (usa clases genericas de Bootstrap que tambien aparecen en otros
+//   estados), asi que se localiza por el texto exacto del h3: "No tienes
+//   comparendos ni multas registradas en Simit".
 //
 // IMPORTANTE: el sitio esta protegido con Cloudflare Turnstile (bot check).
 // Con un User-Agent de navegador real el sitio respondio 200 y renderizo el
@@ -52,7 +53,7 @@ module.exports = {
     resultRow: process.env.SIMIT_SELECTOR_RESULT_ROW || "#multaTable tbody tr.page-row",
     resumenCard: process.env.SIMIT_SELECTOR_RESUMEN || ".bg-estado-section",
     pageLengthSelect: process.env.SIMIT_SELECTOR_PAGE_LENGTH || "#pageLengthSelect",
-    emptyState: process.env.SIMIT_SELECTOR_EMPTY_STATE || ".sin-resultados, .no-data, .estado-sin-multas",
+    emptyState: process.env.SIMIT_SELECTOR_EMPTY_STATE || "text=No tienes comparendos ni multas registradas",
     captchaMarker: process.env.SIMIT_SELECTOR_CAPTCHA
       || "iframe[src*='challenges.cloudflare.com' i], .cf-turnstile, [class*='turnstile' i], iframe[src*='captcha' i], iframe[src*='recaptcha' i], .g-recaptcha, .h-captcha"
   },

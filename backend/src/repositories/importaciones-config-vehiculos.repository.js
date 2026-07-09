@@ -4,13 +4,14 @@ async function create(registro) {
   return db.get(
     `
       INSERT INTO importaciones_config_vehiculos
-        (nombre_archivo, usuario_id, estado, total_sugeridos_creados, total_equivalencias_creadas,
+        (nombre_archivo, hash_archivo, usuario_id, estado, total_sugeridos_creados, total_equivalencias_creadas,
          total_omitidos, total_incidencias, detalle_incidencias, duracion_ms)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING *
     `,
     [
       registro.nombre_archivo,
+      registro.hash_archivo ?? null,
       registro.usuario_id ?? null,
       registro.estado,
       registro.total_sugeridos_creados ?? 0,
@@ -20,6 +21,18 @@ async function create(registro) {
       registro.detalle_incidencias ? JSON.stringify(registro.detalle_incidencias) : null,
       registro.duracion_ms ?? null
     ]
+  );
+}
+
+async function findUltimaAutomatica() {
+  return db.get(
+    `
+      SELECT *
+      FROM importaciones_config_vehiculos
+      WHERE usuario_id IS NULL
+      ORDER BY creado_en DESC, id DESC
+      LIMIT 1
+    `
   );
 }
 
@@ -49,4 +62,4 @@ async function findAll({ page = 1, limit = 20 } = {}) {
   };
 }
 
-module.exports = { create, findAll };
+module.exports = { create, findAll, findUltimaAutomatica };

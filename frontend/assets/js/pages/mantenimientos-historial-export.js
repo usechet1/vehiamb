@@ -29,7 +29,7 @@
     const COLUMN_WIDTHS = [
         { key: "fecha", label: "Fecha", width: 62 },
         { key: "placa", label: "Placa", width: 58 },
-        { key: "vehiculo", label: "Vehiculo", width: 118 },
+        { key: "vehiculo", label: "Vehículo", width: 118 },
         { key: "tipo", label: "Tipo", width: 105 },
         { key: "estado", label: "Estado", width: 112 },
         { key: "km", label: "Km", width: 58 },

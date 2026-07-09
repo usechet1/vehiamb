@@ -1,4 +1,4 @@
-const summaryRow = document.getElementById("simitSummaryRow");
+const kpisGrid = document.getElementById("simitKpisGrid");
 const filterForm = document.getElementById("simitFilterForm");
 const filterPlaca = document.getElementById("filterSimitPlaca");
 const filterEstado = document.getElementById("filterSimitEstado");
@@ -16,13 +16,19 @@ const simitDrawerTitle = document.getElementById("simitDrawerTitle");
 const simitDrawerSubtitle = document.getElementById("simitDrawerSubtitle");
 const simitDrawerBody = document.getElementById("simitDrawerBody");
 const simitDrawerConsultarButton = document.getElementById("simitDrawerConsultarButton");
+const simitDrawerPagarButton = document.getElementById("simitDrawerPagarButton");
 const exportSimitPdfButton = document.getElementById("exportSimitPdfButton");
 const exportSimitExcelButton = document.getElementById("exportSimitExcelButton");
 
+// El portal SIMIT es una SPA que no soporta pre-llenar la placa por URL
+// (verificado probando varios formatos de query param): el link solo puede
+// llevar al buscador, por eso se copia la placa al portapapeles al abrirlo.
+const SIMIT_PORTAL_URL = "https://www.fcm.org.co/simit/#/estado-cuenta";
+
 let flotaState = [];
 let currentDrawerVehiculoId = null;
-// Contexto completo del vehiculo actualmente abierto en el drawer (fila de
-// flota, historial de consultas y detalle/comparendos de la ultima
+// Contexto completo del vehículo actualmente abierto en el drawer (fila de
+// flota, historial de consultas y detalle/comparendos de la última
 // consulta), para que los botones de exportar PDF/Excel no tengan que
 // volver a pedir nada al backend.
 let currentDrawerContext = null;
@@ -43,6 +49,25 @@ const ESTADO_PILL_CLASS = {
     cobro_coactivo: "pill-danger",
     acuerdo_pago: "pill-warning",
     desconocido: "pill"
+};
+
+// Orden de severidad para la lista: lo mas urgente de resolver primero.
+const ESTADO_SEVERIDAD = {
+    cobro_coactivo: 0,
+    con_multas: 1,
+    acuerdo_pago: 2,
+    desconocido: 3,
+    nunca_consultado: 4,
+    sin_multas: 5
+};
+
+const ESTADO_KPI_ACCENT = {
+    cobro_coactivo: "var(--color-primary)",
+    con_multas: "var(--color-primary)",
+    acuerdo_pago: "var(--color-warning)",
+    sin_multas: "var(--color-success)",
+    nunca_consultado: "var(--color-ink-soft)",
+    desconocido: "var(--color-ink-soft)"
 };
 
 function formatCurrency(value) {
@@ -82,8 +107,8 @@ function escapeHtml(value) {
         .replace(/'/g, "&#039;");
 }
 
-// El backend solo informa estado_cartera cuando la consulta existio y salio
-// "ok". Aqui se deriva la categoria visual que combina los tres casos: nunca
+// El backend solo informa estado_cartera cuando la consulta existió y salió
+// "ok". Aquí se deriva la categoría visual que combina los tres casos: nunca
 // consultado, consulta fallida/bloqueada, o el estado de cartera real.
 function deriveEstadoCartera(row) {
     if (!row.id) return "nunca_consultado";
@@ -106,23 +131,42 @@ function renderSummary(rows) {
         return acc;
     }, {});
 
-    const orden = ["con_multas", "cobro_coactivo", "acuerdo_pago", "sin_multas", "nunca_consultado", "desconocido"];
+    const orden = ["cobro_coactivo", "con_multas", "acuerdo_pago", "sin_multas", "nunca_consultado", "desconocido"];
 
-    summaryRow.innerHTML = `
-        <span class="pill">Total: ${rows.length}</span>
+    kpisGrid.innerHTML = `
+        <div class="kpi-card" style="--kpi-accent: var(--color-ink-soft)">
+            <div class="kpi-label">Total flota</div>
+            <div class="kpi-value">${rows.length}</div>
+        </div>
         ${orden
             .filter((estado) => conteos[estado])
-            .map((estado) => `<span class="pill ${estadoPillClass(estado)}">${estadoLabel(estado)}: ${conteos[estado]}</span>`)
+            .map((estado) => `
+                <div class="kpi-card" style="--kpi-accent: ${ESTADO_KPI_ACCENT[estado]}">
+                    <div class="kpi-label">${estadoLabel(estado)}</div>
+                    <div class="kpi-value">${conteos[estado]}</div>
+                </div>
+            `)
             .join("")}
     `;
 }
 
-function matchesFilters(row) {
-    const placa = filterPlaca.value.trim().toLowerCase();
-    const estado = filterEstado.value;
-    const rowPlaca = String(row.placa || "").toLowerCase();
+function fillPlacaFilterOptions(rows) {
+    const previousValue = filterPlaca.value;
+    const placas = [...new Set(rows.map((row) => row.placa).filter(Boolean))].sort();
 
-    if (placa && !rowPlaca.includes(placa)) return false;
+    filterPlaca.innerHTML = '<option value="">Todas las placas</option>' +
+        placas.map((placa) => `<option value="${escapeHtml(placa)}">${escapeHtml(placa)}</option>`).join("");
+
+    if (previousValue && placas.includes(previousValue)) {
+        filterPlaca.value = previousValue;
+    }
+}
+
+function matchesFilters(row) {
+    const placa = filterPlaca.value;
+    const estado = filterEstado.value;
+
+    if (placa && row.placa !== placa) return false;
     if (estado && deriveEstadoCartera(row) !== estado) return false;
 
     return true;
@@ -133,22 +177,30 @@ function updateFilterSummary(filteredCount) {
     const hasFilters = Boolean(filterPlaca.value.trim() || filterEstado.value);
 
     if (!total) {
-        filterSummary.textContent = "Aun no hay vehiculos registrados.";
+        filterSummary.textContent = "Aún no hay vehículos registrados.";
         return;
     }
 
     filterSummary.textContent = hasFilters
-        ? `Mostrando ${filteredCount} de ${total} vehiculos.`
-        : `Mostrando todos los vehiculos (${total}).`;
+        ? `Mostrando ${filteredCount} de ${total} vehículos.`
+        : `Mostrando todos los vehículos (${total}).`;
+}
+
+function ordenarPorSeveridad(rows) {
+    return [...rows].sort((a, b) => {
+        const severidadA = ESTADO_SEVERIDAD[deriveEstadoCartera(a)] ?? 99;
+        const severidadB = ESTADO_SEVERIDAD[deriveEstadoCartera(b)] ?? 99;
+        return severidadA - severidadB;
+    });
 }
 
 function renderFlotaList(rows) {
     if (!rows.length) {
-        flotaList.innerHTML = '<p class="dash-empty">No hay vehiculos para los filtros seleccionados</p>';
+        flotaList.innerHTML = '<p class="dash-empty">No hay vehículos para los filtros seleccionados</p>';
         return;
     }
 
-    flotaList.innerHTML = rows.map((row) => {
+    flotaList.innerHTML = ordenarPorSeveridad(rows).map((row) => {
         const estado = deriveEstadoCartera(row);
 
         return `
@@ -163,7 +215,7 @@ function renderFlotaList(rows) {
                 <div class="record-meta">
                     <span class="pill">Comparendos: ${row.total_comparendos ?? 0}</span>
                     <span class="pill">${formatCurrency(row.valor_total)}</span>
-                    <span class="pill">Ultima consulta: ${formatDateTime(row.fecha_consulta)}</span>
+                    <span class="pill">Última consulta: ${formatDateTime(row.fecha_consulta)}</span>
                 </div>
                 <div class="simit-card-actions">
                     <button type="button" class="btn-secondary" data-consultar-id="${row.vehiculo_id}">Consultar ahora</button>
@@ -184,6 +236,7 @@ async function cargarFlota() {
         window.VehiAmb.ui.show(loader);
         flotaState = await window.VehiAmb.api.getSimitEstadoFlota();
         renderSummary(flotaState);
+        fillPlacaFilterOptions(flotaState);
         applyFilters();
     } catch (error) {
         console.error(error);
@@ -204,9 +257,9 @@ function renderComparendosTable(comparendos) {
             <table class="import-table">
                 <thead>
                     <tr>
-                        <th>Numero</th>
+                        <th>Número</th>
                         <th>Fecha</th>
-                        <th>Descripcion</th>
+                        <th>Descripción</th>
                         <th>Valor</th>
                         <th>Estado</th>
                     </tr>
@@ -216,7 +269,7 @@ function renderComparendosTable(comparendos) {
                         <tr>
                             <td>${escapeHtml(item.numero_comparendo)}</td>
                             <td>${item.fecha_infraccion ? formatDate(item.fecha_infraccion) : "Sin fecha"}</td>
-                            <td>${escapeHtml(item.descripcion || "Sin descripcion")}</td>
+                            <td>${escapeHtml(item.descripcion || "Sin descripción")}</td>
                             <td>${formatCurrency(item.valor)}</td>
                             <td>${escapeHtml(item.estado)}</td>
                         </tr>
@@ -229,7 +282,7 @@ function renderComparendosTable(comparendos) {
 
 function renderHistorialTable(historial) {
     if (!historial.length) {
-        return '<p class="dash-empty detail-empty">Este vehiculo aun no tiene consultas SIMIT registradas.</p>';
+        return '<p class="dash-empty detail-empty">Este vehículo aún no tiene consultas SIMIT registradas.</p>';
     }
 
     return `
@@ -249,7 +302,7 @@ function renderHistorialTable(historial) {
                     ${historial.map((item) => `
                         <tr>
                             <td>${formatDateTime(item.fecha_consulta)}</td>
-                            <td>${item.origen === "masivo" ? "Actualizacion de flota" : "Manual"}</td>
+                            <td>${item.origen === "masivo" ? "Actualización de flota" : "Manual"}</td>
                             <td>${item.estado_consulta === "ok" ? "OK" : escapeHtml(item.estado_consulta)}</td>
                             <td>${estadoLabel(item.estado_consulta === "ok" ? item.estado_cartera : "desconocido")}</td>
                             <td>${item.total_comparendos ?? 0}</td>
@@ -268,8 +321,8 @@ async function openSimitDetail(vehiculoId) {
 
     currentDrawerVehiculoId = vehiculoId;
     currentDrawerContext = null;
-    simitDrawerTitle.textContent = row.placa || "Vehiculo";
-    simitDrawerSubtitle.textContent = `${row.marca || ""} ${row.modelo || ""}`.trim() || "Sin informacion de vehiculo";
+    simitDrawerTitle.textContent = row.placa || "Vehículo";
+    simitDrawerSubtitle.textContent = `${row.marca || ""} ${row.modelo || ""}`.trim() || "Sin información de vehículo";
     simitDrawerBody.innerHTML = '<p class="dash-empty">Cargando historial SIMIT...</p>';
 
     window.VehiAmb.ui.show(simitDrawerBackdrop);
@@ -299,15 +352,15 @@ async function openSimitDetail(vehiculoId) {
                     <dd>${formatCurrency(row.valor_total)}</dd>
                 </div>
                 <div>
-                    <dt>Ultima consulta</dt>
+                    <dt>Última consulta</dt>
                     <dd>${formatDateTime(row.fecha_consulta)}</dd>
                 </div>
             </dl>
 
-            ${row.mensaje_error ? `<p class="dash-empty detail-empty">Ultimo error: ${escapeHtml(row.mensaje_error)}</p>` : ""}
+            ${row.mensaje_error ? `<p class="dash-empty detail-empty">Último error: ${escapeHtml(row.mensaje_error)}</p>` : ""}
 
             <section class="drawer-section">
-                <h3>Comparendos de la ultima consulta</h3>
+                <h3>Comparendos de la última consulta</h3>
                 ${renderComparendosTable(detalle?.comparendos)}
             </section>
 
@@ -318,7 +371,7 @@ async function openSimitDetail(vehiculoId) {
         `;
     } catch (error) {
         console.error(error);
-        simitDrawerBody.innerHTML = '<p class="dash-empty detail-empty">No fue posible cargar el historial SIMIT de este vehiculo.</p>';
+        simitDrawerBody.innerHTML = '<p class="dash-empty detail-empty">No fue posible cargar el historial SIMIT de este vehículo.</p>';
     }
 }
 
@@ -349,13 +402,18 @@ async function consultarVehiculoManual(vehiculoId) {
 }
 
 async function actualizarFlotaCompleta() {
+    const confirmado = window.confirm(
+        `Esto va a consultar el SIMIT para ${flotaState.length} ${flotaState.length === 1 ? "vehículo" : "vehículos"} de la flota y puede tardar varios minutos. ¿Deseas continuar?`
+    );
+    if (!confirmado) return;
+
     try {
         window.VehiAmb.ui.show(loader);
         window.VehiAmb.ui.showMessage(mensaje, "Actualizando toda la flota, esto puede tardar varios minutos...");
         const resumen = await window.VehiAmb.api.actualizarSimitFlota();
         window.VehiAmb.ui.showMessage(
             mensaje,
-            `Actualizacion completada: ${resumen.ok} ok, ${resumen.con_novedades} con novedades, ${resumen.bloqueado} bloqueadas, ${resumen.error} con error.`
+            `Actualización completada: ${resumen.ok} ok, ${resumen.con_novedades} con novedades, ${resumen.bloqueado} bloqueadas, ${resumen.error} con error.`
         );
         await cargarFlota();
     } catch (error) {
@@ -414,6 +472,21 @@ document.addEventListener("keydown", (event) => {
 
 simitDrawerConsultarButton.addEventListener("click", () => {
     if (currentDrawerVehiculoId) consultarVehiculoManual(currentDrawerVehiculoId);
+});
+
+simitDrawerPagarButton.addEventListener("click", async () => {
+    const placa = currentDrawerContext?.row?.placa;
+
+    if (placa && navigator.clipboard?.writeText) {
+        try {
+            await navigator.clipboard.writeText(placa);
+            window.VehiAmb.ui.showMessage(mensaje, `Placa ${placa} copiada. Pégala en el buscador de SIMIT.`);
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    window.open(SIMIT_PORTAL_URL, "_blank", "noopener,noreferrer");
 });
 
 exportSimitPdfButton.addEventListener("click", async () => {
