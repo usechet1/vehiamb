@@ -175,10 +175,10 @@ function renderRepuestosMeta(value) {
 
     return repuestos.map((repuesto) => `
         <span class="pill">
-            ${repuesto.repuesto}
-            ${repuesto.proveedor ? ` · ${repuesto.proveedor}` : ""}
+            ${escapeHtml(repuesto.repuesto)}
+            ${repuesto.proveedor ? ` · ${escapeHtml(repuesto.proveedor)}` : ""}
             ${repuesto.valor ? ` · ${formatCurrency(repuesto.valor)}` : ""}
-            ${repuesto.notas ? ` · ${repuesto.notas}` : ""}
+            ${repuesto.notas ? ` · ${escapeHtml(repuesto.notas)}` : ""}
         </span>
     `).join("");
 }
@@ -201,8 +201,8 @@ function renderFacts(vehiculo) {
 
     vehicleFacts.innerHTML = facts.map(([label, value]) => `
         <div>
-            <dt>${label}</dt>
-            <dd>${value || "--"}</dd>
+            <dt>${escapeHtml(label)}</dt>
+            <dd>${escapeHtml(value) || "--"}</dd>
         </div>
     `).join("");
 }
@@ -217,8 +217,8 @@ function renderMantenimientos(mantenimientos) {
         <article class="record-item">
             <div class="record-top">
                 <div>
-                    <span class="record-title">${tiposMantenimiento[item.tipo] || item.tipo}</span>
-                    <span class="record-sub">${item.descripcion || "Sin detalle de revisión"}</span>
+                    <span class="record-title">${escapeHtml(tiposMantenimiento[item.tipo] || item.tipo)}</span>
+                    <span class="record-sub">${escapeHtml(item.descripcion) || "Sin detalle de revisión"}</span>
                 </div>
                 <span class="pill">${formatDate(item.fecha)}</span>
             </div>
@@ -226,13 +226,13 @@ function renderMantenimientos(mantenimientos) {
                 <span class="pill">${formatKm(item.kilometraje)}</span>
                 <span class="pill">${formatCurrency(item.valor)}</span>
                 ${renderRepuestosMeta(item.repuestos)}
-                <span class="pill">Autorizado por: ${item.autorizado_por || "No registrado"}</span>
-                <span class="pill">Hecho por: ${item.hecho_por || "No registrado"}</span>
+                <span class="pill">Autorizado por: ${escapeHtml(item.autorizado_por) || "No registrado"}</span>
+                <span class="pill">Hecho por: ${escapeHtml(item.hecho_por) || "No registrado"}</span>
                 ${item.soporte_url ? '<span class="pill">Soporte adjunto</span>' : ""}
             </div>
             ${item.soporte_url ? `
-                <a class="record-link" href="${window.VehiAmb.api.getAssetUrl(item.soporte_url)}" target="_blank" rel="noreferrer">
-                    ${item.soporte_nombre || "Ver adjunto"}
+                <a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(item.soporte_url))}" target="_blank" rel="noreferrer">
+                    ${escapeHtml(item.soporte_nombre) || "Ver adjunto"}
                 </a>
             ` : ""}
         </article>
@@ -262,8 +262,8 @@ function renderDocumentos(documentos) {
             <article class="record-item">
                 <div class="record-top">
                     <div>
-                        <span class="record-title">${tiposDocumento[item.tipo] || item.tipo}</span>
-                        <span class="record-sub">${item.numero_documento || "Sin número de documento"}</span>
+                        <span class="record-title">${escapeHtml(tiposDocumento[item.tipo] || item.tipo)}</span>
+                        <span class="record-sub">${escapeHtml(item.numero_documento) || "Sin número de documento"}</span>
                     </div>
                     <span class="pill ${pillClass}">${statusText}</span>
                 </div>
@@ -307,7 +307,7 @@ function renderSimitEstado(historial) {
                 <dd>${formatDateTime(ultima?.fecha_consulta)}</dd>
             </div>
         </dl>
-        ${ultima?.mensaje_error ? `<p class="dash-empty detail-empty">Último error: ${ultima.mensaje_error}</p>` : ""}
+        ${ultima?.mensaje_error ? `<p class="dash-empty detail-empty">Último error: ${escapeHtml(ultima.mensaje_error)}</p>` : ""}
     `;
 }
 
@@ -380,7 +380,7 @@ function renderRepuestosSugeridosBuilder() {
     repuestosSugeridosList.innerHTML = repuestosSugeridosState.map((item, index) => `
         <li class="simple-checklist-item">
             <div class="simple-checklist-content">
-                <span class="simple-checklist-label">${item.nombre}</span>
+                <span class="simple-checklist-label">${escapeHtml(item.nombre)}</span>
                 <span class="simple-checklist-detail">Cantidad: ${item.cantidad}</span>
             </div>
             <button type="button" class="simple-checklist-remove" data-index="${index}">Quitar</button>

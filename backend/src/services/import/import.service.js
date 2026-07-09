@@ -271,7 +271,7 @@ async function listar(filtros) {
 
 async function obtener(id) {
   const importacion = await importacionesRepository.findById(id);
-  if (!importacion) throw new HttpError(404, "Importacion no encontrada");
+  if (!importacion) throw new HttpError(404, "Importación no encontrada");
   return importacion;
 }
 

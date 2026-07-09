@@ -47,9 +47,9 @@
 
     const ROW_LINE_HEIGHT = 12;
 
-    // Dibuja una fila de tabla cuyas columnas pueden ajustarse a varias lineas
+    // Dibuja una fila de tabla cuyas columnas pueden ajustarse a varias líneas
     // (splitTextToSize) y calcula la altura real de la fila en base al mayor
-    // numero de lineas entre columnas, para que filas con texto largo no se
+    // número de líneas entre columnas, para que filas con texto largo no se
     // sobrepongan con la siguiente.
     function drawTableRow(doc, layout, columns, values) {
         const wrapped = columns.map((column, index) => doc.splitTextToSize(String(values[index] ?? ""), column.width));
@@ -148,13 +148,20 @@
         }
 
         function row(label, value) {
-            ensureSpace(16);
+            // Igual que drawTableRow: medir con splitTextToSize antes de
+            // avanzar y, para que un valor largo que se envuelve a varias
+            // lineas no quede debajo del siguiente row.
+            const maxWidth = pageWidth - MARGIN_X * 2 - 150;
             doc.setFontSize(10);
+            const lines = doc.splitTextToSize(safe(value), maxWidth);
+            const rowHeight = Math.max(16, lines.length * ROW_LINE_HEIGHT + 4);
+
+            ensureSpace(rowHeight);
             doc.setFont(undefined, "bold");
             doc.text(`${label}:`, MARGIN_X, y);
             doc.setFont(undefined, "normal");
-            doc.text(safe(value), MARGIN_X + 150, y, { maxWidth: pageWidth - MARGIN_X * 2 - 150 });
-            y += 16;
+            doc.text(lines, MARGIN_X + 150, y);
+            y += rowHeight;
         }
 
         function spacer(amount = 8) {

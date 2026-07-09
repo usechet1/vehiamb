@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Importacion de Stock - VehiAmb</title>
+    <title>Importación de Stock - VehiAmb</title>
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
@@ -13,8 +13,8 @@
         <main class="content">
             <div class="page-header">
                 <div>
-                    <h1>Importacion de Stock</h1>
-                    <p class="page-kicker">Sincronizacion con el Excel de saldos de inventario.</p>
+                    <h1>Importación de Stock</h1>
+                    <p class="page-kicker">Sincronización con el Excel de saldos de inventario.</p>
                 </div>
             </div>
 
@@ -22,11 +22,11 @@
                 <div class="stack">
                     <section class="section-card">
                         <div class="section-card-head">
-                            <h2>Ejecutar sincronizacion manual</h2>
-                            <p>Procesa el Excel de saldos completo bajo demanda, sin esperar al proceso automatico. El archivo es una foto del saldo actual, no un log por dia.</p>
+                            <h2>Ejecutar sincronización manual</h2>
+                            <p>Procesa el Excel de saldos completo bajo demanda, sin esperar al proceso automático. El archivo es una foto del saldo actual, no un log por día.</p>
                         </div>
                         <div class="section-card-body">
-                            <button type="button" class="btn-primary" id="stockImportSubmitButton">Ejecutar importacion de stock</button>
+                            <button type="button" class="btn-primary" id="stockImportSubmitButton">Ejecutar importación de stock</button>
                             <div id="stockImportRunResult" class="import-run-result hidden"></div>
                         </div>
                     </section>
@@ -35,8 +35,8 @@
                 <div class="stack">
                     <section class="section-card">
                         <div class="section-card-head">
-                            <h2>Ultima sincronizacion automatica</h2>
-                            <p>Se ejecuta todos los dias segun STOCK_IMPORT_SCHEDULE.</p>
+                            <h2>Última sincronización automática</h2>
+                            <p>Se ejecuta todos los días según STOCK_IMPORT_SCHEDULE.</p>
                         </div>
                         <div class="section-card-body" id="stockImportStatusBody">
                             <p class="dash-empty">Cargando...</p>
@@ -49,8 +49,8 @@
                 <div class="stack">
                     <section class="section-card">
                         <div class="section-card-head">
-                            <h2>Importar configuracion de vehiculos (repuestos sugeridos + equivalencias)</h2>
-                            <p>Carga bootstrap: crea lo que no existe, nunca pisa lo que ya configuraste a mano desde la ficha del vehiculo o el catalogo. Solo aplica a mantenimientos de tipo Cambio de aceite. Se sincroniza sola todos los dias; este boton la ejecuta ahora mismo.</p>
+                            <h2>Importar configuración de vehículos (repuestos sugeridos + equivalencias)</h2>
+                            <p>Carga bootstrap: crea lo que no existe, nunca pisa lo que ya configuraste a mano desde la ficha del vehículo o el catálogo. Solo aplica a mantenimientos de tipo Cambio de aceite. Se sincroniza sola todos los días; este botón la ejecuta ahora mismo.</p>
                         </div>
                         <div class="section-card-body">
                             <button type="button" class="btn-primary" id="configImportSyncButton">Sincronizar ahora</button>
@@ -62,8 +62,8 @@
                 <div class="stack">
                     <section class="section-card">
                         <div class="section-card-head">
-                            <h2>Ultima sincronizacion de configuracion</h2>
-                            <p>Se ejecuta todos los dias segun CONFIG_SYNC_SCHEDULE.</p>
+                            <h2>Última sincronización de configuración</h2>
+                            <p>Se ejecuta todos los días según CONFIG_SYNC_SCHEDULE.</p>
                         </div>
                         <div class="section-card-body" id="configImportStatusBody">
                             <p class="dash-empty">Cargando...</p>
@@ -91,14 +91,14 @@
                         <table class="import-table">
                             <thead>
                                 <tr>
-                                    <th>Fecha sincronizacion</th>
+                                    <th>Fecha sincronización</th>
                                     <th>Archivo</th>
                                     <th>Estado</th>
                                     <th>Nuevos</th>
                                     <th>Actualizados</th>
                                     <th>Omitidos</th>
                                     <th>Errores</th>
-                                    <th>Duracion</th>
+                                    <th>Duración</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -126,9 +126,9 @@
             <aside id="stockImportDrawer" class="detail-drawer hidden" aria-hidden="true" aria-labelledby="stockImportDrawerTitle">
                 <div class="detail-drawer-head">
                     <div>
-                        <span class="form-step">Detalle de sincronizacion</span>
-                        <h2 id="stockImportDrawerTitle">Sincronizacion</h2>
-                        <p id="stockImportDrawerSubtitle">Metricas e incidencias</p>
+                        <span class="form-step">Detalle de sincronización</span>
+                        <h2 id="stockImportDrawerTitle">Sincronización</h2>
+                        <p id="stockImportDrawerSubtitle">Métricas e incidencias</p>
                     </div>
                     <button type="button" id="closeStockImportDrawer" class="drawer-close" aria-label="Cerrar detalle">×</button>
                 </div>

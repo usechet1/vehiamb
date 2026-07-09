@@ -14,7 +14,8 @@ const PAGE_PERMISSIONS = {
     "notificaciones.html": "dashboard.view",
     "importaciones.html": "imports.view",
     "costos.html": "costs.view",
-    "admin-usuarios.html": "users.manage"
+    "admin-usuarios.html": "users.manage",
+    "stock-importaciones.html": "inventory.import"
 };
 
 function getStoredSession() {

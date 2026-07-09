@@ -1,3 +1,11 @@
+const EMAIL_DOMAIN = "@vehiamb.com";
+
+function buildEmail(rawValue) {
+    const value = String(rawValue || "").trim().toLowerCase();
+    if (!value) return "";
+    return value.includes("@") ? value : `${value}${EMAIL_DOMAIN}`;
+}
+
 const loginForm = document.getElementById("loginForm");
 const loginMessage = document.getElementById("loginMessage");
 const loginPassword = document.getElementById("loginPassword");
@@ -19,13 +27,14 @@ loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const formData = new FormData(loginForm);
-    const email = String(formData.get("email") || "").trim();
+    const email = buildEmail(formData.get("email"));
     const password = String(formData.get("password") || "");
 
     try {
         await window.VehiAmb.auth.login(email, password);
+        sessionStorage.setItem("vehiamb.showWelcome", "1");
         window.location.href = "index.html";
     } catch (error) {
-        window.VehiAmb.ui.showMessage(loginMessage, error.message || "No fue posible iniciar sesion", "error");
+        window.VehiAmb.ui.showMessage(loginMessage, error.message || "No fue posible iniciar sesión", "error");
     }
 });

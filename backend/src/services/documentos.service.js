@@ -32,7 +32,7 @@ function normalizePayload(payload) {
 
 async function validateDocumento(documento) {
   if (!documento.vehiculo_id || !documento.tipo || !documento.fecha_vencimiento) {
-    throw new HttpError(400, "Vehiculo, tipo y fecha de vencimiento son obligatorios");
+    throw new HttpError(400, "Vehículo, tipo y fecha de vencimiento son obligatorios");
   }
 
   if (!TIPOS_VALIDOS.has(documento.tipo)) {
@@ -41,7 +41,7 @@ async function validateDocumento(documento) {
 
   const vehiculo = await vehiculosRepository.findById(documento.vehiculo_id);
   if (!vehiculo) {
-    throw new HttpError(404, "Vehiculo no encontrado");
+    throw new HttpError(404, "Vehículo no encontrado");
   }
 }
 

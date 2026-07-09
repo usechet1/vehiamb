@@ -5,6 +5,7 @@
     const MEMBRETE_FOOTER_ASPECT = 2550 / 315;
     const MARGIN_X = 40;
     const ROW_HEIGHT = 18;
+    const ROW_LINE_HEIGHT = 12;
     const FOOTER_TEXT = () => `Generado por ${APP_NAME} - Software propio de Ambientes Cerámicos - el ${new Date().toLocaleString("es-CO")}`;
 
     function safe(value, fallback = "No registrado") {
@@ -73,8 +74,10 @@
         doc.setFont(undefined, "bold");
         doc.text("Filtros aplicados:", MARGIN_X, layout.y);
         doc.setFont(undefined, "normal");
-        doc.text(describeFiltros(filtros), MARGIN_X + 90, layout.y, { maxWidth: layout.pageWidth - MARGIN_X * 2 - 90 });
-        layout.y += 16;
+        const filtrosMaxWidth = layout.pageWidth - MARGIN_X * 2 - 90;
+        const filtrosLines = doc.splitTextToSize(describeFiltros(filtros), filtrosMaxWidth);
+        doc.text(filtrosLines, MARGIN_X + 90, layout.y);
+        layout.y += Math.max(16, filtrosLines.length * ROW_LINE_HEIGHT + 4);
 
         doc.setFont(undefined, "bold");
         doc.text("Total de registros:", MARGIN_X, layout.y);
@@ -119,7 +122,7 @@
             doc.setFontSize(8);
             doc.setTextColor(120, 128, 140);
             doc.text(generado, MARGIN_X, pageHeight - bandHeight - 10);
-            doc.text(`Pagina ${page} de ${pageCount}`, pageWidth - MARGIN_X, pageHeight - bandHeight - 10, { align: "right" });
+            doc.text(`Página ${page} de ${pageCount}`, pageWidth - MARGIN_X, pageHeight - bandHeight - 10, { align: "right" });
 
             if (footerDataUrl) {
                 doc.addImage(footerDataUrl, "PNG", 0, pageHeight - bandHeight, pageWidth, bandHeight);
@@ -170,11 +173,15 @@
                 responsable: safe(item.hecho_por)
             };
 
-            columns.forEach((column) => {
-                doc.text(String(fila[column.key]), column.x, layout.y, { maxWidth: column.width - 6 });
+            const columnLines = columns.map((column) => doc.splitTextToSize(String(fila[column.key]), column.width - 6));
+            const maxLines = Math.max(1, ...columnLines.map((lines) => lines.length));
+            const rowHeight = Math.max(ROW_HEIGHT, maxLines * ROW_LINE_HEIGHT + 6);
+
+            columns.forEach((column, index) => {
+                doc.text(columnLines[index], column.x, layout.y);
             });
 
-            layout.y += ROW_HEIGHT;
+            layout.y += rowHeight;
         });
 
         await addFooter(doc);

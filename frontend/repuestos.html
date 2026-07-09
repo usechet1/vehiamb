@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catalogo de Repuestos - VehiAmb</title>
+    <title>Catálogo de Repuestos - VehiAmb</title>
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
@@ -13,8 +13,8 @@
         <main class="content">
             <div class="page-header">
                 <div>
-                    <h1>Catalogo de Repuestos</h1>
-                    <p class="page-kicker">Administra el catalogo de insumos y consulta el stock disponible.</p>
+                    <h1>Catálogo de Repuestos</h1>
+                    <p class="page-kicker">Administra el catálogo de insumos y consulta el stock disponible.</p>
                 </div>
             </div>
 
@@ -23,7 +23,7 @@
                     <section class="section-card">
                         <div class="section-card-head">
                             <h2 id="repuestoFormTitle">Registrar repuesto</h2>
-                            <p>El stock se actualiza desde la importacion del Excel de saldos, no desde este formulario.</p>
+                            <p>El stock se actualiza desde la importación del Excel de saldos, no desde este formulario.</p>
                         </div>
                         <div class="section-card-body">
                             <form id="repuestoForm" class="compact-form">
@@ -31,7 +31,7 @@
 
                                 <div class="form-grid">
                                     <div class="form-group">
-                                        <label>Codigo interno</label>
+                                        <label>Código interno</label>
                                         <input type="text" id="repuestoCodigoInterno" required>
                                     </div>
                                     <div class="form-group">
@@ -42,14 +42,14 @@
 
                                 <div class="form-grid">
                                     <div class="form-group">
-                                        <label>Categoria</label>
+                                        <label>Categoría</label>
                                         <select id="repuestoCategoria">
                                             <option value="aceite_motor">Aceite Motor</option>
                                             <option value="filtro_aceite">Filtro Aceite</option>
                                             <option value="filtro_aire">Filtro Aire</option>
                                             <option value="filtro_combustible">Filtro Combustible</option>
                                             <option value="llantas">Llantas</option>
-                                            <option value="baterias">Baterias</option>
+                                            <option value="baterias">Baterías</option>
                                             <option value="lubricantes">Lubricantes</option>
                                             <option value="refrigerantes">Refrigerantes</option>
                                             <option value="correas">Correas</option>
@@ -94,7 +94,7 @@
                                 </div>
 
                                 <div class="filter-actions">
-                                    <button type="button" id="repuestoCancelEditButton" class="btn-secondary hidden">Cancelar edicion</button>
+                                    <button type="button" id="repuestoCancelEditButton" class="btn-secondary hidden">Cancelar edición</button>
                                     <button type="submit" class="btn-primary" id="repuestoSubmitButton">Guardar repuesto</button>
                                 </div>
                             </form>
@@ -113,7 +113,7 @@
                             </div>
                             <div id="equivalenciaSeleccionadaInfo" class="field-help hidden"></div>
                             <ul id="equivalenciasList" class="simple-checklist"></ul>
-                            <div id="equivalenciasEmpty" class="field-help">Este repuesto aun no tiene equivalencias configuradas.</div>
+                            <div id="equivalenciasEmpty" class="field-help">Este repuesto aún no tiene equivalencias configuradas.</div>
                         </div>
                     </section>
                 </div>
@@ -122,17 +122,17 @@
                     <section class="section-card">
                         <div class="section-card-head">
                             <h2>Repuestos registrados</h2>
-                            <p>Busca por codigo, nombre o referencia.</p>
+                            <p>Busca por código, nombre o referencia.</p>
                         </div>
                         <div class="section-card-body">
                             <form id="repuestosFilterForm" class="filter-form">
                                 <div class="form-grid-3">
                                     <div class="form-group">
                                         <label>Buscar</label>
-                                        <input type="search" id="repuestosSearch" placeholder="Codigo, nombre o referencia...">
+                                        <input type="search" id="repuestosSearch" placeholder="Código, nombre o referencia...">
                                     </div>
                                     <div class="form-group">
-                                        <label>Categoria</label>
+                                        <label>Categoría</label>
                                         <select id="repuestosFiltroCategoria">
                                             <option value="">Todas</option>
                                             <option value="aceite_motor">Aceite Motor</option>
@@ -140,7 +140,7 @@
                                             <option value="filtro_aire">Filtro Aire</option>
                                             <option value="filtro_combustible">Filtro Combustible</option>
                                             <option value="llantas">Llantas</option>
-                                            <option value="baterias">Baterias</option>
+                                            <option value="baterias">Baterías</option>
                                             <option value="lubricantes">Lubricantes</option>
                                             <option value="refrigerantes">Refrigerantes</option>
                                             <option value="correas">Correas</option>
@@ -163,13 +163,13 @@
                                 <table class="import-table">
                                     <thead>
                                         <tr>
-                                            <th>Codigo</th>
+                                            <th>Código</th>
                                             <th>Nombre</th>
-                                            <th>Categoria</th>
+                                            <th>Categoría</th>
                                             <th>Marca</th>
                                             <th>Valor promedio</th>
-                                            <th>Stock fisico</th>
-                                            <th>Stock minimo</th>
+                                            <th>Stock físico</th>
+                                            <th>Stock mínimo</th>
                                             <th>Estado</th>
                                             <th></th>
                                         </tr>

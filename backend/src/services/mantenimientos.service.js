@@ -103,7 +103,7 @@ function normalizePayload(payload) {
 
 async function validateMantenimiento(mantenimiento, vehiculo) {
   if (!mantenimiento.vehiculo_id || !mantenimiento.fecha || !mantenimiento.tipo) {
-    throw new HttpError(400, "Vehiculo, fecha y tipo son obligatorios");
+    throw new HttpError(400, "Vehículo, fecha y tipo son obligatorios");
   }
 
   if (!TIPOS_VALIDOS.has(mantenimiento.tipo)) {
@@ -250,7 +250,7 @@ async function createMantenimiento(payload, file, currentUser) {
 
   const vehiculo = await vehiculosRepository.findById(mantenimiento.vehiculo_id);
   if (!vehiculo) {
-    throw new HttpError(404, "Vehiculo no encontrado");
+    throw new HttpError(404, "Vehículo no encontrado");
   }
 
   await validateMantenimiento(mantenimiento, vehiculo);

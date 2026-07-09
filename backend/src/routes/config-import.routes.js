@@ -5,13 +5,13 @@ const configImportController = require("../controllers/config-import.controller"
 const asyncHandler = require("../middlewares/async-handler");
 const requirePermission = require("../middlewares/require-permission");
 
-router.get("/vehiculos-repuestos/status", requirePermission("inventory.view"), asyncHandler(configImportController.status));
-router.get("/vehiculos-repuestos", requirePermission("inventory.view"), asyncHandler(configImportController.listar));
+// Igual que stock-importaciones.routes.js: la sincronizacion de configuracion
+// de vehiculos ya es automatica por cron (config-sync.job.js), asi que solo
+// Administrador necesita ver o ejecutar esto manualmente.
+router.use(requirePermission("inventory.import"));
 
-router.post(
-  "/vehiculos-repuestos",
-  requirePermission("inventory.manage"),
-  asyncHandler(configImportController.ejecutar)
-);
+router.get("/vehiculos-repuestos/status", asyncHandler(configImportController.status));
+router.get("/vehiculos-repuestos", asyncHandler(configImportController.listar));
+router.post("/vehiculos-repuestos", asyncHandler(configImportController.ejecutar));
 
 module.exports = router;

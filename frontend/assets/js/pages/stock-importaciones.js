@@ -79,7 +79,7 @@ async function cargarStatus() {
         const { ultimaImportacionAutomatica } = await window.VehiAmb.api.getStockImportacionesStatus();
 
         if (!ultimaImportacionAutomatica) {
-            stockImportStatusBody.innerHTML = '<p class="dash-empty">Aun no se ha ejecutado ninguna importacion automatica.</p>';
+            stockImportStatusBody.innerHTML = '<p class="dash-empty">Aún no se ha ejecutado ninguna importación automática.</p>';
             return;
         }
 
@@ -102,7 +102,7 @@ async function cargarConfigImportStatus() {
         const { ultimaImportacionAutomatica } = await window.VehiAmb.api.getConfigImportStatus();
 
         if (!ultimaImportacionAutomatica) {
-            configImportStatusBody.innerHTML = '<p class="dash-empty">Aun no se ha ejecutado ninguna sincronizacion automatica.</p>';
+            configImportStatusBody.innerHTML = '<p class="dash-empty">Aún no se ha ejecutado ninguna sincronización automática.</p>';
             return;
         }
 
@@ -152,7 +152,7 @@ async function cargarHistorial() {
             stockImportTableBody.innerHTML = resultado.items.map(renderRow).join("");
         }
 
-        stockImportListSummary.textContent = `Pagina ${resultado.page} de ${resultado.totalPages} · ${resultado.total} importaciones`;
+        stockImportListSummary.textContent = `Página ${resultado.page} de ${resultado.totalPages} · ${resultado.total} importaciones`;
         stockImportPrevPage.disabled = currentPage <= 1;
         stockImportNextPage.disabled = currentPage >= totalPages;
     } catch (error) {
@@ -171,7 +171,7 @@ stockImportSubmitButton.addEventListener("click", async () => {
         stockImportRunResult.classList.remove("hidden");
         stockImportRunResult.innerHTML = `
             <span class="badge ${ESTADO_CLASS[resultado.estado] || "badge-amarillo"}">${ESTADO_LABEL[resultado.estado] || resultado.estado}</span>
-            <p>Leidos: ${resultado.totalLeidos} · Nuevos: ${resultado.totalNuevos} · Actualizados: ${resultado.totalActualizados} · Omitidos: ${resultado.totalOmitidos} · Errores: ${resultado.totalErrores} (${formatDuracion(resultado.duracionMs)})</p>
+            <p>Leídos: ${resultado.totalLeidos} · Nuevos: ${resultado.totalNuevos} · Actualizados: ${resultado.totalActualizados} · Omitidos: ${resultado.totalOmitidos} · Errores: ${resultado.totalErrores} (${formatDuracion(resultado.duracionMs)})</p>
         `;
 
         window.VehiAmb.ui.showMessage(mensaje, "Importacion de stock ejecutada correctamente");
@@ -180,7 +180,7 @@ stockImportSubmitButton.addEventListener("click", async () => {
     } catch (error) {
         console.error(error);
         stockImportRunResult.classList.remove("hidden");
-        stockImportRunResult.innerHTML = `<span class="badge badge-rojo">Error</span><p>${escapeHtml(error.message || "No se pudo ejecutar la importacion de stock")}</p>`;
+        stockImportRunResult.innerHTML = `<span class="badge badge-rojo">Error</span><p>${escapeHtml(error.message || "No se pudo ejecutar la importación de stock")}</p>`;
     } finally {
         window.VehiAmb.ui.hide(loader);
         stockImportSubmitButton.disabled = false;
@@ -212,7 +212,7 @@ function renderIncidenciaRow(incidencia) {
             <div class="record-top">
                 <div>
                     <span class="record-title">${TIPO_INCIDENCIA_LABEL[incidencia.tipo_incidencia] || incidencia.tipo_incidencia}</span>
-                    <span class="record-sub">Fila Excel ${incidencia.fila_excel ?? "--"} · Codigo ${escapeHtml(incidencia.codigo_interno || "--")}</span>
+                    <span class="record-sub">Fila Excel ${incidencia.fila_excel ?? "--"} · Código ${escapeHtml(incidencia.codigo_interno || "--")}</span>
                 </div>
                 <span class="pill">${incidencia.resuelta ? "Resuelta" : "Pendiente"}</span>
             </div>
@@ -235,16 +235,16 @@ async function cargarDrawer(importacionId) {
             window.VehiAmb.api.getStockImportacionDetalle(importacionId, { limit: 15 })
         ]);
 
-        stockImportDrawerTitle.textContent = `Importacion #${importacion.id}`;
+        stockImportDrawerTitle.textContent = `Importación #${importacion.id}`;
         stockImportDrawerSubtitle.textContent = escapeHtml(importacion.nombre_archivo);
 
         stockImportDrawerBody.innerHTML = `
             <dl class="detail-list drawer-detail-list">
                 <div><dt>Estado</dt><dd><span class="badge ${ESTADO_CLASS[importacion.estado] || "badge-amarillo"}">${ESTADO_LABEL[importacion.estado] || importacion.estado}</span></dd></div>
-                <div><dt>Ejecutada por</dt><dd>${escapeHtml(importacion.usuario_nombre || "Proceso automatico")}</dd></div>
-                <div><dt>Fecha de ejecucion</dt><dd>${formatDateTime(importacion.creado_en)}</dd></div>
-                <div><dt>Duracion</dt><dd>${formatDuracion(importacion.duracion_ms)}</dd></div>
-                <div><dt>Total leidos</dt><dd>${importacion.total_leidos}</dd></div>
+                <div><dt>Ejecutada por</dt><dd>${escapeHtml(importacion.usuario_nombre || "Proceso automático")}</dd></div>
+                <div><dt>Fecha de ejecución</dt><dd>${formatDateTime(importacion.creado_en)}</dd></div>
+                <div><dt>Duración</dt><dd>${formatDuracion(importacion.duracion_ms)}</dd></div>
+                <div><dt>Total leídos</dt><dd>${importacion.total_leidos}</dd></div>
                 <div><dt>Nuevos / Actualizados</dt><dd>${importacion.total_nuevos} / ${importacion.total_actualizados}</dd></div>
                 <div><dt>Omitidos / Errores</dt><dd>${importacion.total_omitidos} / ${importacion.total_errores}</dd></div>
                 <div><dt>Hash del archivo</dt><dd class="import-hash">${importacion.hash_archivo}</dd></div>
@@ -256,11 +256,11 @@ async function cargarDrawer(importacionId) {
                 <h3>Incidencias (${incidencias.total})</h3>
                 ${incidencias.items.length
                     ? incidencias.items.map(renderIncidenciaRow).join("")
-                    : '<p class="dash-empty detail-empty">Sin incidencias en esta importacion.</p>'}
+                    : '<p class="dash-empty detail-empty">Sin incidencias en esta importación.</p>'}
             </section>
 
             <section class="drawer-section">
-                <h3>Registros procesados (ultimos ${detalle.items.length} de ${detalle.total})</h3>
+                <h3>Registros procesados (últimos ${detalle.items.length} de ${detalle.total})</h3>
                 ${detalle.items.length
                     ? `<div class="table-scroll"><table class="import-table import-table-compact">
                         <thead><tr><th>Codigo</th><th>Accion</th><th>Fecha</th></tr></thead>
@@ -278,7 +278,7 @@ async function cargarDrawer(importacionId) {
             </section>
         `;
     } catch (error) {
-        stockImportDrawerBody.innerHTML = '<p class="dash-empty">No fue posible cargar el detalle de la importacion</p>';
+        stockImportDrawerBody.innerHTML = '<p class="dash-empty">No fue posible cargar el detalle de la importación</p>';
     }
 }
 
@@ -327,11 +327,11 @@ configImportSyncButton.addEventListener("click", async () => {
         configImportResult.innerHTML = `
             <p>Sugeridos creados: ${resultado.totalSugeridosCreados} · Equivalencias creadas: ${resultado.totalEquivalenciasCreadas} · Omitidos: ${resultado.totalOmitidos} · Incidencias: ${resultado.totalIncidencias}</p>
         `;
-        window.VehiAmb.ui.showMessage(mensaje, "Sincronizacion de configuracion ejecutada correctamente");
+        window.VehiAmb.ui.showMessage(mensaje, "Sincronización de configuración ejecutada correctamente");
         await cargarConfigImportStatus();
     } catch (error) {
         configImportResult.classList.remove("hidden");
-        configImportResult.innerHTML = `<span class="badge badge-rojo">Error</span><p>${error.message || "No se pudo ejecutar la sincronizacion"}</p>`;
+        configImportResult.innerHTML = `<span class="badge badge-rojo">Error</span><p>${error.message || "No se pudo ejecutar la sincronización"}</p>`;
     } finally {
         window.VehiAmb.ui.hide(loader);
         configImportSyncButton.disabled = false;

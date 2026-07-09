@@ -56,7 +56,8 @@ const PERMISSIONS = [
   ["imports.manage", "Importaciones", "Ejecutar importaciones y resolver incidencias"],
   ["costs.view", "Costos", "Ver el dashboard de costos vehiculares"],
   ["inventory.view", "Inventario", "Ver el catalogo de repuestos y el stock"],
-  ["inventory.manage", "Inventario", "Administrar repuestos, ejecutar importaciones de stock y resolver incidencias"]
+  ["inventory.manage", "Inventario", "Administrar repuestos y resolver incidencias del catalogo"],
+  ["inventory.import", "Inventario", "Ver y ejecutar la sincronizacion de stock y configuracion de vehiculos (automatica por cron)"]
 ];
 
 const ROLE_PERMISSIONS = {
@@ -71,8 +72,6 @@ const ROLE_PERMISSIONS = {
     "documents.view",
     "documents.create",
     "simit.view",
-    "imports.view",
-    "imports.manage",
     "costs.view",
     "inventory.view",
     "inventory.manage"
@@ -146,11 +145,12 @@ async function seedRolesAndPermissions() {
 // administrador quita manualmente uno de estos permisos despues, se debe
 // quitar tambien de este mapa o volvera a aparecer en el siguiente arranque.
 const PERMISOS_NUEVOS_POR_ROL = {
-  "imports.view": ["Administrador", "Operador"],
-  "imports.manage": ["Administrador", "Operador"],
+  "imports.view": ["Administrador"],
+  "imports.manage": ["Administrador"],
   "costs.view": ["Administrador", "Operador", "Consulta"],
   "inventory.view": ["Administrador", "Operador", "Consulta"],
-  "inventory.manage": ["Administrador", "Operador"]
+  "inventory.manage": ["Administrador", "Operador"],
+  "inventory.import": ["Administrador"]
 };
 
 async function grantPermisosNuevos() {
@@ -170,6 +170,36 @@ async function grantPermisosNuevos() {
         `,
         [role.id, permission.id]
       );
+    }
+  }
+}
+
+// Simetrico a PERMISOS_NUEVOS_POR_ROL pero en la otra direccion: revoca
+// permisos que un rol tenia asignados y que la politica de acceso actual
+// dice que ya no debe tener. Caso concreto: importar stock y sincronizar
+// consolidados de gastos ahora corren solo por cron (ver gastos-sync.job.js,
+// stock-import-scheduler.job.js, config-sync.job.js), asi que Operador y
+// Consulta no necesitan ejecutarlos ni verlos manualmente. Se ejecuta en
+// cada arranque -- si un administrador vuelve a marcar el permiso desde el
+// panel, se le quitara de nuevo en el siguiente reinicio. Si algun dia se
+// quiere permitir editarlo libremente desde el panel, hay que sacarlo de
+// este mapa.
+const PERMISOS_REVOCADOS_POR_ROL = {
+  "imports.view": ["Operador", "Consulta"],
+  "imports.manage": ["Operador", "Consulta"],
+  "inventory.import": ["Operador", "Consulta"]
+};
+
+async function revocarPermisosObsoletos() {
+  for (const [permissionCode, roleNames] of Object.entries(PERMISOS_REVOCADOS_POR_ROL)) {
+    const permission = await db.get("SELECT id FROM permisos WHERE codigo = ?", [permissionCode]);
+    if (!permission) continue;
+
+    for (const roleName of roleNames) {
+      const role = await db.get("SELECT id FROM roles WHERE nombre = ?", [roleName]);
+      if (!role) continue;
+
+      await db.run("DELETE FROM roles_permisos WHERE role_id = ? AND permiso_id = ?", [role.id, permission.id]);
     }
   }
 }
@@ -974,6 +1004,7 @@ if (env.dbClient === "sqlite") {
     .then(() => db.run("UPDATE notificaciones SET vehiculo_id = referencia_id WHERE referencia_tipo = 'vehiculo' AND vehiculo_id IS NULL"))
     .then(seedRolesAndPermissions)
     .then(grantPermisosNuevos)
+    .then(revocarPermisosObsoletos)
     .then(syncUserRoles)
     .then(seedAdminUser)
     .then(() => console.log("Tablas verificadas/creadas"))
@@ -1033,6 +1064,7 @@ if (env.dbClient === "sqlite") {
     `))
     .then(seedRolesAndPermissions)
     .then(grantPermisosNuevos)
+    .then(revocarPermisosObsoletos)
     .then(syncUserRoles)
     .then(seedAdminUser)
     .then(() => console.log("Columnas PostgreSQL verificadas"))

@@ -48,7 +48,7 @@ function normalizePayload(payload) {
 
 function validateRepuesto(repuesto) {
   if (!repuesto.codigo_interno || !repuesto.nombre) {
-    throw new HttpError(400, "Codigo interno y nombre son obligatorios");
+    throw new HttpError(400, "Código interno y nombre son obligatorios");
   }
 
   if (repuesto.valor_promedio < 0) {
@@ -100,7 +100,7 @@ async function createRepuesto(payload) {
     return await repuestosRepository.create(repuesto);
   } catch (error) {
     if (error.code === "23505" && String(error.constraint || "").includes("codigo_interno")) {
-      throw new HttpError(409, "Ya existe un repuesto registrado con ese codigo interno");
+      throw new HttpError(409, "Ya existe un repuesto registrado con ese código interno");
     }
     throw error;
   }
@@ -119,7 +119,7 @@ async function updateRepuesto(id, payload) {
     return await repuestosRepository.update(id, repuesto);
   } catch (error) {
     if (error.code === "23505" && String(error.constraint || "").includes("codigo_interno")) {
-      throw new HttpError(409, "Ya existe un repuesto registrado con ese codigo interno");
+      throw new HttpError(409, "Ya existe un repuesto registrado con ese código interno");
     }
     throw error;
   }

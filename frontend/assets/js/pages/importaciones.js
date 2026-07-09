@@ -54,9 +54,9 @@ const ACCION_LABEL = {
 };
 
 const TIPO_INCIDENCIA_LABEL = {
-    vehiculo_no_encontrado: "Vehiculo no encontrado",
+    vehiculo_no_encontrado: "Vehículo no encontrado",
     campo_nulo: "Campo obligatorio vacio",
-    formato_invalido: "Formato invalido",
+    formato_invalido: "Formato inválido",
     total_inconsistente: "Total inconsistente",
     otro: "Otro"
 };
@@ -120,7 +120,7 @@ async function cargarStatus() {
         const { ultimaImportacionAutomatica } = await window.VehiAmb.api.getImportacionesStatus();
 
         if (!ultimaImportacionAutomatica) {
-            importStatusBody.innerHTML = '<p class="dash-empty">Aun no se ha ejecutado ninguna importacion automatica.</p>';
+            importStatusBody.innerHTML = '<p class="dash-empty">Aún no se ha ejecutado ninguna importación automática.</p>';
             return;
         }
 
@@ -128,7 +128,7 @@ async function cargarStatus() {
         importStatusBody.innerHTML = `
             <div class="record-meta">
                 <span class="badge ${ESTADO_CLASS[item.estado] || "badge-amarillo"}">${ESTADO_LABEL[item.estado] || item.estado}</span>
-                <span class="pill">Periodo: ${formatDate(item.periodo)}</span>
+                <span class="pill">Período: ${formatDate(item.periodo)}</span>
                 <span class="pill">${formatDateTime(item.creado_en)}</span>
             </div>
             <p class="field-help">Nuevos: ${item.total_nuevos} · Actualizados: ${item.total_actualizados} · Omitidos: ${item.total_omitidos} · Errores: ${item.total_errores}</p>
@@ -173,7 +173,7 @@ async function cargarHistorial() {
             importTableBody.innerHTML = resultado.items.map(renderRow).join("");
         }
 
-        importListSummary.textContent = `Pagina ${resultado.page} de ${resultado.totalPages} · ${resultado.total} importaciones`;
+        importListSummary.textContent = `Página ${resultado.page} de ${resultado.totalPages} · ${resultado.total} importaciones`;
         importPrevPage.disabled = currentPage <= 1;
         importNextPage.disabled = currentPage >= totalPages;
     } catch (error) {
@@ -186,7 +186,7 @@ function renderResultadoImportacion(resultado) {
     if (!resultado.resultados) {
         return `
             <span class="badge ${ESTADO_CLASS[resultado.estado] || "badge-amarillo"}">${ESTADO_LABEL[resultado.estado] || resultado.estado}</span>
-            <p>Leidos: ${resultado.totalLeidos} · Nuevos: ${resultado.totalNuevos} · Actualizados: ${resultado.totalActualizados} · Omitidos: ${resultado.totalOmitidos} · Errores: ${resultado.totalErrores} (${formatDuracion(resultado.duracionMs)})</p>
+            <p>Leídos: ${resultado.totalLeidos} · Nuevos: ${resultado.totalNuevos} · Actualizados: ${resultado.totalActualizados} · Omitidos: ${resultado.totalOmitidos} · Errores: ${resultado.totalErrores} (${formatDuracion(resultado.duracionMs)})</p>
         `;
     }
 
@@ -203,11 +203,11 @@ function renderResultadoImportacion(resultado) {
     `).join("");
 
     return `
-        <p><strong>${resultado.totalDias} dias procesados</strong> (${formatDate(resultado.desde)} a ${formatDate(resultado.hasta)}) en ${formatDuracion(resultado.duracionMs)}</p>
-        <p>Totales — Leidos: ${resultado.totalLeidos} · Nuevos: ${resultado.totalNuevos} · Actualizados: ${resultado.totalActualizados} · Omitidos: ${resultado.totalOmitidos} · Errores: ${resultado.totalErrores}</p>
+        <p><strong>${resultado.totalDias} días procesados</strong> (${formatDate(resultado.desde)} a ${formatDate(resultado.hasta)}) en ${formatDuracion(resultado.duracionMs)}</p>
+        <p>Totales — Leídos: ${resultado.totalLeidos} · Nuevos: ${resultado.totalNuevos} · Actualizados: ${resultado.totalActualizados} · Omitidos: ${resultado.totalOmitidos} · Errores: ${resultado.totalErrores}</p>
         <div class="table-scroll">
             <table class="import-table import-table-compact">
-                <thead><tr><th>Dia</th><th>Estado</th><th>Leidos</th><th>Nuevos</th><th>Actualizados</th><th>Omitidos</th><th>Errores</th></tr></thead>
+                <thead><tr><th>Día</th><th>Estado</th><th>Leídos</th><th>Nuevos</th><th>Actualizados</th><th>Omitidos</th><th>Errores</th></tr></thead>
                 <tbody>${filasPorDia}</tbody>
             </table>
         </div>
@@ -234,7 +234,7 @@ importForm.addEventListener("submit", async (event) => {
     } catch (error) {
         console.error(error);
         importRunResult.classList.remove("hidden");
-        importRunResult.innerHTML = `<span class="badge badge-rojo">Error</span><p>${escapeHtml(error.message || "No se pudo ejecutar la importacion")}</p>`;
+        importRunResult.innerHTML = `<span class="badge badge-rojo">Error</span><p>${escapeHtml(error.message || "No se pudo ejecutar la importación")}</p>`;
     } finally {
         window.VehiAmb.ui.hide(loader);
         importSubmitButton.disabled = false;
@@ -289,16 +289,16 @@ async function cargarDrawer(importacionId) {
             window.VehiAmb.api.getImportacionDetalle(importacionId, { limit: 15 })
         ]);
 
-        importDrawerTitle.textContent = `Importacion #${importacion.id}`;
+        importDrawerTitle.textContent = `Importación #${importacion.id}`;
         importDrawerSubtitle.textContent = `${formatDate(importacion.periodo)} · ${escapeHtml(importacion.nombre_archivo)}`;
 
         importDrawerBody.innerHTML = `
             <dl class="detail-list drawer-detail-list">
                 <div><dt>Estado</dt><dd><span class="badge ${ESTADO_CLASS[importacion.estado] || "badge-amarillo"}">${ESTADO_LABEL[importacion.estado] || importacion.estado}</span></dd></div>
-                <div><dt>Ejecutada por</dt><dd>${escapeHtml(importacion.usuario_nombre || "Proceso automatico")}</dd></div>
-                <div><dt>Fecha de ejecucion</dt><dd>${formatDateTime(importacion.creado_en)}</dd></div>
-                <div><dt>Duracion</dt><dd>${formatDuracion(importacion.duracion_ms)}</dd></div>
-                <div><dt>Total leidos</dt><dd>${importacion.total_leidos}</dd></div>
+                <div><dt>Ejecutada por</dt><dd>${escapeHtml(importacion.usuario_nombre || "Proceso automático")}</dd></div>
+                <div><dt>Fecha de ejecución</dt><dd>${formatDateTime(importacion.creado_en)}</dd></div>
+                <div><dt>Duración</dt><dd>${formatDuracion(importacion.duracion_ms)}</dd></div>
+                <div><dt>Total leídos</dt><dd>${importacion.total_leidos}</dd></div>
                 <div><dt>Nuevos / Actualizados</dt><dd>${importacion.total_nuevos} / ${importacion.total_actualizados}</dd></div>
                 <div><dt>Omitidos / Errores</dt><dd>${importacion.total_omitidos} / ${importacion.total_errores}</dd></div>
                 <div><dt>Hash del archivo</dt><dd class="import-hash">${importacion.hash_archivo}</dd></div>
@@ -310,11 +310,11 @@ async function cargarDrawer(importacionId) {
                 <h3>Incidencias (${incidencias.total})</h3>
                 ${incidencias.items.length
                     ? incidencias.items.map(renderIncidenciaRow).join("")
-                    : '<p class="dash-empty detail-empty">Sin incidencias en esta importacion.</p>'}
+                    : '<p class="dash-empty detail-empty">Sin incidencias en esta importación.</p>'}
             </section>
 
             <section class="drawer-section">
-                <h3>Registros procesados (ultimos ${detalle.items.length} de ${detalle.total})</h3>
+                <h3>Registros procesados (últimos ${detalle.items.length} de ${detalle.total})</h3>
                 ${detalle.items.length
                     ? `<div class="table-scroll"><table class="import-table import-table-compact">
                         <thead><tr><th>Factura</th><th>Accion</th><th>Fecha</th></tr></thead>
@@ -332,7 +332,7 @@ async function cargarDrawer(importacionId) {
             </section>
         `;
     } catch (error) {
-        importDrawerBody.innerHTML = '<p class="dash-empty">No fue posible cargar el detalle de la importacion</p>';
+        importDrawerBody.innerHTML = '<p class="dash-empty">No fue posible cargar el detalle de la importación</p>';
     }
 }
 

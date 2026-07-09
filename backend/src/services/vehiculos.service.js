@@ -122,7 +122,7 @@ function validateVehiculo(vehiculo) {
     const vin = vehiculo.numero_chasis;
 
     if (vin.length < VIN_MIN_LENGTH || vin.length > VIN_MAX_LENGTH || !VIN_REGEX.test(vin)) {
-      throw new HttpError(400, "El numero de chasis (VIN) debe ser alfanumerico y tener una longitud valida (5 a 17 caracteres)");
+      throw new HttpError(400, "El número de chasis (VIN) debe ser alfanumérico y tener una longitud válida (5 a 17 caracteres)");
     }
   }
 }
@@ -191,11 +191,11 @@ async function createVehiculo(payload, file) {
     return await vehiculosRepository.create(vehiculo);
   } catch (error) {
     if (error.code === "23505" && String(error.constraint || "").includes("vehiculos_placa")) {
-      throw new HttpError(409, "Ya existe un vehiculo registrado con esa placa");
+      throw new HttpError(409, "Ya existe un vehículo registrado con esa placa");
     }
 
     if (error.code === "23505" && String(error.constraint || "").includes("numero_chasis")) {
-      throw new HttpError(409, "Ya existe un vehiculo registrado con ese numero de chasis (VIN)");
+      throw new HttpError(409, "Ya existe un vehículo registrado con ese número de chasis (VIN)");
     }
 
     throw error;
@@ -224,11 +224,11 @@ async function updateVehiculo(id, payload, file) {
     return actualizado;
   } catch (error) {
     if (error.code === "23505" && String(error.constraint || "").includes("vehiculos_placa")) {
-      throw new HttpError(409, "Ya existe un vehiculo registrado con esa placa");
+      throw new HttpError(409, "Ya existe un vehículo registrado con esa placa");
     }
 
     if (error.code === "23505" && String(error.constraint || "").includes("numero_chasis")) {
-      throw new HttpError(409, "Ya existe un vehiculo registrado con ese numero de chasis (VIN)");
+      throw new HttpError(409, "Ya existe un vehículo registrado con ese número de chasis (VIN)");
     }
 
     throw error;

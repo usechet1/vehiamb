@@ -402,9 +402,11 @@ async function consultarVehiculoManual(vehiculoId) {
 }
 
 async function actualizarFlotaCompleta() {
-    const confirmado = window.confirm(
-        `Esto va a consultar el SIMIT para ${flotaState.length} ${flotaState.length === 1 ? "vehículo" : "vehículos"} de la flota y puede tardar varios minutos. ¿Deseas continuar?`
-    );
+    const confirmado = await window.VehiAmb.ui.confirm({
+        title: "Actualizar toda la flota",
+        message: `Se va a consultar el SIMIT para ${flotaState.length} ${flotaState.length === 1 ? "vehículo" : "vehículos"} de la flota. Puede tardar varios minutos.`,
+        confirmText: "Actualizar flota"
+    });
     if (!confirmado) return;
 
     try {

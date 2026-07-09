@@ -20,16 +20,22 @@ function toSafeUser(user) {
   };
 }
 
-async function resolveRole(roleId) {
+// Un rol inactivo ya no se puede asignar de cero, pero un usuario que ya lo
+// tenia asignado (el rol se desactivo despues) debe poder seguir editandose
+// -- ej. cambiarle el nombre o reactivarlo -- sin verse forzado a cambiar de
+// rol solo para guardar. allowInactiveId permite esa excepcion puntual.
+async function resolveRole(roleId, { allowInactiveId = null } = {}) {
   const role = await rolesRepository.findById(roleId);
-  if (!role || !role.activo) {
-    throw new HttpError(400, "Rol invalido");
+  const esElMismoRolActual = allowInactiveId !== null && String(role?.id) === String(allowInactiveId);
+
+  if (!role || (!role.activo && !esElMismoRolActual)) {
+    throw new HttpError(400, "Rol inválido");
   }
 
   return role;
 }
 
-async function validateUserPayload(payload, { isUpdate = false } = {}) {
+async function validateUserPayload(payload, { isUpdate = false, existingRoleId = null } = {}) {
   const nombre = String(payload.nombre || "").trim();
   const email = normalizeEmail(payload.email);
   const password = String(payload.password || "");
@@ -39,15 +45,24 @@ async function validateUserPayload(payload, { isUpdate = false } = {}) {
     throw new HttpError(400, "Nombre, correo y rol son obligatorios");
   }
 
+  if (nombre.length < 4) {
+    throw new HttpError(400, "El nombre debe tener al menos 4 caracteres");
+  }
+
+  const emailLocalPart = email.split("@")[0];
+  if (emailLocalPart.length < 4) {
+    throw new HttpError(400, "El usuario debe tener al menos 4 caracteres");
+  }
+
   if (!isUpdate && password.length < 6) {
-    throw new HttpError(400, "La contrasena debe tener al menos 6 caracteres");
+    throw new HttpError(400, "La contraseña debe tener al menos 6 caracteres");
   }
 
   if (isUpdate && password && password.length < 6) {
-    throw new HttpError(400, "La contrasena debe tener al menos 6 caracteres");
+    throw new HttpError(400, "La contraseña debe tener al menos 6 caracteres");
   }
 
-  const role = await resolveRole(roleId);
+  const role = await resolveRole(roleId, { allowInactiveId: isUpdate ? existingRoleId : null });
 
   return {
     nombre,
@@ -92,7 +107,7 @@ async function updateUser(id, payload) {
     throw new HttpError(404, "Usuario no encontrado");
   }
 
-  const user = await validateUserPayload(payload, { isUpdate: true });
+  const user = await validateUserPayload(payload, { isUpdate: true, existingRoleId: existing.role_id });
   const sameEmailUser = await usuariosRepository.findByEmail(user.email);
 
   if (sameEmailUser && String(sameEmailUser.id) !== String(id)) {

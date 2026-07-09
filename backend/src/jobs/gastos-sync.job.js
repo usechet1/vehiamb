@@ -3,7 +3,7 @@ const env = require("../config/env");
 const importService = require("../services/import/import.service");
 
 /**
- * Corre cada hora (GASTOS_SYNC_SCHEDULE, default cada hora en punto) y
+ * Corre cada 4 horas (GASTOS_SYNC_SCHEDULE, default cada 4 horas en punto) y
  * sincroniza el periodo de "hoy" -- para que las filas nuevas o editadas el
  * mismo dia en el Excel de cargues (unidad de red T:) se reflejen en Gastos
  * sin esperar al job diario. No reemplaza a import-scheduler.job.js: ese

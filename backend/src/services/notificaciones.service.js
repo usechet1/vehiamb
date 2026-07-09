@@ -335,11 +335,11 @@ async function eliminarLeidas(usuarioId) {
 async function resolverNotificacionAprobacion(notificacionId, currentUser, estadoDestino) {
   const notificacion = await notificacionesRepository.findById(notificacionId);
   if (!notificacion) {
-    throw new HttpError(404, "Notificacion no encontrada");
+    throw new HttpError(404, "Notificación no encontrada");
   }
 
   if (notificacion.tipo !== "aprobacion_requerida" || notificacion.referencia_tipo !== "mantenimiento") {
-    throw new HttpError(400, "La notificacion no corresponde a una aprobacion de mantenimiento");
+    throw new HttpError(400, "La notificación no corresponde a una aprobación de mantenimiento");
   }
 
   const mantenimiento = await mantenimientosRepository.updateEstado(notificacion.referencia_id, estadoDestino);

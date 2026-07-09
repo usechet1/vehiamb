@@ -137,7 +137,7 @@ function renderListaVehiculos() {
     const items = filtro ? vehiculosCache.filter((v) => v.placa.includes(filtro)) : vehiculosCache;
 
     if (!items.length) {
-        costosListaGrid.innerHTML = '<p class="dash-empty">No hay vehiculos para mostrar.</p>';
+        costosListaGrid.innerHTML = '<p class="dash-empty">No hay vehículos para mostrar.</p>';
         return;
     }
 
@@ -171,8 +171,8 @@ async function cargarListaVehiculos() {
         renderListaVehiculos();
     } catch (error) {
         console.error(error);
-        costosListaGrid.innerHTML = '<p class="dash-empty">No fue posible cargar los costos por vehiculo.</p>';
-        window.VehiAmb.ui.showMessage(costosMensaje, error.message || "Error al cargar los vehiculos", "error");
+        costosListaGrid.innerHTML = '<p class="dash-empty">No fue posible cargar los costos por vehículo.</p>';
+        window.VehiAmb.ui.showMessage(costosMensaje, error.message || "Error al cargar los vehículos", "error");
     }
 }
 
@@ -210,7 +210,7 @@ function toggleChartEmpty(canvasId, vacio) {
         if (!empty) {
             empty = document.createElement("div");
             empty.className = "costos-chart-empty";
-            empty.textContent = "Sin datos para el periodo seleccionado.";
+            empty.textContent = "Sin datos para el período seleccionado.";
             wrap.appendChild(empty);
         }
     } else {
@@ -355,7 +355,7 @@ function renderFacturas(resultado) {
     }
 
     facturasState.totalPages = resultado.totalPages;
-    costosFacturasSummary.textContent = `Pagina ${resultado.page} de ${resultado.totalPages} · ${resultado.total} facturas`;
+    costosFacturasSummary.textContent = `Página ${resultado.page} de ${resultado.totalPages} · ${resultado.total} facturas`;
     costosFacturasPrev.disabled = facturasState.page <= 1;
     costosFacturasNext.disabled = facturasState.page >= resultado.totalPages;
     renderFacturasHead();
@@ -399,8 +399,8 @@ async function cargarDetalleVehiculo(placa) {
         await cargarFacturas(placa);
     } catch (error) {
         console.error(error);
-        costosKpisGrid.innerHTML = '<p class="dash-empty">No fue posible cargar los indicadores del vehiculo</p>';
-        window.VehiAmb.ui.showMessage(costosMensaje, error.message || "Error al cargar el detalle del vehiculo", "error");
+        costosKpisGrid.innerHTML = '<p class="dash-empty">No fue posible cargar los indicadores del vehículo</p>';
+        window.VehiAmb.ui.showMessage(costosMensaje, error.message || "Error al cargar el detalle del vehículo", "error");
     }
 }
 
@@ -410,14 +410,14 @@ function mostrarVistaLista() {
     costosListaView.classList.remove("hidden");
     costosDetalleView.classList.add("hidden");
     costosTitulo.textContent = "Gastos vehiculares";
-    costosSubtitulo.textContent = "Gasto operativo por vehiculo a partir de las facturas importadas.";
+    costosSubtitulo.textContent = "Gasto operativo por vehículo a partir de las facturas importadas.";
 }
 
 function mostrarVistaDetalle(placa) {
     costosListaView.classList.add("hidden");
     costosDetalleView.classList.remove("hidden");
     costosTitulo.textContent = placa === "CLIENTE" ? "CLIENTE" : `Vehiculo ${placa}`;
-    costosSubtitulo.textContent = "Indicadores, graficas y facturas del periodo seleccionado.";
+    costosSubtitulo.textContent = "Indicadores, gráficas y facturas del período seleccionado.";
 }
 
 async function renderVistaActual({ actualizarUrl = false, reemplazarUrl = false } = {}) {
@@ -534,7 +534,7 @@ function renderSyncEstado(item) {
 
     const estado = ESTADO_SYNC_LABEL[item.estado] || item.estado;
     costosSyncEstado.textContent =
-        `Ultima sincronizacion: ${formatDateTimeCorta(item.creado_en)} (${estado}) ` +
+        `Última sincronización: ${formatDateTimeCorta(item.creado_en)} (${estado}) ` +
         `· Nuevos: ${item.total_nuevos} · Actualizados: ${item.total_actualizados}`;
 }
 
@@ -544,7 +544,7 @@ async function cargarEstadoSync() {
         renderSyncEstado(ultimaImportacionAutomatica);
     } catch (error) {
         console.error(error);
-        costosSyncEstado.textContent = "No fue posible cargar el estado de sincronizacion.";
+        costosSyncEstado.textContent = "No fue posible cargar el estado de sincronización.";
     }
 }
 

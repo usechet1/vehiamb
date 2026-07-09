@@ -92,7 +92,7 @@ async function loadMarcas() {
         const previousValue = filters.marca;
 
         filterMarca.innerHTML = '<option value="">Marca: todas</option>' + marcas
-            .map((marca) => `<option value="${marca}">${marca}</option>`)
+            .map((marca) => `<option value="${escapeHtml(marca)}">${escapeHtml(marca)}</option>`)
             .join("");
 
         if (previousValue && marcas.includes(previousValue)) {
@@ -114,7 +114,7 @@ function renderCard(vehiculo) {
         </svg>
     `;
     const foto = vehiculo.imagen_url
-        ? `<img src="${window.VehiAmb.api.getAssetUrl(vehiculo.imagen_url)}" alt="Imagen de ${vehiculo.placa || "vehículo"}">`
+        ? `<img src="${escapeHtml(window.VehiAmb.api.getAssetUrl(vehiculo.imagen_url))}" alt="Imagen de ${escapeHtml(vehiculo.placa) || "vehículo"}">`
         : fotoPlaceholder;
 
     const puedeEditar = window.VehiAmb.auth.hasPermission("vehicles.edit");
@@ -127,7 +127,7 @@ function renderCard(vehiculo) {
             </div>
 
             <div class="vehicle-card-top">
-                <span class="plate">${vehiculo.placa || "SIN PLACA"}</span>
+                <span class="plate">${escapeHtml(vehiculo.placa) || "SIN PLACA"}</span>
                 <select class="vehicle-status-select badge ${estadoInfo.badge}" data-id="${vehiculo.id}">
                     ${Object.entries(ESTADOS).map(([value, info]) => `
                         <option value="${value}" ${vehiculo.estado === value ? "selected" : ""}>${info.label}</option>
@@ -135,12 +135,12 @@ function renderCard(vehiculo) {
                 </select>
             </div>
 
-            <h3>${vehiculo.marca || "Marca"} ${vehiculo.modelo || "Modelo"}</h3>
+            <h3>${escapeHtml(vehiculo.marca) || "Marca"} ${escapeHtml(vehiculo.modelo) || "Modelo"}</h3>
 
             <dl class="vehicle-meta">
                 <div>
                     <dt>Código</dt>
-                    <dd>${vehiculo.codigo_interno || "--"}</dd>
+                    <dd>${escapeHtml(vehiculo.codigo_interno) || "--"}</dd>
                 </div>
                 <div>
                     <dt>Modelo</dt>

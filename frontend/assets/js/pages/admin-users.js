@@ -10,11 +10,47 @@ const userActive = document.getElementById("userActive");
 const userFormMode = document.getElementById("userFormMode");
 const cancelEditButton = document.getElementById("cancelEditButton");
 const usersList = document.getElementById("usersList");
+const usersKpisGrid = document.getElementById("usersKpisGrid");
+const userSearchInput = document.getElementById("userSearchInput");
 const rolesPermissions = document.getElementById("rolesPermissions");
+const toggleUserPasswordButton = document.getElementById("toggleUserPasswordButton");
+const userPasswordIconEye = toggleUserPasswordButton.querySelector(".icon-eye");
+const userPasswordIconEyeOff = toggleUserPasswordButton.querySelector(".icon-eye-off");
 
 let usersState = [];
 let rolesState = [];
 let permissionsState = [];
+
+const EMAIL_DOMAIN = "@vehiamb.com";
+
+function buildEmail(rawValue) {
+    const value = String(rawValue || "").trim().toLowerCase();
+    if (!value) return "";
+    return value.includes("@") ? value : `${value}${EMAIL_DOMAIN}`;
+}
+
+function stripEmailDomain(email) {
+    const value = String(email || "").trim().toLowerCase();
+    return value.endsWith(EMAIL_DOMAIN) ? value.slice(0, -EMAIL_DOMAIN.length) : value;
+}
+
+function hideUserPassword() {
+    userPassword.type = "password";
+    toggleUserPasswordButton.setAttribute("aria-label", "Mostrar contraseña");
+    toggleUserPasswordButton.setAttribute("aria-pressed", "false");
+    userPasswordIconEye.classList.remove("hidden");
+    userPasswordIconEyeOff.classList.add("hidden");
+}
+
+toggleUserPasswordButton.addEventListener("click", () => {
+    const isVisible = userPassword.type === "text";
+
+    userPassword.type = isVisible ? "password" : "text";
+    toggleUserPasswordButton.setAttribute("aria-label", isVisible ? "Mostrar contraseña" : "Ocultar contraseña");
+    toggleUserPasswordButton.setAttribute("aria-pressed", String(!isVisible));
+    userPasswordIconEye.classList.toggle("hidden", !isVisible);
+    userPasswordIconEyeOff.classList.toggle("hidden", isVisible);
+});
 
 function escapeHtml(value) {
     return String(value ?? "")
@@ -31,6 +67,8 @@ function resetForm() {
     userActive.checked = true;
     userPassword.required = true;
     userFormMode.textContent = "Nuevo usuario";
+    hideUserPassword();
+    fillRoles();
 }
 
 function fillRoles() {
@@ -46,17 +84,67 @@ function fillRoles() {
     });
 }
 
+// Un usuario puede tener asignado un rol que despues se desactivo. Si no se
+// agrega como opcion, el select queda vacio al editar y no se ve que rol
+// tiene realmente (ver usuarios.service.js#resolveRole para el mismo caso
+// en el backend).
+function ensureRoleOption(roleId) {
+    if (!roleId) return;
+
+    const yaExiste = [...userRole.options].some((option) => option.value === String(roleId));
+    if (yaExiste) return;
+
+    const role = rolesState.find((item) => String(item.id) === String(roleId));
+    const option = document.createElement("option");
+    option.value = roleId;
+    option.textContent = role ? `${role.nombre} (inactivo)` : "Rol inactivo";
+    userRole.appendChild(option);
+}
+
 function roleNameById(roleId) {
     return rolesState.find((role) => String(role.id) === String(roleId))?.nombre || "Sin rol";
 }
 
-function renderUsers() {
-    if (!usersState.length) {
-        usersList.innerHTML = '<p class="dash-empty">Aun no hay usuarios registrados</p>';
+function renderUsersKpis() {
+    const activos = usersState.filter((user) => user.activo).length;
+
+    usersKpisGrid.innerHTML = `
+        <div class="kpi-card" style="--kpi-accent: var(--color-ink-soft)">
+            <div class="kpi-label">Total usuarios</div>
+            <div class="kpi-value">${usersState.length}</div>
+        </div>
+        <div class="kpi-card" style="--kpi-accent: var(--color-success)">
+            <div class="kpi-label">Activos</div>
+            <div class="kpi-value">${activos}</div>
+        </div>
+        <div class="kpi-card" style="--kpi-accent: var(--color-primary)">
+            <div class="kpi-label">Inactivos</div>
+            <div class="kpi-value">${usersState.length - activos}</div>
+        </div>
+    `;
+}
+
+function matchesUserSearch(user) {
+    const termino = userSearchInput.value.trim().toLowerCase();
+    if (!termino) return true;
+
+    return String(user.nombre || "").toLowerCase().includes(termino)
+        || String(user.email || "").toLowerCase().includes(termino);
+}
+
+function applyUserFilters() {
+    renderUsers(usersState.filter(matchesUserSearch));
+}
+
+function renderUsers(rows) {
+    if (!rows.length) {
+        usersList.innerHTML = usersState.length
+            ? '<p class="dash-empty">Ningún usuario coincide con la búsqueda</p>'
+            : '<p class="dash-empty">Aún no hay usuarios registrados</p>';
         return;
     }
 
-    usersList.innerHTML = usersState.map((user) => `
+    usersList.innerHTML = rows.map((user) => `
         <article class="admin-user-item">
             <div>
                 <div class="record-top">
@@ -140,9 +228,11 @@ function editUser(id) {
 
     userId.value = user.id;
     userName.value = user.nombre || "";
-    userEmail.value = user.email || "";
+    userEmail.value = stripEmailDomain(user.email);
     userPassword.value = "";
     userPassword.required = false;
+    hideUserPassword();
+    ensureRoleOption(user.role_id);
     userRole.value = user.role_id || "";
     userActive.checked = Boolean(user.activo);
     userFormMode.textContent = "Editar usuario";
@@ -150,6 +240,16 @@ function editUser(id) {
 }
 
 async function toggleUser(id, active) {
+    if (!active) {
+        const user = usersState.find((item) => String(item.id) === String(id));
+        const confirmado = await window.VehiAmb.ui.confirm({
+            title: "Desactivar usuario",
+            message: `${user?.nombre || "Este usuario"} perderá acceso al sistema de inmediato.`,
+            confirmText: "Desactivar"
+        });
+        if (!confirmado) return;
+    }
+
     try {
         window.VehiAmb.ui.show(loader);
         await window.VehiAmb.api.setUsuarioActivo(id, active);
@@ -168,7 +268,7 @@ async function saveUser(event) {
 
     const payload = {
         nombre: userName.value,
-        email: userEmail.value,
+        email: buildEmail(userEmail.value),
         password: userPassword.value,
         role_id: userRole.value,
         activo: userActive.checked
@@ -197,7 +297,8 @@ async function saveUser(event) {
 
 async function loadUsers() {
     usersState = await window.VehiAmb.api.getUsuarios();
-    renderUsers();
+    renderUsersKpis();
+    applyUserFilters();
 }
 
 async function refreshRolesAndPermissions() {
@@ -244,11 +345,12 @@ async function initAdminUsers() {
         usersState = users;
 
         fillRoles();
-        renderUsers();
+        renderUsersKpis();
+        applyUserFilters();
         renderRolePermissions();
     } catch (error) {
         console.error(error);
-        window.VehiAmb.ui.showMessage(mensaje, error.message || "No fue posible cargar la administracion", "error");
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "No fue posible cargar la administración", "error");
     } finally {
         window.VehiAmb.ui.hide(loader);
     }
@@ -256,6 +358,7 @@ async function initAdminUsers() {
 
 userForm.addEventListener("submit", saveUser);
 cancelEditButton.addEventListener("click", resetForm);
+userSearchInput.addEventListener("input", applyUserFilters);
 
 usersList.addEventListener("click", (event) => {
     const button = event.target.closest("button[data-action]");

@@ -5,6 +5,7 @@
     const MEMBRETE_FOOTER_ASPECT = 2550 / 315;
     const MARGIN_X = 40;
     const PAGE_BOTTOM_LIMIT = 720;
+    const ROW_LINE_HEIGHT = 12;
     const FOOTER_TEXT = () => `Generado por ${APP_NAME} - Software propio de Ambientes Cerámicos - el ${new Date().toLocaleString("es-CO")}`;
 
     function safe(value, fallback = "No registrado") {
@@ -40,13 +41,22 @@
         }
 
         function row(label, value) {
-            ensureSpace(16);
+            // El valor puede envolverse a varias lineas (maxWidth); avanzar
+            // siempre 16pt fijo hacia el siguiente row hacia solapaba el
+            // texto envuelto con la fila siguiente. Se mide con
+            // splitTextToSize (mismo patron que drawTableRow) para avanzar
+            // segun la altura real ocupada.
+            const maxWidth = pageWidth - MARGIN_X * 2 - 150;
             doc.setFontSize(10);
+            const lines = doc.splitTextToSize(safe(value), maxWidth);
+            const rowHeight = Math.max(16, lines.length * ROW_LINE_HEIGHT + 4);
+
+            ensureSpace(rowHeight);
             doc.setFont(undefined, "bold");
             doc.text(`${label}:`, MARGIN_X, y);
             doc.setFont(undefined, "normal");
-            doc.text(safe(value), MARGIN_X + 150, y, { maxWidth: pageWidth - MARGIN_X * 2 - 150 });
-            y += 16;
+            doc.text(lines, MARGIN_X + 150, y);
+            y += rowHeight;
         }
 
         function spacer(amount = 8) {
@@ -115,12 +125,19 @@
         doc.setFont(undefined, "normal");
 
         repuestos.forEach((repuesto) => {
-            layout.ensureSpace(16);
-            doc.text(safe(repuesto.repuesto), colX[0], layout.y, { maxWidth: 140 });
-            doc.text(safe(repuesto.proveedor, "Sin proveedor"), colX[1], layout.y, { maxWidth: 100 });
+            const notasWidth = layout.pageWidth - MARGIN_X - colX[3];
+            const repuestoLines = doc.splitTextToSize(safe(repuesto.repuesto), 140);
+            const proveedorLines = doc.splitTextToSize(safe(repuesto.proveedor, "Sin proveedor"), 100);
+            const notasLines = doc.splitTextToSize(safe(repuesto.notas, "Sin notas"), notasWidth);
+            const maxLines = Math.max(1, repuestoLines.length, proveedorLines.length, notasLines.length);
+            const rowHeight = maxLines * ROW_LINE_HEIGHT + 4;
+
+            layout.ensureSpace(rowHeight);
+            doc.text(repuestoLines, colX[0], layout.y);
+            doc.text(proveedorLines, colX[1], layout.y);
             doc.text(repuesto.valor ? formatCurrency(repuesto.valor) : "No registrado", colX[2], layout.y);
-            doc.text(safe(repuesto.notas, "Sin notas"), colX[3], layout.y, { maxWidth: layout.pageWidth - MARGIN_X - colX[3] });
-            layout.spacer(16);
+            doc.text(notasLines, colX[3], layout.y);
+            layout.spacer(rowHeight);
         });
     }
 

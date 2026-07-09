@@ -45,7 +45,7 @@ async function fillVehiculoFiltro() {
             notifFiltroVehiculo.appendChild(option);
         });
     } catch (error) {
-        console.error("No fue posible cargar los vehiculos para el filtro:", error);
+        console.error("No fue posible cargar los vehículos para el filtro:", error);
     }
 }
 
@@ -68,7 +68,7 @@ function renderNotifCard(notificacion, { dentroDeGrupo = false } = {}) {
     }
 
     if (noLeida) {
-        botones.push(`<button type="button" class="btn-secondary" data-notif-action="leido" data-notif-id="${notificacion.id}">Marcar leida</button>`);
+        botones.push(`<button type="button" class="btn-secondary" data-notif-action="leido" data-notif-id="${notificacion.id}">Marcar leída</button>`);
     }
     if (!archivada) {
         botones.push(`<button type="button" class="btn-secondary" data-notif-action="archivar" data-notif-id="${notificacion.id}">Posponer / Archivar</button>`);
@@ -96,7 +96,7 @@ function renderNotifCard(notificacion, { dentroDeGrupo = false } = {}) {
             <div class="record-meta">
                 ${vehiculoLabel ? `<span class="pill">${escapeHtml(vehiculoLabel)}</span>` : ""}
                 <span class="pill">${cfg.tiempoTranscurrido(notificacion.fecha_creacion)}</span>
-                <span class="pill">${notificacion.estado === "no_leida" ? "No leida" : notificacion.estado === "leida" ? "Leida" : "Archivada"}</span>
+                <span class="pill">${notificacion.estado === "no_leida" ? "No leída" : notificacion.estado === "leida" ? "Leída" : "Archivada"}</span>
             </div>
             ${botones.length ? `<div class="notif-item-actions">${botones.join("")}</div>` : ""}
         </article>

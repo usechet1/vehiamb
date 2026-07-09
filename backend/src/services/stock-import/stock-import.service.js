@@ -108,7 +108,7 @@ async function listar(filtros) {
 
 async function obtener(id) {
   const importacion = await importacionesStockRepository.findById(id);
-  if (!importacion) throw new HttpError(404, "Importacion de stock no encontrada");
+  if (!importacion) throw new HttpError(404, "Importación de stock no encontrada");
   return importacion;
 }
 

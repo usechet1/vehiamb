@@ -42,7 +42,7 @@ const CATEGORIA_LABEL = {
     filtro_aire: "Filtro Aire",
     filtro_combustible: "Filtro Combustible",
     llantas: "Llantas",
-    baterias: "Baterias",
+    baterias: "Baterías",
     lubricantes: "Lubricantes",
     refrigerantes: "Refrigerantes",
     correas: "Correas",
@@ -83,8 +83,8 @@ function renderEquivalencias(equivalencias) {
     equivalenciasList.innerHTML = equivalencias.map((eq) => `
         <li class="simple-checklist-item">
             <div class="simple-checklist-content">
-                <span class="simple-checklist-label">${eq.prioridad}. ${eq.nombre}</span>
-                <span class="simple-checklist-detail">${eq.codigo_interno} · Stock: ${formatNumber(eq.stock_disponible)}</span>
+                <span class="simple-checklist-label">${eq.prioridad}. ${escapeHtml(eq.nombre)}</span>
+                <span class="simple-checklist-detail">${escapeHtml(eq.codigo_interno)} · Stock: ${formatNumber(eq.stock_disponible)}</span>
             </div>
             <button type="button" class="simple-checklist-remove" data-id="${eq.id}">Quitar</button>
         </li>
@@ -109,7 +109,7 @@ let equivalenciaSeleccionada = null;
 window.VehiAmb.crearRepuestoAutocomplete(equivalenciaInput, {
     onSelect(repuesto) {
         equivalenciaSeleccionada = repuesto;
-        equivalenciaSeleccionadaInfo.textContent = `${repuesto.codigo_interno} · Categoria: ${CATEGORIA_LABEL[repuesto.categoria] || repuesto.categoria}`;
+        equivalenciaSeleccionadaInfo.textContent = `${repuesto.codigo_interno} · Categoría: ${CATEGORIA_LABEL[repuesto.categoria] || repuesto.categoria}`;
         equivalenciaSeleccionadaInfo.classList.remove("hidden");
         addEquivalenciaButton.disabled = false;
     }
@@ -181,11 +181,11 @@ async function cargarRepuestos() {
             ? resultado.items.map(renderRow).join("")
             : '<tr><td colspan="9" class="dash-empty">No hay repuestos registrados con esos filtros</td></tr>';
 
-        repuestosListSummary.textContent = `Pagina ${resultado.page} de ${resultado.totalPages} · ${resultado.total} repuestos`;
+        repuestosListSummary.textContent = `Página ${resultado.page} de ${resultado.totalPages} · ${resultado.total} repuestos`;
         repuestosPrevPage.disabled = currentPage <= 1;
         repuestosNextPage.disabled = currentPage >= totalPages;
     } catch (error) {
-        repuestosTableBody.innerHTML = '<tr><td colspan="9" class="dash-empty">No fue posible cargar el catalogo</td></tr>';
+        repuestosTableBody.innerHTML = '<tr><td colspan="9" class="dash-empty">No fue posible cargar el catálogo</td></tr>';
     }
 }
 

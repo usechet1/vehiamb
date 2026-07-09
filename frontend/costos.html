@@ -15,7 +15,7 @@
             <div class="page-header">
                 <div>
                     <h1 id="costosTitulo">Gastos vehiculares</h1>
-                    <p class="page-kicker" id="costosSubtitulo">Gasto operativo por vehiculo a partir de las facturas importadas.</p>
+                    <p class="page-kicker" id="costosSubtitulo">Gasto operativo por vehículo a partir de las facturas importadas.</p>
                 </div>
                 <div class="page-header-right">
                     <div id="costosSync" class="costos-sync hidden">
@@ -37,7 +37,7 @@
 
             <div id="costosMensaje" class="mensaje hidden"></div>
 
-            <!-- ── Vista: lista de vehiculos ───────────────────────── -->
+            <!-- ── Vista: lista de vehículos ───────────────────────── -->
             <section id="costosListaView" class="costos-view">
                 <div class="costos-search-row">
                     <input type="text" id="costosListaBuscar" placeholder="Buscar placa...">
@@ -54,23 +54,23 @@
                 </div>
             </section>
 
-            <!-- ── Vista: detalle de vehiculo ──────────────────────── -->
+            <!-- ── Vista: detalle de vehículo ──────────────────────── -->
             <section id="costosDetalleView" class="costos-view hidden">
-                <button type="button" id="costosVolverButton" class="btn-secondary costos-volver">← Volver a vehiculos</button>
+                <button type="button" id="costosVolverButton" class="btn-secondary costos-volver">← Volver a vehículos</button>
 
                 <div id="costosKpisGrid" class="costos-kpis-grid"></div>
 
                 <div class="costos-graficas-grid">
                     <div class="costos-card costos-card-chart">
-                        <h3>Gasto total por dia</h3>
+                        <h3>Gasto total por día</h3>
                         <div class="costos-chart-wrap"><canvas id="chartGastoDiario"></canvas></div>
                     </div>
                     <div class="costos-card costos-card-chart">
-                        <h3>Consumo de galones por dia</h3>
+                        <h3>Consumo de galones por día</h3>
                         <div class="costos-chart-wrap"><canvas id="chartGalonesDiario"></canvas></div>
                     </div>
                     <div class="costos-card costos-card-chart">
-                        <h3>Proporcion por tipo de gasto</h3>
+                        <h3>Proporción por tipo de gasto</h3>
                         <div class="costos-chart-wrap"><canvas id="chartProporcion"></canvas></div>
                     </div>
                     <div class="costos-card costos-card-chart">
@@ -85,8 +85,8 @@
 
                 <div class="costos-card costos-facturas-card">
                     <div class="costos-facturas-head">
-                        <h3>Facturas del periodo</h3>
-                        <input type="text" id="costosFacturasBuscar" placeholder="Buscar por numero de factura...">
+                        <h3>Facturas del período</h3>
+                        <input type="text" id="costosFacturasBuscar" placeholder="Buscar por número de factura...">
                     </div>
                     <div class="table-scroll">
                         <table class="import-table" id="costosFacturasTable">
@@ -94,7 +94,7 @@
                                 <tr>
                                     <th data-order="numero_factura">Factura</th>
                                     <th data-order="fecha_factura">Fecha factura</th>
-                                    <th data-order="fecha_envio">Fecha envio</th>
+                                    <th data-order="fecha_envio">Fecha envío</th>
                                     <th data-order="sala">Sala</th>
                                     <th data-order="peso_kg">Peso (kg)</th>
                                     <th data-order="valor_factura">Valor factura</th>

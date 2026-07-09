@@ -1,11 +1,11 @@
-// Espejo de presentacion del catalogo del backend (backend/src/config/notificaciones.config.js).
+// Espejo de presentación del catálogo del backend (backend/src/config/notificaciones.config.js).
 // Solo controla iconos/colores/orden visual; las reglas de negocio (que tipo
-// pertenece a que categoria/prioridad) siempre las decide el backend.
+// pertenece a que categoría/prioridad) siempre las decide el backend.
 window.VehiAmb = window.VehiAmb || {};
 
 const CATEGORIAS = {
     mantenimiento: { label: "Mantenimientos", icono: "🔧" },
-    documentacion: { label: "Documentacion", icono: "📄" },
+    documentacion: { label: "Documentación", icono: "📄" },
     incidente: { label: "Incidentes", icono: "🚨" },
     usuario: { label: "Usuarios", icono: "👤" },
     sistema: { label: "Sistema", icono: "⚙️" },
@@ -13,7 +13,7 @@ const CATEGORIAS = {
 };
 
 const PRIORIDADES = {
-    critica: { label: "Critica", icono: "🔴", orden: 0, className: "notif-prio-critica" },
+    critica: { label: "Crítica", icono: "🔴", orden: 0, className: "notif-prio-critica" },
     alta: { label: "Alta", icono: "🟠", orden: 1, className: "notif-prio-alta" },
     media: { label: "Media", icono: "🟡", orden: 2, className: "notif-prio-media" },
     informativa: { label: "Informativa", icono: "🔵", orden: 3, className: "notif-prio-informativa" }
@@ -21,12 +21,12 @@ const PRIORIDADES = {
 
 const PRIORIDAD_LEGACY_ALIAS = { baja: "informativa" };
 
-// Acciones rapidas: cada accion_tipo que puede llegar del backend se resuelve
-// aqui a una etiqueta de boton + una pagina de destino. Agregar una accion
-// nueva es una entrada mas en este objeto.
+// Acciones rápidas: cada accion_tipo que puede llegar del backend se resuelve
+// aquí a una etiqueta de botón + una página de destino. Agregar una acción
+// nueva es una entrada más en este objeto.
 const ACCIONES = {
     ver_vehiculo: {
-        label: "Ver vehiculo",
+        label: "Ver vehículo",
         url: (payload) => `vehiculo.html?id=${payload?.vehiculo_id}`
     },
     ver_mantenimiento: {
@@ -81,7 +81,7 @@ function tiempoTranscurrido(fechaIso) {
     if (horas < 24) return `Hace ${horas} hora${horas === 1 ? "" : "s"}`;
 
     const dias = Math.floor(horas / 24);
-    if (dias < 30) return `Hace ${dias} dia${dias === 1 ? "" : "s"}`;
+    if (dias < 30) return `Hace ${dias} día${dias === 1 ? "" : "s"}`;
 
     const meses = Math.floor(dias / 30);
     if (meses < 12) return `Hace ${meses} mes${meses === 1 ? "" : "es"}`;

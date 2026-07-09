@@ -47,12 +47,12 @@ async function login(payload) {
 async function getCurrentUser(authToken) {
   const payload = verifyAuthToken(authToken);
   if (!payload?.sub) {
-    throw new HttpError(401, "Sesion invalida o expirada");
+    throw new HttpError(401, "Sesión inválida o expirada");
   }
 
   const user = await usuariosRepository.findById(payload.sub);
   if (!user || !user.activo) {
-    throw new HttpError(401, "Sesion invalida o expirada");
+    throw new HttpError(401, "Sesión inválida o expirada");
   }
 
   return enrichUser(user);

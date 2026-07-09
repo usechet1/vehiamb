@@ -14,7 +14,7 @@
             <div class="page-header">
                 <div>
                     <h1>Consolidado Cargues</h1>
-                    <p class="page-kicker">Sincronizacion diaria con el Excel operativo de logistica.</p>
+                    <p class="page-kicker">Sincronización diaria con el Excel operativo de logística.</p>
                 </div>
             </div>
 
@@ -23,16 +23,16 @@
                     <section class="section-card">
                         <div class="section-card-head">
                             <h2>Ejecutar sincronización manual</h2>
-                            <p>Procesa uno o varios dias del Excel bajo demanda, sin esperar al proceso automatico. El periodo se determina por Fecha de Envio.</p>
+                            <p>Procesa uno o varios días del Excel bajo demanda, sin esperar al proceso automático. El período se determina por Fecha de Envío.</p>
                         </div>
                         <div class="section-card-body">
                             <form id="importForm" class="compact-form">
                                 <div class="form-group">
                                     <label>Modo</label>
-                                    <div class="import-modo-toggle" role="radiogroup" aria-label="Modo de importacion">
+                                    <div class="import-modo-toggle" role="radiogroup" aria-label="Modo de importación">
                                         <label class="import-modo-btn is-active" for="importModoDia">
                                             <input type="radio" name="importModo" value="dia" id="importModoDia" checked>
-                                            Un dia
+                                            Un día
                                         </label>
                                         <label class="import-modo-btn" for="importModoRango">
                                             <input type="radio" name="importModo" value="rango" id="importModoRango">
@@ -41,7 +41,7 @@
                                     </div>
                                 </div>
                                 <div class="form-group" id="importGrupoDia">
-                                    <label>Fecha a procesar (Fecha de Envio)</label>
+                                    <label>Fecha a procesar (Fecha de Envío)</label>
                                     <input type="date" name="periodo" id="importPeriodo">
                                 </div>
                                 <div class="import-grupo-rango hidden" id="importGrupoRango">
@@ -54,7 +54,7 @@
                                         <input type="date" id="importHasta">
                                     </div>
                                 </div>
-                                <button type="submit" class="btn-primary" id="importSubmitButton">Ejecutar importacion</button>
+                                <button type="submit" class="btn-primary" id="importSubmitButton">Ejecutar importación</button>
                             </form>
                             <div id="importRunResult" class="import-run-result hidden"></div>
                         </div>
@@ -64,8 +64,8 @@
                 <div class="stack">
                     <section class="section-card">
                         <div class="section-card-head">
-                            <h2>Ultima sincronización automatica</h2>
-                            <p>Se ejecuta todos los dias segun IMPORT_SCHEDULE, procesando el dia anterior.</p>
+                            <h2>Última sincronización automática</h2>
+                            <p>Se ejecuta todos los días según IMPORT_SCHEDULE, procesando el día anterior.</p>
                         </div>
                         <div class="section-card-body" id="importStatusBody">
                             <p class="dash-empty">Cargando...</p>
@@ -95,14 +95,14 @@
                             <thead>
                                 <tr>
                                     <th>Fecha sincronización</th>
-                                    <th>Periodo</th>
+                                    <th>Período</th>
                                     <th>Archivo</th>
                                     <th>Estado</th>
                                     <th>Nuevos</th>
                                     <th>Actualizados</th>
                                     <th>Omitidos</th>
                                     <th>Errores</th>
-                                    <th>Duracion</th>
+                                    <th>Duración</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -132,7 +132,7 @@
                     <div>
                         <span class="form-step">Detalle de sincronización</span>
                         <h2 id="importDrawerTitle">Sincronización</h2>
-                        <p id="importDrawerSubtitle">Metricas e incidencias</p>
+                        <p id="importDrawerSubtitle">Métricas e incidencias</p>
                     </div>
                     <button type="button" id="closeImportDrawer" class="drawer-close" aria-label="Cerrar detalle">×</button>
                 </div>

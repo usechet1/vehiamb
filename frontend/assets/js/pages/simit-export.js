@@ -5,6 +5,7 @@
     const MEMBRETE_FOOTER_ASPECT = 2550 / 315;
     const MARGIN_X = 40;
     const PAGE_BOTTOM_LIMIT = 720;
+    const ROW_LINE_HEIGHT = 12;
     const FOOTER_TEXT = () => `Generado por ${APP_NAME} - Software propio de Ambientes Cerámicos - el ${new Date().toLocaleString("es-CO")}`;
 
     function safe(value, fallback = "No registrado") {
@@ -40,13 +41,20 @@
         }
 
         function row(label, value) {
-            ensureSpace(16);
+            // Medir con splitTextToSize antes de avanzar y, para que un
+            // valor largo que se envuelve a varias lineas (ej. un mensaje de
+            // error de SIMIT) no quede debajo del siguiente row.
+            const maxWidth = pageWidth - MARGIN_X * 2 - 150;
             doc.setFontSize(10);
+            const lines = doc.splitTextToSize(safe(value), maxWidth);
+            const rowHeight = Math.max(16, lines.length * ROW_LINE_HEIGHT + 4);
+
+            ensureSpace(rowHeight);
             doc.setFont(undefined, "bold");
             doc.text(`${label}:`, MARGIN_X, y);
             doc.setFont(undefined, "normal");
-            doc.text(safe(value), MARGIN_X + 150, y, { maxWidth: pageWidth - MARGIN_X * 2 - 150 });
-            y += 16;
+            doc.text(lines, MARGIN_X + 150, y);
+            y += rowHeight;
         }
 
         function spacer(amount = 8) {
@@ -116,13 +124,18 @@
         doc.setFont(undefined, "normal");
 
         comparendos.forEach((item) => {
-            layout.ensureSpace(16);
-            doc.text(safe(item.numero_comparendo), colX[0], layout.y, { maxWidth: 95 });
+            const numeroLines = doc.splitTextToSize(safe(item.numero_comparendo), 95);
+            const descripcionLines = doc.splitTextToSize(safe(item.descripcion, "Sin descripción"), 185);
+            const maxLines = Math.max(1, numeroLines.length, descripcionLines.length);
+            const rowHeight = maxLines * ROW_LINE_HEIGHT + 4;
+
+            layout.ensureSpace(rowHeight);
+            doc.text(numeroLines, colX[0], layout.y);
             doc.text(item.fecha_infraccion ? window.VehiAmb.pdfExport.formatDateForPdf(item.fecha_infraccion) : "Sin fecha", colX[1], layout.y);
-            doc.text(safe(item.descripcion, "Sin descripción"), colX[2], layout.y, { maxWidth: 185 });
+            doc.text(descripcionLines, colX[2], layout.y);
             doc.text(formatCurrency(item.valor), colX[3], layout.y);
             doc.text(safe(item.estado), colX[4], layout.y);
-            layout.spacer(16);
+            layout.spacer(rowHeight);
         });
     }
 

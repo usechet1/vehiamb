@@ -81,5 +81,63 @@ window.VehiAmb.ui = {
         if (value === null || value === undefined) return "0";
         const digitos = String(value).replace(/[^\d]/g, "");
         return digitos || "0";
+    },
+
+    // Reemplaza window.confirm() nativo (dialogo del sistema operativo, sin
+    // estilo posible) por un modal propio con la misma identidad visual del
+    // resto de la app. Devuelve una Promise<boolean>, igual que el patron de
+    // uso de confirm() pero awaited.
+    confirm({ title = "Confirmar", message = "", confirmText = "Confirmar", cancelText = "Cancelar" } = {}) {
+        return new Promise((resolve) => {
+            const backdrop = document.createElement("div");
+            backdrop.className = "confirm-backdrop";
+
+            const modal = document.createElement("div");
+            modal.className = "confirm-modal";
+            modal.setAttribute("role", "alertdialog");
+            modal.setAttribute("aria-modal", "true");
+
+            const titleEl = document.createElement("h3");
+            titleEl.textContent = title;
+
+            const messageEl = document.createElement("p");
+            messageEl.textContent = message;
+
+            const actions = document.createElement("div");
+            actions.className = "confirm-modal-actions";
+
+            const cancelButton = document.createElement("button");
+            cancelButton.type = "button";
+            cancelButton.className = "btn-secondary";
+            cancelButton.textContent = cancelText;
+
+            const okButton = document.createElement("button");
+            okButton.type = "button";
+            okButton.className = "btn-primary";
+            okButton.textContent = confirmText;
+
+            actions.append(cancelButton, okButton);
+            modal.append(titleEl, messageEl, actions);
+            backdrop.append(modal);
+            document.body.appendChild(backdrop);
+
+            function cleanup(result) {
+                backdrop.remove();
+                document.removeEventListener("keydown", onKeydown);
+                resolve(result);
+            }
+
+            function onKeydown(event) {
+                if (event.key === "Escape") cleanup(false);
+            }
+
+            backdrop.addEventListener("click", (event) => {
+                if (event.target === backdrop) cleanup(false);
+            });
+            cancelButton.addEventListener("click", () => cleanup(false));
+            okButton.addEventListener("click", () => cleanup(true));
+            document.addEventListener("keydown", onKeydown);
+            okButton.focus();
+        });
     }
 };

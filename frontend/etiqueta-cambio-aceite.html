@@ -188,7 +188,7 @@
             <div class="etiqueta-fila"><strong>Kilometraje actual</strong><span id="etqKm">--</span></div>
             <div class="etiqueta-fila"><strong>Responsable</strong><span id="etqResponsable">--</span></div>
             <div class="etiqueta-proximo">
-                <span class="etiqueta-proximo-label">Proximo cambio</span>
+                <span class="etiqueta-proximo-label">Próximo cambio</span>
                 <span class="etiqueta-proximo-valor" id="etqProximo">--</span>
             </div>
             <p class="etiqueta-section-title">Aceite y filtros reemplazados</p>
@@ -212,10 +212,10 @@
             });
         }
 
-        // Mantenimientos creados antes del catalogo de repuestos (o sin
+        // Mantenimientos creados antes del catálogo de repuestos (o sin
         // repuestos ligados) no tienen filas en mantenimiento_repuestos --
         // en ese caso se recurre al campo legado "repuestos" (texto libre)
-        // para que la etiqueta igual muestre lo que se reemplazo.
+        // para que la etiqueta igual muestre lo que se reemplazó.
         function parseRepuestosLegado(value) {
             if (!value) return [];
 
@@ -237,7 +237,7 @@
             const estadoCarga = document.getElementById("estadoCarga");
 
             if (!mantenimientoId) {
-                estadoCarga.textContent = "No se indico el mantenimiento a mostrar.";
+                estadoCarga.textContent = "No se indicó el mantenimiento a mostrar.";
                 return;
             }
 

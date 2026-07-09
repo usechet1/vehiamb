@@ -279,7 +279,7 @@ async function cargarSidebar() {
                 <button data-page="importaciones.html" data-permission="imports.view">Importaciones</button>
                 <button data-page="notificaciones.html" data-permission="dashboard.view">Notificaciones</button>
                 <button data-page="repuestos.html" data-permission="inventory.view">Catalogo de Repuestos</button>
-                <button data-page="stock-importaciones.html" data-permission="inventory.view">Importacion de Stock</button>
+                <button data-page="stock-importaciones.html" data-permission="inventory.import">Importacion de Stock</button>
                 <button data-page="admin-usuarios.html" data-permission="users.manage">Usuarios</button>
             </nav>
         `;
