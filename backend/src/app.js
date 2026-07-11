@@ -20,6 +20,7 @@ const repuestosRoutes = require("./routes/repuestos.routes");
 const stockImportacionesRoutes = require("./routes/stock-importaciones.routes");
 const configImportRoutes = require("./routes/config-import.routes");
 const simitRoutes = require("./routes/simit.routes");
+const inspeccionesRoutes = require("./routes/inspecciones.routes");
 
 const app = express();
 
@@ -50,6 +51,7 @@ app.use("/api/repuestos", requireAuth, repuestosRoutes);
 app.use("/api/stock-importaciones", requireAuth, stockImportacionesRoutes);
 app.use("/api/config-import", requireAuth, configImportRoutes);
 app.use("/api/simit", requireAuth, simitRoutes);
+app.use("/api/inspecciones", requireAuth, inspeccionesRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

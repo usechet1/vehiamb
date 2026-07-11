@@ -410,3 +410,29 @@ CREATE TABLE IF NOT EXISTS simit_comparendos (
 CREATE INDEX IF NOT EXISTS idx_simit_consultas_vehiculo_id ON simit_consultas (vehiculo_id, fecha_consulta DESC);
 CREATE INDEX IF NOT EXISTS idx_simit_comparendos_consulta_id ON simit_comparendos (consulta_id);
 CREATE INDEX IF NOT EXISTS idx_simit_comparendos_vehiculo_numero ON simit_comparendos (vehiculo_id, numero_comparendo);
+
+-- ── Modulo de Inspecciones preventivas (checklist tipo "radiografia") ──
+CREATE TABLE IF NOT EXISTS inspecciones_preventivas (
+  id BIGSERIAL PRIMARY KEY,
+  vehiculo_id BIGINT NOT NULL REFERENCES vehiculos(id) ON DELETE CASCADE,
+  usuario_id BIGINT REFERENCES usuarios(id),
+  fecha TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  observaciones TEXT,
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS inspeccion_items (
+  id BIGSERIAL PRIMARY KEY,
+  inspeccion_id BIGINT NOT NULL REFERENCES inspecciones_preventivas(id) ON DELETE CASCADE,
+  vehiculo_id BIGINT NOT NULL REFERENCES vehiculos(id) ON DELETE CASCADE,
+  item_codigo TEXT NOT NULL,
+  item_label TEXT NOT NULL,
+  estado TEXT NOT NULL DEFAULT 'bien',
+  comentario TEXT,
+  foto_url TEXT,
+  foto_nombre TEXT,
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_inspecciones_preventivas_vehiculo_id ON inspecciones_preventivas (vehiculo_id, fecha DESC);
+CREATE INDEX IF NOT EXISTS idx_inspeccion_items_inspeccion_id ON inspeccion_items (inspeccion_id);

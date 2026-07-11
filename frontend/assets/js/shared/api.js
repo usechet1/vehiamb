@@ -703,5 +703,37 @@ window.VehiAmb.api = {
             { method: "POST" },
             "No se pudo actualizar el estado SIMIT de la flota"
         );
+    },
+
+    getChecklistCatalogo() {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/inspecciones/catalogo`,
+            undefined,
+            "No se pudo cargar el catálogo del checklist"
+        );
+    },
+
+    getInspeccionesByVehicle(vehiculoId) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/inspecciones/vehiculo/${vehiculoId}`,
+            undefined,
+            "No se pudo cargar el historial de inspecciones"
+        );
+    },
+
+    getInspeccionDetalle(inspeccionId) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/inspecciones/${inspeccionId}`,
+            undefined,
+            "No se pudo cargar el detalle de la inspección"
+        );
+    },
+
+    crearInspeccion(vehiculoId, formData) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/inspecciones/vehiculo/${vehiculoId}`,
+            { method: "POST", body: formData },
+            "No se pudo guardar la inspección"
+        );
     }
 };

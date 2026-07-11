@@ -266,6 +266,46 @@
                         <button type="button" id="guardarRepuestosSugeridosButton" class="btn-primary">Guardar repuestos sugeridos</button>
                     </div>
                 </section>
+
+                <section class="section-card" id="vehicleInspeccionSection">
+                    <div class="section-card-head">
+                        <h2>Inspección preventiva</h2>
+                        <p>Haz click sobre cada punto del diagrama para marcar su estado, como una radiografía del vehículo.</p>
+                    </div>
+                    <div class="section-card-body">
+                        <div class="inspeccion-layout">
+                            <div class="inspeccion-diagram-wrap">
+                                <svg class="inspeccion-diagram" viewBox="0 0 200 340" role="img" aria-label="Diagrama del vehículo visto desde arriba">
+                                    <rect x="30" y="70" width="18" height="50" rx="6" fill="#8b93a3"></rect>
+                                    <rect x="152" y="70" width="18" height="50" rx="6" fill="#8b93a3"></rect>
+                                    <rect x="30" y="220" width="18" height="50" rx="6" fill="#8b93a3"></rect>
+                                    <rect x="152" y="220" width="18" height="50" rx="6" fill="#8b93a3"></rect>
+                                    <rect x="50" y="30" width="100" height="280" rx="35" fill="#e8ecf3" stroke="#b9c2d0" stroke-width="2"></rect>
+                                    <rect x="65" y="100" width="70" height="120" rx="20" fill="#d7dee8"></rect>
+                                </svg>
+                                <div class="inspeccion-hotspots" id="inspeccionHotspots"></div>
+                            </div>
+
+                            <div class="inspeccion-panel" id="inspeccionPanel">
+                                <p class="dash-empty">Selecciona un punto del diagrama para marcar su estado.</p>
+                            </div>
+                        </div>
+
+                        <div class="inspeccion-resumen" id="inspeccionResumen"></div>
+
+                        <div class="form-actions">
+                            <button type="button" id="guardarInspeccionButton" class="btn-primary" disabled>Guardar inspección</button>
+                            <button type="button" id="limpiarInspeccionButton" class="btn-secondary">Limpiar</button>
+                        </div>
+
+                        <div class="inspeccion-historial">
+                            <h3>Historial de inspecciones</h3>
+                            <div id="inspeccionHistorialList" class="records-list">
+                                <p class="dash-empty">Cargando...</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </div>
         </main>
     </div>
@@ -279,6 +319,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="assets/js/shared/pdf-export.js"></script>
     <script src="assets/js/pages/vehiculo-export.js"></script>
+    <script src="assets/js/pages/vehicle-inspeccion.js"></script>
     <script>
         (function () {
             const statusSelect = document.getElementById("vehicleStatusSelect");
