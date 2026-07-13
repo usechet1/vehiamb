@@ -34,10 +34,24 @@ function formatFecha(value) {
     });
 }
 
+function getEstadoClaseGrupo(item) {
+    const estados = item.subItems.map((subItem) => inspeccionMarcados.get(subItem.codigo)?.estado);
+    const totalMarcados = estados.filter(Boolean).length;
+    if (!totalMarcados) return "";
+    if (estados.includes("mal")) return "is-mal";
+    if (totalMarcados === item.subItems.length) return "is-bien";
+    return "is-parcial";
+}
+
+function getTotalItemsCount() {
+    return inspeccionCatalogo.reduce((total, item) => total + (item.subItems ? item.subItems.length : 1), 0);
+}
+
 function renderHotspots() {
     inspeccionHotspotsEl.innerHTML = inspeccionCatalogo.map((item) => {
-        const marcado = inspeccionMarcados.get(item.codigo);
-        const estadoClase = marcado ? `is-${marcado.estado}` : "";
+        const estadoClase = item.subItems
+            ? getEstadoClaseGrupo(item)
+            : (inspeccionMarcados.get(item.codigo) ? `is-${inspeccionMarcados.get(item.codigo).estado}` : "");
         return `
             <button
                 type="button"
@@ -67,6 +81,11 @@ function renderPanel() {
 
     const item = inspeccionCatalogo.find((catalogoItem) => catalogoItem.codigo === inspeccionActivo);
     if (!item) return;
+
+    if (item.subItems) {
+        renderPanelGrupo(item);
+        return;
+    }
 
     const marcado = inspeccionMarcados.get(item.codigo);
 
@@ -129,6 +148,48 @@ function renderPanel() {
     });
 }
 
+// Cada subItem se marca con un solo botón tipo casilla que cicla sin
+// marcar -> bien -> mal -> sin marcar, en vez de dos botones "Bien"/"Mal"
+// más un textarea de comentario que hacían crecer cada fila a un alto
+// distinto. Así todos los ítems del kit quedan con el mismo tamaño.
+function renderPanelGrupo(item) {
+    inspeccionPanelEl.innerHTML = `
+        <h4>${escapeHtml(item.label)}</h4>
+        <p class="field-help">Marca el estado de cada elemento del kit de herramientas y equipo de carretera.</p>
+        <div class="inspeccion-checklist-grupo">
+            ${item.subItems.map((subItem) => {
+                const estado = inspeccionMarcados.get(subItem.codigo)?.estado;
+                const estadoClase = estado ? `is-${estado}` : "";
+                const estadoLabel = estado === "bien" ? "Bien" : estado === "mal" ? "Mal" : "Marcar";
+                return `
+                    <button type="button" class="inspeccion-checklist-toggle ${estadoClase}" data-codigo="${escapeHtml(subItem.codigo)}" title="${escapeHtml(subItem.label)}">
+                        <span class="inspeccion-checklist-toggle-check" aria-hidden="true"></span>
+                        <span class="inspeccion-checklist-toggle-label">${escapeHtml(subItem.label)}</span>
+                        <span class="inspeccion-checklist-toggle-estado">${estadoLabel}</span>
+                    </button>
+                `;
+            }).join("")}
+        </div>
+    `;
+
+    inspeccionPanelEl.querySelectorAll(".inspeccion-checklist-toggle").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            const codigo = btn.dataset.codigo;
+            const estadoActual = inspeccionMarcados.get(codigo)?.estado;
+            const siguienteEstado = !estadoActual ? "bien" : estadoActual === "bien" ? "mal" : null;
+
+            if (siguienteEstado === null) {
+                inspeccionMarcados.delete(codigo);
+            } else {
+                inspeccionMarcados.set(codigo, { estado: siguienteEstado, comentario: "", fotoFile: null, fotoNombre: null });
+            }
+            renderHotspots();
+            renderPanel();
+            renderResumen();
+        });
+    });
+}
+
 function renderResumen() {
     const totalMarcados = inspeccionMarcados.size;
     const totalMal = [...inspeccionMarcados.values()].filter((item) => item.estado === "mal").length;
@@ -140,7 +201,7 @@ function renderResumen() {
     }
 
     inspeccionResumenEl.innerHTML = `
-        <span class="pill">${totalMarcados} de ${inspeccionCatalogo.length} marcados</span>
+        <span class="pill">${totalMarcados} de ${getTotalItemsCount()} marcados</span>
         ${totalMal ? `<span class="pill pill-danger">${totalMal} en mal estado</span>` : '<span class="pill pill-success">Todo bien</span>'}
     `;
     guardarInspeccionButton.disabled = !inspeccionPuedeCrear;

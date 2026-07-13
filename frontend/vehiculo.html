@@ -267,7 +267,7 @@
                     </div>
                 </section>
 
-                <section class="section-card" id="vehicleInspeccionSection">
+                <section class="section-card inspeccion-section" id="vehicleInspeccionSection">
                     <div class="section-card-head">
                         <h2>Inspección preventiva</h2>
                         <p>Haz click sobre cada punto del diagrama para marcar su estado, como una radiografía del vehículo.</p>
@@ -286,22 +286,27 @@
                                 <div class="inspeccion-hotspots" id="inspeccionHotspots"></div>
                             </div>
 
-                            <div class="inspeccion-panel" id="inspeccionPanel">
-                                <p class="dash-empty">Selecciona un punto del diagrama para marcar su estado.</p>
-                            </div>
-                        </div>
+                            <div class="inspeccion-content">
+                                <div class="inspeccion-top-row">
+                                    <div class="inspeccion-panel" id="inspeccionPanel">
+                                        <p class="dash-empty">Selecciona un punto del diagrama para marcar su estado.</p>
+                                    </div>
 
-                        <div class="inspeccion-resumen" id="inspeccionResumen"></div>
+                                    <div class="inspeccion-side">
+                                        <div class="inspeccion-resumen" id="inspeccionResumen"></div>
+                                        <div class="form-actions">
+                                            <button type="button" id="guardarInspeccionButton" class="btn-primary" disabled>Guardar inspección</button>
+                                            <button type="button" id="limpiarInspeccionButton" class="btn-secondary">Limpiar</button>
+                                        </div>
+                                    </div>
+                                </div>
 
-                        <div class="form-actions">
-                            <button type="button" id="guardarInspeccionButton" class="btn-primary" disabled>Guardar inspección</button>
-                            <button type="button" id="limpiarInspeccionButton" class="btn-secondary">Limpiar</button>
-                        </div>
-
-                        <div class="inspeccion-historial">
-                            <h3>Historial de inspecciones</h3>
-                            <div id="inspeccionHistorialList" class="records-list">
-                                <p class="dash-empty">Cargando...</p>
+                                <div class="inspeccion-historial">
+                                    <h3>Historial de inspecciones</h3>
+                                    <div id="inspeccionHistorialList" class="records-list">
+                                        <p class="dash-empty">Cargando...</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

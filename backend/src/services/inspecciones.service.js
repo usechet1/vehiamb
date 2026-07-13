@@ -6,6 +6,15 @@ const itemsRepository = require("../repositories/inspeccion-items.repository");
 // Catalogo fijo del checklist "radiografia". x/y son coordenadas porcentuales
 // sobre el diagrama del carro (0-100), consumidas por el frontend para
 // posicionar cada hotspot sin duplicar las coordenadas en el HTML.
+//
+// "kit_herramientas" es un item agrupador: no se marca directamente, sino
+// que expone subItems con el equipo de carretera minimo del Articulo 30 de
+// la Ley 769 de 2002, excepto botiquin y extintor (ya son hotspots propios)
+// y la llanta de repuesto (tambien aparte). El frontend muestra un solo
+// hotspot en el diagrama para el grupo, pero el checklist dentro del panel
+// marca cada subItem por separado; cada uno se guarda como una fila
+// independiente de inspeccion_items (mismo tratamiento que cualquier otro
+// item del catalogo).
 const ITEMS_CHECKLIST = [
   { codigo: "llanta_di", label: "Llanta delantera izquierda", x: 20, y: 28 },
   { codigo: "llanta_dd", label: "Llanta delantera derecha", x: 80, y: 28 },
@@ -13,13 +22,39 @@ const ITEMS_CHECKLIST = [
   { codigo: "llanta_td", label: "Llanta trasera derecha", x: 80, y: 72 },
   { codigo: "llanta_repuesto", label: "Llanta de repuesto", x: 50, y: 94 },
   { codigo: "aceite", label: "Nivel de aceite", x: 50, y: 16 },
-  { codigo: "kit_herramientas", label: "Kit de herramientas", x: 50, y: 84 },
+  {
+    codigo: "kit_herramientas",
+    label: "Kit de herramientas",
+    x: 50,
+    y: 84,
+    subItems: [
+      { codigo: "kit_alicate", label: "Alicate" },
+      { codigo: "kit_destornilladores", label: "Destornilladores" },
+      { codigo: "kit_llave_expansion", label: "Llave de expansión" },
+      { codigo: "kit_llaves_fijas", label: "Llaves fijas" },
+      { codigo: "kit_gato", label: "Gato" },
+      { codigo: "kit_cruceta", label: "Cruceta" },
+      { codigo: "kit_senales", label: "Señales de carretera" },
+      { codigo: "kit_tacos", label: "Tacos para bloquear el vehículo" },
+      { codigo: "kit_linterna", label: "Linterna" }
+    ]
+  },
   { codigo: "luces", label: "Luces", x: 50, y: 6 },
   { codigo: "extintor", label: "Extintor", x: 30, y: 50 },
-  { codigo: "botiquin", label: "Botiquín / señales", x: 70, y: 50 }
+  { codigo: "botiquin", label: "Botiquín de primeros auxilios", x: 70, y: 50 }
 ];
 
-const ITEMS_POR_CODIGO = new Map(ITEMS_CHECKLIST.map((item) => [item.codigo, item]));
+const ITEMS_POR_CODIGO = new Map();
+for (const item of ITEMS_CHECKLIST) {
+  if (item.subItems) {
+    for (const subItem of item.subItems) {
+      ITEMS_POR_CODIGO.set(subItem.codigo, subItem);
+    }
+    continue;
+  }
+  ITEMS_POR_CODIGO.set(item.codigo, item);
+}
+
 const ESTADOS_VALIDOS = new Set(["bien", "mal"]);
 
 function getCatalogo() {
