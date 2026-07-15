@@ -7,12 +7,12 @@ exports.getUsuarios = async (req, res) => {
 };
 
 exports.createUsuario = async (req, res) => {
-  const usuario = await usuariosService.createUser(req.body, req.empresaId);
+  const usuario = await usuariosService.createUser(req.body, req.empresaId, req.user?.permisos || []);
   res.status(201).json(usuario);
 };
 
 exports.updateUsuario = async (req, res) => {
-  const usuario = await usuariosService.updateUser(req.params.id, req.body, req.empresaId);
+  const usuario = await usuariosService.updateUser(req.params.id, req.body, req.empresaId, req.user?.permisos || []);
   res.json(usuario);
 };
 
@@ -27,7 +27,7 @@ exports.setUsuarioActivo = async (req, res) => {
 };
 
 exports.getRoles = async (req, res) => {
-  const roles = await rolesService.listRoles();
+  const roles = await rolesService.listRoles(req.user?.permisos || []);
   res.json(roles);
 };
 
@@ -39,7 +39,8 @@ exports.getPermisos = async (req, res) => {
 exports.updateRolePermissions = async (req, res) => {
   const permisos = await rolesService.updateRolePermissions(
     req.params.roleId,
-    req.body.permission_ids || req.body.permissionIds || []
+    req.body.permission_ids || req.body.permissionIds || [],
+    req.user?.permisos || []
   );
   res.json(permisos);
 };

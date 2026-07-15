@@ -4,6 +4,8 @@ const usuariosRepository = require("../repositories/usuarios.repository");
 const { hashPassword } = require("../utils/password");
 const notificacionesService = require("./notificaciones.service");
 
+const PERMISO_SUPER_ADMIN = "empresas.switch";
+
 function normalizeEmail(value) {
   return String(value || "").trim().toLowerCase();
 }
@@ -25,7 +27,7 @@ function toSafeUser(user) {
 // tenia asignado (el rol se desactivo despues) debe poder seguir editandose
 // -- ej. cambiarle el nombre o reactivarlo -- sin verse forzado a cambiar de
 // rol solo para guardar. allowInactiveId permite esa excepcion puntual.
-async function resolveRole(roleId, { allowInactiveId = null } = {}) {
+async function resolveRole(roleId, { allowInactiveId = null, callerPermisos = [] } = {}) {
   const role = await rolesRepository.findById(roleId);
   const esElMismoRolActual = allowInactiveId !== null && String(role?.id) === String(allowInactiveId);
 
@@ -33,10 +35,21 @@ async function resolveRole(roleId, { allowInactiveId = null } = {}) {
     throw new HttpError(400, "Rol inválido");
   }
 
+  // Un rol que otorga "empresas.switch" rompe el aislamiento entre empresas
+  // -- solo alguien que ya tiene ese permiso puede asignarlo a otro usuario
+  // (o a si mismo editandose), para que un Administrador normal no pueda
+  // promoverse a SuperAdministrador desde el panel de Usuarios.
+  if (!callerPermisos.includes(PERMISO_SUPER_ADMIN)) {
+    const permisosDelRol = await rolesRepository.findPermissionsByRoleId(role.id);
+    if (permisosDelRol.some((permiso) => permiso.codigo === PERMISO_SUPER_ADMIN)) {
+      throw new HttpError(403, "No tienes permiso para asignar este rol");
+    }
+  }
+
   return role;
 }
 
-async function validateUserPayload(payload, { isUpdate = false, existingRoleId = null } = {}) {
+async function validateUserPayload(payload, { isUpdate = false, existingRoleId = null, callerPermisos = [] } = {}) {
   const nombre = String(payload.nombre || "").trim();
   const email = normalizeEmail(payload.email);
   const password = String(payload.password || "");
@@ -63,7 +76,7 @@ async function validateUserPayload(payload, { isUpdate = false, existingRoleId =
     throw new HttpError(400, "La contraseña debe tener al menos 6 caracteres");
   }
 
-  const role = await resolveRole(roleId, { allowInactiveId: isUpdate ? existingRoleId : null });
+  const role = await resolveRole(roleId, { allowInactiveId: isUpdate ? existingRoleId : null, callerPermisos });
 
   return {
     nombre,
@@ -83,8 +96,8 @@ async function listUsers(empresaId) {
 // El email es unico en TODA la plataforma (decision de producto: una cuenta
 // = una empresa, el login no pide elegir empresa), asi que la verificacion
 // de unicidad de email es deliberadamente global, sin filtrar por empresaId.
-async function createUser(payload, empresaId) {
-  const user = await validateUserPayload(payload);
+async function createUser(payload, empresaId, callerPermisos = []) {
+  const user = await validateUserPayload(payload, { callerPermisos });
   const existing = await usuariosRepository.findByEmail(user.email);
 
   if (existing) {
@@ -106,13 +119,13 @@ async function createUser(payload, empresaId) {
   return safeUser;
 }
 
-async function updateUser(id, payload, empresaId) {
+async function updateUser(id, payload, empresaId, callerPermisos = []) {
   const existing = await usuariosRepository.findById(id, empresaId);
   if (!existing) {
     throw new HttpError(404, "Usuario no encontrado");
   }
 
-  const user = await validateUserPayload(payload, { isUpdate: true, existingRoleId: existing.role_id });
+  const user = await validateUserPayload(payload, { isUpdate: true, existingRoleId: existing.role_id, callerPermisos });
   const sameEmailUser = await usuariosRepository.findByEmail(user.email);
 
   if (sameEmailUser && String(sameEmailUser.id) !== String(id)) {

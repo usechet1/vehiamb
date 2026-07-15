@@ -70,6 +70,10 @@ async function createEmpresa({ nombre, slug }) {
   return empresa;
 }
 
+async function listarTodas() {
+  return empresasRepository.findAll();
+}
+
 async function obtenerEmpresa(empresaId) {
   const empresa = await empresasRepository.findById(empresaId);
   if (!empresa) {
@@ -100,6 +104,7 @@ async function actualizarEmpresa(empresaId, { nombre, file }) {
 module.exports = {
   createEmpresa,
   slugify,
+  listarTodas,
   obtenerEmpresa,
   actualizarEmpresa
 };

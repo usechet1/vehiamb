@@ -7,11 +7,12 @@ const requirePermission = require("../middlewares/require-permission");
 const uploadEmpresa = require("../middlewares/upload-empresa");
 const compressImage = require("../middlewares/compress-image");
 
-router.use(requirePermission("empresa.manage"));
+router.get("/", requirePermission("empresas.switch"), asyncHandler(empresasController.getEmpresas));
 
-router.get("/me", asyncHandler(empresasController.getMiEmpresa));
+router.get("/me", requirePermission("empresa.manage"), asyncHandler(empresasController.getMiEmpresa));
 router.put(
   "/me",
+  requirePermission("empresa.manage"),
   uploadEmpresa.single("logo"),
   asyncHandler(compressImage),
   asyncHandler(empresasController.updateMiEmpresa)

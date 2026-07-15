@@ -62,11 +62,17 @@ const PERMISSIONS = [
   ["inspections.create", "Inspecciones", "Registrar inspecciones preventivas"],
   ["trips.view", "Viajes", "Ver el historial de viajes"],
   ["trips.create", "Viajes", "Registrar el viaje e iniciar recorrido"],
-  ["empresa.manage", "Empresa", "Editar el nombre y el logo de la empresa"]
+  ["empresa.manage", "Empresa", "Editar el nombre y el logo de la empresa"],
+  ["empresas.switch", "Empresas", "Cambiar de empresa activa entre todas las empresas"]
 ];
 
 const ROLE_PERMISSIONS = {
   Administrador: PERMISSIONS.map(([codigo]) => codigo),
+  // Rol de plataforma: mismos permisos que Administrador, mas la capacidad
+  // de cambiar de empresa activa (ver empresas.switch) para operar como
+  // administrador de cualquier empresa sin cerrar sesion. Se asigna a mano
+  // (nunca por defecto) fuera de la app, igual que scripts/create-empresa.js.
+  SuperAdministrador: PERMISSIONS.map(([codigo]) => codigo),
   Operador: [
     "dashboard.view",
     "vehicles.view",
