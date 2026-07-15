@@ -74,6 +74,20 @@ window.VehiAmb.auth = {
         return hasPermission(this.getUser(), permission);
     },
 
+    // Solo tiene efecto si el usuario logueado tiene el permiso
+    // "empresas.switch" (rol SuperAdministrador) -- el backend valida esto
+    // de nuevo en cada request, aqui solo se guarda la seleccion para
+    // mandarla como header en las llamadas a la API.
+    getEmpresaActivaId() {
+        return getStoredSession()?.empresaActivaId || "";
+    },
+
+    setEmpresaActivaId(empresaId) {
+        const session = getStoredSession();
+        if (!session) return;
+        setStoredSession({ ...session, empresaActivaId: empresaId });
+    },
+
     getPagePermission(page) {
         return PAGE_PERMISSIONS[page];
     },
@@ -100,11 +114,14 @@ window.VehiAmb.auth = {
         const session = await this.requireSession();
         if (!session) return null;
 
+        const headers = { Authorization: `Bearer ${session.token}` };
+        if (session.empresaActivaId) {
+            headers["X-Empresa-Id"] = session.empresaActivaId;
+        }
+
         const response = await fetch(`${window.VehiAmb.API_URL}/auth/me`, {
             cache: "no-store",
-            headers: {
-                Authorization: `Bearer ${session.token}`
-            }
+            headers
         });
 
         if (response.status === 401) {

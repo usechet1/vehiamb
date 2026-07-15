@@ -252,6 +252,42 @@ function setupMobileNav(aside) {
     });
 }
 
+// Solo visible para quien tiene "empresas.switch" (rol SuperAdministrador).
+// Cambiar de empresa activa guarda la seleccion (auth.js la manda como
+// header X-Empresa-Id en cada llamada) y recarga la pagina -- no hay SPA
+// routing en este proyecto, asi que recargar es la forma mas simple de que
+// todo (datos, permisos, nombre de empresa) quede consistente con la nueva
+// empresa activa.
+async function setupEmpresaSwitcher(aside, user) {
+    const wrap = aside.querySelector("#sidebarEmpresaSwitcher");
+    const select = aside.querySelector("#sidebarEmpresaSelect");
+    if (!wrap || !select) return;
+
+    if (!window.VehiAmb.auth.hasPermission("empresas.switch")) {
+        wrap.classList.add("hidden");
+        return;
+    }
+
+    try {
+        const empresas = await window.VehiAmb.api.getEmpresas();
+
+        select.innerHTML = empresas
+            .filter((empresa) => empresa.activo)
+            .map((empresa) => `<option value="${empresa.id}">${escapeHtml(empresa.nombre)}</option>`)
+            .join("");
+
+        select.value = String(user.empresa_id);
+        wrap.classList.remove("hidden");
+
+        select.addEventListener("change", () => {
+            window.VehiAmb.auth.setEmpresaActivaId(select.value);
+            window.location.reload();
+        });
+    } catch (error) {
+        console.error("No fue posible cargar el selector de empresas:", error);
+    }
+}
+
 async function cargarSidebar() {
     const aside = document.getElementById("sidebar");
     if (!aside) return;
@@ -306,10 +342,7 @@ async function cargarSidebar() {
         if (empresaEl) empresaEl.textContent = user.empresa_nombre || "";
         if (avatarEl) avatarEl.textContent = getInitials(user.nombre);
 
-        const logoEl = aside.querySelector("#sidebarLogoImage");
-        if (logoEl && user.empresa_logo_url) {
-            logoEl.src = window.VehiAmb.api.getAssetUrl(user.empresa_logo_url);
-        }
+        await setupEmpresaSwitcher(aside, user);
 
         // Conductor necesita maintenance.view/documents.view/vehicles.view para
         // ver esas secciones DENTRO de la ficha del vehiculo (y para el

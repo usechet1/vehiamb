@@ -626,6 +626,26 @@ label[for="loginPassword"] {
     display: none;
 }
 
+.sidebar-empresa-switcher {
+    margin-top: 6px;
+}
+
+.sidebar-empresa-switcher select {
+    width: 100%;
+    min-height: 30px;
+    padding: 3px 6px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    font-size: 0.76rem;
+    font-weight: 650;
+}
+
+.sidebar-empresa-switcher select option {
+    color: #161b22;
+}
+
 /* ── Botón cerrar sesión ──────────────────────── */
 .footer-btn {
     width: 100%;

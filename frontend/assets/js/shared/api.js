@@ -12,6 +12,11 @@ async function requestJson(url, options, errorMessage) {
         headers.set("Authorization", `Bearer ${sessionToken}`);
     }
 
+    const empresaActivaId = window.VehiAmb.auth?.getEmpresaActivaId?.() || "";
+    if (empresaActivaId) {
+        headers.set("X-Empresa-Id", empresaActivaId);
+    }
+
     const response = await fetch(url, {
         ...options,
         headers
@@ -46,6 +51,10 @@ window.VehiAmb.api = {
         if (!path) return "";
         if (path.startsWith("http://") || path.startsWith("https://")) return path;
         return `${window.VehiAmb.ASSET_BASE_URL}${path}`;
+    },
+
+    getEmpresas() {
+        return requestJson(`${window.VehiAmb.API_URL}/empresas`, undefined, "No se pudieron cargar las empresas");
     },
 
     getMiEmpresa() {

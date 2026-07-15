@@ -1,9 +1,5 @@
-const EMAIL_DOMAIN = "@vehiamb.com";
-
 function buildEmail(rawValue) {
-    const value = String(rawValue || "").trim().toLowerCase();
-    if (!value) return "";
-    return value.includes("@") ? value : `${value}${EMAIL_DOMAIN}`;
+    return String(rawValue || "").trim().toLowerCase();
 }
 
 const loginForm = document.getElementById("loginForm");

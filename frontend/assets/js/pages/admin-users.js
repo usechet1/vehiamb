@@ -21,17 +21,8 @@ let usersState = [];
 let rolesState = [];
 let permissionsState = [];
 
-const EMAIL_DOMAIN = "@vehiamb.com";
-
 function buildEmail(rawValue) {
-    const value = String(rawValue || "").trim().toLowerCase();
-    if (!value) return "";
-    return value.includes("@") ? value : `${value}${EMAIL_DOMAIN}`;
-}
-
-function stripEmailDomain(email) {
-    const value = String(email || "").trim().toLowerCase();
-    return value.endsWith(EMAIL_DOMAIN) ? value.slice(0, -EMAIL_DOMAIN.length) : value;
+    return String(rawValue || "").trim().toLowerCase();
 }
 
 function hideUserPassword() {
@@ -228,7 +219,7 @@ function editUser(id) {
 
     userId.value = user.id;
     userName.value = user.nombre || "";
-    userEmail.value = stripEmailDomain(user.email);
+    userEmail.value = user.email || "";
     userPassword.value = "";
     userPassword.required = false;
     hideUserPassword();
