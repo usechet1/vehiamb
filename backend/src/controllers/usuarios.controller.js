@@ -2,17 +2,17 @@ const rolesService = require("../services/roles.service");
 const usuariosService = require("../services/usuarios.service");
 
 exports.getUsuarios = async (req, res) => {
-  const usuarios = await usuariosService.listUsers();
+  const usuarios = await usuariosService.listUsers(req.empresaId);
   res.json(usuarios);
 };
 
 exports.createUsuario = async (req, res) => {
-  const usuario = await usuariosService.createUser(req.body);
+  const usuario = await usuariosService.createUser(req.body, req.empresaId);
   res.status(201).json(usuario);
 };
 
 exports.updateUsuario = async (req, res) => {
-  const usuario = await usuariosService.updateUser(req.params.id, req.body);
+  const usuario = await usuariosService.updateUser(req.params.id, req.body, req.empresaId);
   res.json(usuario);
 };
 
@@ -20,7 +20,8 @@ exports.setUsuarioActivo = async (req, res) => {
   const usuario = await usuariosService.setUserActive(
     req.params.id,
     req.body.activo,
-    req.user.id
+    req.user.id,
+    req.empresaId
   );
   res.json(usuario);
 };

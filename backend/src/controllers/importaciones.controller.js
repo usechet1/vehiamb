@@ -38,34 +38,34 @@ exports.ejecutar = async (req, res) => {
 
 exports.listar = async (req, res) => {
   const { page, limit } = parsePage(req.query);
-  const resultado = await importService.listar({ page, limit, estado: req.query.estado, periodo: req.query.periodo });
+  const resultado = await importService.listar({ page, limit, estado: req.query.estado, periodo: req.query.periodo }, req.empresaId);
   res.json(resultado);
 };
 
 exports.obtener = async (req, res) => {
-  const importacion = await importService.obtener(req.params.id);
+  const importacion = await importService.obtener(req.params.id, req.empresaId);
   res.json(importacion);
 };
 
 exports.obtenerDetalle = async (req, res) => {
   const { page, limit } = parsePage(req.query);
-  const resultado = await importService.obtenerDetalle(req.params.id, { page, limit, accion: req.query.accion });
+  const resultado = await importService.obtenerDetalle(req.params.id, { page, limit, accion: req.query.accion }, req.empresaId);
   res.json(resultado);
 };
 
 exports.obtenerIncidencias = async (req, res) => {
   const { page, limit } = parsePage(req.query);
   const resuelta = req.query.resuelta === undefined ? undefined : req.query.resuelta === "true";
-  const resultado = await importService.obtenerIncidencias(req.params.id, { page, limit, resuelta });
+  const resultado = await importService.obtenerIncidencias(req.params.id, { page, limit, resuelta }, req.empresaId);
   res.json(resultado);
 };
 
 exports.resolverIncidencia = async (req, res) => {
-  const incidencia = await importService.resolverIncidencia(req.params.id, req.user.id);
+  const incidencia = await importService.resolverIncidencia(req.params.id, req.user.id, req.empresaId);
   res.json(incidencia);
 };
 
 exports.status = async (req, res) => {
-  const ultima = await importService.estadoUltimaAutomatica();
+  const ultima = await importService.estadoUltimaAutomatica(req.empresaId);
   res.json({ ultimaImportacionAutomatica: ultima || null });
 };

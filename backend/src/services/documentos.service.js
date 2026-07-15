@@ -30,7 +30,7 @@ function normalizePayload(payload) {
   };
 }
 
-async function validateDocumento(documento) {
+async function validateDocumento(documento, empresaId) {
   if (!documento.vehiculo_id || !documento.tipo || !documento.fecha_vencimiento) {
     throw new HttpError(400, "Vehículo, tipo y fecha de vencimiento son obligatorios");
   }
@@ -39,28 +39,29 @@ async function validateDocumento(documento) {
     throw new HttpError(400, "Tipo de documento no valido");
   }
 
-  const vehiculo = await vehiculosRepository.findById(documento.vehiculo_id);
+  const vehiculo = await vehiculosRepository.findById(documento.vehiculo_id, empresaId);
   if (!vehiculo) {
     throw new HttpError(404, "Vehículo no encontrado");
   }
 }
 
-async function listDocumentos() {
-  return documentosRepository.findAll();
+async function listDocumentos(empresaId) {
+  return documentosRepository.findAll(empresaId);
 }
 
-async function listDocumentosByVehicle(vehiculoId) {
-  return documentosRepository.findByVehicle(vehiculoId);
+async function listDocumentosByVehicle(vehiculoId, empresaId) {
+  return documentosRepository.findByVehicle(vehiculoId, empresaId);
 }
 
-async function createDocumento(payload, file) {
+async function createDocumento(payload, file, empresaId) {
   const documento = normalizePayload({
     ...payload,
     archivo_url: file ? `/uploads/documentos/${file.filename}` : null,
     archivo_nombre: file?.originalname || null,
     archivo_mime: file?.mimetype || null
   });
-  await validateDocumento(documento);
+  await validateDocumento(documento, empresaId);
+  documento.empresa_id = empresaId;
 
   return documentosRepository.create(documento);
 }

@@ -91,13 +91,13 @@ function tendencia(deltaPct) {
   return deltaPct > 0 ? "subio" : "bajo";
 }
 
-async function listarVehiculos(query) {
+async function listarVehiculos(query, empresaId) {
   const { desde, hasta } = normalizarRango(query);
   const { desdeAnterior, hastaAnterior } = periodoAnterior(desde, hasta);
 
   const [actual, anterior] = await Promise.all([
-    costosRepository.aggregarPorVehiculo(desde, hasta),
-    costosRepository.aggregarPorVehiculo(desdeAnterior, hastaAnterior)
+    costosRepository.aggregarPorVehiculo(desde, hasta, empresaId),
+    costosRepository.aggregarPorVehiculo(desdeAnterior, hastaAnterior, empresaId)
   ]);
 
   const anteriorPorPlaca = new Map(anterior.map((row) => [row.placa, row]));
@@ -121,13 +121,13 @@ async function listarVehiculos(query) {
   return { desde, hasta, desdeAnterior, hastaAnterior, items };
 }
 
-async function kpisVehiculo(placa, query) {
+async function kpisVehiculo(placa, query, empresaId) {
   const { desde, hasta } = normalizarRango(query);
   const { desdeAnterior, hastaAnterior } = periodoAnterior(desde, hasta);
 
   const [actual, anterior] = await Promise.all([
-    costosRepository.kpisVehiculo(placa, desde, hasta),
-    costosRepository.kpisVehiculo(placa, desdeAnterior, hastaAnterior)
+    costosRepository.kpisVehiculo(placa, desde, hasta, empresaId),
+    costosRepository.kpisVehiculo(placa, desdeAnterior, hastaAnterior, empresaId)
   ]);
 
   const construir = (row) => {
@@ -168,14 +168,14 @@ async function kpisVehiculo(placa, query) {
   };
 }
 
-async function graficasVehiculo(placa, query) {
+async function graficasVehiculo(placa, query, empresaId) {
   const { desde, hasta } = normalizarRango(query);
 
   const [evolucion, porTipo, porTipoDiario, salas] = await Promise.all([
-    costosRepository.evolucionDiaria(placa, desde, hasta),
-    costosRepository.desglosePorTipo(placa, desde, hasta),
-    costosRepository.desglosePorTipoDiario(placa, desde, hasta),
-    costosRepository.topSalas(placa, desde, hasta, 10)
+    costosRepository.evolucionDiaria(placa, desde, hasta, empresaId),
+    costosRepository.desglosePorTipo(placa, desde, hasta, empresaId),
+    costosRepository.desglosePorTipoDiario(placa, desde, hasta, empresaId),
+    costosRepository.topSalas(placa, desde, hasta, empresaId, 10)
   ]);
 
   const TIPOS = ["combustible_pesos", "almuerzos", "peajes", "parqueaderos", "otros"];
@@ -216,7 +216,7 @@ async function graficasVehiculo(placa, query) {
   };
 }
 
-async function listarFacturas(placa, query) {
+async function listarFacturas(placa, query, empresaId) {
   const { desde, hasta } = normalizarRango(query);
   const page = Math.max(1, Number.parseInt(query.page, 10) || 1);
   const limit = Math.min(MAX_LIMIT, Math.max(1, Number.parseInt(query.limit, 10) || DEFAULT_LIMIT));
@@ -232,7 +232,7 @@ async function listarFacturas(placa, query) {
     search,
     orderBy,
     dir
-  });
+  }, empresaId);
 
   return {
     items: rows.map((row) => ({

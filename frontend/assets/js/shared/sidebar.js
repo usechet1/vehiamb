@@ -289,6 +289,7 @@ async function cargarSidebar() {
 
     const nameEl = aside.querySelector("#sidebarUserName");
     const roleEl = aside.querySelector("#sidebarUserRole");
+    const empresaEl = aside.querySelector("#sidebarUserEmpresa");
     const avatarEl = aside.querySelector("#userAvatar");
     const logoutButton = aside.querySelector("#logoutButton");
 
@@ -302,7 +303,13 @@ async function cargarSidebar() {
 
         if (nameEl) nameEl.textContent = user.nombre;
         if (roleEl) roleEl.textContent = user.rol || "Usuario";
+        if (empresaEl) empresaEl.textContent = user.empresa_nombre || "";
         if (avatarEl) avatarEl.textContent = getInitials(user.nombre);
+
+        const logoEl = aside.querySelector("#sidebarLogoImage");
+        if (logoEl && user.empresa_logo_url) {
+            logoEl.src = window.VehiAmb.api.getAssetUrl(user.empresa_logo_url);
+        }
 
         // Conductor necesita maintenance.view/documents.view/vehicles.view para
         // ver esas secciones DENTRO de la ficha del vehiculo (y para el

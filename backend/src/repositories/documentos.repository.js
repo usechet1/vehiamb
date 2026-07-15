@@ -8,11 +8,13 @@ const DOCUMENTO_FIELDS = [
   "fecha_vencimiento",
   "archivo_url",
   "archivo_nombre",
-  "archivo_mime"
+  "archivo_mime",
+  "empresa_id"
 ];
 
-async function findAll() {
-  return db.all(`
+async function findAll(empresaId) {
+  return db.all(
+    `
     SELECT
       d.*,
       v.placa,
@@ -20,24 +22,27 @@ async function findAll() {
       v.modelo
     FROM documentos d
     INNER JOIN vehiculos v ON v.id = d.vehiculo_id
+    WHERE d.empresa_id = ?
     ORDER BY d.fecha_vencimiento ASC, d.id DESC
-  `);
+  `,
+    [empresaId]
+  );
 }
 
-async function findByVehicle(vehiculoId) {
+async function findByVehicle(vehiculoId, empresaId) {
   return db.all(
     `
       SELECT *
       FROM documentos
-      WHERE vehiculo_id = ?
+      WHERE vehiculo_id = ? AND empresa_id = ?
       ORDER BY fecha_vencimiento ASC, id DESC
     `,
-    [vehiculoId]
+    [vehiculoId, empresaId]
   );
 }
 
-async function findById(id) {
-  return db.get("SELECT * FROM documentos WHERE id = ?", [id]);
+async function findById(id, empresaId) {
+  return db.get("SELECT * FROM documentos WHERE id = ? AND empresa_id = ?", [id, empresaId]);
 }
 
 async function create(documento) {
@@ -56,7 +61,7 @@ async function create(documento) {
     values
   );
 
-  return findById(result.lastID);
+  return db.get("SELECT * FROM documentos WHERE id = ?", [result.lastID]);
 }
 
 module.exports = {

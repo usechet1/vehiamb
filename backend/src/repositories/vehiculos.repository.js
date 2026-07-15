@@ -20,8 +20,8 @@ const VEHICULO_FIELDS = [
 // Campos editables desde la ficha de edicion (incluye estado e imagen, no editables en creacion).
 const UPDATE_FIELDS = [...VEHICULO_FIELDS, "estado", "imagen_url"];
 
-// Campos insertables en creacion (VEHICULO_FIELDS mas la imagen, si se subio una).
-const CREATE_FIELDS = [...VEHICULO_FIELDS, "imagen_url"];
+// Campos insertables en creacion (VEHICULO_FIELDS mas la imagen, si se subio una, mas empresa_id).
+const CREATE_FIELDS = [...VEHICULO_FIELDS, "imagen_url", "empresa_id"];
 
 // Filtros de igualdad exacta soportados por el listado. Agregar un filtro nuevo
 // (anio, combustible, etc.) solo requiere una entrada aqui, sin tocar el resto del flujo.
@@ -72,9 +72,12 @@ const PROXIMO_MANTENIMIENTO_SUBQUERY = `
   )
 `;
 
-function buildWhereClause(filters) {
-  const conditions = [];
-  const values = [];
+// empresaId siempre va primero y nunca viene del cliente (query params), solo
+// de req.empresaId resuelto en requireAuth -- asi ningun filtro adicional
+// puede "desactivar" el aislamiento entre empresas.
+function buildWhereClause(filters, empresaId) {
+  const conditions = ["v.empresa_id = ?"];
+  const values = [empresaId];
 
   EXACT_FILTERS.forEach(({ param, column }) => {
     if (filters[param]) {
@@ -90,13 +93,13 @@ function buildWhereClause(filters) {
   }
 
   return {
-    whereClause: conditions.length ? `WHERE ${conditions.join(" AND ")}` : "",
+    whereClause: `WHERE ${conditions.join(" AND ")}`,
     values
   };
 }
 
-async function findAll(filters = {}) {
-  const { whereClause, values } = buildWhereClause(filters);
+async function findAll(filters = {}, empresaId) {
+  const { whereClause, values } = buildWhereClause(filters, empresaId);
   const sortKey = SORT_OPTIONS[filters.sort] ? filters.sort : DEFAULT_SORT;
   const limit = filters.limit || 20;
   const offset = filters.offset || 0;
@@ -127,24 +130,34 @@ async function findAll(filters = {}) {
 
 // Listado simple sin paginar, usado por selectores de otros modulos (mantenimientos,
 // documentos, SIMIT, inicio) que necesitan la lista completa de vehiculos.
-async function findAllSimple() {
+async function findAllSimple(empresaId) {
+  return db.all("SELECT * FROM vehiculos WHERE empresa_id = ? ORDER BY id DESC", [empresaId]);
+}
+
+// SOLO para jobs de cron que recorren TODAS las empresas (ej. actualizarFlota
+// de SIMIT): a diferencia de findAllSimple, no se scopea a una empresa porque
+// el propio cron necesita procesar la flota de cada empresa por igual. Cada
+// fila trae su propio empresa_id para que el caller notifique/guarde en el
+// tenant correcto.
+async function findAllParaCron() {
   return db.all("SELECT * FROM vehiculos ORDER BY id DESC");
 }
 
-async function findDistinctMarcas() {
+async function findDistinctMarcas(empresaId) {
   const rows = await db.all(
-    "SELECT DISTINCT marca FROM vehiculos WHERE marca IS NOT NULL AND marca <> '' ORDER BY marca"
+    "SELECT DISTINCT marca FROM vehiculos WHERE marca IS NOT NULL AND marca <> '' AND empresa_id = ? ORDER BY marca",
+    [empresaId]
   );
 
   return rows.map((row) => row.marca);
 }
 
-async function findById(id) {
-  return db.get("SELECT * FROM vehiculos WHERE id = ?", [id]);
+async function findById(id, empresaId) {
+  return db.get("SELECT * FROM vehiculos WHERE id = ? AND empresa_id = ?", [id, empresaId]);
 }
 
-async function findByPlaca(placa) {
-  return db.get("SELECT * FROM vehiculos WHERE placa = ?", [placa]);
+async function findByPlaca(placa, empresaId) {
+  return db.get("SELECT * FROM vehiculos WHERE placa = ? AND empresa_id = ?", [placa, empresaId]);
 }
 
 async function create(vehiculo) {
@@ -163,40 +176,44 @@ async function create(vehiculo) {
     values
   );
 
-  return findById(result.lastID);
+  return db.get("SELECT * FROM vehiculos WHERE id = ?", [result.lastID]);
 }
 
-async function update(id, vehiculo) {
+async function update(id, vehiculo, empresaId) {
   const assignments = UPDATE_FIELDS.map((field) => `${field} = ?`).join(", ");
   const values = UPDATE_FIELDS.map((field) => vehiculo[field] ?? null);
 
   if (db.client === "postgres") {
     return db.get(
-      `UPDATE vehiculos SET ${assignments} WHERE id = ? RETURNING *`,
-      [...values, id]
+      `UPDATE vehiculos SET ${assignments} WHERE id = ? AND empresa_id = ? RETURNING *`,
+      [...values, id, empresaId]
     );
   }
 
   await db.run(`UPDATE vehiculos SET ${assignments} WHERE id = ?`, [...values, id]);
-  return findById(id);
+  return findById(id, empresaId);
 }
 
-async function updateEstado(id, estado) {
+async function updateEstado(id, estado, empresaId) {
   if (db.client === "postgres") {
-    return db.get("UPDATE vehiculos SET estado = ? WHERE id = ? RETURNING *", [estado, id]);
+    return db.get(
+      "UPDATE vehiculos SET estado = ? WHERE id = ? AND empresa_id = ? RETURNING *",
+      [estado, id, empresaId]
+    );
   }
 
   await db.run("UPDATE vehiculos SET estado = ? WHERE id = ?", [estado, id]);
-  return findById(id);
+  return findById(id, empresaId);
 }
 
-async function remove(id) {
-  return db.run("DELETE FROM vehiculos WHERE id = ?", [id]);
+async function remove(id, empresaId) {
+  return db.run("DELETE FROM vehiculos WHERE id = ? AND empresa_id = ?", [id, empresaId]);
 }
 
 module.exports = {
   findAll,
   findAllSimple,
+  findAllParaCron,
   findDistinctMarcas,
   findById,
   findByPlaca,

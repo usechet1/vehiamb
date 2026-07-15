@@ -1,12 +1,12 @@
 const db = require("../database/query");
 
-async function createMany(importacionId, incidencias) {
+async function createMany(importacionId, incidencias, empresaId) {
   for (const incidencia of incidencias) {
     await db.run(
       `
         INSERT INTO incidencias_importacion_stock
-          (importacion_id, fila_excel, codigo_interno, tipo_incidencia, descripcion, valor_problematico)
-        VALUES (?, ?, ?, ?, ?, ?)
+          (importacion_id, fila_excel, codigo_interno, tipo_incidencia, descripcion, valor_problematico, empresa_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `,
       [
         importacionId,
@@ -14,12 +14,16 @@ async function createMany(importacionId, incidencias) {
         incidencia.codigoInterno ?? null,
         incidencia.tipoIncidencia,
         incidencia.descripcion,
-        incidencia.valorProblematico ?? null
+        incidencia.valorProblematico ?? null,
+        empresaId
       ]
     );
   }
 }
 
+// importacionId ya viene verificado como de la empresa correcta por el
+// caller (stock-import.service.js: obtener() valida la importacion antes de
+// listar sus incidencias).
 async function findByImportacion(importacionId, { page = 1, limit = 50, resuelta } = {}) {
   const conditions = ["importacion_id = ?"];
   const values = [importacionId];
@@ -56,18 +60,18 @@ async function findByImportacion(importacionId, { page = 1, limit = 50, resuelta
   };
 }
 
-async function findById(id) {
-  return db.get("SELECT * FROM incidencias_importacion_stock WHERE id = ?", [id]);
+async function findById(id, empresaId) {
+  return db.get("SELECT * FROM incidencias_importacion_stock WHERE id = ? AND empresa_id = ?", [id, empresaId]);
 }
 
-async function resolver(id, usuarioId) {
+async function resolver(id, usuarioId, empresaId) {
   return db.run(
     `
       UPDATE incidencias_importacion_stock
       SET resuelta = true, resuelta_por = ?, resuelta_en = CURRENT_TIMESTAMP
-      WHERE id = ?
+      WHERE id = ? AND empresa_id = ?
     `,
-    [usuarioId, id]
+    [usuarioId, id, empresaId]
   );
 }
 

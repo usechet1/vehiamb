@@ -13,7 +13,8 @@ const CREATE_FIELDS = [
   "accion_tipo",
   "accion_payload",
   "referencia_tipo",
-  "referencia_id"
+  "referencia_id",
+  "empresa_id"
 ];
 
 // Filtros de igualdad exacta soportados por el listado. Agregar un filtro nuevo
@@ -29,9 +30,13 @@ const EXACT_FILTERS = [
 
 const SEARCH_COLUMNS = ["n.titulo", "n.mensaje", "n.tipo"];
 
-function buildWhereClause(usuarioId, filters) {
-  const conditions = ["n.usuario_id = ?"];
-  const values = [usuarioId];
+// El destinatario (usuario_id) ya acota implicitamente a una sola empresa (un
+// usuario pertenece a una unica empresa), pero se agrega empresa_id de forma
+// explicita para mantener el mismo patron mecanico que el resto del
+// catalogo y evitar depender solo de esa inferencia.
+function buildWhereClause(usuarioId, empresaId, filters) {
+  const conditions = ["n.usuario_id = ?", "n.empresa_id = ?"];
+  const values = [usuarioId, empresaId];
 
   EXACT_FILTERS.forEach(({ param, column }) => {
     if (filters[param]) {
@@ -65,12 +70,12 @@ function buildWhereClause(usuarioId, filters) {
   return { whereClause: `WHERE ${conditions.join(" AND ")}`, values };
 }
 
-async function findById(id) {
-  return db.get("SELECT * FROM notificaciones WHERE id = ?", [id]);
+async function findById(id, empresaId) {
+  return db.get("SELECT * FROM notificaciones WHERE id = ? AND empresa_id = ?", [id, empresaId]);
 }
 
-async function findByUsuario(usuarioId, filters = {}) {
-  const { whereClause, values } = buildWhereClause(usuarioId, filters);
+async function findByUsuario(usuarioId, empresaId, filters = {}) {
+  const { whereClause, values } = buildWhereClause(usuarioId, empresaId, filters);
 
   return db.all(
     `
@@ -100,7 +105,7 @@ async function create(notificacion) {
     values
   );
 
-  return findById(result.lastID);
+  return db.get("SELECT * FROM notificaciones WHERE id = ?", [result.lastID]);
 }
 
 async function markAsRead(id, usuarioId) {
@@ -141,17 +146,18 @@ async function countPendientes(usuarioId) {
   return Number(row?.total || 0);
 }
 
-async function existsRecentByReferencia(referenciaTipo, referenciaId, sinceHours) {
+async function existsRecentByReferencia(referenciaTipo, referenciaId, sinceHours, empresaId) {
   const row = await db.get(
     `
       SELECT 1
       FROM notificaciones
       WHERE referencia_tipo = ?
         AND referencia_id = ?
+        AND empresa_id = ?
         AND fecha_creacion >= NOW() - (? || ' hours')::interval
       LIMIT 1
     `,
-    [referenciaTipo, referenciaId, sinceHours]
+    [referenciaTipo, referenciaId, empresaId, sinceHours]
   );
 
   return Boolean(row);

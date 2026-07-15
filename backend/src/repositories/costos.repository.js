@@ -5,11 +5,11 @@ const db = require("../database/query");
 // identidad es placa_original tal como quedo normalizada en la importacion.
 const PLACA_EXPR = "(CASE WHEN f.estado_vehiculo = 'cliente' THEN 'CLIENTE' ELSE f.placa_original END)";
 
-function whereVehiculo(placa) {
+function whereVehiculo(placa, empresaId) {
   if (placa === "CLIENTE") {
-    return { clause: "f.estado_vehiculo = 'cliente'", values: [] };
+    return { clause: "f.estado_vehiculo = 'cliente' AND f.empresa_id = ?", values: [empresaId] };
   }
-  return { clause: "f.estado_vehiculo != 'cliente' AND f.placa_original = ?", values: [placa] };
+  return { clause: "f.estado_vehiculo != 'cliente' AND f.placa_original = ? AND f.empresa_id = ?", values: [placa, empresaId] };
 }
 
 // El dashboard de costos se basa en Fecha de Envio (cuando la factura llega
@@ -24,21 +24,21 @@ const FECHA_FILTRO = "f.fecha_envio";
  * tienen costo real) + la entrada sintetica CLIENTE. Se listan aunque no
  * tengan actividad en el periodo seleccionado (apareceran en cero).
  */
-async function aggregarPorVehiculo(desde, hasta) {
+async function aggregarPorVehiculo(desde, hasta, empresaId) {
   return db.all(
     `
       WITH universo AS (
-        SELECT placa FROM vehiculos
+        SELECT placa FROM vehiculos WHERE empresa_id = ?
         UNION
         SELECT DISTINCT placa_original FROM facturas_vehiculares
-        WHERE estado_vehiculo != 'cliente' AND placa_original IS NOT NULL AND placa_original <> ''
+        WHERE estado_vehiculo != 'cliente' AND placa_original IS NOT NULL AND placa_original <> '' AND empresa_id = ?
         UNION
         SELECT 'CLIENTE'
       ),
       gastos_por_factura AS (
         SELECT factura_id, SUM(valor) AS gasto_total
         FROM gastos_operativos
-        WHERE unidad = 'COP'
+        WHERE unidad = 'COP' AND empresa_id = ?
         GROUP BY factura_id
       ),
       periodo AS (
@@ -49,7 +49,7 @@ async function aggregarPorVehiculo(desde, hasta) {
           COALESCE(MAX(g.gasto_total), 0) AS gasto_mas_alto
         FROM facturas_vehiculares f
         LEFT JOIN gastos_por_factura g ON g.factura_id = f.id
-        WHERE ${FECHA_FILTRO} BETWEEN ? AND ?
+        WHERE ${FECHA_FILTRO} BETWEEN ? AND ? AND f.empresa_id = ?
         GROUP BY ${PLACA_EXPR}
       )
       SELECT
@@ -61,12 +61,12 @@ async function aggregarPorVehiculo(desde, hasta) {
       LEFT JOIN periodo p ON p.placa = u.placa
       ORDER BY total_gastado DESC, u.placa ASC
     `,
-    [desde, hasta]
+    [empresaId, empresaId, empresaId, desde, hasta, empresaId]
   );
 }
 
-async function kpisVehiculo(placa, desde, hasta) {
-  const { clause, values } = whereVehiculo(placa);
+async function kpisVehiculo(placa, desde, hasta, empresaId) {
+  const { clause, values } = whereVehiculo(placa, empresaId);
 
   return db.get(
     `
@@ -80,6 +80,7 @@ async function kpisVehiculo(placa, desde, hasta) {
           SUM(CASE WHEN tipo_gasto = 'parqueaderos' THEN valor ELSE 0 END) AS parqueaderos,
           SUM(CASE WHEN unidad = 'COP' THEN valor ELSE 0 END) AS gasto_total
         FROM gastos_operativos
+        WHERE empresa_id = ?
         GROUP BY factura_id
       )
       SELECT
@@ -94,12 +95,12 @@ async function kpisVehiculo(placa, desde, hasta) {
       LEFT JOIN gastos_por_factura g ON g.factura_id = f.id
       WHERE ${clause} AND ${FECHA_FILTRO} BETWEEN ? AND ?
     `,
-    [...values, desde, hasta]
+    [empresaId, ...values, desde, hasta]
   );
 }
 
-async function evolucionDiaria(placa, desde, hasta) {
-  const { clause, values } = whereVehiculo(placa);
+async function evolucionDiaria(placa, desde, hasta, empresaId) {
+  const { clause, values } = whereVehiculo(placa, empresaId);
 
   return db.all(
     `
@@ -109,6 +110,7 @@ async function evolucionDiaria(placa, desde, hasta) {
           SUM(CASE WHEN unidad = 'COP' THEN valor ELSE 0 END) AS gasto_total,
           SUM(CASE WHEN tipo_gasto = 'combustible_galones' THEN valor ELSE 0 END) AS galones
         FROM gastos_operativos
+        WHERE empresa_id = ?
         GROUP BY factura_id
       )
       SELECT
@@ -121,12 +123,12 @@ async function evolucionDiaria(placa, desde, hasta) {
       GROUP BY ${FECHA_FILTRO}
       ORDER BY ${FECHA_FILTRO} ASC
     `,
-    [...values, desde, hasta]
+    [empresaId, ...values, desde, hasta]
   );
 }
 
-async function desglosePorTipo(placa, desde, hasta) {
-  const { clause, values } = whereVehiculo(placa);
+async function desglosePorTipo(placa, desde, hasta, empresaId) {
+  const { clause, values } = whereVehiculo(placa, empresaId);
 
   return db.all(
     `
@@ -140,8 +142,8 @@ async function desglosePorTipo(placa, desde, hasta) {
   );
 }
 
-async function desglosePorTipoDiario(placa, desde, hasta) {
-  const { clause, values } = whereVehiculo(placa);
+async function desglosePorTipoDiario(placa, desde, hasta, empresaId) {
+  const { clause, values } = whereVehiculo(placa, empresaId);
 
   return db.all(
     `
@@ -156,15 +158,15 @@ async function desglosePorTipoDiario(placa, desde, hasta) {
   );
 }
 
-async function topSalas(placa, desde, hasta, limit = 10) {
-  const { clause, values } = whereVehiculo(placa);
+async function topSalas(placa, desde, hasta, empresaId, limit = 10) {
+  const { clause, values } = whereVehiculo(placa, empresaId);
 
   return db.all(
     `
       WITH gastos_por_factura AS (
         SELECT factura_id, SUM(valor) AS gasto_total
         FROM gastos_operativos
-        WHERE unidad = 'COP'
+        WHERE unidad = 'COP' AND empresa_id = ?
         GROUP BY factura_id
       )
       SELECT COALESCE(NULLIF(f.sala, ''), 'Sin sala') AS sala, COALESCE(SUM(g.gasto_total), 0) AS total
@@ -175,7 +177,7 @@ async function topSalas(placa, desde, hasta, limit = 10) {
       ORDER BY total DESC
       LIMIT ?
     `,
-    [...values, desde, hasta, limit]
+    [empresaId, ...values, desde, hasta, limit]
   );
 }
 
@@ -196,8 +198,8 @@ const ORDER_COLUMNS = {
   total_gasto: "total_gasto"
 };
 
-async function listarFacturas(placa, { desde, hasta, page, limit, search, orderBy, dir }) {
-  const { clause, values } = whereVehiculo(placa);
+async function listarFacturas(placa, { desde, hasta, page, limit, search, orderBy, dir }, empresaId) {
+  const { clause, values } = whereVehiculo(placa, empresaId);
   const conditions = [clause, `${FECHA_FILTRO} BETWEEN ? AND ?`];
   const params = [...values, desde, hasta];
 

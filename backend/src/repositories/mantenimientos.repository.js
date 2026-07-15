@@ -18,12 +18,13 @@ const MANTENIMIENTO_FIELDS = [
   "proximo_cambio_fecha",
   "creado_por_usuario_id",
   "estado",
-  "vehiculo_varado"
+  "vehiculo_varado",
+  "empresa_id"
 ];
 
-async function findAll(filters = {}) {
-  const conditions = [];
-  const values = [];
+async function findAll(filters = {}, empresaId) {
+  const conditions = ["m.empresa_id = ?"];
+  const values = [empresaId];
 
   if (filters.tipo) {
     conditions.push("m.tipo = ?");
@@ -45,7 +46,7 @@ async function findAll(filters = {}) {
     values.push(filters.fechaHasta);
   }
 
-  const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  const whereClause = `WHERE ${conditions.join(" AND ")}`;
 
   return db.all(
     `
@@ -63,23 +64,23 @@ async function findAll(filters = {}) {
   );
 }
 
-async function findByVehicle(vehiculoId) {
+async function findByVehicle(vehiculoId, empresaId) {
   return db.all(
     `
       SELECT *
       FROM mantenimientos
-      WHERE vehiculo_id = ?
+      WHERE vehiculo_id = ? AND empresa_id = ?
       ORDER BY fecha DESC, id DESC
     `,
-    [vehiculoId]
+    [vehiculoId, empresaId]
   );
 }
 
-async function findById(id) {
-  return db.get("SELECT * FROM mantenimientos WHERE id = ?", [id]);
+async function findById(id, empresaId) {
+  return db.get("SELECT * FROM mantenimientos WHERE id = ? AND empresa_id = ?", [id, empresaId]);
 }
 
-async function findByIdWithVehiculo(id) {
+async function findByIdWithVehiculo(id, empresaId) {
   return db.get(
     `
       SELECT
@@ -89,15 +90,15 @@ async function findByIdWithVehiculo(id) {
         v.modelo
       FROM mantenimientos m
       INNER JOIN vehiculos v ON v.id = m.vehiculo_id
-      WHERE m.id = ?
+      WHERE m.id = ? AND m.empresa_id = ?
     `,
-    [id]
+    [id, empresaId]
   );
 }
 
-async function updateEstado(id, estado) {
-  await db.run("UPDATE mantenimientos SET estado = ? WHERE id = ?", [estado, id]);
-  return findByIdWithVehiculo(id);
+async function updateEstado(id, estado, empresaId) {
+  await db.run("UPDATE mantenimientos SET estado = ? WHERE id = ? AND empresa_id = ?", [estado, id, empresaId]);
+  return findByIdWithVehiculo(id, empresaId);
 }
 
 // "dbClient" es opcional: por defecto usa el modulo de BD normal, pero
@@ -114,12 +115,12 @@ async function create(mantenimiento, dbClient = db) {
   );
 }
 
-async function createRepuestoDetalle(mantenimientoId, detalle, dbClient = db) {
+async function createRepuestoDetalle(mantenimientoId, detalle, empresaId, dbClient = db) {
   return dbClient.run(
     `
       INSERT INTO mantenimiento_repuestos
-        (mantenimiento_id, repuesto_id, repuesto_sugerido_id, motivo_sustitucion, cantidad, valor_unitario, valor_total)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+        (mantenimiento_id, repuesto_id, repuesto_sugerido_id, motivo_sustitucion, cantidad, valor_unitario, valor_total, empresa_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       mantenimientoId,
@@ -128,12 +129,13 @@ async function createRepuestoDetalle(mantenimientoId, detalle, dbClient = db) {
       detalle.motivo_sustitucion ?? null,
       detalle.cantidad,
       detalle.valor_unitario,
-      detalle.valor_total
+      detalle.valor_total,
+      empresaId
     ]
   );
 }
 
-async function findRepuestosEstructurados(mantenimientoId) {
+async function findRepuestosEstructurados(mantenimientoId, empresaId) {
   return db.all(
     `
       SELECT mr.*, r.codigo_interno, r.nombre, r.categoria, r.unidad_medida,
@@ -141,10 +143,10 @@ async function findRepuestosEstructurados(mantenimientoId) {
       FROM mantenimiento_repuestos mr
       INNER JOIN repuestos r ON r.id = mr.repuesto_id
       LEFT JOIN repuestos rs ON rs.id = mr.repuesto_sugerido_id
-      WHERE mr.mantenimiento_id = ?
+      WHERE mr.mantenimiento_id = ? AND mr.empresa_id = ?
       ORDER BY mr.id ASC
     `,
-    [mantenimientoId]
+    [mantenimientoId, empresaId]
   );
 }
 

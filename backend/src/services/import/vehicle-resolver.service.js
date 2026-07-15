@@ -9,11 +9,11 @@ const db = require("../../database/query");
  * @param {string[]} placas placas normalizadas (sin duplicados no es necesario)
  * @returns {Promise<Map<string, number>>} placa -> vehiculo_id
  */
-async function resolverPorPlacas(placas) {
+async function resolverPorPlacas(placas, empresaId) {
   const unicas = [...new Set(placas.filter(Boolean))];
   if (!unicas.length) return new Map();
 
-  const rows = await db.all("SELECT id, placa FROM vehiculos WHERE placa = ANY(?)", [unicas]);
+  const rows = await db.all("SELECT id, placa FROM vehiculos WHERE placa = ANY(?) AND empresa_id = ?", [unicas, empresaId]);
 
   const mapa = new Map();
   rows.forEach((row) => mapa.set(row.placa, row.id));

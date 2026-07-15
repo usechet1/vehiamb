@@ -22,6 +22,7 @@ const configImportRoutes = require("./routes/config-import.routes");
 const simitRoutes = require("./routes/simit.routes");
 const inspeccionesRoutes = require("./routes/inspecciones.routes");
 const viajesRoutes = require("./routes/viajes.routes");
+const empresasRoutes = require("./routes/empresas.routes");
 
 const app = express();
 
@@ -54,6 +55,7 @@ app.use("/api/config-import", requireAuth, configImportRoutes);
 app.use("/api/simit", requireAuth, simitRoutes);
 app.use("/api/inspecciones", requireAuth, inspeccionesRoutes);
 app.use("/api/viajes", requireAuth, viajesRoutes);
+app.use("/api/empresas", requireAuth, empresasRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

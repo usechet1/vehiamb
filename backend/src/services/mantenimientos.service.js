@@ -28,7 +28,7 @@ function toNumberOrNull(value) {
   if (value === undefined || value === null || value === "") return null;
   let cleanValue = value;
   if (typeof value == "string") {
-    cleanValue = value.replace(",", "."); 
+    cleanValue = value.replace(",", ".");
   }
   const parsed = Number(cleanValue);
   return Number.isFinite(parsed) ? parsed : null;
@@ -142,27 +142,30 @@ async function validateMantenimiento(mantenimiento, vehiculo) {
   }
 }
 
-async function listMantenimientos(filters = {}) {
+async function listMantenimientos(filters = {}, empresaId) {
   const tipo = filters.tipo && TIPOS_VALIDOS.has(filters.tipo) ? filters.tipo : null;
 
-  return mantenimientosRepository.findAll({
-    tipo,
-    placa: filters.placa ? String(filters.placa).trim() : null,
-    fechaDesde: filters.fecha_desde ? String(filters.fecha_desde).trim() : null,
-    fechaHasta: filters.fecha_hasta ? String(filters.fecha_hasta).trim() : null
-  });
+  return mantenimientosRepository.findAll(
+    {
+      tipo,
+      placa: filters.placa ? String(filters.placa).trim() : null,
+      fechaDesde: filters.fecha_desde ? String(filters.fecha_desde).trim() : null,
+      fechaHasta: filters.fecha_hasta ? String(filters.fecha_hasta).trim() : null
+    },
+    empresaId
+  );
 }
 
-async function listMantenimientosByVehicle(vehiculoId) {
-  return mantenimientosRepository.findByVehicle(vehiculoId);
+async function listMantenimientosByVehicle(vehiculoId, empresaId) {
+  return mantenimientosRepository.findByVehicle(vehiculoId, empresaId);
 }
 
-async function getRepuestosEstructurados(mantenimientoId) {
-  return mantenimientosRepository.findRepuestosEstructurados(mantenimientoId);
+async function getRepuestosEstructurados(mantenimientoId, empresaId) {
+  return mantenimientosRepository.findRepuestosEstructurados(mantenimientoId, empresaId);
 }
 
-async function getMantenimiento(id) {
-  const mantenimiento = await mantenimientosRepository.findByIdWithVehiculo(id);
+async function getMantenimiento(id, empresaId) {
+  const mantenimiento = await mantenimientosRepository.findByIdWithVehiculo(id, empresaId);
   if (!mantenimiento) {
     throw new HttpError(404, "Mantenimiento no encontrado");
   }
@@ -178,13 +181,13 @@ async function getMantenimiento(id) {
  * configuracion_inventario.stock_insuficiente_bloquea = 'true' (hoy siempre
  * 'false' -- solo se acumulan advertencias).
  */
-async function consumirRepuestos(mantenimientoId, repuestosEstructurados, currentUser, trx) {
+async function consumirRepuestos(mantenimientoId, repuestosEstructurados, currentUser, empresaId, trx) {
   const advertencias = [];
-  const bodega = await repuestosStockRepository.findBodegaPrincipal(trx);
-  const bloquear = await configuracionInventarioRepository.getBooleano("stock_insuficiente_bloquea", false);
+  const bodega = await repuestosStockRepository.findBodegaPrincipal(empresaId, trx);
+  const bloquear = await configuracionInventarioRepository.getBooleano("stock_insuficiente_bloquea", empresaId, false);
 
   for (const item of repuestosEstructurados) {
-    const repuesto = await repuestosRepository.findById(item.repuesto_id);
+    const repuesto = await repuestosRepository.findById(item.repuesto_id, empresaId);
     if (!repuesto) continue; // el catalogo pudo cambiar entre que el usuario armo el formulario y guardo
 
     const stockRow = await repuestosStockRepository.findByRepuestoIdForUpdate(item.repuesto_id, bodega.id, trx);
@@ -213,7 +216,8 @@ async function consumirRepuestos(mantenimientoId, repuestosEstructurados, curren
         motivo: `Consumo en mantenimiento #${mantenimientoId}`,
         referenciaTipo: "mantenimiento",
         referenciaId: mantenimientoId,
-        usuarioId: currentUser?.id ?? null
+        usuarioId: currentUser?.id ?? null,
+        empresaId
       },
       trx
     );
@@ -230,6 +234,7 @@ async function consumirRepuestos(mantenimientoId, repuestosEstructurados, curren
         valor_unitario: valorUnitario,
         valor_total: valorUnitario * item.cantidad
       },
+      empresaId,
       trx
     );
   }
@@ -238,6 +243,8 @@ async function consumirRepuestos(mantenimientoId, repuestosEstructurados, curren
 }
 
 async function createMantenimiento(payload, file, currentUser) {
+  const empresaId = currentUser.empresa_id;
+
   const mantenimiento = normalizePayload({
     ...payload,
     creado_por_usuario_id: currentUser?.id ?? null,
@@ -245,10 +252,11 @@ async function createMantenimiento(payload, file, currentUser) {
     soporte_nombre: file?.originalname || null,
     soporte_mime: file?.mimetype || null
   });
+  mantenimiento.empresa_id = empresaId;
 
   const repuestosEstructurados = parseRepuestosEstructurados(payload.repuestos_estructurados);
 
-  const vehiculo = await vehiculosRepository.findById(mantenimiento.vehiculo_id);
+  const vehiculo = await vehiculosRepository.findById(mantenimiento.vehiculo_id, empresaId);
   if (!vehiculo) {
     throw new HttpError(404, "Vehículo no encontrado");
   }
@@ -265,7 +273,7 @@ async function createMantenimiento(payload, file, currentUser) {
     const mantenimientoCreado = await mantenimientosRepository.create(mantenimiento, trx);
 
     if (repuestosEstructurados.length) {
-      advertenciasStock = await consumirRepuestos(mantenimientoCreado.id, repuestosEstructurados, currentUser, trx);
+      advertenciasStock = await consumirRepuestos(mantenimientoCreado.id, repuestosEstructurados, currentUser, empresaId, trx);
     }
 
     return mantenimientoCreado;

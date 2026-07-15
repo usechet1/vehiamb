@@ -10,6 +10,7 @@ const syncEngine = require("./sync-engine.service");
 const importacionesRepository = require("../../repositories/importaciones.repository");
 const incidenciasRepository = require("../../repositories/incidencias-importacion.repository");
 const detalleRepository = require("../../repositories/detalle-importacion.repository");
+const empresasRepository = require("../../repositories/empresas.repository");
 
 function hashArchivo(filePath) {
   return new Promise((resolve, reject) => {
@@ -57,17 +58,18 @@ function generarRangoFechas(desde, hasta) {
  * de auditoria correspondiente. Nunca relanza el error: si un dia de un
  * rango falla, los demas dias deben poder seguir procesandose.
  */
-async function ejecutarPeriodo({ periodoObjetivo, hash, nombreArchivo, validated, usuarioId }) {
+async function ejecutarPeriodo({ periodoObjetivo, hash, nombreArchivo, validated, usuarioId, empresaId }) {
   const inicioPeriodo = Date.now();
 
-  const ultima = await importacionesRepository.findUltimaPorPeriodo(periodoObjetivo);
+  const ultima = await importacionesRepository.findUltimaPorPeriodo(periodoObjetivo, empresaId);
   if (ultima && ESTADOS_CON_HASH_VIGENTE.includes(ultima.estado) && ultima.hash_archivo === hash) {
     const sinCambios = await importacionesRepository.create({
       nombre_archivo: nombreArchivo,
       hash_archivo: hash,
       periodo: periodoObjetivo,
       usuario_id: usuarioId,
-      estado: "sin_cambios"
+      estado: "sin_cambios",
+      empresa_id: empresaId
     });
 
     const duracionMs = Date.now() - inicioPeriodo;
@@ -102,7 +104,8 @@ async function ejecutarPeriodo({ periodoObjetivo, hash, nombreArchivo, validated
     hash_archivo: hash,
     periodo: periodoObjetivo,
     usuario_id: usuarioId,
-    estado: "en_proceso"
+    estado: "en_proceso",
+    empresa_id: empresaId
   });
 
   try {
@@ -110,7 +113,7 @@ async function ejecutarPeriodo({ periodoObjetivo, hash, nombreArchivo, validated
 
     console.log(`[ImportService] Importacion #${importacion.id} (${periodoObjetivo}): ${candidates.length} filas candidatas, ${parseErrors.length} con error de formato`);
 
-    const resultado = await syncEngine.sincronizar({ candidates, parseErrors, importacionId: importacion.id });
+    const resultado = await syncEngine.sincronizar({ candidates, parseErrors, importacionId: importacion.id, empresaId });
     const duracionMs = Date.now() - inicioPeriodo;
     const estadoFinal = resultado.totalErrores > 0 ? "completado_con_errores" : "completado";
 
@@ -177,7 +180,7 @@ function sumarTotales(resultados) {
  * de infraestructura pasaria completamente desapercibida para el usuario.
  * No hay hash real que registrar (nunca se llego a leer el archivo).
  */
-async function registrarFalloObtencionArchivo({ periodos, usuarioId, error }) {
+async function registrarFalloObtencionArchivo({ periodos, usuarioId, error, empresaId }) {
   const nombreArchivo = env.excelFilePath ? path.basename(env.excelFilePath) : "desconocido";
 
   await Promise.all(
@@ -188,7 +191,8 @@ async function registrarFalloObtencionArchivo({ periodos, usuarioId, error }) {
           hash_archivo: "N/A",
           periodo: periodoObjetivo,
           usuario_id: usuarioId,
-          estado: "fallido"
+          estado: "fallido",
+          empresa_id: empresaId
         })
         .then((importacion) =>
           importacionesRepository.actualizarResultado(importacion.id, {
@@ -216,6 +220,12 @@ async function registrarFalloObtencionArchivo({ periodos, usuarioId, error }) {
  * OneDrive, API), esta capa no se toca.
  */
 async function ejecutar({ periodo, desde, hasta, usuarioId = null } = {}) {
+  const empresa = await empresasRepository.findEmpresaPrincipal();
+  if (!empresa) {
+    throw new HttpError(400, "No hay ninguna empresa registrada para asociar la importacion");
+  }
+  const empresaId = empresa.id;
+
   const periodos = desde && hasta ? generarRangoFechas(desde, hasta) : [periodo || ayer()];
   const inicio = Date.now();
   const provider = crearFileProvider();
@@ -232,7 +242,7 @@ async function ejecutar({ periodo, desde, hasta, usuarioId = null } = {}) {
     ({ path: filePath, cleanup } = await provider.getFile());
   } catch (error) {
     console.error("[ImportService] No fue posible obtener el archivo de origen:", error.message);
-    await registrarFalloObtencionArchivo({ periodos, usuarioId, error });
+    await registrarFalloObtencionArchivo({ periodos, usuarioId, error, empresaId });
     throw error;
   }
 
@@ -243,7 +253,7 @@ async function ejecutar({ periodo, desde, hasta, usuarioId = null } = {}) {
 
     const resultados = [];
     for (const periodoObjetivo of periodos) {
-      resultados.push(await ejecutarPeriodo({ periodoObjetivo, hash, nombreArchivo, validated, usuarioId }));
+      resultados.push(await ejecutarPeriodo({ periodoObjetivo, hash, nombreArchivo, validated, usuarioId, empresaId }));
     }
 
     const duracionMs = Date.now() - inicio;
@@ -265,36 +275,36 @@ async function ejecutar({ periodo, desde, hasta, usuarioId = null } = {}) {
   }
 }
 
-async function listar(filtros) {
-  return importacionesRepository.findAll(filtros);
+async function listar(filtros, empresaId) {
+  return importacionesRepository.findAll(filtros, empresaId);
 }
 
-async function obtener(id) {
-  const importacion = await importacionesRepository.findById(id);
+async function obtener(id, empresaId) {
+  const importacion = await importacionesRepository.findById(id, empresaId);
   if (!importacion) throw new HttpError(404, "Importación no encontrada");
   return importacion;
 }
 
-async function obtenerDetalle(id, filtros) {
-  await obtener(id);
+async function obtenerDetalle(id, filtros, empresaId) {
+  await obtener(id, empresaId);
   return detalleRepository.findByImportacion(id, filtros);
 }
 
-async function obtenerIncidencias(id, filtros) {
-  await obtener(id);
+async function obtenerIncidencias(id, filtros, empresaId) {
+  await obtener(id, empresaId);
   return incidenciasRepository.findByImportacion(id, filtros);
 }
 
-async function resolverIncidencia(id, usuarioId) {
-  const incidencia = await incidenciasRepository.findById(id);
+async function resolverIncidencia(id, usuarioId, empresaId) {
+  const incidencia = await incidenciasRepository.findById(id, empresaId);
   if (!incidencia) throw new HttpError(404, "Incidencia no encontrada");
 
-  await incidenciasRepository.resolver(id, usuarioId);
-  return incidenciasRepository.findById(id);
+  await incidenciasRepository.resolver(id, usuarioId, empresaId);
+  return incidenciasRepository.findById(id, empresaId);
 }
 
-async function estadoUltimaAutomatica() {
-  return importacionesRepository.findUltimaAutomatica();
+async function estadoUltimaAutomatica(empresaId) {
+  return importacionesRepository.findUltimaAutomatica(empresaId);
 }
 
 module.exports = {

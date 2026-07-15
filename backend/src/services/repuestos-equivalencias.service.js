@@ -2,18 +2,18 @@ const HttpError = require("../errors/http-error");
 const repuestosRepository = require("../repositories/repuestos.repository");
 const equivalenciasRepository = require("../repositories/repuestos-equivalencias.repository");
 
-async function listarEquivalencias(repuestoId) {
-  await getRepuestoOFallar(repuestoId);
-  return equivalenciasRepository.findByRepuestoPrincipal(repuestoId);
+async function listarEquivalencias(repuestoId, empresaId) {
+  await getRepuestoOFallar(repuestoId, empresaId);
+  return equivalenciasRepository.findByRepuestoPrincipal(repuestoId, empresaId);
 }
 
-async function getRepuestoOFallar(id) {
-  const repuesto = await repuestosRepository.findById(id);
+async function getRepuestoOFallar(id, empresaId) {
+  const repuesto = await repuestosRepository.findById(id, empresaId);
   if (!repuesto) throw new HttpError(404, "Repuesto no encontrado");
   return repuesto;
 }
 
-async function crearEquivalencia(repuestoPrincipalId, payload) {
+async function crearEquivalencia(repuestoPrincipalId, payload, empresaId) {
   const equivalenteId = Number(payload.repuesto_equivalente_id);
   if (!equivalenteId) {
     throw new HttpError(400, "repuesto_equivalente_id es obligatorio");
@@ -24,8 +24,8 @@ async function crearEquivalencia(repuestoPrincipalId, payload) {
   }
 
   const [principal, equivalente] = await Promise.all([
-    getRepuestoOFallar(repuestoPrincipalId),
-    getRepuestoOFallar(equivalenteId)
+    getRepuestoOFallar(repuestoPrincipalId, empresaId),
+    getRepuestoOFallar(equivalenteId, empresaId)
   ]);
 
   if (principal.categoria !== equivalente.categoria) {
@@ -37,13 +37,14 @@ async function crearEquivalencia(repuestoPrincipalId, payload) {
 
   const prioridad = payload.prioridad
     ? Number(payload.prioridad)
-    : (await equivalenciasRepository.findMaxPrioridad(repuestoPrincipalId)) + 1;
+    : (await equivalenciasRepository.findMaxPrioridad(repuestoPrincipalId, empresaId)) + 1;
 
   try {
     return await equivalenciasRepository.create({
       repuesto_principal_id: Number(repuestoPrincipalId),
       repuesto_equivalente_id: equivalenteId,
-      prioridad
+      prioridad,
+      empresa_id: empresaId
     });
   } catch (error) {
     if (error.code === "23505") {
@@ -53,14 +54,14 @@ async function crearEquivalencia(repuestoPrincipalId, payload) {
   }
 }
 
-async function eliminarEquivalencia(repuestoPrincipalId, equivalenciaId) {
-  const equivalencia = await equivalenciasRepository.findById(equivalenciaId);
+async function eliminarEquivalencia(repuestoPrincipalId, equivalenciaId, empresaId) {
+  const equivalencia = await equivalenciasRepository.findById(equivalenciaId, empresaId);
 
   if (!equivalencia || Number(equivalencia.repuesto_principal_id) !== Number(repuestoPrincipalId)) {
     throw new HttpError(404, "Equivalencia no encontrada");
   }
 
-  await equivalenciasRepository.remove(equivalenciaId);
+  await equivalenciasRepository.remove(equivalenciaId, empresaId);
 }
 
 /**
@@ -69,9 +70,9 @@ async function eliminarEquivalencia(repuestoPrincipalId, equivalenciaId) {
  * stock disponible, ordenadas por prioridad (seccion "Uso durante el
  * mantenimiento" del pedido original).
  */
-async function consultarDisponibilidad(repuestoId) {
-  const principal = await getRepuestoOFallar(repuestoId);
-  const equivalencias = await equivalenciasRepository.findByRepuestoPrincipal(repuestoId);
+async function consultarDisponibilidad(repuestoId, empresaId) {
+  const principal = await getRepuestoOFallar(repuestoId, empresaId);
+  const equivalencias = await equivalenciasRepository.findByRepuestoPrincipal(repuestoId, empresaId);
 
   return {
     principal: {

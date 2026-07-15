@@ -16,6 +16,7 @@ function toSafeUser(user) {
     rol: user.role_nombre || user.rol,
     role_id: user.role_id,
     activo: Boolean(user.activo),
+    empresa_id: user.empresa_id,
     created_at: user.created_at
   };
 }
@@ -74,12 +75,15 @@ async function validateUserPayload(payload, { isUpdate = false, existingRoleId =
   };
 }
 
-async function listUsers() {
-  const users = await usuariosRepository.findAll();
+async function listUsers(empresaId) {
+  const users = await usuariosRepository.findAll(empresaId);
   return users.map(toSafeUser);
 }
 
-async function createUser(payload) {
+// El email es unico en TODA la plataforma (decision de producto: una cuenta
+// = una empresa, el login no pide elegir empresa), asi que la verificacion
+// de unicidad de email es deliberadamente global, sin filtrar por empresaId.
+async function createUser(payload, empresaId) {
   const user = await validateUserPayload(payload);
   const existing = await usuariosRepository.findByEmail(user.email);
 
@@ -89,7 +93,8 @@ async function createUser(payload) {
 
   const created = await usuariosRepository.create({
     ...user,
-    password_hash: await hashPassword(user.password)
+    password_hash: await hashPassword(user.password),
+    empresa_id: empresaId
   });
 
   const safeUser = toSafeUser(created);
@@ -101,8 +106,8 @@ async function createUser(payload) {
   return safeUser;
 }
 
-async function updateUser(id, payload) {
-  const existing = await usuariosRepository.findById(id);
+async function updateUser(id, payload, empresaId) {
+  const existing = await usuariosRepository.findById(id, empresaId);
   if (!existing) {
     throw new HttpError(404, "Usuario no encontrado");
   }
@@ -114,10 +119,14 @@ async function updateUser(id, payload) {
     throw new HttpError(409, "Ya existe un usuario con ese correo");
   }
 
-  const updated = await usuariosRepository.update(id, {
-    ...user,
-    password_hash: user.password ? await hashPassword(user.password) : null
-  });
+  const updated = await usuariosRepository.update(
+    id,
+    {
+      ...user,
+      password_hash: user.password ? await hashPassword(user.password) : null
+    },
+    empresaId
+  );
 
   const safeUser = toSafeUser(updated);
 
@@ -130,17 +139,17 @@ async function updateUser(id, payload) {
   return safeUser;
 }
 
-async function setUserActive(id, active, currentUserId) {
+async function setUserActive(id, active, currentUserId, empresaId) {
   if (String(id) === String(currentUserId) && !active) {
     throw new HttpError(400, "No puedes desactivar tu propio usuario");
   }
 
-  const existing = await usuariosRepository.findById(id);
+  const existing = await usuariosRepository.findById(id, empresaId);
   if (!existing) {
     throw new HttpError(404, "Usuario no encontrado");
   }
 
-  const updated = await usuariosRepository.setActive(id, Boolean(active));
+  const updated = await usuariosRepository.setActive(id, Boolean(active), empresaId);
   return toSafeUser(updated);
 }
 

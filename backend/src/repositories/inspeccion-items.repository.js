@@ -8,10 +8,11 @@ const FIELDS = [
   "estado",
   "comentario",
   "foto_url",
-  "foto_nombre"
+  "foto_nombre",
+  "empresa_id"
 ];
 
-async function bulkCreate(inspeccionId, vehiculoId, items, dbClient = db) {
+async function bulkCreate(inspeccionId, vehiculoId, items, empresaId, dbClient = db) {
   if (!items.length) return [];
 
   const creados = [];
@@ -24,7 +25,8 @@ async function bulkCreate(inspeccionId, vehiculoId, items, dbClient = db) {
       estado: item.estado,
       comentario: item.comentario || null,
       foto_url: item.foto_url || null,
-      foto_nombre: item.foto_nombre || null
+      foto_nombre: item.foto_nombre || null,
+      empresa_id: empresaId
     };
 
     const values = FIELDS.map((field) => row[field] ?? null);
@@ -40,8 +42,11 @@ async function bulkCreate(inspeccionId, vehiculoId, items, dbClient = db) {
   return creados;
 }
 
-async function findByInspeccion(inspeccionId) {
-  return db.all("SELECT * FROM inspeccion_items WHERE inspeccion_id = ? ORDER BY id ASC", [inspeccionId]);
+async function findByInspeccion(inspeccionId, empresaId) {
+  return db.all(
+    "SELECT * FROM inspeccion_items WHERE inspeccion_id = ? AND empresa_id = ? ORDER BY id ASC",
+    [inspeccionId, empresaId]
+  );
 }
 
 module.exports = { bulkCreate, findByInspeccion };

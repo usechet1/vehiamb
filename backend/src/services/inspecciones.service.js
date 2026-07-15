@@ -92,7 +92,8 @@ function toSafeInspeccion(inspeccion) {
 }
 
 async function crear(vehiculoId, payload, archivos, currentUser) {
-  const vehiculo = await vehiculosRepository.findById(vehiculoId);
+  const empresaId = currentUser.empresa_id;
+  const vehiculo = await vehiculosRepository.findById(vehiculoId, empresaId);
   if (!vehiculo) {
     throw new HttpError(404, "Vehículo no encontrado");
   }
@@ -137,10 +138,11 @@ async function crear(vehiculoId, payload, archivos, currentUser) {
   const inspeccion = await inspeccionesRepository.create({
     vehiculo_id: vehiculoId,
     usuario_id: currentUser?.id ?? null,
-    observaciones: payload.observaciones ? String(payload.observaciones).trim().slice(0, 1000) : null
+    observaciones: payload.observaciones ? String(payload.observaciones).trim().slice(0, 1000) : null,
+    empresa_id: empresaId
   });
 
-  const itemsCreados = await itemsRepository.bulkCreate(inspeccion.id, vehiculoId, itemsValidados);
+  const itemsCreados = await itemsRepository.bulkCreate(inspeccion.id, vehiculoId, itemsValidados, empresaId);
 
   await notificacionesService.evaluarNotificacionInspeccion({
     inspeccion,
@@ -160,23 +162,23 @@ async function crear(vehiculoId, payload, archivos, currentUser) {
   };
 }
 
-async function listarPorVehiculo(vehiculoId) {
-  const vehiculo = await vehiculosRepository.findById(vehiculoId);
+async function listarPorVehiculo(vehiculoId, empresaId) {
+  const vehiculo = await vehiculosRepository.findById(vehiculoId, empresaId);
   if (!vehiculo) {
     throw new HttpError(404, "Vehículo no encontrado");
   }
 
-  const inspecciones = await inspeccionesRepository.findByVehiculo(vehiculoId);
+  const inspecciones = await inspeccionesRepository.findByVehiculo(vehiculoId, empresaId);
   return inspecciones.map(toSafeInspeccion);
 }
 
-async function obtenerDetalle(inspeccionId) {
-  const inspeccion = await inspeccionesRepository.findById(inspeccionId);
+async function obtenerDetalle(inspeccionId, empresaId) {
+  const inspeccion = await inspeccionesRepository.findById(inspeccionId, empresaId);
   if (!inspeccion) {
     throw new HttpError(404, "Inspección no encontrada");
   }
 
-  const items = await itemsRepository.findByInspeccion(inspeccionId);
+  const items = await itemsRepository.findByInspeccion(inspeccionId, empresaId);
 
   return {
     ...toSafeInspeccion({

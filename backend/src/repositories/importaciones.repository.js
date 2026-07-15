@@ -1,16 +1,16 @@
 const db = require("../database/query");
 
-const CREATE_FIELDS = ["nombre_archivo", "hash_archivo", "periodo", "usuario_id", "estado"];
+const CREATE_FIELDS = ["nombre_archivo", "hash_archivo", "periodo", "usuario_id", "estado", "empresa_id"];
 
-async function findById(id) {
+async function findById(id, empresaId) {
   return db.get(
     `
       SELECT i.*, u.nombre AS usuario_nombre
       FROM importaciones i
       LEFT JOIN usuarios u ON u.id = i.usuario_id
-      WHERE i.id = ?
+      WHERE i.id = ? AND i.empresa_id = ?
     `,
-    [id]
+    [id, empresaId]
   );
 }
 
@@ -29,7 +29,7 @@ async function create(importacion) {
     `INSERT INTO importaciones (${CREATE_FIELDS.join(", ")}) VALUES (${placeholders})`,
     values
   );
-  return findById(result.lastID);
+  return db.get("SELECT * FROM importaciones WHERE id = ?", [result.lastID]);
 }
 
 async function actualizarResultado(id, resultado) {
@@ -60,9 +60,9 @@ async function actualizarResultado(id, resultado) {
   );
 }
 
-async function findAll({ page = 1, limit = 20, estado, periodo } = {}) {
-  const conditions = [];
-  const values = [];
+async function findAll({ page = 1, limit = 20, estado, periodo } = {}, empresaId) {
+  const conditions = ["i.empresa_id = ?"];
+  const values = [empresaId];
 
   if (estado) {
     conditions.push("i.estado = ?");
@@ -74,7 +74,7 @@ async function findAll({ page = 1, limit = 20, estado, periodo } = {}) {
     values.push(periodo);
   }
 
-  const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  const whereClause = `WHERE ${conditions.join(" AND ")}`;
   const offset = (Math.max(1, page) - 1) * limit;
 
   const rowsPromise = db.all(
@@ -102,28 +102,29 @@ async function findAll({ page = 1, limit = 20, estado, periodo } = {}) {
   };
 }
 
-async function findUltimaAutomatica() {
+async function findUltimaAutomatica(empresaId) {
   return db.get(
     `
       SELECT *
       FROM importaciones
-      WHERE usuario_id IS NULL
-      ORDER BY creado_en DESC, id DESC
-      LIMIT 1
-    `
-  );
-}
-
-async function findUltimaPorPeriodo(periodo) {
-  return db.get(
-    `
-      SELECT *
-      FROM importaciones
-      WHERE periodo = ?
+      WHERE usuario_id IS NULL AND empresa_id = ?
       ORDER BY creado_en DESC, id DESC
       LIMIT 1
     `,
-    [periodo]
+    [empresaId]
+  );
+}
+
+async function findUltimaPorPeriodo(periodo, empresaId) {
+  return db.get(
+    `
+      SELECT *
+      FROM importaciones
+      WHERE periodo = ? AND empresa_id = ?
+      ORDER BY creado_en DESC, id DESC
+      LIMIT 1
+    `,
+    [periodo, empresaId]
   );
 }
 

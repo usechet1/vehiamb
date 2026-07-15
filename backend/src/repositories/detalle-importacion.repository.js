@@ -1,11 +1,11 @@
 const db = require("../database/query");
 
-async function createMany(importacionId, detalles) {
+async function createMany(importacionId, detalles, empresaId) {
   for (const detalle of detalles) {
     await db.run(
       `
-        INSERT INTO detalle_importacion (importacion_id, factura_id, numero_factura, accion, hash_anterior, hash_nuevo)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO detalle_importacion (importacion_id, factura_id, numero_factura, accion, hash_anterior, hash_nuevo, empresa_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `,
       [
         importacionId,
@@ -13,7 +13,8 @@ async function createMany(importacionId, detalles) {
         detalle.numeroFactura,
         detalle.accion,
         detalle.hashAnterior ?? null,
-        detalle.hashNuevo ?? null
+        detalle.hashNuevo ?? null,
+        empresaId
       ]
     );
   }

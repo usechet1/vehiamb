@@ -10,6 +10,7 @@ const stockSyncEngine = require("./stock-sync-engine.service");
 const importacionesStockRepository = require("../../repositories/importaciones-stock.repository");
 const incidenciasRepository = require("../../repositories/incidencias-importacion-stock.repository");
 const detalleRepository = require("../../repositories/detalle-importacion-stock.repository");
+const empresasRepository = require("../../repositories/empresas.repository");
 
 function hashArchivo(filePath) {
   return new Promise((resolve, reject) => {
@@ -34,6 +35,12 @@ async function ejecutar({ usuarioId = null } = {}) {
     throw new HttpError(400, "STOCK_EXCEL_FILE_PATH no esta configurado");
   }
 
+  const empresa = await empresasRepository.findEmpresaPrincipal();
+  if (!empresa) {
+    throw new HttpError(400, "No hay ninguna empresa registrada para asociar la importacion");
+  }
+  const empresaId = empresa.id;
+
   const inicio = Date.now();
   const provider = crearFileProvider({
     sourcePath: env.stockExcelFilePath,
@@ -53,7 +60,8 @@ async function ejecutar({ usuarioId = null } = {}) {
       nombre_archivo: nombreArchivo,
       hash_archivo: hash,
       usuario_id: usuarioId,
-      estado: "en_proceso"
+      estado: "en_proceso",
+      empresa_id: empresaId
     });
 
     try {
@@ -62,7 +70,7 @@ async function ejecutar({ usuarioId = null } = {}) {
 
       console.log(`[StockImportService] Importacion #${importacion.id}: ${candidates.length} filas candidatas, ${parseErrors.length} con error de formato`);
 
-      const resultado = await stockSyncEngine.sincronizar({ candidates, parseErrors, importacionId: importacion.id });
+      const resultado = await stockSyncEngine.sincronizar({ candidates, parseErrors, importacionId: importacion.id, empresaId });
       const duracionMs = Date.now() - inicio;
       const estadoFinal = resultado.totalErrores > 0 ? "completado_con_errores" : "completado";
 
@@ -102,36 +110,36 @@ async function ejecutar({ usuarioId = null } = {}) {
   }
 }
 
-async function listar(filtros) {
-  return importacionesStockRepository.findAll(filtros);
+async function listar(filtros, empresaId) {
+  return importacionesStockRepository.findAll(filtros, empresaId);
 }
 
-async function obtener(id) {
-  const importacion = await importacionesStockRepository.findById(id);
+async function obtener(id, empresaId) {
+  const importacion = await importacionesStockRepository.findById(id, empresaId);
   if (!importacion) throw new HttpError(404, "Importación de stock no encontrada");
   return importacion;
 }
 
-async function obtenerDetalle(id, filtros) {
-  await obtener(id);
+async function obtenerDetalle(id, filtros, empresaId) {
+  await obtener(id, empresaId);
   return detalleRepository.findByImportacion(id, filtros);
 }
 
-async function obtenerIncidencias(id, filtros) {
-  await obtener(id);
+async function obtenerIncidencias(id, filtros, empresaId) {
+  await obtener(id, empresaId);
   return incidenciasRepository.findByImportacion(id, filtros);
 }
 
-async function resolverIncidencia(id, usuarioId) {
-  const incidencia = await incidenciasRepository.findById(id);
+async function resolverIncidencia(id, usuarioId, empresaId) {
+  const incidencia = await incidenciasRepository.findById(id, empresaId);
   if (!incidencia) throw new HttpError(404, "Incidencia no encontrada");
 
-  await incidenciasRepository.resolver(id, usuarioId);
-  return incidenciasRepository.findById(id);
+  await incidenciasRepository.resolver(id, usuarioId, empresaId);
+  return incidenciasRepository.findById(id, empresaId);
 }
 
-async function estadoUltimaAutomatica() {
-  return importacionesStockRepository.findUltimaAutomatica();
+async function estadoUltimaAutomatica(empresaId) {
+  return importacionesStockRepository.findUltimaAutomatica(empresaId);
 }
 
 module.exports = {

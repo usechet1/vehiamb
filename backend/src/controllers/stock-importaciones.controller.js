@@ -14,34 +14,34 @@ exports.ejecutar = async (req, res) => {
 
 exports.listar = async (req, res) => {
   const { page, limit } = parsePage(req.query);
-  const resultado = await stockImportService.listar({ page, limit, estado: req.query.estado });
+  const resultado = await stockImportService.listar({ page, limit, estado: req.query.estado }, req.empresaId);
   res.json(resultado);
 };
 
 exports.obtener = async (req, res) => {
-  const importacion = await stockImportService.obtener(req.params.id);
+  const importacion = await stockImportService.obtener(req.params.id, req.empresaId);
   res.json(importacion);
 };
 
 exports.obtenerDetalle = async (req, res) => {
   const { page, limit } = parsePage(req.query);
-  const resultado = await stockImportService.obtenerDetalle(req.params.id, { page, limit, accion: req.query.accion });
+  const resultado = await stockImportService.obtenerDetalle(req.params.id, { page, limit, accion: req.query.accion }, req.empresaId);
   res.json(resultado);
 };
 
 exports.obtenerIncidencias = async (req, res) => {
   const { page, limit } = parsePage(req.query);
   const resuelta = req.query.resuelta === undefined ? undefined : req.query.resuelta === "true";
-  const resultado = await stockImportService.obtenerIncidencias(req.params.id, { page, limit, resuelta });
+  const resultado = await stockImportService.obtenerIncidencias(req.params.id, { page, limit, resuelta }, req.empresaId);
   res.json(resultado);
 };
 
 exports.resolverIncidencia = async (req, res) => {
-  const incidencia = await stockImportService.resolverIncidencia(req.params.id, req.user.id);
+  const incidencia = await stockImportService.resolverIncidencia(req.params.id, req.user.id, req.empresaId);
   res.json(incidencia);
 };
 
 exports.status = async (req, res) => {
-  const ultima = await stockImportService.estadoUltimaAutomatica();
+  const ultima = await stockImportService.estadoUltimaAutomatica(req.empresaId);
   res.json({ ultimaImportacionAutomatica: ultima || null });
 };

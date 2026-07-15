@@ -5,12 +5,12 @@ exports.getCatalogo = (req, res) => {
 };
 
 exports.getPorVehiculo = async (req, res) => {
-  const inspecciones = await inspeccionesService.listarPorVehiculo(req.params.vehiculoId);
+  const inspecciones = await inspeccionesService.listarPorVehiculo(req.params.vehiculoId, req.empresaId);
   res.json(inspecciones);
 };
 
 exports.getDetalle = async (req, res) => {
-  const detalle = await inspeccionesService.obtenerDetalle(req.params.id);
+  const detalle = await inspeccionesService.obtenerDetalle(req.params.id, req.empresaId);
   res.json(detalle);
 };
 

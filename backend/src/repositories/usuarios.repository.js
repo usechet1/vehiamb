@@ -9,32 +9,50 @@ const USER_SELECT = `
     u.rol,
     u.role_id,
     u.activo,
+    u.empresa_id,
     u.created_at,
-    r.nombre AS role_nombre
+    r.nombre AS role_nombre,
+    e.nombre AS empresa_nombre,
+    e.logo_url AS empresa_logo_url
   FROM usuarios u
   LEFT JOIN roles r ON r.id = u.role_id
+  LEFT JOIN empresas e ON e.id = u.empresa_id
 `;
 
+// findByEmail NO se filtra por empresa: el email es unico en toda la
+// plataforma (una cuenta = una empresa), y el login todavia no sabe a que
+// empresa pertenece el usuario hasta despues de encontrarlo por email.
 async function findByEmail(email) {
   return db.get(`${USER_SELECT} WHERE LOWER(u.email) = ?`, [email.toLowerCase()]);
 }
 
-async function findById(id) {
-  return db.get(`${USER_SELECT} WHERE u.id = ?`, [id]);
+// findById SI se filtra por empresa cuando se llama para gestion admin
+// (ver/editar/desactivar OTRO usuario). Cuando empresaId es null se usa para
+// resolver el usuario autenticado a partir del token (getCurrentUser), donde
+// todavia no hace falta filtrar porque es siempre "a mi mismo".
+async function findById(id, empresaId = null) {
+  if (empresaId === null) {
+    return db.get(`${USER_SELECT} WHERE u.id = ?`, [id]);
+  }
+  return db.get(`${USER_SELECT} WHERE u.id = ? AND u.empresa_id = ?`, [id, empresaId]);
 }
 
-async function findAll() {
-  return db.all(`
+async function findAll(empresaId) {
+  return db.all(
+    `
     ${USER_SELECT}
+    WHERE u.empresa_id = ?
     ORDER BY u.created_at DESC, u.id DESC
-  `);
+  `,
+    [empresaId]
+  );
 }
 
 async function create(user) {
   const result = await db.get(
     `
-      INSERT INTO usuarios (nombre, email, password_hash, rol, role_id, activo)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO usuarios (nombre, email, password_hash, rol, role_id, activo, empresa_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
       RETURNING id
     `,
     [
@@ -43,14 +61,15 @@ async function create(user) {
       user.password_hash,
       user.rol,
       user.role_id,
-      user.activo
+      user.activo,
+      user.empresa_id
     ]
   );
 
   return findById(result.id);
 }
 
-async function update(id, user) {
+async function update(id, user, empresaId) {
   const assignments = [
     "nombre = ?",
     "email = ?",
@@ -71,23 +90,23 @@ async function update(id, user) {
     values.push(user.password_hash);
   }
 
-  values.push(id);
+  values.push(id, empresaId);
 
   await db.run(
     `
       UPDATE usuarios
       SET ${assignments.join(", ")}
-      WHERE id = ?
+      WHERE id = ? AND empresa_id = ?
     `,
     values
   );
 
-  return findById(id);
+  return findById(id, empresaId);
 }
 
-async function setActive(id, active) {
-  await db.run("UPDATE usuarios SET activo = ? WHERE id = ?", [active, id]);
-  return findById(id);
+async function setActive(id, active, empresaId) {
+  await db.run("UPDATE usuarios SET activo = ? WHERE id = ? AND empresa_id = ?", [active, id, empresaId]);
+  return findById(id, empresaId);
 }
 
 async function findPermissionsByUserId(userId) {
@@ -109,7 +128,7 @@ async function findPermissionsByUserId(userId) {
   return permissions.map((permission) => permission.codigo);
 }
 
-async function findByPermission(permissionCode) {
+async function findByPermission(permissionCode, empresaId) {
   return db.all(
     `
       SELECT DISTINCT u.id, u.nombre, u.email
@@ -120,12 +139,13 @@ async function findByPermission(permissionCode) {
       WHERE p.codigo = ?
         AND u.activo = TRUE
         AND r.activo = TRUE
+        AND u.empresa_id = ?
     `,
-    [permissionCode]
+    [permissionCode, empresaId]
   );
 }
 
-async function findByRoles(roleNames) {
+async function findByRoles(roleNames, empresaId) {
   return db.all(
     `
       SELECT DISTINCT u.id, u.nombre, u.email
@@ -134,8 +154,9 @@ async function findByRoles(roleNames) {
       WHERE r.nombre = ANY(?)
         AND u.activo = TRUE
         AND r.activo = TRUE
+        AND u.empresa_id = ?
     `,
-    [roleNames]
+    [roleNames, empresaId]
   );
 }
 

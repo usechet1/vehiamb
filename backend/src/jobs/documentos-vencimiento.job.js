@@ -17,7 +17,7 @@ const TIPO_DOCUMENTO_NOTIFICACION = {
 
 async function obtenerDocumentosVigentes() {
   return db.all(`
-    SELECT d.id, d.vehiculo_id, d.tipo, d.fecha_vencimiento, v.placa, v.marca, v.modelo
+    SELECT d.id, d.vehiculo_id, d.tipo, d.fecha_vencimiento, d.empresa_id, v.placa, v.marca, v.modelo
     FROM documentos d
     INNER JOIN vehiculos v ON v.id = d.vehiculo_id
     WHERE d.tipo IN ('soat', 'tecnomecanica')
@@ -40,7 +40,7 @@ async function evaluarDocumento(row) {
 
   if (!vencido && !proximoAVencer) return;
 
-  const yaNotificado = await notificacionesService.existsRecentByReferencia("documento", row.id, HORAS_SIN_DUPLICAR);
+  const yaNotificado = await notificacionesService.existsRecentByReferencia("documento", row.id, HORAS_SIN_DUPLICAR, row.empresa_id);
   if (yaNotificado) return;
 
   const vehiculoLabel = `${row.marca} ${row.modelo} (${row.placa})`;
@@ -56,7 +56,7 @@ async function evaluarDocumento(row) {
     referencia_tipo: "documento",
     referencia_id: row.id,
     accion: { tipo: "renovar_documento", payload: { documento_id: row.id, vehiculo_id: row.vehiculo_id } }
-  });
+  }, row.empresa_id);
 }
 
 async function ejecutarRevisionDocumentos() {

@@ -74,7 +74,8 @@ async function notificar({
   vehiculo_id,
   referencia_tipo,
   referencia_id,
-  accion
+  accion,
+  empresa_id
 }) {
   const defaults = notifConfig.tipoConfig(tipo);
 
@@ -89,7 +90,8 @@ async function notificar({
     accion_tipo: accion?.tipo || null,
     accion_payload: accion?.payload ? JSON.stringify(accion.payload) : null,
     referencia_tipo,
-    referencia_id
+    referencia_id,
+    empresa_id
   });
 
   dispatchChannels(notificacion);
@@ -102,19 +104,19 @@ async function crearNotificacion(payload) {
   return notificar(payload);
 }
 
-async function notificarUsuariosConPermiso(permissionCode, payload) {
-  const usuarios = await usuariosRepository.findByPermission(permissionCode);
+async function notificarUsuariosConPermiso(permissionCode, payload, empresaId) {
+  const usuarios = await usuariosRepository.findByPermission(permissionCode, empresaId);
 
   return Promise.all(
-    usuarios.map((usuario) => notificar({ ...payload, usuario_id: usuario.id }))
+    usuarios.map((usuario) => notificar({ ...payload, usuario_id: usuario.id, empresa_id: empresaId }))
   );
 }
 
-async function notificarUsuariosPorRol(roleNames, payload) {
-  const usuarios = await usuariosRepository.findByRoles(roleNames);
+async function notificarUsuariosPorRol(roleNames, payload, empresaId) {
+  const usuarios = await usuariosRepository.findByRoles(roleNames, empresaId);
 
   return Promise.all(
-    usuarios.map((usuario) => notificar({ ...payload, usuario_id: usuario.id }))
+    usuarios.map((usuario) => notificar({ ...payload, usuario_id: usuario.id, empresa_id: empresaId }))
   );
 }
 
@@ -138,7 +140,7 @@ async function evaluarNotificacionInspeccion({ inspeccion, vehiculo, currentUser
     referencia_tipo: "inspeccion",
     referencia_id: inspeccion.id,
     accion: { tipo: "ver_vehiculo", payload: { vehiculo_id: vehiculo.id } }
-  });
+  }, vehiculo.empresa_id);
 }
 
 async function evaluarNotificacionesMantenimiento({ mantenimiento, vehiculo, requiereAprobacion }) {
@@ -154,7 +156,7 @@ async function evaluarNotificacionesMantenimiento({ mantenimiento, vehiculo, req
         referencia_tipo: "mantenimiento",
         referencia_id: mantenimiento.id,
         accion: { tipo: "ver_mantenimiento", payload: { mantenimiento_id: mantenimiento.id } }
-      })
+      }, vehiculo.empresa_id)
     );
   }
 
@@ -167,7 +169,7 @@ async function evaluarNotificacionesMantenimiento({ mantenimiento, vehiculo, req
         referencia_tipo: "mantenimiento",
         referencia_id: mantenimiento.id,
         accion: { tipo: "ver_vehiculo", payload: { vehiculo_id: vehiculo.id } }
-      })
+      }, vehiculo.empresa_id)
     );
   }
 
@@ -185,7 +187,7 @@ async function notificarIncoherenciaKilometraje({ vehiculo, kilometrajeIntentado
       referencia_tipo: "vehiculo",
       referencia_id: vehiculo.id,
       accion: { tipo: "ver_vehiculo", payload: { vehiculo_id: vehiculo.id } }
-    });
+    }, vehiculo.empresa_id);
   } catch (error) {
     console.error("No fue posible generar la notificacion de incoherencia de kilometraje:", error.message);
   }
@@ -204,7 +206,7 @@ async function notificarCambioEstadoVehiculo({ vehiculo, estadoAnterior, estadoN
       referencia_tipo: "vehiculo",
       referencia_id: vehiculo.id,
       accion: { tipo: "ver_vehiculo", payload: { vehiculo_id: vehiculo.id } }
-    });
+    }, vehiculo.empresa_id);
     return;
   }
 
@@ -216,7 +218,7 @@ async function notificarCambioEstadoVehiculo({ vehiculo, estadoAnterior, estadoN
       referencia_tipo: "vehiculo",
       referencia_id: vehiculo.id,
       accion: { tipo: "ver_vehiculo", payload: { vehiculo_id: vehiculo.id } }
-    });
+    }, vehiculo.empresa_id);
   }
 }
 
@@ -227,7 +229,7 @@ async function notificarUsuarioCreado(usuario) {
     referencia_tipo: "usuario",
     referencia_id: usuario.id,
     accion: { tipo: "ver_usuario", payload: { usuario_id: usuario.id } }
-  });
+  }, usuario.empresa_id);
 }
 
 async function notificarPermisosActualizados(usuario) {
@@ -237,7 +239,7 @@ async function notificarPermisosActualizados(usuario) {
     referencia_tipo: "usuario",
     referencia_id: usuario.id,
     accion: { tipo: "ver_usuario", payload: { usuario_id: usuario.id } }
-  });
+  }, usuario.empresa_id);
 }
 
 function enrichNotificacion(row) {
@@ -319,8 +321,8 @@ function agruparNotificaciones(items) {
   });
 }
 
-async function listNotificaciones(usuarioId, filters = {}) {
-  const rows = await notificacionesRepository.findByUsuario(usuarioId, filters);
+async function listNotificaciones(usuarioId, empresaId, filters = {}) {
+  const rows = await notificacionesRepository.findByUsuario(usuarioId, empresaId, filters);
   const items = rows.map(enrichNotificacion);
 
   if (filters.agrupar === false) {
@@ -335,8 +337,8 @@ async function listNotificaciones(usuarioId, filters = {}) {
 }
 
 // Compatibilidad con el nombre anterior (listado sin filtros, usado en versiones previas).
-async function listNotificacionesByUsuario(usuarioId) {
-  return listNotificaciones(usuarioId, {});
+async function listNotificacionesByUsuario(usuarioId, empresaId) {
+  return listNotificaciones(usuarioId, empresaId, {});
 }
 
 async function contarPendientes(usuarioId) {
@@ -364,7 +366,7 @@ async function eliminarLeidas(usuarioId) {
 }
 
 async function resolverNotificacionAprobacion(notificacionId, currentUser, estadoDestino) {
-  const notificacion = await notificacionesRepository.findById(notificacionId);
+  const notificacion = await notificacionesRepository.findById(notificacionId, currentUser.empresa_id);
   if (!notificacion) {
     throw new HttpError(404, "Notificación no encontrada");
   }
@@ -373,7 +375,7 @@ async function resolverNotificacionAprobacion(notificacionId, currentUser, estad
     throw new HttpError(400, "La notificación no corresponde a una aprobación de mantenimiento");
   }
 
-  const mantenimiento = await mantenimientosRepository.updateEstado(notificacion.referencia_id, estadoDestino);
+  const mantenimiento = await mantenimientosRepository.updateEstado(notificacion.referencia_id, estadoDestino, currentUser.empresa_id);
   if (!mantenimiento) {
     throw new HttpError(404, "Mantenimiento no encontrado");
   }
@@ -393,7 +395,8 @@ async function resolverNotificacionAprobacion(notificacionId, currentUser, estad
       vehiculo_id: mantenimiento.vehiculo_id,
       referencia_tipo: "mantenimiento",
       referencia_id: mantenimiento.id,
-      accion: { tipo: "ver_mantenimiento", payload: { mantenimiento_id: mantenimiento.id } }
+      accion: { tipo: "ver_mantenimiento", payload: { mantenimiento_id: mantenimiento.id } },
+      empresa_id: currentUser.empresa_id
     });
   }
 

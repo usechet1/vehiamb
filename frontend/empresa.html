@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Empresa - VehiAmb</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar"></aside>
+
+        <main class="content">
+            <div class="page-header">
+                <div>
+                    <h1>Configuración de la empresa</h1>
+                    <p class="page-kicker">Nombre y logo que ven todos los usuarios de tu empresa</p>
+                </div>
+            </div>
+
+            <div id="loader" class="loader hidden">
+                <video src="img/loader.mp4" autoplay loop muted playsinline></video>
+            </div>
+            <div id="mensaje" class="mensaje hidden"></div>
+
+            <section class="form-card form-vertical empresa-form-card">
+                <form id="empresaForm" class="form-vertical">
+                    <div class="form-group">
+                        <label for="empresaNombre">Nombre de la empresa</label>
+                        <input type="text" id="empresaNombre" name="nombre" placeholder="Ej: Transportes Acme" minlength="2" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Logo</label>
+                        <div class="empresa-logo-preview-wrap">
+                            <img id="empresaLogoPreview" class="empresa-logo-preview hidden" alt="Logo de la empresa">
+                            <div id="empresaLogoPlaceholder" class="empresa-logo-placeholder">Sin logo</div>
+                        </div>
+                        <input type="file" id="empresaLogo" name="logo" accept="image/png, image/jpeg, image/webp">
+                        <span class="field-help">PNG, JPG o WEBP. Máximo 5 MB.</span>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Guardar cambios</button>
+                    </div>
+                </form>
+            </section>
+        </main>
+    </div>
+
+    <script src="assets/js/shared/auth.js"></script>
+    <script src="assets/js/shared/api.js"></script>
+    <script src="assets/js/shared/ui.js"></script>
+    <script src="assets/js/shared/notificaciones-config.js"></script>
+    <script src="assets/js/shared/sidebar.js"></script>
+    <script src="assets/js/pages/empresa.js"></script>
+</body>
+</html>

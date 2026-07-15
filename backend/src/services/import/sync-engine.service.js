@@ -94,14 +94,14 @@ function construirGastos(candidate) {
   return gastos.filter((gasto) => gasto.valor > 0);
 }
 
-async function procesarLote(candidatesLote, importacionId, contexto) {
+async function procesarLote(candidatesLote, importacionId, contexto, empresaId) {
   const numeros = candidatesLote.map((c) => c.numeroFactura);
-  const existentes = await facturasRepository.findByNumerosFactura(numeros);
+  const existentes = await facturasRepository.findByNumerosFactura(numeros, empresaId);
 
   const placasParaResolver = candidatesLote
     .map((c) => c.vehiculoRaw)
     .filter((v) => v !== CLIENTE_LABEL && v !== `${CLIENTE_LABEL}S`);
-  const vehiculosResueltos = await vehicleResolver.resolverPorPlacas(placasParaResolver);
+  const vehiculosResueltos = await vehicleResolver.resolverPorPlacas(placasParaResolver, empresaId);
 
   const detalles = [];
   const incidencias = [];
@@ -143,12 +143,13 @@ async function procesarLote(candidatesLote, importacionId, contexto) {
         estado_vehiculo: estadoVehiculo,
         importacion_creacion_id: importacionId,
         importacion_ultima_id: importacionId,
-        hash_fila: hashNuevo
+        hash_fila: hashNuevo,
+        empresa_id: empresaId
       };
 
       if (!existente) {
         const creada = await facturasRepository.create(registro);
-        await facturasRepository.replaceGastos(creada.id, construirGastos(candidate), importacionId);
+        await facturasRepository.replaceGastos(creada.id, construirGastos(candidate), importacionId, empresaId);
         detalles.push({ facturaId: creada.id, numeroFactura: candidate.numeroFactura, accion: "creado", hashAnterior: null, hashNuevo });
         nuevos += 1;
         continue;
@@ -166,8 +167,8 @@ async function procesarLote(candidatesLote, importacionId, contexto) {
         continue;
       }
 
-      const actualizada = await facturasRepository.update(existente.id, registro);
-      await facturasRepository.replaceGastos(actualizada.id, construirGastos(candidate), importacionId);
+      const actualizada = await facturasRepository.update(existente.id, registro, empresaId);
+      await facturasRepository.replaceGastos(actualizada.id, construirGastos(candidate), importacionId, empresaId);
       detalles.push({
         facturaId: actualizada.id,
         numeroFactura: candidate.numeroFactura,
@@ -204,7 +205,7 @@ async function procesarLote(candidatesLote, importacionId, contexto) {
  * filtrados por ExcelParser (periodo correcto + vehiculo asignado) y decide,
  * fila por fila, si crea, actualiza u omite -- nunca borra y recarga todo.
  */
-async function sincronizar({ candidates, parseErrors, importacionId }) {
+async function sincronizar({ candidates, parseErrors, importacionId, empresaId }) {
   const { ganadores, incidenciasDuplicados, detalleIgnorados } = deduplicarPorNumeroFactura(candidates);
 
   const contexto = {
@@ -223,11 +224,11 @@ async function sincronizar({ candidates, parseErrors, importacionId }) {
 
   const lotes = chunk(ganadores, BATCH_SIZE);
   for (const lote of lotes) {
-    await procesarLote(lote, importacionId, contexto);
+    await procesarLote(lote, importacionId, contexto, empresaId);
   }
 
-  if (contexto.detalles.length) await detalleRepository.createMany(importacionId, contexto.detalles);
-  if (contexto.incidencias.length) await incidenciasRepository.createMany(importacionId, contexto.incidencias);
+  if (contexto.detalles.length) await detalleRepository.createMany(importacionId, contexto.detalles, empresaId);
+  if (contexto.incidencias.length) await incidenciasRepository.createMany(importacionId, contexto.incidencias, empresaId);
 
   // Cada "ganador" termina en exactamente uno de estos 4 estados (creado,
   // actualizado, omitido o error de BD), asi que sumar por su longitud total

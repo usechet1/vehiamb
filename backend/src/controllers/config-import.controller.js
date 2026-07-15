@@ -8,11 +8,11 @@ exports.ejecutar = async (req, res) => {
 exports.listar = async (req, res) => {
   const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
   const limit = Math.min(50, Math.max(1, Number.parseInt(req.query.limit, 10) || 10));
-  const resultado = await configImportService.listar({ page, limit });
+  const resultado = await configImportService.listar({ page, limit }, req.empresaId);
   res.json(resultado);
 };
 
 exports.status = async (req, res) => {
-  const ultima = await configImportService.estadoUltimaAutomatica();
+  const ultima = await configImportService.estadoUltimaAutomatica(req.empresaId);
   res.json({ ultimaImportacionAutomatica: ultima || null });
 };

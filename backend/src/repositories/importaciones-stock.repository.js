@@ -1,16 +1,16 @@
 const db = require("../database/query");
 
-const CREATE_FIELDS = ["nombre_archivo", "hash_archivo", "usuario_id", "estado"];
+const CREATE_FIELDS = ["nombre_archivo", "hash_archivo", "usuario_id", "estado", "empresa_id"];
 
-async function findById(id) {
+async function findById(id, empresaId) {
   return db.get(
     `
       SELECT i.*, u.nombre AS usuario_nombre
       FROM importaciones_stock i
       LEFT JOIN usuarios u ON u.id = i.usuario_id
-      WHERE i.id = ?
+      WHERE i.id = ? AND i.empresa_id = ?
     `,
-    [id]
+    [id, empresaId]
   );
 }
 
@@ -52,16 +52,16 @@ async function actualizarResultado(id, resultado) {
   );
 }
 
-async function findAll({ page = 1, limit = 20, estado } = {}) {
-  const conditions = [];
-  const values = [];
+async function findAll({ page = 1, limit = 20, estado } = {}, empresaId) {
+  const conditions = ["i.empresa_id = ?"];
+  const values = [empresaId];
 
   if (estado) {
     conditions.push("i.estado = ?");
     values.push(estado);
   }
 
-  const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  const whereClause = `WHERE ${conditions.join(" AND ")}`;
   const offset = (Math.max(1, page) - 1) * limit;
 
   const rowsPromise = db.all(
@@ -89,15 +89,16 @@ async function findAll({ page = 1, limit = 20, estado } = {}) {
   };
 }
 
-async function findUltimaAutomatica() {
+async function findUltimaAutomatica(empresaId) {
   return db.get(
     `
       SELECT *
       FROM importaciones_stock
-      WHERE usuario_id IS NULL
+      WHERE usuario_id IS NULL AND empresa_id = ?
       ORDER BY creado_en DESC, id DESC
       LIMIT 1
-    `
+    `,
+    [empresaId]
   );
 }
 

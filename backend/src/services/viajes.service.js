@@ -16,7 +16,7 @@ function toSafeViaje(viaje) {
 
 async function crear(payload, currentUser) {
   const vehiculoId = payload.vehiculo_id;
-  const vehiculo = await vehiculosRepository.findById(vehiculoId);
+  const vehiculo = await vehiculosRepository.findById(vehiculoId, currentUser.empresa_id);
   if (!vehiculo) {
     throw new HttpError(404, "Vehículo no encontrado");
   }
@@ -29,7 +29,8 @@ async function crear(payload, currentUser) {
   const viaje = await viajesRepository.create({
     vehiculo_id: vehiculoId,
     usuario_id: currentUser?.id ?? null,
-    destino
+    destino,
+    empresa_id: currentUser.empresa_id
   });
 
   return toSafeViaje({

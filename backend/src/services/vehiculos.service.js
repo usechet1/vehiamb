@@ -150,9 +150,9 @@ function normalizeListQuery(query = {}) {
   };
 }
 
-async function listVehiculos(query) {
+async function listVehiculos(query, empresaId) {
   const filters = normalizeListQuery(query);
-  const { rows, total } = await vehiculosRepository.findAll(filters);
+  const { rows, total } = await vehiculosRepository.findAll(filters, empresaId);
   const totalPages = Math.max(1, Math.ceil(total / filters.limit));
 
   return {
@@ -164,16 +164,16 @@ async function listVehiculos(query) {
   };
 }
 
-async function getMarcas() {
-  return vehiculosRepository.findDistinctMarcas();
+async function getMarcas(empresaId) {
+  return vehiculosRepository.findDistinctMarcas(empresaId);
 }
 
-async function listVehiculosSimple() {
-  return vehiculosRepository.findAllSimple();
+async function listVehiculosSimple(empresaId) {
+  return vehiculosRepository.findAllSimple(empresaId);
 }
 
-async function getVehiculo(id) {
-  const vehiculo = await vehiculosRepository.findById(id);
+async function getVehiculo(id, empresaId) {
+  const vehiculo = await vehiculosRepository.findById(id, empresaId);
 
   if (!vehiculo) {
     throw new HttpError(404, "Vehículo no encontrado");
@@ -182,9 +182,10 @@ async function getVehiculo(id) {
   return vehiculo;
 }
 
-async function createVehiculo(payload, file) {
+async function createVehiculo(payload, file, empresaId) {
   const vehiculo = normalizePayload(payload);
   vehiculo.imagen_url = file ? `/uploads/vehiculos/${file.filename}` : null;
+  vehiculo.empresa_id = empresaId;
   validateVehiculo(vehiculo);
 
   try {
@@ -202,8 +203,8 @@ async function createVehiculo(payload, file) {
   }
 }
 
-async function updateVehiculo(id, payload, file) {
-  const existing = await vehiculosRepository.findById(id);
+async function updateVehiculo(id, payload, file, empresaId) {
+  const existing = await vehiculosRepository.findById(id, empresaId);
 
   if (!existing) {
     throw new HttpError(404, "Vehículo no encontrado");
@@ -215,7 +216,7 @@ async function updateVehiculo(id, payload, file) {
   validateVehiculo(vehiculo);
 
   try {
-    const actualizado = await vehiculosRepository.update(id, vehiculo);
+    const actualizado = await vehiculosRepository.update(id, vehiculo, empresaId);
 
     if (file && existing.imagen_url) {
       await eliminarImagenAnterior(existing.imagen_url);
@@ -235,18 +236,18 @@ async function updateVehiculo(id, payload, file) {
   }
 }
 
-async function updateEstadoVehiculo(id, estado) {
+async function updateEstadoVehiculo(id, estado, empresaId) {
   if (!ESTADOS_VEHICULO.has(estado)) {
     throw new HttpError(400, `Estado invalido. Valores permitidos: ${[...ESTADOS_VEHICULO].join(", ")}`);
   }
 
-  const existing = await vehiculosRepository.findById(id);
+  const existing = await vehiculosRepository.findById(id, empresaId);
 
   if (!existing) {
     throw new HttpError(404, "Vehículo no encontrado");
   }
 
-  const actualizado = await vehiculosRepository.updateEstado(id, estado);
+  const actualizado = await vehiculosRepository.updateEstado(id, estado, empresaId);
 
   notificacionesService
     .notificarCambioEstadoVehiculo({ vehiculo: actualizado, estadoAnterior: existing.estado, estadoNuevo: estado })
@@ -257,8 +258,8 @@ async function updateEstadoVehiculo(id, estado) {
   return actualizado;
 }
 
-async function deleteVehiculo(id) {
-  const result = await vehiculosRepository.remove(id);
+async function deleteVehiculo(id, empresaId) {
+  const result = await vehiculosRepository.remove(id, empresaId);
 
   if (!result.changes) {
     throw new HttpError(404, "Vehículo no encontrado");
@@ -275,15 +276,15 @@ const TIPOS_MANTENIMIENTO_VALIDOS = new Set([
   "otro"
 ]);
 
-async function getRepuestosSugeridos(vehiculoId, tipoMantenimiento) {
+async function getRepuestosSugeridos(vehiculoId, tipoMantenimiento, empresaId) {
   const tipo = TIPOS_MANTENIMIENTO_VALIDOS.has(tipoMantenimiento) ? tipoMantenimiento : "cambio_aceite";
-  await getVehiculo(vehiculoId);
-  return vehiculoRepuestosSugeridosRepository.findByVehiculo(vehiculoId, tipo);
+  await getVehiculo(vehiculoId, empresaId);
+  return vehiculoRepuestosSugeridosRepository.findByVehiculo(vehiculoId, tipo, empresaId);
 }
 
-async function updateRepuestosSugeridos(vehiculoId, tipoMantenimiento, items) {
+async function updateRepuestosSugeridos(vehiculoId, tipoMantenimiento, items, empresaId) {
   const tipo = TIPOS_MANTENIMIENTO_VALIDOS.has(tipoMantenimiento) ? tipoMantenimiento : "cambio_aceite";
-  await getVehiculo(vehiculoId);
+  await getVehiculo(vehiculoId, empresaId);
 
   if (!Array.isArray(items)) {
     throw new HttpError(400, "items debe ser un arreglo");
@@ -298,8 +299,8 @@ async function updateRepuestosSugeridos(vehiculoId, tipoMantenimiento, items) {
     }))
     .filter((item) => item.repuesto_id);
 
-  await vehiculoRepuestosSugeridosRepository.replaceParaVehiculoYTipo(vehiculoId, tipo, normalizados);
-  return vehiculoRepuestosSugeridosRepository.findByVehiculo(vehiculoId, tipo);
+  await vehiculoRepuestosSugeridosRepository.replaceParaVehiculoYTipo(vehiculoId, tipo, normalizados, empresaId);
+  return vehiculoRepuestosSugeridosRepository.findByVehiculo(vehiculoId, tipo, empresaId);
 }
 
 module.exports = {

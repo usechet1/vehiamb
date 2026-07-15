@@ -8,10 +8,11 @@ const FIELDS = [
   "descripcion",
   "valor",
   "estado",
-  "detalle_json"
+  "detalle_json",
+  "empresa_id"
 ];
 
-async function bulkCreate(consultaId, vehiculoId, comparendos, dbClient = db) {
+async function bulkCreate(consultaId, vehiculoId, comparendos, empresaId, dbClient = db) {
   if (!comparendos.length) return [];
 
   const creados = [];
@@ -24,7 +25,8 @@ async function bulkCreate(consultaId, vehiculoId, comparendos, dbClient = db) {
       descripcion: comparendo.descripcion,
       valor: comparendo.valor,
       estado: comparendo.estado,
-      detalle_json: comparendo.detalle ? JSON.stringify(comparendo.detalle) : null
+      detalle_json: comparendo.detalle ? JSON.stringify(comparendo.detalle) : null,
+      empresa_id: empresaId
     };
 
     const values = FIELDS.map((field) => row[field] ?? null);
@@ -40,10 +42,10 @@ async function bulkCreate(consultaId, vehiculoId, comparendos, dbClient = db) {
   return creados;
 }
 
-async function findByConsulta(consultaId) {
+async function findByConsulta(consultaId, empresaId) {
   return db.all(
-    "SELECT * FROM simit_comparendos WHERE consulta_id = ? ORDER BY fecha_infraccion DESC NULLS LAST, id ASC",
-    [consultaId]
+    "SELECT * FROM simit_comparendos WHERE consulta_id = ? AND empresa_id = ? ORDER BY fecha_infraccion DESC NULLS LAST, id ASC",
+    [consultaId, empresaId]
   );
 }
 

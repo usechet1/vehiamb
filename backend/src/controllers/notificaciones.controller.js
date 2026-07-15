@@ -1,7 +1,7 @@
 const notificacionesService = require("../services/notificaciones.service");
 
 exports.getNotificaciones = async (req, res) => {
-  const notificaciones = await notificacionesService.listNotificaciones(req.user.id, {
+  const notificaciones = await notificacionesService.listNotificaciones(req.user.id, req.empresaId, {
     estado: req.query.estado,
     prioridad: req.query.prioridad,
     categoria: req.query.categoria,

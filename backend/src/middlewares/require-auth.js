@@ -11,7 +11,11 @@ async function requireAuth(req, res, next) {
   try {
     const token = header.slice("Bearer ".length);
     const user = await authService.getCurrentUser(token);
+    if (!user.empresa_id) {
+      return next(new HttpError(401, "Sesión inválida o expirada"));
+    }
     req.user = user;
+    req.empresaId = user.empresa_id;
     next();
   } catch (error) {
     next(error);

@@ -1,7 +1,7 @@
 const db = require("../database/query");
 
-async function findBodegaPrincipal(dbClient = db) {
-  return dbClient.get("SELECT * FROM bodegas WHERE codigo = 'PRINCIPAL'");
+async function findBodegaPrincipal(empresaId, dbClient = db) {
+  return dbClient.get("SELECT * FROM bodegas WHERE codigo = 'PRINCIPAL' AND empresa_id = ?", [empresaId]);
 }
 
 /**
@@ -9,6 +9,9 @@ async function findBodegaPrincipal(dbClient = db) {
  * una transaccion (withTransaction), para que dos mantenimientos guardados
  * al mismo tiempo no descuenten el mismo stock dos veces (evita condicion de
  * carrera). "dbClient" es el cliente escopeado que entrega withTransaction.
+ * repuesto_id/bodega_id ya vienen verificados como de la misma empresa por
+ * el caller (findBodegaPrincipal + repuestosRepository.findById), asi que no
+ * hace falta repetir el filtro aqui.
  */
 async function findByRepuestoIdForUpdate(repuestoId, bodegaId, dbClient) {
   return dbClient.get(
@@ -29,11 +32,14 @@ async function decrementarStock(repuestoId, bodegaId, cantidad, dbClient) {
   );
 }
 
-async function findByRepuestoIds(repuestoIds) {
+async function findByRepuestoIds(repuestoIds, empresaId) {
   const unicos = [...new Set(repuestoIds.filter(Boolean))];
   if (!unicos.length) return new Map();
 
-  const rows = await db.all("SELECT * FROM repuestos_stock WHERE repuesto_id = ANY(?)", [unicos]);
+  const rows = await db.all(
+    "SELECT * FROM repuestos_stock WHERE repuesto_id = ANY(?) AND empresa_id = ?",
+    [unicos, empresaId]
+  );
 
   const mapa = new Map();
   rows.forEach((row) => mapa.set(row.repuesto_id, row));
@@ -45,19 +51,19 @@ async function findByRepuestoIds(repuestoIds) {
  * ON CONFLICT DO UPDATE directo porque necesita saber si ya existia (para
  * decidir en el sync-engine si hay que registrar un movimiento).
  */
-async function upsertStock(repuestoId, bodegaId, { stockFisico, ubicacionOriginal, hashFila }) {
+async function upsertStock(repuestoId, bodegaId, { stockFisico, ubicacionOriginal, hashFila }, empresaId) {
   return db.get(
     `
-      INSERT INTO repuestos_stock (repuesto_id, bodega_id, stock_fisico, ubicacion_original, hash_fila, actualizado_en)
-      VALUES (?, ?, ?, ?, ?, NOW())
-      ON CONFLICT (repuesto_id, bodega_id) DO UPDATE SET
+      INSERT INTO repuestos_stock (repuesto_id, bodega_id, stock_fisico, ubicacion_original, hash_fila, actualizado_en, empresa_id)
+      VALUES (?, ?, ?, ?, ?, NOW(), ?)
+      ON CONFLICT (empresa_id, repuesto_id, bodega_id) DO UPDATE SET
         stock_fisico = EXCLUDED.stock_fisico,
         ubicacion_original = EXCLUDED.ubicacion_original,
         hash_fila = EXCLUDED.hash_fila,
         actualizado_en = NOW()
       RETURNING *
     `,
-    [repuestoId, bodegaId, stockFisico, ubicacionOriginal, hashFila]
+    [repuestoId, bodegaId, stockFisico, ubicacionOriginal, hashFila, empresaId]
   );
 }
 
@@ -65,8 +71,8 @@ async function insertMovimiento(movimiento, dbClient = db) {
   return dbClient.run(
     `
       INSERT INTO movimientos_stock
-        (repuesto_id, bodega_id, tipo_movimiento, cantidad, stock_resultante, motivo, referencia_tipo, referencia_id, usuario_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (repuesto_id, bodega_id, tipo_movimiento, cantidad, stock_resultante, motivo, referencia_tipo, referencia_id, usuario_id, empresa_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       movimiento.repuestoId,
@@ -77,7 +83,8 @@ async function insertMovimiento(movimiento, dbClient = db) {
       movimiento.motivo ?? null,
       movimiento.referenciaTipo ?? null,
       movimiento.referenciaId ?? null,
-      movimiento.usuarioId ?? null
+      movimiento.usuarioId ?? null,
+      movimiento.empresaId
     ]
   );
 }

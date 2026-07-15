@@ -9,7 +9,8 @@ const CREATE_FIELDS = [
   "total_comparendos",
   "valor_total",
   "mensaje_error",
-  "resultado_raw"
+  "resultado_raw",
+  "empresa_id"
 ];
 
 async function create(consulta, dbClient = db) {
@@ -22,36 +23,36 @@ async function create(consulta, dbClient = db) {
   );
 }
 
-async function findById(id) {
-  return db.get("SELECT * FROM simit_consultas WHERE id = ?", [id]);
+async function findById(id, empresaId) {
+  return db.get("SELECT * FROM simit_consultas WHERE id = ? AND empresa_id = ?", [id, empresaId]);
 }
 
 // Historial de un vehiculo, mas reciente primero.
-async function findByVehiculo(vehiculoId, { limit = 50 } = {}) {
+async function findByVehiculo(vehiculoId, empresaId, { limit = 50 } = {}) {
   return db.all(
     `
       SELECT *
       FROM simit_consultas
-      WHERE vehiculo_id = ?
+      WHERE vehiculo_id = ? AND empresa_id = ?
       ORDER BY fecha_consulta DESC, id DESC
       LIMIT ?
     `,
-    [vehiculoId, limit]
+    [vehiculoId, empresaId, limit]
   );
 }
 
 // Segunda consulta mas reciente de un vehiculo (la anterior a la que se acaba
 // de insertar), usada para comparar y detectar novedades.
-async function findAnteriorByVehiculo(vehiculoId, consultaActualId) {
+async function findAnteriorByVehiculo(vehiculoId, consultaActualId, empresaId) {
   return db.get(
     `
       SELECT *
       FROM simit_consultas
-      WHERE vehiculo_id = ? AND id <> ?
+      WHERE vehiculo_id = ? AND id <> ? AND empresa_id = ?
       ORDER BY fecha_consulta DESC, id DESC
       LIMIT 1
     `,
-    [vehiculoId, consultaActualId]
+    [vehiculoId, consultaActualId, empresaId]
   );
 }
 
@@ -60,9 +61,9 @@ async function findAnteriorByVehiculo(vehiculoId, consultaActualId) {
 // (con estado_consulta/estado_cartera en NULL, que el service interpreta como
 // "nunca consultado"). Filtros de estado de cartera y busqueda por placa.
 // Usa DISTINCT ON, disponible en Postgres (unico motor soportado por este modulo).
-async function findUltimoEstadoPorFlota(filters = {}) {
-  const conditions = [];
-  const values = [];
+async function findUltimoEstadoPorFlota(filters = {}, empresaId) {
+  const conditions = ["v.empresa_id = ?"];
+  const values = [empresaId];
 
   if (filters.estado_cartera === "nunca_consultado") {
     conditions.push("ultimas.id IS NULL");
@@ -76,7 +77,7 @@ async function findUltimoEstadoPorFlota(filters = {}) {
     values.push(`%${filters.placa}%`);
   }
 
-  const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  const whereClause = `WHERE ${conditions.join(" AND ")}`;
 
   return db.all(
     `

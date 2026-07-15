@@ -1,12 +1,12 @@
 const db = require("../database/query");
 
-async function createMany(importacionId, incidencias) {
+async function createMany(importacionId, incidencias, empresaId) {
   for (const incidencia of incidencias) {
     await db.run(
       `
         INSERT INTO incidencias_importacion
-          (importacion_id, fila_excel, numero_factura, placa_original, tipo_incidencia, descripcion, valor_problematico)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+          (importacion_id, fila_excel, numero_factura, placa_original, tipo_incidencia, descripcion, valor_problematico, empresa_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         importacionId,
@@ -15,12 +15,16 @@ async function createMany(importacionId, incidencias) {
         incidencia.placaOriginal ?? null,
         incidencia.tipoIncidencia,
         incidencia.descripcion,
-        incidencia.valorProblematico ?? null
+        incidencia.valorProblematico ?? null,
+        empresaId
       ]
     );
   }
 }
 
+// importacionId ya viene verificado como de la empresa correcta por el
+// caller (import.service.js: obtener() valida la importacion antes de
+// listar sus incidencias).
 async function findByImportacion(importacionId, { page = 1, limit = 50, resuelta } = {}) {
   const conditions = ["importacion_id = ?"];
   const values = [importacionId];
@@ -57,20 +61,20 @@ async function findByImportacion(importacionId, { page = 1, limit = 50, resuelta
   };
 }
 
-async function findById(id) {
-  return db.get("SELECT * FROM incidencias_importacion WHERE id = ?", [id]);
+async function findById(id, empresaId) {
+  return db.get("SELECT * FROM incidencias_importacion WHERE id = ? AND empresa_id = ?", [id, empresaId]);
 }
 
-async function resolver(id, usuarioId) {
+async function resolver(id, usuarioId, empresaId) {
   const TRUE_VALUE = db.client === "postgres" ? true : 1;
 
   return db.run(
     `
       UPDATE incidencias_importacion
       SET resuelta = ?, resuelta_por = ?, resuelta_en = CURRENT_TIMESTAMP
-      WHERE id = ?
+      WHERE id = ? AND empresa_id = ?
     `,
-    [TRUE_VALUE, usuarioId, id]
+    [TRUE_VALUE, usuarioId, id, empresaId]
   );
 }
 

@@ -8,7 +8,7 @@ const DESTINATARIO_PERMISSION = "inventory.view";
 async function obtenerRepuestosBajoMinimo() {
   return db.all(
     `
-      SELECT r.id, r.nombre, r.codigo_interno, rs.stock_fisico, rs.stock_minimo
+      SELECT r.id, r.nombre, r.codigo_interno, r.empresa_id, rs.stock_fisico, rs.stock_minimo
       FROM repuestos_stock rs
       INNER JOIN repuestos r ON r.id = rs.repuesto_id
       WHERE rs.stock_minimo > 0 AND rs.stock_fisico <= rs.stock_minimo
@@ -19,7 +19,7 @@ async function obtenerRepuestosBajoMinimo() {
 async function obtenerRepuestosInactivosConfigurados() {
   return db.all(
     `
-      SELECT DISTINCT r.id, r.nombre, r.codigo_interno
+      SELECT DISTINCT r.id, r.nombre, r.codigo_interno, r.empresa_id
       FROM vehiculo_repuestos_sugeridos vrs
       INNER JOIN repuestos r ON r.id = vrs.repuesto_id
       WHERE r.estado = 'inactivo'
@@ -28,7 +28,7 @@ async function obtenerRepuestosInactivosConfigurados() {
 }
 
 async function evaluarStockMinimo(row) {
-  const yaNotificado = await notificacionesService.existsRecentByReferencia("repuesto_stock", row.id, HORAS_SIN_DUPLICAR);
+  const yaNotificado = await notificacionesService.existsRecentByReferencia("repuesto_stock", row.id, HORAS_SIN_DUPLICAR, row.empresa_id);
   if (yaNotificado) return;
 
   const agotado = Number(row.stock_fisico) <= 0;
@@ -41,11 +41,11 @@ async function evaluarStockMinimo(row) {
     referencia_tipo: "repuesto_stock",
     referencia_id: row.id,
     accion: { tipo: "ver_repuesto", payload: { repuesto_id: row.id } }
-  });
+  }, row.empresa_id);
 }
 
 async function evaluarRepuestoInactivo(row) {
-  const yaNotificado = await notificacionesService.existsRecentByReferencia("repuesto_inactivo", row.id, HORAS_SIN_DUPLICAR);
+  const yaNotificado = await notificacionesService.existsRecentByReferencia("repuesto_inactivo", row.id, HORAS_SIN_DUPLICAR, row.empresa_id);
   if (yaNotificado) return;
 
   await notificacionesService.notificarUsuariosConPermiso(DESTINATARIO_PERMISSION, {
@@ -54,7 +54,7 @@ async function evaluarRepuestoInactivo(row) {
     referencia_tipo: "repuesto_inactivo",
     referencia_id: row.id,
     accion: { tipo: "ver_repuesto", payload: { repuesto_id: row.id } }
-  });
+  }, row.empresa_id);
 }
 
 async function ejecutarRevisionStock() {

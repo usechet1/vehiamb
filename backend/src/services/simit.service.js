@@ -39,7 +39,7 @@ function compararComparendos(anteriores, actuales) {
   return { nuevos, cambiosEstado };
 }
 
-async function notificarNovedades({ vehiculo, consulta, nuevos, cambiosEstado }) {
+async function notificarNovedades({ vehiculo, consulta, nuevos, cambiosEstado, empresaId }) {
   if (!nuevos.length && !cambiosEstado.length) return;
 
   const vehiculoLabel = `${vehiculo.marca} ${vehiculo.modelo} (${vehiculo.placa})`;
@@ -61,17 +61,18 @@ async function notificarNovedades({ vehiculo, consulta, nuevos, cambiosEstado })
     referencia_tipo: "simit_consulta",
     referencia_id: consulta.id,
     accion: { tipo: "ver_simit", payload: { vehiculo_id: vehiculo.id } }
-  });
+  }, empresaId);
 }
 
-async function notificarFallo({ vehiculo, consulta }) {
+async function notificarFallo({ vehiculo, consulta, empresaId }) {
   // referencia_tipo propio ("simit_consulta_fallo") para no compartir el
   // deduplicador con otras notificaciones que tambien usan referencia_tipo
   // "vehiculo" (ej. vehiculo_fuera_servicio, kilometraje_incoherente).
   const yaNotificado = await notificacionesService.existsRecentByReferencia(
     "simit_consulta_fallo",
     vehiculo.id,
-    HORAS_SIN_DUPLICAR_FALLO
+    HORAS_SIN_DUPLICAR_FALLO,
+    empresaId
   );
   if (yaNotificado) return;
 
@@ -87,11 +88,11 @@ async function notificarFallo({ vehiculo, consulta }) {
     referencia_tipo: "simit_consulta_fallo",
     referencia_id: vehiculo.id,
     accion: { tipo: "ver_simit", payload: { vehiculo_id: vehiculo.id } }
-  });
+  }, empresaId);
 }
 
-async function consultarVehiculo(vehiculoId, { origen = "manual" } = {}) {
-  const vehiculo = await vehiculosRepository.findById(vehiculoId);
+async function consultarVehiculo(vehiculoId, empresaId, { origen = "manual" } = {}) {
+  const vehiculo = await vehiculosRepository.findById(vehiculoId, empresaId);
   if (!vehiculo) {
     throw new HttpError(404, "Vehículo no encontrado");
   }
@@ -113,7 +114,8 @@ async function consultarVehiculo(vehiculoId, { origen = "manual" } = {}) {
         total_comparendos: resultado.total_comparendos,
         valor_total: resultado.valor_total,
         mensaje_error: resultado.mensaje_error,
-        resultado_raw: JSON.stringify(resultado.comparendos || [])
+        resultado_raw: JSON.stringify(resultado.comparendos || []),
+        empresa_id: empresaId
       },
       dbTx
     );
@@ -122,6 +124,7 @@ async function consultarVehiculo(vehiculoId, { origen = "manual" } = {}) {
       consultaCreada.id,
       vehiculo.id,
       resultado.comparendos || [],
+      empresaId,
       dbTx
     );
 
@@ -129,32 +132,42 @@ async function consultarVehiculo(vehiculoId, { origen = "manual" } = {}) {
   });
 
   if (consulta.estado_consulta !== "ok") {
-    await notificarFallo({ vehiculo, consulta }).catch((error) => {
+    await notificarFallo({ vehiculo, consulta, empresaId }).catch((error) => {
       console.error("No fue posible notificar el fallo de consulta SIMIT:", error.message);
     });
 
     return { ...consulta, comparendos };
   }
 
-  const anterior = await simitConsultasRepository.findAnteriorByVehiculo(vehiculo.id, consulta.id);
-  const comparendosAnteriores = anterior ? await simitComparendosRepository.findByConsulta(anterior.id) : [];
+  const anterior = await simitConsultasRepository.findAnteriorByVehiculo(vehiculo.id, consulta.id, empresaId);
+  const comparendosAnteriores = anterior ? await simitComparendosRepository.findByConsulta(anterior.id, empresaId) : [];
   const { nuevos, cambiosEstado } = compararComparendos(comparendosAnteriores, comparendos);
 
-  await notificarNovedades({ vehiculo, consulta, nuevos, cambiosEstado }).catch((error) => {
+  await notificarNovedades({ vehiculo, consulta, nuevos, cambiosEstado, empresaId }).catch((error) => {
     console.error("No fue posible notificar novedades de SIMIT:", error.message);
   });
 
   return { ...consulta, comparendos, novedades: { nuevos: nuevos.length, cambiosEstado: cambiosEstado.length } };
 }
 
-async function actualizarFlota() {
-  const vehiculos = (await vehiculosRepository.findAllSimple()).filter((vehiculo) => vehiculo.placa);
+// Cron/bulk: recorre TODOS los vehiculos de TODAS las empresas (findAllParaCron,
+// sin scopear), usando el empresa_id propio de cada fila para la consulta y
+// las notificaciones -- a diferencia de consultarVehiculo llamado desde un
+// request autenticado, aqui no hay un "empresaId actual" unico. Si se pasa
+// empresaId (disparo manual desde POST /api/simit/actualizar-flota), se filtra
+// a solo esa empresa: un usuario autenticado no deberia poder disparar la
+// actualizacion de la flota de otras empresas.
+async function actualizarFlota(empresaId = null) {
+  let vehiculos = (await vehiculosRepository.findAllParaCron()).filter((vehiculo) => vehiculo.placa);
+  if (empresaId !== null) {
+    vehiculos = vehiculos.filter((vehiculo) => String(vehiculo.empresa_id) === String(empresaId));
+  }
 
   const resumen = { total: vehiculos.length, ok: 0, con_novedades: 0, error: 0, bloqueado: 0 };
 
   for (const vehiculo of vehiculos) {
     try {
-      const resultado = await consultarVehiculo(vehiculo.id, { origen: "masivo" });
+      const resultado = await consultarVehiculo(vehiculo.id, vehiculo.empresa_id, { origen: "masivo" });
 
       if (resultado.estado_consulta === "ok") {
         resumen.ok += 1;
@@ -177,26 +190,26 @@ async function actualizarFlota() {
   return resumen;
 }
 
-async function listarEstadoFlota(filters = {}) {
-  return simitConsultasRepository.findUltimoEstadoPorFlota(filters);
+async function listarEstadoFlota(filters = {}, empresaId) {
+  return simitConsultasRepository.findUltimoEstadoPorFlota(filters, empresaId);
 }
 
-async function listarHistorialVehiculo(vehiculoId) {
-  const vehiculo = await vehiculosRepository.findById(vehiculoId);
+async function listarHistorialVehiculo(vehiculoId, empresaId) {
+  const vehiculo = await vehiculosRepository.findById(vehiculoId, empresaId);
   if (!vehiculo) {
     throw new HttpError(404, "Vehículo no encontrado");
   }
 
-  return simitConsultasRepository.findByVehiculo(vehiculoId);
+  return simitConsultasRepository.findByVehiculo(vehiculoId, empresaId);
 }
 
-async function obtenerConsultaDetalle(consultaId) {
-  const consulta = await simitConsultasRepository.findById(consultaId);
+async function obtenerConsultaDetalle(consultaId, empresaId) {
+  const consulta = await simitConsultasRepository.findById(consultaId, empresaId);
   if (!consulta) {
     throw new HttpError(404, "Consulta SIMIT no encontrada");
   }
 
-  const comparendos = await simitComparendosRepository.findByConsulta(consultaId);
+  const comparendos = await simitComparendosRepository.findByConsulta(consultaId, empresaId);
   return { ...consulta, comparendos };
 }
 

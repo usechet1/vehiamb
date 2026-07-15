@@ -61,7 +61,8 @@ const PERMISSIONS = [
   ["inspections.view", "Inspecciones", "Ver el checklist de inspecciones preventivas"],
   ["inspections.create", "Inspecciones", "Registrar inspecciones preventivas"],
   ["trips.view", "Viajes", "Ver el historial de viajes"],
-  ["trips.create", "Viajes", "Registrar el viaje e iniciar recorrido"]
+  ["trips.create", "Viajes", "Registrar el viaje e iniciar recorrido"],
+  ["empresa.manage", "Empresa", "Editar el nombre y el logo de la empresa"]
 ];
 
 const ROLE_PERMISSIONS = {
@@ -175,7 +176,8 @@ const PERMISOS_NUEVOS_POR_ROL = {
   "inspections.view": ["Administrador", "Operador", "Consulta"],
   "inspections.create": ["Administrador", "Operador"],
   "trips.view": ["Administrador", "Conductor"],
-  "trips.create": ["Administrador", "Conductor"]
+  "trips.create": ["Administrador", "Conductor"],
+  "empresa.manage": ["Administrador"]
 };
 
 async function grantPermisosNuevos() {
@@ -259,10 +261,15 @@ async function seedAdminUser() {
   const passwordHash = await hashPassword(env.seedAdminPassword);
   const adminRole = await db.get("SELECT id FROM roles WHERE nombre = ?", ["Administrador"]);
 
+  // En Postgres, usuarios.empresa_id es NOT NULL: el admin semilla se asigna
+  // a la empresa por defecto (creada mas arriba en la cadena de migracion,
+  // antes de que esta funcion corra).
+  const empresaId = db.client === "postgres" ? await getEmpresaDefaultId() : null;
+
   await db.run(
     `
-      INSERT INTO usuarios (nombre, email, password_hash, rol, role_id, activo)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO usuarios (nombre, email, password_hash, rol, role_id, activo${empresaId ? ", empresa_id" : ""})
+      VALUES (?, ?, ?, ?, ?, ?${empresaId ? ", ?" : ""})
     `,
     [
       env.seedAdminName,
@@ -270,12 +277,26 @@ async function seedAdminUser() {
       passwordHash,
       env.seedAdminRole,
       adminRole?.id || null,
-      db.client === "postgres" ? true : 1
+      db.client === "postgres" ? true : 1,
+      ...(empresaId ? [empresaId] : [])
     ]
   );
 }
 
 async function ensurePostgresTables() {
+  // empresas (tenants): cada empresa cliente que compra la app. Se crea antes
+  // que cualquier otra tabla porque muchas de las siguientes van a referenciar
+  // empresas(id) via ensureColumn mas abajo en la cadena de migracion.
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS empresas (
+      id BIGSERIAL PRIMARY KEY,
+      nombre TEXT NOT NULL,
+      slug TEXT NOT NULL UNIQUE,
+      activo BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
   await db.run(`
     CREATE TABLE IF NOT EXISTS roles (
       id BIGSERIAL PRIMARY KEY,
@@ -772,20 +793,181 @@ async function ensurePostgresTables() {
   await db.run("CREATE INDEX IF NOT EXISTS idx_inspeccion_items_inspeccion_id ON inspeccion_items (inspeccion_id)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_viajes_usuario_id ON viajes (usuario_id, creado_en DESC)");
 
-  await db.run(`
-    INSERT INTO bodegas (nombre, codigo)
-    VALUES ('Bodega Principal', 'PRINCIPAL')
-    ON CONFLICT (codigo) DO NOTHING
-  `);
-
-  await db.run(`
-    INSERT INTO configuracion_inventario (clave, valor)
-    VALUES ('stock_insuficiente_bloquea', 'false')
-    ON CONFLICT (clave) DO NOTHING
-  `);
+  // La bodega y configuracion por defecto ya NO se insertan aqui: bodegas.codigo
+  // y configuracion_inventario.clave pasan a ser unicos POR EMPRESA (ver mas abajo
+  // en la cadena de migracion, seedBodegaYConfigDefault), y en este punto la
+  // tabla empresas todavia podria no tener filas (arranque en frio). Se siembran
+  // despues de que exista la empresa por defecto y las constraints compuestas.
   // idx_notificaciones_estado e idx_notificaciones_vehiculo_id se crean mas abajo,
   // despues de ensureColumn: aqui correrian en cada arranque (incluso con la tabla
   // ya existente en una base antigua) y fallarian porque esas columnas aun no existen.
+}
+
+// ── Multi-tenancy (empresas) — solo aplica a la rama Postgres ──────────
+//
+// Cada empresa cliente ve solo sus propios datos. Se agrega empresa_id
+// directo en cada tabla (no via JOIN al padre) para que cualquier
+// repositorio pueda filtrar/verificar con "WHERE id = ? AND empresa_id = ?"
+// sin necesitar conocer la cadena de FKs. roles/permisos/roles_permisos
+// quedan GLOBALES a proposito (mismo catalogo de permisos para todas las
+// empresas); usuarios.email tambien queda unico global (un email = una
+// cuenta en toda la plataforma, el login no pide elegir empresa).
+//
+// Como esta migracion parte de una base con datos reales de una sola
+// operacion, todo lo existente se asigna a una "empresa por defecto" que
+// se crea aqui mismo si no existe ninguna todavia.
+const TABLAS_CON_EMPRESA_ID = [
+  "usuarios",
+  "vehiculos",
+  "mantenimientos",
+  "documentos",
+  "notificaciones",
+  "cambios_aceite",
+  "importaciones",
+  "facturas_vehiculares",
+  "gastos_operativos",
+  "incidencias_importacion",
+  "detalle_importacion",
+  "repuestos",
+  "bodegas",
+  "repuestos_stock",
+  "movimientos_stock",
+  "importaciones_stock",
+  "incidencias_importacion_stock",
+  "detalle_importacion_stock",
+  "vehiculo_repuestos_sugeridos",
+  "repuestos_equivalencias",
+  "mantenimiento_repuestos",
+  "importaciones_config_vehiculos",
+  "simit_consultas",
+  "simit_comparendos",
+  "inspecciones_preventivas",
+  "inspeccion_items",
+  "viajes"
+];
+
+async function seedEmpresaDefault() {
+  await db.run(`
+    INSERT INTO empresas (nombre, slug, activo)
+    SELECT 'Empresa Principal', 'empresa-principal', TRUE
+    WHERE NOT EXISTS (SELECT 1 FROM empresas)
+  `);
+}
+
+async function getEmpresaDefaultId() {
+  const row = await db.get("SELECT id FROM empresas ORDER BY id ASC LIMIT 1");
+  return row?.id || null;
+}
+
+async function ensureEmpresaIdColumns() {
+  await Promise.all(
+    TABLAS_CON_EMPRESA_ID.map((tabla) => ensureColumn(tabla, "empresa_id", "BIGINT REFERENCES empresas(id)"))
+  );
+}
+
+async function backfillEmpresaId() {
+  const empresaId = await getEmpresaDefaultId();
+  if (!empresaId) return;
+
+  for (const tabla of TABLAS_CON_EMPRESA_ID) {
+    await db.run(`UPDATE ${tabla} SET empresa_id = ? WHERE empresa_id IS NULL`, [empresaId]);
+  }
+
+  // configuracion_inventario todavia no tiene empresa_id (su PK es "clave"
+  // sola): se agrega columna + backfill aparte porque no esta en la lista de
+  // arriba (pasa a tener PK compuesta (empresa_id, clave), ver mas abajo).
+  await ensureColumn("configuracion_inventario", "empresa_id", "BIGINT REFERENCES empresas(id)");
+  await db.run("UPDATE configuracion_inventario SET empresa_id = ? WHERE empresa_id IS NULL", [empresaId]);
+}
+
+async function empresaIdIsNotNull(tabla) {
+  const row = await db.get(
+    `
+      SELECT is_nullable
+      FROM information_schema.columns
+      WHERE table_name = ? AND column_name = 'empresa_id'
+    `,
+    [tabla]
+  );
+  return row?.is_nullable === "NO";
+}
+
+async function enforceEmpresaIdNotNull() {
+  for (const tabla of [...TABLAS_CON_EMPRESA_ID, "configuracion_inventario"]) {
+    if (await empresaIdIsNotNull(tabla)) continue;
+    await db.run(`ALTER TABLE ${tabla} ALTER COLUMN empresa_id SET NOT NULL`);
+  }
+}
+
+async function constraintExists(constraintName) {
+  const row = await db.get("SELECT 1 FROM pg_constraint WHERE conname = ?", [constraintName]);
+  return Boolean(row);
+}
+
+// Constraints UNIQUE/PK declaradas inline en ensurePostgresTables() que
+// colisionarian entre empresas distintas (dos empresas no pueden compartir
+// el espacio de nombres de placas, codigos de repuesto, etc.). Postgres les
+// puso nombre automatico al crearlas (ej. "vehiculos_placa_key"): hay que
+// tumbar ese nombre exacto y crear la version compuesta con empresa_id.
+async function migrarConstraintsPorEmpresa() {
+  const cambios = [
+    { tabla: "vehiculos", constraintVieja: "vehiculos_placa_key", sql: "ALTER TABLE vehiculos ADD CONSTRAINT ux_vehiculos_empresa_placa UNIQUE (empresa_id, placa)", nuevoNombre: "ux_vehiculos_empresa_placa" },
+    { tabla: "repuestos", constraintVieja: "repuestos_codigo_interno_key", sql: "ALTER TABLE repuestos ADD CONSTRAINT ux_repuestos_empresa_codigo UNIQUE (empresa_id, codigo_interno)", nuevoNombre: "ux_repuestos_empresa_codigo" },
+    { tabla: "bodegas", constraintVieja: "bodegas_codigo_key", sql: "ALTER TABLE bodegas ADD CONSTRAINT ux_bodegas_empresa_codigo UNIQUE (empresa_id, codigo)", nuevoNombre: "ux_bodegas_empresa_codigo" },
+    { tabla: "facturas_vehiculares", constraintVieja: "facturas_vehiculares_numero_factura_key", sql: "ALTER TABLE facturas_vehiculares ADD CONSTRAINT ux_facturas_empresa_numero UNIQUE (empresa_id, numero_factura)", nuevoNombre: "ux_facturas_empresa_numero" },
+    { tabla: "repuestos_stock", constraintVieja: "repuestos_stock_repuesto_id_bodega_id_key", sql: "ALTER TABLE repuestos_stock ADD CONSTRAINT ux_repuestos_stock_empresa UNIQUE (empresa_id, repuesto_id, bodega_id)", nuevoNombre: "ux_repuestos_stock_empresa" },
+    { tabla: "vehiculo_repuestos_sugeridos", constraintVieja: "vehiculo_repuestos_sugeridos_vehiculo_id_tipo_mantenimiento_key", sql: "ALTER TABLE vehiculo_repuestos_sugeridos ADD CONSTRAINT ux_vehiculo_repuestos_sugeridos_empresa UNIQUE (empresa_id, vehiculo_id, tipo_mantenimiento, repuesto_id)", nuevoNombre: "ux_vehiculo_repuestos_sugeridos_empresa" },
+    { tabla: "repuestos_equivalencias", constraintVieja: "repuestos_equivalencias_repuesto_principal_id_repuesto_equi_key", sql: "ALTER TABLE repuestos_equivalencias ADD CONSTRAINT ux_repuestos_equivalencias_empresa UNIQUE (empresa_id, repuesto_principal_id, repuesto_equivalente_id)", nuevoNombre: "ux_repuestos_equivalencias_empresa" }
+  ];
+
+  for (const cambio of cambios) {
+    if (await constraintExists(cambio.constraintVieja)) {
+      await db.run(`ALTER TABLE ${cambio.tabla} DROP CONSTRAINT ${cambio.constraintVieja}`);
+    }
+    if (!(await constraintExists(cambio.nuevoNombre))) {
+      await db.run(cambio.sql);
+    }
+  }
+
+  // vehiculos.numero_chasis usa un indice unico parcial (no una constraint con
+  // nombre de PK), se maneja aparte con CREATE/DROP INDEX en vez de CONSTRAINT.
+  await db.run("DROP INDEX IF EXISTS idx_vehiculos_numero_chasis");
+  await db.run(
+    "CREATE UNIQUE INDEX IF NOT EXISTS ux_vehiculos_empresa_numero_chasis ON vehiculos (empresa_id, numero_chasis) WHERE numero_chasis IS NOT NULL"
+  );
+
+  // configuracion_inventario: la PK pasa de "clave" sola a (empresa_id, clave).
+  if (await constraintExists("configuracion_inventario_pkey")) {
+    await db.run("ALTER TABLE configuracion_inventario DROP CONSTRAINT configuracion_inventario_pkey");
+  }
+  if (!(await constraintExists("configuracion_inventario_empresa_clave_pkey"))) {
+    await db.run(
+      "ALTER TABLE configuracion_inventario ADD CONSTRAINT configuracion_inventario_empresa_clave_pkey PRIMARY KEY (empresa_id, clave)"
+    );
+  }
+}
+
+async function seedBodegaYConfigDefault() {
+  const empresaId = await getEmpresaDefaultId();
+  if (!empresaId) return;
+
+  await db.run(
+    `
+      INSERT INTO bodegas (nombre, codigo, empresa_id)
+      VALUES ('Bodega Principal', 'PRINCIPAL', ?)
+      ON CONFLICT (empresa_id, codigo) DO NOTHING
+    `,
+    [empresaId]
+  );
+
+  await db.run(
+    `
+      INSERT INTO configuracion_inventario (clave, valor, empresa_id)
+      VALUES ('stock_insuficiente_bloquea', 'false', ?)
+      ON CONFLICT (empresa_id, clave) DO NOTHING
+    `,
+    [empresaId]
+  );
 }
 
 if (env.dbClient === "sqlite") {
@@ -1075,7 +1257,9 @@ if (env.dbClient === "sqlite") {
     .catch((error) => console.error("Error verificando columnas", error.message));
 } else {
   ensurePostgresTables()
+    .then(seedEmpresaDefault)
     .then(() => Promise.all([
+      ensureColumn("empresas", "logo_url", "TEXT"),
       ensureColumn("usuarios", "role_id", "BIGINT REFERENCES roles(id)"),
       ensureColumn("roles", "permisos_configurados", "BOOLEAN NOT NULL DEFAULT FALSE"),
       ensureColumn("mantenimientos", "repuestos", "TEXT"),
@@ -1107,11 +1291,15 @@ if (env.dbClient === "sqlite") {
       ensureColumn("notificaciones", "updated_at", "TIMESTAMPTZ NOT NULL DEFAULT NOW()"),
       ensureColumn("importaciones_config_vehiculos", "hash_archivo", "TEXT")
     ]))
+    .then(ensureEmpresaIdColumns)
     .then(() => Promise.all([
       ensureNumericColumn("vehiculos", "kilometraje_actual"),
       ensureNumericColumn("vehiculos", "capacidad_carga")
     ]))
-    .then(() => db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_vehiculos_numero_chasis ON vehiculos (numero_chasis) WHERE numero_chasis IS NOT NULL"))
+    .then(backfillEmpresaId)
+    .then(enforceEmpresaIdNotNull)
+    .then(migrarConstraintsPorEmpresa)
+    .then(seedBodegaYConfigDefault)
     .then(() => db.run("CREATE INDEX IF NOT EXISTS idx_vehiculos_estado ON vehiculos (estado)"))
     .then(() => db.run("CREATE INDEX IF NOT EXISTS idx_usuarios_role_id ON usuarios (role_id)"))
     .then(() => db.run("CREATE INDEX IF NOT EXISTS idx_notificaciones_estado ON notificaciones (usuario_id, estado)"))

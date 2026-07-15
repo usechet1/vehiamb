@@ -11,6 +11,7 @@ const repuestosRepository = require("../../repositories/repuestos.repository");
 const vehiculoRepuestosSugeridosRepository = require("../../repositories/vehiculo-repuestos-sugeridos.repository");
 const equivalenciasRepository = require("../../repositories/repuestos-equivalencias.repository");
 const importacionesConfigRepository = require("../../repositories/importaciones-config-vehiculos.repository");
+const empresasRepository = require("../../repositories/empresas.repository");
 
 const HOJA_KITS = "CAMBIO DE ACEITE VEHICULOS ";
 const HOJA_VEHICULOS = "VEHICULOS ";
@@ -26,16 +27,16 @@ function hashArchivo(filePath) {
   });
 }
 
-async function resolverRepuestoCache(cache, codigoInterno) {
+async function resolverRepuestoCache(cache, codigoInterno, empresaId) {
   if (cache.has(codigoInterno)) return cache.get(codigoInterno);
-  const repuesto = await repuestosRepository.findByCodigoInterno(codigoInterno);
+  const repuesto = await repuestosRepository.findByCodigoInterno(codigoInterno, empresaId);
   cache.set(codigoInterno, repuesto || null);
   return repuesto || null;
 }
 
-async function resolverVehiculoCache(cache, placa) {
+async function resolverVehiculoCache(cache, placa, empresaId) {
   if (cache.has(placa)) return cache.get(placa);
-  const vehiculo = await vehiculosRepository.findByPlaca(placa);
+  const vehiculo = await vehiculosRepository.findByPlaca(placa, empresaId);
   cache.set(placa, vehiculo || null);
   return vehiculo || null;
 }
@@ -46,7 +47,7 @@ async function resolverVehiculoCache(cache, placa) {
  * reintentos) -- igual criterio que import.service.js/stock-import.service.js:
  * mejor un registro "fallido" visible que un error silencioso.
  */
-async function registrarFalloObtencionArchivo({ nombreArchivo, usuarioId, error, duracionMs }) {
+async function registrarFalloObtencionArchivo({ nombreArchivo, usuarioId, error, duracionMs, empresaId }) {
   return importacionesConfigRepository.create({
     nombre_archivo: nombreArchivo,
     hash_archivo: null,
@@ -54,7 +55,8 @@ async function registrarFalloObtencionArchivo({ nombreArchivo, usuarioId, error,
     estado: "fallido",
     total_incidencias: 1,
     detalle_incidencias: [{ hoja: "archivo", motivo: "no_disponible", valor: error.message }],
-    duracion_ms: duracionMs
+    duracion_ms: duracionMs,
+    empresa_id: empresaId
   });
 }
 
@@ -74,6 +76,12 @@ async function ejecutar({ usuarioId = null } = {}) {
     throw new HttpError(400, "CONFIG_EXCEL_FILE_PATH no esta configurado");
   }
 
+  const empresa = await empresasRepository.findEmpresaPrincipal();
+  if (!empresa) {
+    throw new HttpError(400, "No hay ninguna empresa registrada para asociar la importacion");
+  }
+  const empresaId = empresa.id;
+
   const inicio = Date.now();
   const provider = crearFileProvider({
     sourcePath: env.configExcelFilePath,
@@ -91,18 +99,18 @@ async function ejecutar({ usuarioId = null } = {}) {
     ({ path: filePath, cleanup } = await provider.getFile());
   } catch (error) {
     console.error("[ConfigImportService] No fue posible obtener el archivo de origen:", error.message);
-    await registrarFalloObtencionArchivo({ nombreArchivo, usuarioId, error, duracionMs: Date.now() - inicio });
+    await registrarFalloObtencionArchivo({ nombreArchivo, usuarioId, error, duracionMs: Date.now() - inicio, empresaId });
     throw error;
   }
 
   try {
-    return await procesarArchivo({ filePath, nombreArchivo, usuarioId, inicio });
+    return await procesarArchivo({ filePath, nombreArchivo, usuarioId, inicio, empresaId });
   } finally {
     await cleanup();
   }
 }
 
-async function procesarArchivo({ filePath, nombreArchivo, usuarioId, inicio }) {
+async function procesarArchivo({ filePath, nombreArchivo, usuarioId, inicio, empresaId }) {
   let hash;
   let workbook;
 
@@ -119,13 +127,14 @@ async function procesarArchivo({ filePath, nombreArchivo, usuarioId, inicio }) {
       estado: "fallido",
       total_incidencias: 1,
       detalle_incidencias: [{ hoja: "archivo", motivo: "error_lectura", valor: error.message }],
-      duracion_ms: duracionMs
+      duracion_ms: duracionMs,
+      empresa_id: empresaId
     });
     throw new HttpError(422, `No fue posible abrir el archivo Excel: ${error.message}`);
   }
 
   try {
-    return await sincronizarConfiguracion({ workbook, hash, nombreArchivo, usuarioId, inicio });
+    return await sincronizarConfiguracion({ workbook, hash, nombreArchivo, usuarioId, inicio, empresaId });
   } catch (error) {
     const duracionMs = Date.now() - inicio;
     console.error("[ConfigImportService] La importacion fallo:", error);
@@ -137,14 +146,15 @@ async function procesarArchivo({ filePath, nombreArchivo, usuarioId, inicio }) {
       estado: "fallido",
       total_incidencias: 1,
       detalle_incidencias: [{ hoja: "archivo", motivo: "error_procesamiento", valor: error.message }],
-      duracion_ms: duracionMs
+      duracion_ms: duracionMs,
+      empresa_id: empresaId
     });
 
     throw error;
   }
 }
 
-async function sincronizarConfiguracion({ workbook, hash, nombreArchivo, usuarioId, inicio }) {
+async function sincronizarConfiguracion({ workbook, hash, nombreArchivo, usuarioId, inicio, empresaId }) {
   const hojaKits = workbook.Sheets[HOJA_KITS];
   const hojaVehiculos = workbook.Sheets[HOJA_VEHICULOS];
 
@@ -177,14 +187,14 @@ async function sincronizarConfiguracion({ workbook, hash, nombreArchivo, usuario
   let totalOmitidos = 0;
 
   for (const candidato of candidatosSugeridos) {
-    const vehiculo = await resolverVehiculoCache(vehiculoCache, candidato.placa);
+    const vehiculo = await resolverVehiculoCache(vehiculoCache, candidato.placa, empresaId);
     if (!vehiculo) {
       incidencias.push({ hoja: "sugeridos", motivo: "vehiculo_no_encontrado_en_catalogo", valor: candidato.placa });
       totalOmitidos += 1;
       continue;
     }
 
-    const repuesto = await resolverRepuestoCache(repuestoCache, candidato.codigoInterno);
+    const repuesto = await resolverRepuestoCache(repuestoCache, candidato.codigoInterno, empresaId);
     if (!repuesto) {
       incidencias.push({ hoja: "sugeridos", motivo: "repuesto_no_encontrado", valor: candidato.codigoInterno, placa: candidato.placa });
       totalOmitidos += 1;
@@ -200,7 +210,8 @@ async function sincronizarConfiguracion({ workbook, hash, nombreArchivo, usuario
       repuesto_id: repuesto.id,
       cantidad: candidato.cantidad,
       orden,
-      intervalo_km: intervaloKmPorPlaca.get(candidato.placa) ?? null
+      intervalo_km: intervaloKmPorPlaca.get(candidato.placa) ?? null,
+      empresa_id: empresaId
     });
 
     if (resultado.changes > 0) totalSugeridosCreados += 1;
@@ -210,8 +221,8 @@ async function sincronizarConfiguracion({ workbook, hash, nombreArchivo, usuario
   let totalEquivalenciasCreadas = 0;
 
   for (const equivalencia of equivalencias) {
-    const principal = await resolverRepuestoCache(repuestoCache, equivalencia.codigoPrincipal);
-    const equivalente = await resolverRepuestoCache(repuestoCache, equivalencia.codigoEquivalente);
+    const principal = await resolverRepuestoCache(repuestoCache, equivalencia.codigoPrincipal, empresaId);
+    const equivalente = await resolverRepuestoCache(repuestoCache, equivalencia.codigoEquivalente, empresaId);
 
     if (!principal || !equivalente) {
       incidencias.push({
@@ -238,11 +249,12 @@ async function sincronizarConfiguracion({ workbook, hash, nombreArchivo, usuario
       continue;
     }
 
-    const prioridad = (await equivalenciasRepository.findMaxPrioridad(principal.id)) + 1;
+    const prioridad = (await equivalenciasRepository.findMaxPrioridad(principal.id, empresaId)) + 1;
     const resultado = await equivalenciasRepository.upsertIgnore({
       repuesto_principal_id: principal.id,
       repuesto_equivalente_id: equivalente.id,
-      prioridad
+      prioridad,
+      empresa_id: empresaId
     });
 
     if (resultado.changes > 0) totalEquivalenciasCreadas += 1;
@@ -261,7 +273,8 @@ async function sincronizarConfiguracion({ workbook, hash, nombreArchivo, usuario
     total_omitidos: totalOmitidos,
     total_incidencias: incidencias.length,
     detalle_incidencias: incidencias.slice(0, MAX_INCIDENCIAS_GUARDADAS),
-    duracion_ms: duracionMs
+    duracion_ms: duracionMs,
+    empresa_id: empresaId
   });
 
   return {
@@ -275,12 +288,12 @@ async function sincronizarConfiguracion({ workbook, hash, nombreArchivo, usuario
   };
 }
 
-async function listar(filtros) {
-  return importacionesConfigRepository.findAll(filtros);
+async function listar(filtros, empresaId) {
+  return importacionesConfigRepository.findAll(filtros, empresaId);
 }
 
-async function estadoUltimaAutomatica() {
-  return importacionesConfigRepository.findUltimaAutomatica();
+async function estadoUltimaAutomatica(empresaId) {
+  return importacionesConfigRepository.findUltimaAutomatica(empresaId);
 }
 
 module.exports = { ejecutar, listar, estadoUltimaAutomatica };

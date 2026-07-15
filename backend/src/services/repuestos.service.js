@@ -70,30 +70,31 @@ function normalizeListQuery(query = {}) {
   };
 }
 
-async function listRepuestos(query) {
+async function listRepuestos(query, empresaId) {
   const filters = normalizeListQuery(query);
-  const { rows, total } = await repuestosRepository.findAll(filters);
+  const { rows, total } = await repuestosRepository.findAll(filters, empresaId);
   const totalPages = Math.max(1, Math.ceil(total / filters.limit));
 
   return { items: rows, page: filters.page, limit: filters.limit, total, totalPages };
 }
 
-async function buscarRepuestos(term) {
+async function buscarRepuestos(term, empresaId) {
   const trimmed = toTrimmedOrNull(term);
   if (!trimmed || trimmed.length < 2) return [];
-  return repuestosRepository.buscar(trimmed, 10);
+  return repuestosRepository.buscar(trimmed, empresaId, 10);
 }
 
-async function getRepuesto(id) {
-  const repuesto = await repuestosRepository.findById(id);
+async function getRepuesto(id, empresaId) {
+  const repuesto = await repuestosRepository.findById(id, empresaId);
   if (!repuesto) {
     throw new HttpError(404, "Repuesto no encontrado");
   }
   return repuesto;
 }
 
-async function createRepuesto(payload) {
+async function createRepuesto(payload, empresaId) {
   const repuesto = normalizePayload(payload);
+  repuesto.empresa_id = empresaId;
   validateRepuesto(repuesto);
 
   try {
@@ -106,8 +107,8 @@ async function createRepuesto(payload) {
   }
 }
 
-async function updateRepuesto(id, payload) {
-  const existing = await repuestosRepository.findById(id);
+async function updateRepuesto(id, payload, empresaId) {
+  const existing = await repuestosRepository.findById(id, empresaId);
   if (!existing) {
     throw new HttpError(404, "Repuesto no encontrado");
   }
@@ -116,7 +117,7 @@ async function updateRepuesto(id, payload) {
   validateRepuesto(repuesto);
 
   try {
-    return await repuestosRepository.update(id, repuesto);
+    return await repuestosRepository.update(id, repuesto, empresaId);
   } catch (error) {
     if (error.code === "23505" && String(error.constraint || "").includes("codigo_interno")) {
       throw new HttpError(409, "Ya existe un repuesto registrado con ese código interno");

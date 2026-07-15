@@ -25,7 +25,7 @@ const TIPOS_LABEL = {
 async function obtenerMantenimientosProgramados() {
   return db.all(
     `
-      SELECT m.id, m.vehiculo_id, m.tipo, m.fecha, v.placa, v.marca, v.modelo
+      SELECT m.id, m.vehiculo_id, m.tipo, m.fecha, m.empresa_id, v.placa, v.marca, v.modelo
       FROM mantenimientos m
       INNER JOIN vehiculos v ON v.id = m.vehiculo_id
       WHERE m.fecha > CURRENT_DATE
@@ -41,7 +41,7 @@ function calcularDiasRestantes(fecha) {
 }
 
 async function evaluarMantenimiento(row) {
-  const yaNotificado = await notificacionesService.existsRecentByReferencia("mantenimiento", row.id, HORAS_SIN_DUPLICAR);
+  const yaNotificado = await notificacionesService.existsRecentByReferencia("mantenimiento", row.id, HORAS_SIN_DUPLICAR, row.empresa_id);
   if (yaNotificado) return;
 
   const diasRestantes = calcularDiasRestantes(row.fecha);
@@ -55,7 +55,7 @@ async function evaluarMantenimiento(row) {
     referencia_tipo: "mantenimiento",
     referencia_id: row.id,
     accion: { tipo: "ver_mantenimiento", payload: { mantenimiento_id: row.id } }
-  });
+  }, row.empresa_id);
 }
 
 async function ejecutarRevisionMantenimientosProgramados() {

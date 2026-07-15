@@ -1,5 +1,5 @@
 <div class="sidebar-logo">
-  <img src="../img/vehiamb_white.png" alt="VehiAmb" class="logo-image-sidebar">
+  <img src="../img/vehiamb_white.png" alt="VehiAmb" class="logo-image-sidebar" id="sidebarLogoImage">
 </div>
 
 <nav class="sidebar-menu">
@@ -113,6 +113,17 @@
     Usuarios
   </button>
 
+  <button data-page="empresa.html" data-permission="empresa.manage">
+    <span class="nav-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 21h18"/>
+        <path d="M5 21V7l7-4 7 4v14"/>
+        <path d="M9 21v-6h6v6"/>
+      </svg>
+    </span>
+    Empresa
+  </button>
+
   <button data-page="costos.html" data-permission="costs.view">
     <span class="nav-icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -157,6 +168,7 @@
     <div class="user-info">
       <strong id="sidebarUserName">Usuario</strong>
       <span id="sidebarUserRole">Sesión activa</span>
+      <span id="sidebarUserEmpresa" class="sidebar-user-empresa"></span>
     </div>
 
     <div class="notif-bell-wrap">

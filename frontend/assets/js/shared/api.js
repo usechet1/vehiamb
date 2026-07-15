@@ -48,6 +48,21 @@ window.VehiAmb.api = {
         return `${window.VehiAmb.ASSET_BASE_URL}${path}`;
     },
 
+    getMiEmpresa() {
+        return requestJson(`${window.VehiAmb.API_URL}/empresas/me`, undefined, "No se pudo cargar la empresa");
+    },
+
+    updateMiEmpresa(formData) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/empresas/me`,
+            {
+                method: "PUT",
+                body: formData
+            },
+            "No se pudo actualizar la empresa"
+        );
+    },
+
     getVehiculos(filters = {}) {
         const params = new URLSearchParams();
 

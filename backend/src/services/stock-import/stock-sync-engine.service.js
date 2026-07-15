@@ -58,11 +58,12 @@ function deduplicarPorCodigoInterno(candidates) {
   return { ganadores, incidenciasDuplicados, detalleIgnorados };
 }
 
-async function procesarLote(candidatesLote, importacionId, bodegaId, contexto) {
+async function procesarLote(candidatesLote, importacionId, bodegaId, contexto, empresaId) {
   const codigos = candidatesLote.map((c) => c.codigoInterno);
-  const repuestosExistentes = await repuestosRepository.findByCodigosInternos(codigos);
+  const repuestosExistentes = await repuestosRepository.findByCodigosInternos(codigos, empresaId);
   const stockExistente = await repuestosStockRepository.findByRepuestoIds(
-    [...repuestosExistentes.values()].map((r) => r.id)
+    [...repuestosExistentes.values()].map((r) => r.id),
+    empresaId
   );
 
   const detalles = [];
@@ -87,14 +88,15 @@ async function procesarLote(candidatesLote, importacionId, bodegaId, contexto) {
           unidad_medida: candidate.unidadMedida,
           valor_promedio: candidate.valorPromedio,
           estado: "activo",
-          observaciones: null
+          observaciones: null,
+          empresa_id: empresaId
         });
 
         await repuestosStockRepository.upsertStock(repuestoCreado.id, bodegaId, {
           stockFisico: candidate.stockFisico,
           ubicacionOriginal: candidate.ubicacionOriginal,
           hashFila: hashNuevo
-        });
+        }, empresaId);
 
         if (candidate.stockFisico !== 0) {
           await repuestosStockRepository.insertMovimiento({
@@ -106,7 +108,8 @@ async function procesarLote(candidatesLote, importacionId, bodegaId, contexto) {
             motivo: "Carga inicial desde importacion de stock",
             referenciaTipo: "importacion_stock",
             referenciaId: importacionId,
-            usuarioId: null
+            usuarioId: null,
+            empresaId
           });
         }
 
@@ -140,13 +143,13 @@ async function procesarLote(candidatesLote, importacionId, bodegaId, contexto) {
         nombre: candidate.nombre,
         unidad_medida: candidate.unidadMedida,
         valor_promedio: candidate.valorPromedio
-      });
+      }, empresaId);
 
       await repuestosStockRepository.upsertStock(existente.id, bodegaId, {
         stockFisico: candidate.stockFisico,
         ubicacionOriginal: candidate.ubicacionOriginal,
         hashFila: hashNuevo
-      });
+      }, empresaId);
 
       const stockAnterior = Number(stockRow?.stock_fisico ?? 0);
       if (stockAnterior !== candidate.stockFisico) {
@@ -159,7 +162,8 @@ async function procesarLote(candidatesLote, importacionId, bodegaId, contexto) {
           motivo: "Actualizacion de saldo por importacion de stock",
           referenciaTipo: "importacion_stock",
           referenciaId: importacionId,
-          usuarioId: null
+          usuarioId: null,
+          empresaId
         });
       }
 
@@ -198,8 +202,8 @@ async function procesarLote(candidatesLote, importacionId, bodegaId, contexto) {
  * y decide, fila por fila, si crea, actualiza u omite -- nunca borra y
  * recarga todo.
  */
-async function sincronizar({ candidates, parseErrors, importacionId }) {
-  const bodega = await repuestosStockRepository.findBodegaPrincipal();
+async function sincronizar({ candidates, parseErrors, importacionId, empresaId }) {
+  const bodega = await repuestosStockRepository.findBodegaPrincipal(empresaId);
   if (!bodega) {
     throw new Error('No existe la bodega "PRINCIPAL". Revisa el seed inicial de la tabla bodegas.');
   }
@@ -222,11 +226,11 @@ async function sincronizar({ candidates, parseErrors, importacionId }) {
 
   const BATCH_SIZE = 500;
   for (let i = 0; i < ganadores.length; i += BATCH_SIZE) {
-    await procesarLote(ganadores.slice(i, i + BATCH_SIZE), importacionId, bodega.id, contexto);
+    await procesarLote(ganadores.slice(i, i + BATCH_SIZE), importacionId, bodega.id, contexto, empresaId);
   }
 
-  if (contexto.detalles.length) await detalleRepository.createMany(importacionId, contexto.detalles);
-  if (contexto.incidencias.length) await incidenciasRepository.createMany(importacionId, contexto.incidencias);
+  if (contexto.detalles.length) await detalleRepository.createMany(importacionId, contexto.detalles, empresaId);
+  if (contexto.incidencias.length) await incidenciasRepository.createMany(importacionId, contexto.incidencias, empresaId);
 
   const totalLeidos = parseErrors.length + incidenciasDuplicados.length + ganadores.length;
 

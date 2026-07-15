@@ -14,6 +14,7 @@ async function obtenerProximosCambiosAceite() {
     SELECT DISTINCT ON (m.vehiculo_id)
       m.id AS mantenimiento_id,
       m.vehiculo_id,
+      m.empresa_id,
       m.proximo_cambio_km,
       m.proximo_cambio_fecha,
       v.placa,
@@ -51,7 +52,8 @@ async function evaluarVehiculo(row) {
   const yaNotificado = await notificacionesService.existsRecentByReferencia(
     "vehiculo",
     row.vehiculo_id,
-    HORAS_SIN_DUPLICAR
+    HORAS_SIN_DUPLICAR,
+    row.empresa_id
   );
   if (yaNotificado) return;
 
@@ -66,7 +68,7 @@ async function evaluarVehiculo(row) {
     referencia_tipo: "vehiculo",
     referencia_id: row.vehiculo_id,
     accion: { tipo: "ver_vehiculo", payload: { vehiculo_id: row.vehiculo_id } }
-  });
+  }, row.empresa_id);
 }
 
 async function ejecutarRevisionPreventiva() {

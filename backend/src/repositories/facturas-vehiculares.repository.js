@@ -14,7 +14,8 @@ const INSERT_FIELDS = [
   "estado_vehiculo",
   "importacion_creacion_id",
   "importacion_ultima_id",
-  "hash_fila"
+  "hash_fila",
+  "empresa_id"
 ];
 
 /**
@@ -24,11 +25,14 @@ const INSERT_FIELDS = [
  *
  * @returns {Promise<Map<string, object>>} numero_factura -> fila en BD
  */
-async function findByNumerosFactura(numeros) {
+async function findByNumerosFactura(numeros, empresaId) {
   const unicos = [...new Set(numeros.filter(Boolean))];
   if (!unicos.length) return new Map();
 
-  const rows = await db.all("SELECT * FROM facturas_vehiculares WHERE numero_factura = ANY(?)", [unicos]);
+  const rows = await db.all(
+    "SELECT * FROM facturas_vehiculares WHERE numero_factura = ANY(?) AND empresa_id = ?",
+    [unicos, empresaId]
+  );
 
   const mapa = new Map();
   rows.forEach((row) => mapa.set(row.numero_factura, row));
@@ -53,15 +57,17 @@ async function create(factura) {
   return db.get("SELECT * FROM facturas_vehiculares WHERE id = ?", [result.lastID]);
 }
 
-async function update(id, factura) {
-  const updateFields = INSERT_FIELDS.filter((field) => field !== "numero_factura" && field !== "importacion_creacion_id");
+async function update(id, factura, empresaId) {
+  const updateFields = INSERT_FIELDS.filter(
+    (field) => field !== "numero_factura" && field !== "importacion_creacion_id" && field !== "empresa_id"
+  );
   const assignments = updateFields.map((field) => `${field} = ?`).join(", ");
   const values = updateFields.map((field) => factura[field] ?? null);
 
   if (db.client === "postgres") {
     return db.get(
-      `UPDATE facturas_vehiculares SET ${assignments}, actualizado_en = NOW() WHERE id = ? RETURNING *`,
-      [...values, id]
+      `UPDATE facturas_vehiculares SET ${assignments}, actualizado_en = NOW() WHERE id = ? AND empresa_id = ? RETURNING *`,
+      [...values, id, empresaId]
     );
   }
 
@@ -69,16 +75,16 @@ async function update(id, factura) {
   return db.get("SELECT * FROM facturas_vehiculares WHERE id = ?", [id]);
 }
 
-async function replaceGastos(facturaId, gastos, importacionId) {
-  await db.run("DELETE FROM gastos_operativos WHERE factura_id = ?", [facturaId]);
+async function replaceGastos(facturaId, gastos, importacionId, empresaId) {
+  await db.run("DELETE FROM gastos_operativos WHERE factura_id = ? AND empresa_id = ?", [facturaId, empresaId]);
 
   for (const gasto of gastos) {
     await db.run(
       `
-        INSERT INTO gastos_operativos (factura_id, tipo_gasto, valor, unidad, importacion_id)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO gastos_operativos (factura_id, tipo_gasto, valor, unidad, importacion_id, empresa_id)
+        VALUES (?, ?, ?, ?, ?, ?)
       `,
-      [facturaId, gasto.tipo, gasto.valor, gasto.unidad, importacionId]
+      [facturaId, gasto.tipo, gasto.valor, gasto.unidad, importacionId, empresaId]
     );
   }
 }
