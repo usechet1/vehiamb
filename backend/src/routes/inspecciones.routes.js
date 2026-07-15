@@ -7,13 +7,13 @@ const requirePermission = require("../middlewares/require-permission");
 const uploadInspeccion = require("../middlewares/upload-inspeccion");
 const compressImage = require("../middlewares/compress-image");
 
-router.get("/catalogo", requirePermission("maintenance.view"), asyncHandler(inspeccionesController.getCatalogo));
-router.get("/vehiculo/:vehiculoId", requirePermission("maintenance.view"), asyncHandler(inspeccionesController.getPorVehiculo));
-router.get("/:id", requirePermission("maintenance.view"), asyncHandler(inspeccionesController.getDetalle));
+router.get("/catalogo", requirePermission("inspections.view"), asyncHandler(inspeccionesController.getCatalogo));
+router.get("/vehiculo/:vehiculoId", requirePermission("inspections.view"), asyncHandler(inspeccionesController.getPorVehiculo));
+router.get("/:id", requirePermission("inspections.view"), asyncHandler(inspeccionesController.getDetalle));
 
 router.post(
   "/vehiculo/:vehiculoId",
-  requirePermission("maintenance.create"),
+  requirePermission("inspections.create"),
   uploadInspeccion.any(),
   asyncHandler(compressImage),
   asyncHandler(inspeccionesController.crear)

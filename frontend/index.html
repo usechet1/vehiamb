@@ -19,6 +19,7 @@
         <aside class="sidebar" id="sidebar"></aside>
 
         <main class="content">
+            <div id="dashboardHome">
             <div class="dash-header">
                 <div>
                     <h1>Panel operativo</h1>
@@ -119,6 +120,78 @@
                         <p class="dash-empty">Cargando...</p>
                     </div>
                 </div>
+            </div>
+            </div>
+
+            <div id="conductorHome" class="conductor-home hidden">
+                <div class="conductor-hero">
+                    <div>
+                        <p class="conductor-hero-eyebrow" id="conductorSaludo">¡Hola!</p>
+                        <h1>¿Listo para tu viaje?</h1>
+                        <p class="conductor-hero-sub">Elige el vehículo que vas a usar y a dónde te diriges.</p>
+                    </div>
+                    <p class="dash-fecha" id="fecha-hoy-conductor" aria-label="Fecha de hoy"></p>
+                </div>
+
+                <div class="conductor-card">
+                    <div class="conductor-card-step">
+                        <span class="conductor-step-badge">1</span>
+                        <div>
+                            <h2>¿Qué vehículo vas a usar?</h2>
+                            <p class="field-help">Toca una tarjeta para seleccionarlo.</p>
+                        </div>
+                    </div>
+                    <input type="text" id="conductorVehiculoBuscar" class="conductor-vehiculo-buscar" placeholder="Buscar por placa...">
+                    <div id="conductorVehiculoGrid" class="conductor-vehiculo-grid">
+                        <p class="dash-empty">Cargando vehículos...</p>
+                    </div>
+                    <p id="conductorVehiculoLimiteHint" class="field-help hidden"></p>
+                </div>
+
+                <div class="conductor-card">
+                    <div class="conductor-card-step">
+                        <span class="conductor-step-badge">2</span>
+                        <div>
+                            <h2>¿A dónde vas?</h2>
+                            <p class="field-help">Elige el departamento y la ciudad de destino.</p>
+                        </div>
+                    </div>
+                    <div class="conductor-destino-fields">
+                        <div class="form-group">
+                            <label for="conductorDepartamentoSelect">Departamento</label>
+                            <select id="conductorDepartamentoSelect">
+                                <option value="">Selecciona un departamento...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="conductorCiudadSelect">Ciudad / Municipio</label>
+                            <select id="conductorCiudadSelect" disabled>
+                                <option value="">Selecciona primero un departamento...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <a id="conductorMapsLink" class="conductor-maps-preview is-disabled" href="#" target="_blank" rel="noreferrer" aria-disabled="true">
+                        <span class="conductor-maps-preview-icon" aria-hidden="true">📍</span>
+                        <span>
+                            <strong>Ver ruta en Google Maps</strong>
+                            <span id="conductorMapsPreviewText" class="field-help">Elige un destino para previsualizar la ruta</span>
+                        </span>
+                    </a>
+
+                    <div class="conductor-cta-bar">
+                        <p id="conductorMensaje" class="dash-empty hidden"></p>
+                        <button type="button" id="conductorIniciarViajeBtn" class="btn-primary conductor-cta-btn" disabled>Iniciar viaje</button>
+                    </div>
+                </div>
+
+                <details class="dash-panel conductor-viajes-panel">
+                    <summary class="dash-panel-head">
+                        <h3 class="dash-panel-title">Tus últimos viajes</h3>
+                    </summary>
+                    <div id="conductorViajesRecientes">
+                        <p class="dash-empty">Cargando...</p>
+                    </div>
+                </details>
             </div>
         </main>
     </div>

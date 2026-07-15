@@ -128,22 +128,30 @@
     </style>
 </head>
 <body>
+    <div id="viajeIniciadoCurtain" class="welcome-curtain is-viaje hidden">
+        <div class="welcome-curtain-inner">
+            <img src="img/vehiamb_white.png" alt="" class="welcome-curtain-logo">
+            <h1>¡Feliz viaje!</h1>
+            <p>Maneja con precaución.</p>
+        </div>
+    </div>
+
     <div class="layout">
         <aside class="sidebar" id="sidebar"></aside>
 
         <main class="content">
             <div class="page-header">
-                <div>
-                    <a class="back-link" href="dashboard.html">Volver a vehículos</a>
+                <div id="vehicleHeaderLeft">
+                    <a class="back-link" id="backToVehiclesLink" href="dashboard.html">Volver a vehículos</a>
                     <h1 id="vehicleTitle">Ficha del vehículo</h1>
                     <p class="page-kicker" id="vehicleSubtitle">Información operativa, mantenimientos y vencimientos</p>
                 </div>
                 <div class="page-header-right">
                     <p class="dash-fecha" id="fecha-hoy" aria-label="Fecha de hoy"></p>
-                    <div class="vehicle-detail-actions">
+                    <div class="vehicle-detail-actions" id="vehicleDetailActions">
                         <button type="button" id="exportHojaVidaButton" class="btn-secondary btn-pdf">Exportar PDF</button>
                         <a class="btn-secondary" id="editVehicleLink" href="add.html">Editar vehículo</a>
-                        <a class="header-action" href="mantenimientos.html">Registrar mantenimiento</a>
+                        <a class="header-action" id="registrarMantenimientoLink" href="mantenimientos.html">Registrar mantenimiento</a>
                     </div>
                 </div>
             </div>
@@ -169,18 +177,27 @@
                 </div>
             </section>
 
+            <ol id="conductorWizardNav" class="conductor-wizard-nav hidden">
+                <li class="wizard-step" data-step="1"><span class="wizard-step-num">1</span> Vehículo</li>
+                <li class="wizard-step" data-step="2"><span class="wizard-step-num">2</span> Vencimientos</li>
+                <li class="wizard-step" data-step="3"><span class="wizard-step-num">3</span> Inspección</li>
+                <li class="wizard-step" data-step="4"><span class="wizard-step-num">4</span> Preoperacional</li>
+            </ol>
+
             <div id="vehicleDetail" class="vehicle-detail-grid hidden">
-                <section class="section-card">
-                    <div class="section-card-head">
-                        <h2>Datos del vehículo</h2>
-                        <p>Ficha base de identificación y operación.</p>
-                    </div>
-                    <div class="section-card-body">
-                        <dl class="detail-list" id="vehicleFacts"></dl>
-                    </div>
+                <section class="section-card" id="vehicleDatosSection">
+                    <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
+                            <h2>Datos del vehículo</h2>
+                            <p>Ficha base de identificación y operación.</p>
+                        </summary>
+                        <div class="section-card-body">
+                            <dl class="detail-list" id="vehicleFacts"></dl>
+                        </div>
+                    </details>
                 </section>
 
-                <section class="section-card">
+                <section class="section-card" id="vehicleImagenSection">
                     <div class="section-card-head">
                         <h2>Imagen del vehículo</h2>
                         <p>Referencia visual de esta unidad.</p>
@@ -204,7 +221,7 @@
             </div>
 
             <div id="vehicleRecords" class="vehicle-records-grid hidden">
-                <section class="section-card">
+                <section class="section-card" id="vehicleMantenimientosSection">
                     <div class="section-card-head">
                         <h2>Mantenimientos y revisiones</h2>
                         <p>Trabajos realizados, repuestos y costos asociados.</p>
@@ -216,7 +233,7 @@
                     </div>
                 </section>
 
-                <section class="section-card">
+                <section class="section-card" id="vehicleVencimientosSection">
                     <div class="section-card-head">
                         <h2>Vencimientos</h2>
                         <p>Tecnomecánica, SOAT, seguros y documentos futuros.</p>
@@ -275,15 +292,52 @@
                     <div class="section-card-body">
                         <div class="inspeccion-layout">
                             <div class="inspeccion-diagram-wrap">
-                                <svg class="inspeccion-diagram" viewBox="0 0 200 340" role="img" aria-label="Diagrama del vehículo visto desde arriba">
-                                    <rect x="30" y="70" width="18" height="50" rx="6" fill="#8b93a3"></rect>
-                                    <rect x="152" y="70" width="18" height="50" rx="6" fill="#8b93a3"></rect>
-                                    <rect x="30" y="220" width="18" height="50" rx="6" fill="#8b93a3"></rect>
-                                    <rect x="152" y="220" width="18" height="50" rx="6" fill="#8b93a3"></rect>
-                                    <rect x="50" y="30" width="100" height="280" rx="35" fill="#e8ecf3" stroke="#b9c2d0" stroke-width="2"></rect>
-                                    <rect x="65" y="100" width="70" height="120" rx="20" fill="#d7dee8"></rect>
+                                <svg class="inspeccion-diagram" viewBox="0 0 200 340" role="img" aria-label="Diagrama genérico del vehículo visto desde arriba">
+                                    <!-- Ruedas: caucho oscuro + cubo, mismo x/y que antes para no desalinear los hotspots -->
+                                    <g fill="#454e5c">
+                                        <rect x="28" y="68" width="20" height="52" rx="8"></rect>
+                                        <rect x="152" y="68" width="20" height="52" rx="8"></rect>
+                                        <rect x="28" y="220" width="20" height="52" rx="8"></rect>
+                                        <rect x="152" y="220" width="20" height="52" rx="8"></rect>
+                                    </g>
+                                    <g fill="#20242c">
+                                        <circle cx="38" cy="94" r="5"></circle>
+                                        <circle cx="162" cy="94" r="5"></circle>
+                                        <circle cx="38" cy="246" r="5"></circle>
+                                        <circle cx="162" cy="246" r="5"></circle>
+                                    </g>
+
+                                    <!-- Carrocería: capó redondeado adelante, cola más cuadrada atrás -->
+                                    <path d="M90,25 L110,25 A45,45 0 0 1 155,70 L155,290 A25,25 0 0 1 130,315 L70,315 A25,25 0 0 1 45,290 L45,70 A45,45 0 0 1 90,25 Z"
+                                          fill="#eef1f6" stroke="#b9c2d0" stroke-width="2"></path>
+
+                                    <!-- Costura central decorativa -->
+                                    <line x1="100" y1="32" x2="100" y2="308" stroke="#c7cedb" stroke-width="1.5" stroke-dasharray="3 7"></line>
+
+                                    <!-- Parabrisas delantero y trasero -->
+                                    <polygon points="78,76 122,76 132,110 68,110" fill="#c7d3e0"></polygon>
+                                    <polygon points="68,230 132,230 122,264 78,264" fill="#c7d3e0"></polygon>
+
+                                    <!-- Cabina -->
+                                    <rect x="66" y="112" width="68" height="116" rx="16" fill="#dbe2ec"></rect>
+
+                                    <!-- Espejos laterales -->
+                                    <rect x="36" y="90" width="9" height="15" rx="3" fill="#8b93a3"></rect>
+                                    <rect x="155" y="90" width="9" height="15" rx="3" fill="#8b93a3"></rect>
+
+                                    <!-- Faros delanteros y traseros -->
+                                    <rect x="56" y="32" width="15" height="8" rx="4" fill="#f5c451"></rect>
+                                    <rect x="129" y="32" width="15" height="8" rx="4" fill="#f5c451"></rect>
+                                    <rect x="56" y="300" width="15" height="8" rx="4" fill="#d7434f"></rect>
+                                    <rect x="129" y="300" width="15" height="8" rx="4" fill="#d7434f"></rect>
                                 </svg>
                                 <div class="inspeccion-hotspots" id="inspeccionHotspots"></div>
+                            </div>
+                            <div class="inspeccion-diagram-legend">
+                                <span><i class="inspeccion-legend-dot"></i> Sin marcar</span>
+                                <span><i class="inspeccion-legend-dot is-bien"></i> Bien</span>
+                                <span><i class="inspeccion-legend-dot is-mal"></i> Mal</span>
+                                <span><i class="inspeccion-legend-dot is-parcial"></i> Kit incompleto</span>
                             </div>
 
                             <div class="inspeccion-content">
@@ -295,22 +349,44 @@
                                     <div class="inspeccion-side">
                                         <div class="inspeccion-resumen" id="inspeccionResumen"></div>
                                         <div class="form-actions">
-                                            <button type="button" id="guardarInspeccionButton" class="btn-primary" disabled>Guardar inspección</button>
+                                            <button type="button" id="guardarInspeccionButton" class="btn-primary hidden" disabled>Guardar inspección</button>
                                             <button type="button" id="limpiarInspeccionButton" class="btn-secondary">Limpiar</button>
+                                            <!-- TODO: reemplazar href con el link real del formulario de preoperacional (Google Forms) -->
+                                            <a class="btn-secondary" id="abrirPreoperacionalLink" href="#" target="_blank" rel="noreferrer">Abrir preoperacional</a>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div class="inspeccion-historial">
-                                    <h3>Historial de inspecciones</h3>
+                                <details class="inspeccion-historial">
+                                    <summary><h3>Historial de inspecciones</h3></summary>
                                     <div id="inspeccionHistorialList" class="records-list">
                                         <p class="dash-empty">Cargando...</p>
                                     </div>
-                                </div>
+                                </details>
                             </div>
                         </div>
                     </div>
                 </section>
+            </div>
+
+            <section class="section-card hidden" id="wizardStepPreoperacional">
+                <div class="section-card-head">
+                    <h2>Preoperacional</h2>
+                    <p>Este paso es opcional: diligencia el formulario preoperacional del vehículo si tu operación lo requiere.</p>
+                </div>
+                <div class="section-card-body">
+                    <div class="conductor-wizard-final">
+                        <button type="button" id="finalizarViajeBtn" class="btn-primary">Finalizar e iniciar viaje</button>
+                    </div>
+                </div>
+            </section>
+
+            <div id="conductorWizardActions" class="conductor-wizard-actions hidden">
+                <p id="wizardHint" class="field-help hidden"></p>
+                <div class="conductor-wizard-buttons">
+                    <button type="button" id="wizardAnteriorBtn" class="btn-secondary">Anterior</button>
+                    <button type="button" id="wizardSiguienteBtn" class="btn-primary">Siguiente</button>
+                </div>
             </div>
         </main>
     </div>
@@ -431,5 +507,6 @@
         })();
     </script>
     <script src="assets/js/pages/vehicle-detail.js"></script>
+    <script src="assets/js/pages/vehicle-conductor-wizard.js"></script>
 </body>
 </html>

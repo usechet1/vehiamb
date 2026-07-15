@@ -24,6 +24,8 @@ const vehicleSimitSection = document.getElementById("vehicleSimitSection");
 const vehicleSimitBody = document.getElementById("vehicleSimitBody");
 const consultarSimitButton = document.getElementById("consultarSimitButton");
 const exportHojaVidaButton = document.getElementById("exportHojaVidaButton");
+const editVehicleLink = document.getElementById("editVehicleLink");
+const registrarMantenimientoLink = document.getElementById("registrarMantenimientoLink");
 const vehicleRepuestosSugeridosSection = document.getElementById("vehicleRepuestosSugeridosSection");
 const repuestoSugeridoIntervaloKm = document.getElementById("repuestoSugeridoIntervaloKm");
 const repuestoSugeridoInput = document.getElementById("repuestoSugeridoInput");
@@ -472,6 +474,14 @@ async function cargarDetalle() {
 
     if (vehicleRepuestosSugeridosSection && !window.VehiAmb.auth?.hasPermission?.("vehicles.edit")) {
         vehicleRepuestosSugeridosSection.classList.add("hidden");
+    }
+
+    if (editVehicleLink && !window.VehiAmb.auth?.hasPermission?.("vehicles.edit")) {
+        editVehicleLink.classList.add("hidden");
+    }
+
+    if (registrarMantenimientoLink && !window.VehiAmb.auth?.hasPermission?.("maintenance.create")) {
+        registrarMantenimientoLink.classList.add("hidden");
     }
 
     const puedeVerSimit = window.VehiAmb.auth?.hasPermission?.("simit.view");

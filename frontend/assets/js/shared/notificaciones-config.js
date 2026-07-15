@@ -9,7 +9,8 @@ const CATEGORIAS = {
     incidente: { label: "Incidentes", icono: "🚨" },
     usuario: { label: "Usuarios", icono: "👤" },
     sistema: { label: "Sistema", icono: "⚙️" },
-    inventario: { label: "Inventario", icono: "📦" }
+    inventario: { label: "Inventario", icono: "📦" },
+    inspeccion: { label: "Inspecciones", icono: "🔍" }
 };
 
 const PRIORIDADES = {

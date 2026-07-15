@@ -2,6 +2,7 @@ const HttpError = require("../errors/http-error");
 const vehiculosRepository = require("../repositories/vehiculos.repository");
 const inspeccionesRepository = require("../repositories/inspecciones-preventivas.repository");
 const itemsRepository = require("../repositories/inspeccion-items.repository");
+const notificacionesService = require("./notificaciones.service");
 
 // Catalogo fijo del checklist "radiografia". x/y son coordenadas porcentuales
 // sobre el diagrama del carro (0-100), consumidas por el frontend para
@@ -59,6 +60,10 @@ const ESTADOS_VALIDOS = new Set(["bien", "mal"]);
 
 function getCatalogo() {
   return ITEMS_CHECKLIST;
+}
+
+function getTotalItemsCatalogo() {
+  return ITEMS_CHECKLIST.reduce((total, item) => total + (item.subItems ? item.subItems.length : 1), 0);
 }
 
 function toSafeItem(item) {
@@ -136,6 +141,14 @@ async function crear(vehiculoId, payload, archivos, currentUser) {
   });
 
   const itemsCreados = await itemsRepository.bulkCreate(inspeccion.id, vehiculoId, itemsValidados);
+
+  await notificacionesService.evaluarNotificacionInspeccion({
+    inspeccion,
+    vehiculo,
+    currentUser,
+    totalItemsFaltantes: getTotalItemsCatalogo() - itemsCreados.length,
+    totalItemsMal: itemsCreados.filter((item) => item.estado === "mal").length
+  });
 
   return {
     ...toSafeInspeccion({

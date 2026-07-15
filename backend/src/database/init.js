@@ -57,7 +57,11 @@ const PERMISSIONS = [
   ["costs.view", "Costos", "Ver el dashboard de costos vehiculares"],
   ["inventory.view", "Inventario", "Ver el catalogo de repuestos y el stock"],
   ["inventory.manage", "Inventario", "Administrar repuestos y resolver incidencias del catalogo"],
-  ["inventory.import", "Inventario", "Ver y ejecutar la sincronizacion de stock y configuracion de vehiculos (automatica por cron)"]
+  ["inventory.import", "Inventario", "Ver y ejecutar la sincronizacion de stock y configuracion de vehiculos (automatica por cron)"],
+  ["inspections.view", "Inspecciones", "Ver el checklist de inspecciones preventivas"],
+  ["inspections.create", "Inspecciones", "Registrar inspecciones preventivas"],
+  ["trips.view", "Viajes", "Ver el historial de viajes"],
+  ["trips.create", "Viajes", "Registrar el viaje e iniciar recorrido"]
 ];
 
 const ROLE_PERMISSIONS = {
@@ -74,7 +78,9 @@ const ROLE_PERMISSIONS = {
     "simit.view",
     "costs.view",
     "inventory.view",
-    "inventory.manage"
+    "inventory.manage",
+    "inspections.view",
+    "inspections.create"
   ],
   Consulta: [
     "dashboard.view",
@@ -83,7 +89,22 @@ const ROLE_PERMISSIONS = {
     "documents.view",
     "simit.view",
     "costs.view",
-    "inventory.view"
+    "inventory.view",
+    "inspections.view"
+  ],
+  // Personal que maneja los vehiculos: elige un vehiculo, revisa sus
+  // mantenimientos/documentos y hace la inspeccion preventiva. Sin acceso a
+  // ninguna otra opcion del sistema (ni crear/editar vehiculos, ni Gastos,
+  // ni Usuarios, ni SIMIT, ni Inventario).
+  Conductor: [
+    "dashboard.view",
+    "vehicles.view",
+    "maintenance.view",
+    "documents.view",
+    "inspections.view",
+    "inspections.create",
+    "trips.view",
+    "trips.create"
   ]
 };
 
@@ -150,7 +171,11 @@ const PERMISOS_NUEVOS_POR_ROL = {
   "costs.view": ["Administrador", "Operador", "Consulta"],
   "inventory.view": ["Administrador", "Operador", "Consulta"],
   "inventory.manage": ["Administrador", "Operador"],
-  "inventory.import": ["Administrador"]
+  "inventory.import": ["Administrador"],
+  "inspections.view": ["Administrador", "Operador", "Consulta"],
+  "inspections.create": ["Administrador", "Operador"],
+  "trips.view": ["Administrador", "Conductor"],
+  "trips.create": ["Administrador", "Conductor"]
 };
 
 async function grantPermisosNuevos() {
@@ -700,6 +725,16 @@ async function ensurePostgresTables() {
     )
   `);
 
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS viajes (
+      id BIGSERIAL PRIMARY KEY,
+      vehiculo_id BIGINT NOT NULL REFERENCES vehiculos(id) ON DELETE CASCADE,
+      usuario_id BIGINT REFERENCES usuarios(id),
+      destino TEXT NOT NULL,
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
   await db.run("CREATE INDEX IF NOT EXISTS idx_vehiculos_placa ON vehiculos (placa)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios (email)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_mantenimientos_vehiculo_id ON mantenimientos (vehiculo_id)");
@@ -735,6 +770,7 @@ async function ensurePostgresTables() {
   await db.run("CREATE INDEX IF NOT EXISTS idx_simit_comparendos_vehiculo_numero ON simit_comparendos (vehiculo_id, numero_comparendo)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_inspecciones_preventivas_vehiculo_id ON inspecciones_preventivas (vehiculo_id, fecha DESC)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_inspeccion_items_inspeccion_id ON inspeccion_items (inspeccion_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_viajes_usuario_id ON viajes (usuario_id, creado_en DESC)");
 
   await db.run(`
     INSERT INTO bodegas (nombre, codigo)

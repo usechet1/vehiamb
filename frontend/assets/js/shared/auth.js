@@ -46,6 +46,16 @@ function hasPermission(user, permission) {
     return Array.isArray(user?.permisos) && user.permisos.includes(permission);
 }
 
+// Paginas que un rol no debe poder abrir aunque tenga el permiso de la
+// pagina (ej. Conductor tiene "vehicles.view" para el desplegable de
+// vehiculos en Inicio y para abrir la ficha de un vehiculo, pero no debe
+// poder entrar al listado completo de la flota en dashboard.html). Mismo
+// concepto que "paginasOcultasPorRol" en sidebar.js, pero aqui bloquea el
+// acceso directo por URL, no solo el boton del menu.
+const PAGINAS_BLOQUEADAS_POR_ROL = {
+    Conductor: ["dashboard.html"]
+};
+
 window.VehiAmb.auth = {
     getSession() {
         return getStoredSession();
@@ -150,6 +160,11 @@ window.VehiAmb.auth = {
         if (!user) return null;
 
         if (!hasPermission(user, permission)) {
+            window.location.href = "index.html";
+            return null;
+        }
+
+        if (PAGINAS_BLOQUEADAS_POR_ROL[user.rol]?.includes(currentPage)) {
             window.location.href = "index.html";
             return null;
         }

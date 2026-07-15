@@ -125,6 +125,20 @@ async function findByPermission(permissionCode) {
   );
 }
 
+async function findByRoles(roleNames) {
+  return db.all(
+    `
+      SELECT DISTINCT u.id, u.nombre, u.email
+      FROM usuarios u
+      INNER JOIN roles r ON r.id = u.role_id
+      WHERE r.nombre = ANY(?)
+        AND u.activo = TRUE
+        AND r.activo = TRUE
+    `,
+    [roleNames]
+  );
+}
+
 module.exports = {
   findByEmail,
   findById,
@@ -133,5 +147,6 @@ module.exports = {
   update,
   setActive,
   findPermissionsByUserId,
-  findByPermission
+  findByPermission,
+  findByRoles
 };

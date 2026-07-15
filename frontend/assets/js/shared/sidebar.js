@@ -304,8 +304,22 @@ async function cargarSidebar() {
         if (roleEl) roleEl.textContent = user.rol || "Usuario";
         if (avatarEl) avatarEl.textContent = getInitials(user.nombre);
 
+        // Conductor necesita maintenance.view/documents.view/vehicles.view para
+        // ver esas secciones DENTRO de la ficha del vehiculo (y para el
+        // desplegable de "que vehiculo vas a usar" en Inicio), pero no debe
+        // tener los modulos completos de Mantenimientos/Documentos/Ver vehiculos
+        // (con datos de toda la flota) como opciones propias del menu -- son el
+        // mismo permiso, asi que el filtro por permiso no alcanza; esta
+        // excepcion puntual por rol oculta esos botones solo para Conductor.
+        // El bloqueo real de acceso directo por URL vive en auth.js
+        // (PAGINAS_BLOQUEADAS_POR_ROL), esto solo oculta el boton del menu.
+        const paginasOcultasPorRol = {
+            Conductor: ["mantenimientos.html", "documentos.html", "dashboard.html"]
+        };
+
         aside.querySelectorAll("button[data-permission]").forEach((btn) => {
-            if (!window.VehiAmb.auth.hasPermission(btn.dataset.permission)) {
+            const ocultoPorRol = paginasOcultasPorRol[user.rol]?.includes(btn.dataset.page);
+            if (ocultoPorRol || !window.VehiAmb.auth.hasPermission(btn.dataset.permission)) {
                 btn.remove();
             }
         });

@@ -403,7 +403,259 @@ document.getElementById("calendarGrid").addEventListener("click", (event) => {
     renderCalendar();
 });
 
+// El vehiculo elegido ya no vive en un <select> sino en el estado de las
+// tarjetas clicables del grid -- este es el unico lugar que lo guarda.
+let conductorVehiculoSeleccionado = "";
+
+// Destino elegido = "Ciudad, Departamento", armado a partir de los dos
+// selects en cascada (departamento -> ciudad) en vez de texto libre.
+function obtenerConductorDestino() {
+    const departamento = document.getElementById("conductorDepartamentoSelect").value;
+    const ciudad = document.getElementById("conductorCiudadSelect").value;
+    return ciudad && departamento ? `${ciudad}, ${departamento}` : "";
+}
+
+function actualizarConductorMapsLink() {
+    const destino = obtenerConductorDestino();
+    const mapsLink = document.getElementById("conductorMapsLink");
+    const previewText = document.getElementById("conductorMapsPreviewText");
+
+    if (destino) {
+        mapsLink.href = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destino)}`;
+        mapsLink.classList.remove("is-disabled");
+        mapsLink.removeAttribute("aria-disabled");
+        previewText.textContent = destino;
+    } else {
+        mapsLink.href = "#";
+        mapsLink.classList.add("is-disabled");
+        mapsLink.setAttribute("aria-disabled", "true");
+        previewText.textContent = "Elige un destino para previsualizar la ruta";
+    }
+}
+
+function actualizarConductorBotonIniciar() {
+    const destino = obtenerConductorDestino();
+    document.getElementById("conductorIniciarViajeBtn").disabled = !conductorVehiculoSeleccionado || !destino;
+}
+
+function getVehiculoThumbnail(vehiculo) {
+    const rawSource = vehiculo.imagen_url || vehiculo.imagen || vehiculo.foto_url || vehiculo.foto;
+    if (!rawSource) return `<span class="conductor-vehiculo-icon" aria-hidden="true">🚚</span>`;
+
+    const src = window.VehiAmb.api.getAssetUrl(rawSource);
+    return `<span class="conductor-vehiculo-icon"><img src="${escapeHtml(src)}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='🚚'"></span>`;
+}
+
+// Con flotas grandes (cientos de vehiculos) no tiene sentido pintar todas
+// las tarjetas de una: obliga a deslizar muchisimo para llegar a la
+// siguiente opcion. Sin texto en el buscador solo se muestran las primeras
+// VEHICULOS_LIMITE_INICIAL; al escribir, el filtro corre sobre la lista
+// completa sin ese limite.
+const VEHICULOS_LIMITE_INICIAL = 0;
+
+function renderConductorVehiculoGrid(vehiculos) {
+    const grid = document.getElementById("conductorVehiculoGrid");
+    const limiteHint = document.getElementById("conductorVehiculoLimiteHint");
+
+    if (!vehiculos.length) {
+        grid.innerHTML = '<p class="dash-empty">No hay vehículos disponibles.</p>';
+        return;
+    }
+
+    grid.innerHTML = vehiculos
+        .map((vehiculo) => `
+            <button type="button" class="conductor-vehiculo-card" data-vehiculo-id="${vehiculo.id}" data-placa="${escapeHtml(String(vehiculo.placa || "").toLowerCase())}">
+                ${getVehiculoThumbnail(vehiculo)}
+                <span class="conductor-vehiculo-info">
+                    <span class="plate">${escapeHtml(vehiculo.placa)}</span>
+                    <strong>${escapeHtml(vehiculo.marca)} ${escapeHtml(vehiculo.modelo)}</strong>
+                </span>
+            </button>
+        `)
+        .join("");
+
+    grid.querySelectorAll(".conductor-vehiculo-card").forEach((card) => {
+        card.addEventListener("click", () => {
+            conductorVehiculoSeleccionado = card.dataset.vehiculoId;
+            grid.querySelectorAll(".conductor-vehiculo-card").forEach((el) => {
+                el.classList.toggle("is-selected", el === card);
+            });
+            actualizarConductorBotonIniciar();
+        });
+    });
+
+    if (limiteHint && vehiculos.length > VEHICULOS_LIMITE_INICIAL) {
+        limiteHint.textContent = `Mostrando ${VEHICULOS_LIMITE_INICIAL} de ${vehiculos.length} vehículos. Escribe la placa para buscar el tuyo.`;
+        limiteHint.classList.remove("hidden");
+    }
+
+    aplicarLimiteVehiculos("");
+}
+
+function aplicarLimiteVehiculos(texto) {
+    const grid = document.getElementById("conductorVehiculoGrid");
+    const limiteHint = document.getElementById("conductorVehiculoLimiteHint");
+    const tarjetas = [...grid.querySelectorAll(".conductor-vehiculo-card")];
+
+    if (texto) {
+        limiteHint?.classList.add("hidden");
+        tarjetas.forEach((card) => card.classList.toggle("hidden", !card.dataset.placa.includes(texto)));
+        return;
+    }
+
+    limiteHint?.classList.toggle("hidden", tarjetas.length <= VEHICULOS_LIMITE_INICIAL);
+    tarjetas.forEach((card, index) => card.classList.toggle("hidden", index >= VEHICULOS_LIMITE_INICIAL));
+}
+
+function initBuscadorVehiculo() {
+    const buscarInput = document.getElementById("conductorVehiculoBuscar");
+
+    buscarInput.addEventListener("input", () => {
+        aplicarLimiteVehiculos(buscarInput.value.trim().toLowerCase());
+    });
+}
+
+// El dataset trata a Bogota como una ciudad mas dentro de Cundinamarca, pero
+// administrativamente es su propio Distrito Capital -- se agrega como
+// departamento aparte (con ella misma como unica "ciudad") para que el
+// conductor la encuentre donde la busca.
+async function cargarDepartamentosCiudades() {
+    const response = await fetch("assets/data/colombia-departamentos-ciudades.json");
+    if (!response.ok) throw new Error("No se pudo cargar el listado de departamentos y ciudades");
+    const departamentos = await response.json();
+
+    return [...departamentos, { departamento: "Bogotá D.C.", ciudades: ["Bogotá D.C."] }]
+        .sort((a, b) => a.departamento.localeCompare(b.departamento, "es"));
+}
+
+function initSelectorUbicacion(departamentos) {
+    const departamentoSelect = document.getElementById("conductorDepartamentoSelect");
+    const ciudadSelect = document.getElementById("conductorCiudadSelect");
+
+    for (const { departamento } of departamentos) {
+        const option = document.createElement("option");
+        option.value = departamento;
+        option.textContent = departamento;
+        departamentoSelect.appendChild(option);
+    }
+
+    departamentoSelect.addEventListener("change", () => {
+        const seleccionado = departamentos.find((item) => item.departamento === departamentoSelect.value);
+
+        ciudadSelect.innerHTML = "";
+        if (!seleccionado) {
+            ciudadSelect.disabled = true;
+            ciudadSelect.appendChild(new Option("Selecciona primero un departamento...", ""));
+        } else {
+            ciudadSelect.disabled = false;
+            ciudadSelect.appendChild(new Option("Selecciona una ciudad...", ""));
+            for (const ciudad of seleccionado.ciudades) {
+                ciudadSelect.appendChild(new Option(ciudad, ciudad));
+            }
+        }
+
+        actualizarConductorMapsLink();
+        actualizarConductorBotonIniciar();
+    });
+
+    ciudadSelect.addEventListener("change", () => {
+        actualizarConductorMapsLink();
+        actualizarConductorBotonIniciar();
+    });
+}
+
+function pintarViajesRecientes(viajes) {
+    const contenedor = document.getElementById("conductorViajesRecientes");
+
+    if (!viajes.length) {
+        contenedor.innerHTML = '<p class="dash-empty">Todavía no has registrado ningún viaje.</p>';
+        return;
+    }
+
+    contenedor.innerHTML = viajes
+        .map((viaje) => {
+            const vehiculoLabel = escapeHtml(`${viaje.vehiculo_placa || ""} · ${viaje.vehiculo_marca || ""} ${viaje.vehiculo_modelo || ""}`.trim());
+            return `
+                <div class="conductor-viaje-item">
+                    <div>
+                        <strong>${vehiculoLabel}</strong>
+                        <p>${escapeHtml(viaje.destino)}</p>
+                    </div>
+                    <span class="conductor-viaje-fecha">${formatDate(viaje.creado_en)}</span>
+                </div>
+            `;
+        })
+        .join("");
+}
+
+async function inicializarConductorHome(user) {
+    document.getElementById("dashboardHome").classList.add("hidden");
+    document.getElementById("conductorHome").classList.remove("hidden");
+    document.getElementById("fecha-hoy-conductor").textContent = document.getElementById("fecha-hoy").textContent;
+
+    const primerNombre = String(user?.nombre || "").trim().split(" ")[0];
+    document.getElementById("conductorSaludo").textContent = primerNombre ? `¡Hola, ${primerNombre}!` : "¡Hola!";
+
+    const iniciarBtn = document.getElementById("conductorIniciarViajeBtn");
+    const mensaje = document.getElementById("conductorMensaje");
+
+    const [vehiculosResult, viajesResult, departamentosResult] = await Promise.allSettled([
+        window.VehiAmb.api.getVehiculosCatalogo(),
+        window.VehiAmb.api.getMisViajesRecientes(),
+        cargarDepartamentosCiudades()
+    ]);
+
+    if (vehiculosResult.status === "fulfilled") {
+        renderConductorVehiculoGrid(vehiculosResult.value);
+        initBuscadorVehiculo();
+    } else {
+        console.error(vehiculosResult.reason);
+        document.getElementById("conductorVehiculoGrid").innerHTML =
+            '<p class="dash-empty">No fue posible cargar los vehículos</p>';
+    }
+
+    if (viajesResult.status === "fulfilled") {
+        pintarViajesRecientes(viajesResult.value);
+    } else {
+        console.error(viajesResult.reason);
+        document.getElementById("conductorViajesRecientes").innerHTML =
+            '<p class="dash-empty">No fue posible cargar tus últimos viajes</p>';
+    }
+
+    if (departamentosResult.status === "fulfilled") {
+        initSelectorUbicacion(departamentosResult.value);
+    } else {
+        console.error(departamentosResult.reason);
+        document.getElementById("conductorDepartamentoSelect").innerHTML =
+            '<option value="">No se pudo cargar el listado de departamentos</option>';
+    }
+
+    iniciarBtn.addEventListener("click", async () => {
+        mensaje.classList.add("hidden");
+        iniciarBtn.disabled = true;
+
+        try {
+            await window.VehiAmb.api.crearViaje({
+                vehiculo_id: conductorVehiculoSeleccionado,
+                destino: obtenerConductorDestino()
+            });
+            window.location.href = `vehiculo.html?id=${conductorVehiculoSeleccionado}`;
+        } catch (error) {
+            mensaje.textContent = error.message || "No se pudo registrar el viaje";
+            mensaje.classList.remove("hidden");
+            iniciarBtn.disabled = false;
+        }
+    });
+}
+
 async function inicializarDashboard() {
+    const user = await window.VehiAmb.auth.fetchCurrentUser();
+
+    if (user?.rol === "Conductor") {
+        await inicializarConductorHome(user);
+        return;
+    }
+
     const [vehiculosResult, mantenimientosResult, documentosResult] = await Promise.allSettled([
         window.VehiAmb.api.getVehiculosCatalogo(),
         window.VehiAmb.api.getMantenimientos(),

@@ -110,6 +110,37 @@ async function notificarUsuariosConPermiso(permissionCode, payload) {
   );
 }
 
+async function notificarUsuariosPorRol(roleNames, payload) {
+  const usuarios = await usuariosRepository.findByRoles(roleNames);
+
+  return Promise.all(
+    usuarios.map((usuario) => notificar({ ...payload, usuario_id: usuario.id }))
+  );
+}
+
+// Se dispara cuando un Conductor guarda la inspeccion preventiva de un viaje
+// (paso 3 del wizard) y queda con items sin revisar y/o marcados "mal"/"no
+// tiene": Administrador y Operador necesitan saber que el vehiculo salio a
+// ruta con hallazgos pendientes. No aplica a inspecciones que registren
+// Administrador/Operador por su cuenta (no estan "iniciando un viaje").
+async function evaluarNotificacionInspeccion({ inspeccion, vehiculo, currentUser, totalItemsFaltantes, totalItemsMal }) {
+  if (currentUser?.rol !== "Conductor") return;
+  if (totalItemsFaltantes <= 0 && totalItemsMal <= 0) return;
+
+  const partes = [];
+  if (totalItemsFaltantes > 0) partes.push(`${totalItemsFaltantes} ítem${totalItemsFaltantes === 1 ? "" : "s"} sin revisar`);
+  if (totalItemsMal > 0) partes.push(`${totalItemsMal} ítem${totalItemsMal === 1 ? "" : "s"} en mal estado`);
+
+  await notificarUsuariosPorRol(["Administrador", "Operador"], {
+    tipo: "inspeccion_con_hallazgos",
+    mensaje: `El conductor ${currentUser.nombre} inició un viaje con el vehículo ${vehiculo.marca} ${vehiculo.modelo} (${vehiculo.placa}) y la inspección preventiva quedó con ${partes.join(" y ")}.`,
+    vehiculo_id: vehiculo.id,
+    referencia_tipo: "inspeccion",
+    referencia_id: inspeccion.id,
+    accion: { tipo: "ver_vehiculo", payload: { vehiculo_id: vehiculo.id } }
+  });
+}
+
 async function evaluarNotificacionesMantenimiento({ mantenimiento, vehiculo, requiereAprobacion }) {
   const vehiculoLabel = `${vehiculo.marca} ${vehiculo.modelo} (${vehiculo.placa})`;
   const tareas = [];
@@ -382,6 +413,8 @@ module.exports = {
   notificar,
   crearNotificacion,
   notificarUsuariosConPermiso,
+  notificarUsuariosPorRol,
+  evaluarNotificacionInspeccion,
   evaluarNotificacionesMantenimiento,
   notificarIncoherenciaKilometraje,
   notificarCambioEstadoVehiculo,

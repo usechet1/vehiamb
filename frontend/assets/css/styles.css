@@ -161,8 +161,15 @@ label[for="loginPassword"] {
 
 .vehicle-detail-actions {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
+    justify-content: flex-end;
     gap: 10px;
+}
+
+.vehicle-detail-actions .btn-secondary,
+.vehicle-detail-actions .header-action {
+    white-space: nowrap;
 }
 
 .page-header h1,
@@ -1112,6 +1119,10 @@ label[for="loginPassword"] {
     animation: welcomeCurtainOut 0.6s ease forwards;
 }
 
+.welcome-curtain.is-viaje {
+    background: linear-gradient(135deg, var(--color-sidebar), var(--color-sidebar-soft));
+}
+
 .welcome-curtain-inner {
     max-width: 90vw;
     padding: 0 20px;
@@ -1327,6 +1338,346 @@ label[for="loginPassword"] {
     color: var(--color-primary);
     font-size: 0.78rem;
     font-weight: 800;
+}
+
+.conductor-home {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.btn-secondary.is-disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.conductor-hero {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 22px 24px;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--color-sidebar), var(--color-sidebar-soft));
+    color: #fff;
+}
+
+.conductor-hero h1 {
+    margin-top: 2px;
+    color: #fff;
+    font-size: 1.5rem;
+}
+
+.conductor-hero-eyebrow {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.82rem;
+    font-weight: 750;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.conductor-hero-sub {
+    margin-top: 6px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9rem;
+}
+
+.conductor-hero .dash-fecha {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.conductor-card {
+    padding: 20px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    box-shadow: var(--shadow);
+}
+
+.conductor-card-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.conductor-card-step h2 {
+    font-size: 1.05rem;
+}
+
+.conductor-step-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.9rem;
+}
+
+.conductor-vehiculo-buscar {
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-size: 0.88rem;
+}
+
+.conductor-vehiculo-buscar:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.conductor-vehiculo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+}
+
+.conductor-vehiculo-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    text-align: left;
+    transition: var(--transition);
+}
+
+.conductor-vehiculo-card:hover {
+    border-color: var(--color-primary);
+}
+
+.conductor-vehiculo-card.is-selected {
+    border-color: var(--color-primary);
+    background: rgba(178, 31, 45, 0.06);
+    box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.conductor-vehiculo-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    overflow: hidden;
+    border-radius: 10px;
+    background: var(--color-surface-2);
+    font-size: 1.2rem;
+}
+
+.conductor-vehiculo-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.conductor-vehiculo-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.conductor-vehiculo-info strong {
+    font-size: 0.88rem;
+}
+
+.conductor-destino-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+@media (max-width: 620px) {
+    .conductor-destino-fields {
+        grid-template-columns: 1fr;
+    }
+
+    .conductor-hero {
+        flex-direction: column;
+    }
+}
+
+.conductor-maps-preview {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    border: 1.5px dashed var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-2);
+    transition: var(--transition);
+}
+
+.conductor-maps-preview:not(.is-disabled):hover {
+    border-color: var(--color-primary);
+    border-style: solid;
+}
+
+.conductor-maps-preview.is-disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.conductor-maps-preview-icon {
+    font-size: 1.4rem;
+}
+
+.conductor-maps-preview strong {
+    display: block;
+    color: var(--color-ink);
+    font-size: 0.9rem;
+}
+
+.conductor-cta-bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.conductor-cta-btn {
+    width: auto;
+    min-width: 180px;
+    min-height: 44px;
+    padding: 10px 24px;
+    margin: 0;
+    font-size: 0.92rem;
+}
+
+.conductor-viajes-panel {
+    margin-top: 4px;
+}
+
+.conductor-viajes-panel summary {
+    cursor: pointer;
+    list-style: none;
+}
+
+.conductor-viajes-panel summary::-webkit-details-marker {
+    display: none;
+}
+
+.conductor-viajes-panel summary .dash-panel-title::after {
+    content: "▾";
+    margin-left: 8px;
+    color: var(--color-muted);
+    font-size: 0.75rem;
+}
+
+.conductor-viajes-panel[open] summary .dash-panel-title::after {
+    content: "▴";
+}
+
+.conductor-viaje-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.conductor-viaje-item:last-child {
+    border-bottom: none;
+}
+
+.conductor-viaje-item p {
+    margin-top: 2px;
+    color: var(--color-muted);
+    font-size: 0.85rem;
+}
+
+.conductor-viaje-fecha {
+    flex: 0 0 auto;
+    color: var(--color-muted);
+    font-size: 0.8rem;
+}
+
+.conductor-wizard-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding: 0;
+    list-style: none;
+}
+
+.wizard-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: var(--color-surface);
+    color: var(--color-muted);
+    font-size: 0.82rem;
+    font-weight: 750;
+}
+
+.wizard-step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--color-surface-2);
+    color: inherit;
+    font-size: 0.72rem;
+}
+
+.wizard-step.is-active {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.wizard-step.is-active .wizard-step-num {
+    background: var(--color-primary);
+    color: #fff;
+}
+
+.wizard-step.is-completado {
+    border-color: var(--color-success);
+    color: var(--color-success);
+}
+
+.wizard-step.is-completado .wizard-step-num {
+    background: var(--color-success);
+    color: #fff;
+}
+
+.conductor-wizard-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.conductor-wizard-buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.conductor-wizard-final {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
 }
 
 .dash-table {
@@ -2192,15 +2543,15 @@ label[for="loginPassword"] {
 }
 
 .vehicle-hero-plate {
-    min-height: 38px;
-    padding: 7px 12px;
-    font-size: 1rem;
+    min-height: 46px;
+    padding: 8px 16px;
+    font-size: clamp(1.5rem, 3.2vw, 2.1rem);
 }
 
 .vehicle-hero h2 {
     color: var(--color-ink);
-    font-size: clamp(1.6rem, 3vw, 2.4rem);
-    line-height: 1.05;
+    font-size: clamp(1.15rem, 1.8vw, 1.5rem);
+    line-height: 1.15;
 }
 
 .vehicle-hero p {
@@ -3540,6 +3891,9 @@ label[for="loginPassword"] {
 
 .inspeccion-hotspot {
     position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 22px;
     height: 22px;
     border: 2px solid #fff;
@@ -3550,6 +3904,8 @@ label[for="loginPassword"] {
     transform: translate(-50%, -50%);
     transition: var(--transition);
     padding: 0;
+    font-size: 11px;
+    line-height: 1;
 }
 
 .inspeccion-hotspot:hover {
@@ -3569,6 +3925,41 @@ label[for="loginPassword"] {
 }
 
 .inspeccion-hotspot.is-parcial {
+    background: var(--color-warning);
+}
+
+.inspeccion-diagram-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 12px;
+    font-size: 0.78rem;
+    color: var(--color-muted);
+}
+
+.inspeccion-diagram-legend span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.inspeccion-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #9aa4b5;
+    flex: none;
+}
+
+.inspeccion-legend-dot.is-bien {
+    background: #1f9d55;
+}
+
+.inspeccion-legend-dot.is-mal {
+    background: var(--color-primary);
+}
+
+.inspeccion-legend-dot.is-parcial {
     background: var(--color-warning);
 }
 
@@ -3605,89 +3996,75 @@ label[for="loginPassword"] {
     border-color: var(--color-primary);
 }
 
-/* Checklist de un item agrupador (ej. "Kit de herramientas"): una grilla de
-   botones-casilla del mismo tamaño, uno por subItem. Cada botón cicla su
-   propio estado (sin marcar -> bien -> mal) con un solo click, en vez de
-   dos botones "Bien"/"Mal" + comentario que hacian variar el alto de cada
-   fila segun su estado. */
+/* Checklist de un item agrupador (ej. "Kit de herramientas"): una fila por
+   subItem con dos botones explicitos "Tiene"/"No tiene" -- un solo click
+   deja el item en ese estado exacto (click de nuevo sobre el activo lo
+   vuelve a dejar vacio), sin necesidad de ciclar por varios clicks ni de
+   un comentario que hiciera variar el alto de cada fila. */
 .inspeccion-checklist-grupo {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 8px;
 }
 
-.inspeccion-checklist-toggle {
+.inspeccion-checklist-row {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 10px;
     height: 44px;
-    padding: 0 12px;
+    padding: 0 6px 0 12px;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     background: #fff;
-    color: var(--color-ink);
-    font-weight: 700;
-    text-align: left;
-    transition: var(--transition);
 }
 
-.inspeccion-checklist-toggle:hover {
-    border-color: rgba(178, 31, 45, 0.35);
-}
-
-.inspeccion-checklist-toggle-check {
-    display: flex;
-    flex: none;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    border: 2px solid var(--color-border);
-    border-radius: 50%;
-    color: #fff;
-    font-size: 0.7rem;
-    font-weight: 900;
-}
-
-.inspeccion-checklist-toggle.is-bien .inspeccion-checklist-toggle-check {
-    border-color: #1f9d55;
-    background: #1f9d55;
-}
-
-.inspeccion-checklist-toggle.is-bien .inspeccion-checklist-toggle-check::after {
-    content: "✓";
-}
-
-.inspeccion-checklist-toggle.is-mal .inspeccion-checklist-toggle-check {
-    border-color: var(--color-primary);
-    background: var(--color-primary);
-}
-
-.inspeccion-checklist-toggle.is-mal .inspeccion-checklist-toggle-check::after {
-    content: "✕";
-}
-
-.inspeccion-checklist-toggle-label {
+.inspeccion-checklist-row-label {
     flex: 1;
     min-width: 0;
     overflow: hidden;
+    color: var(--color-ink);
+    font-weight: 700;
     white-space: nowrap;
     text-overflow: ellipsis;
 }
 
-.inspeccion-checklist-toggle-estado {
+.inspeccion-checklist-row-actions {
+    display: flex;
     flex: none;
-    font-size: 0.72rem;
-    font-weight: 750;
+    gap: 4px;
+}
+
+.inspeccion-checklist-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 32px;
+    padding: 0 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: var(--color-surface-2);
     color: var(--color-muted);
+    font-size: 0.76rem;
+    font-weight: 750;
+    transition: var(--transition);
 }
 
-.inspeccion-checklist-toggle.is-bien .inspeccion-checklist-toggle-estado {
-    color: #1f9d55;
+.inspeccion-checklist-pill:hover {
+    border-color: var(--color-primary);
+    color: var(--color-ink);
 }
 
-.inspeccion-checklist-toggle.is-mal .inspeccion-checklist-toggle-estado {
-    color: var(--color-primary);
+.inspeccion-checklist-pill.is-tiene.is-active {
+    border-color: #1f9d55;
+    background: #1f9d55;
+    color: #fff;
+}
+
+.inspeccion-checklist-pill.is-notiene.is-active {
+    border-color: var(--color-primary);
+    background: var(--color-primary);
+    color: #fff;
 }
 
 .inspeccion-side {
@@ -3703,6 +4080,13 @@ label[for="loginPassword"] {
     gap: 8px;
 }
 
+.inspeccion-faltantes-detalle {
+    flex-basis: 100%;
+    margin: 0;
+    color: var(--color-warning);
+    font-size: 0.82rem;
+}
+
 .inspeccion-side .form-actions .btn-primary,
 .inspeccion-side .form-actions .btn-secondary {
     width: auto;
@@ -3715,6 +4099,46 @@ label[for="loginPassword"] {
     margin-bottom: 12px;
     color: var(--color-ink);
     font-size: 1rem;
+}
+
+.inspeccion-historial summary {
+    cursor: pointer;
+    list-style: none;
+}
+
+.inspeccion-historial summary::-webkit-details-marker {
+    display: none;
+}
+
+.inspeccion-historial summary h3::after {
+    content: "▾";
+    margin-left: 8px;
+    color: var(--color-muted);
+    font-size: 0.75rem;
+}
+
+.inspeccion-historial[open] summary h3::after {
+    content: "▴";
+}
+
+.section-card-collapsible > summary.section-card-head {
+    cursor: pointer;
+    list-style: none;
+}
+
+.section-card-collapsible > summary.section-card-head::-webkit-details-marker {
+    display: none;
+}
+
+.section-card-collapsible > summary.section-card-head h2::after {
+    content: "▾";
+    margin-left: 8px;
+    color: var(--color-muted);
+    font-size: 0.75rem;
+}
+
+.section-card-collapsible[open] > summary.section-card-head h2::after {
+    content: "▴";
 }
 
 #inspeccionHistorialList.records-list {
@@ -3779,5 +4203,26 @@ label[for="loginPassword"] {
 
     .inspeccion-checklist-grupo {
         grid-template-columns: 1fr;
+    }
+
+    .inspeccion-checklist-row {
+        flex-direction: column;
+        align-items: stretch;
+        height: auto;
+        padding: 10px 12px;
+        gap: 8px;
+    }
+
+    .inspeccion-checklist-row-label {
+        white-space: normal;
+    }
+
+    .inspeccion-checklist-row-actions {
+        width: 100%;
+    }
+
+    .inspeccion-checklist-pill {
+        flex: 1;
+        justify-content: center;
     }
 }

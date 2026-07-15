@@ -43,8 +43,34 @@ function getEstadoClaseGrupo(item) {
     return "is-parcial";
 }
 
+const HOTSPOT_ICONOS = {
+    llanta_di: "🛞",
+    llanta_dd: "🛞",
+    llanta_ti: "🛞",
+    llanta_td: "🛞",
+    llanta_repuesto: "🛞",
+    aceite: "🛢️",
+    kit_herramientas: "🧰",
+    luces: "💡",
+    extintor: "🧯",
+    botiquin: "➕"
+};
+
 function getTotalItemsCount() {
     return inspeccionCatalogo.reduce((total, item) => total + (item.subItems ? item.subItems.length : 1), 0);
+}
+
+// Lista plana de todos los items marcables (hotspots sueltos + cada
+// elemento del kit de herramientas), usada para saber por su nombre cuales
+// faltan por marcar -- el kit vive detras de un solo punto del diagrama y
+// es facil olvidar alguno de sus 9 elementos.
+function getItemsPlanos() {
+    return inspeccionCatalogo.flatMap((item) => {
+        if (item.subItems) {
+            return item.subItems.map((subItem) => ({ codigo: subItem.codigo, label: `${item.label}: ${subItem.label}` }));
+        }
+        return [{ codigo: item.codigo, label: item.label }];
+    });
 }
 
 function renderHotspots() {
@@ -60,7 +86,7 @@ function renderHotspots() {
                 data-codigo="${escapeHtml(item.codigo)}"
                 title="${escapeHtml(item.label)}"
                 aria-label="${escapeHtml(item.label)}"
-            ></button>
+            >${HOTSPOT_ICONOS[item.codigo] || ""}</button>
         `;
     }).join("");
 
@@ -148,40 +174,46 @@ function renderPanel() {
     });
 }
 
-// Cada subItem se marca con un solo botón tipo casilla que cicla sin
-// marcar -> bien -> mal -> sin marcar, en vez de dos botones "Bien"/"Mal"
-// más un textarea de comentario que hacían crecer cada fila a un alto
-// distinto. Así todos los ítems del kit quedan con el mismo tamaño.
+// Cada subItem se marca con dos botones explícitos "Tiene"/"No tiene" (en
+// vez de un solo botón que ciclaba vacío -> tiene -> no tiene -> vacío):
+// un solo click deja el ítem en el estado que se ve en el botón, sin tener
+// que adivinar en qué paso del ciclo va. Click sobre el botón ya activo lo
+// vuelve a dejar vacío. El estado guardado sigue siendo "bien"/"mal" (mismo
+// modelo que el resto del checklist), solo cambia cómo se marca en pantalla.
 function renderPanelGrupo(item) {
     inspeccionPanelEl.innerHTML = `
         <h4>${escapeHtml(item.label)}</h4>
-        <p class="field-help">Marca el estado de cada elemento del kit de herramientas y equipo de carretera.</p>
+        <p class="field-help">Marca si el vehículo tiene o no cada elemento del kit de herramientas y equipo de carretera.</p>
         <div class="inspeccion-checklist-grupo">
             ${item.subItems.map((subItem) => {
                 const estado = inspeccionMarcados.get(subItem.codigo)?.estado;
-                const estadoClase = estado ? `is-${estado}` : "";
-                const estadoLabel = estado === "bien" ? "Bien" : estado === "mal" ? "Mal" : "Marcar";
                 return `
-                    <button type="button" class="inspeccion-checklist-toggle ${estadoClase}" data-codigo="${escapeHtml(subItem.codigo)}" title="${escapeHtml(subItem.label)}">
-                        <span class="inspeccion-checklist-toggle-check" aria-hidden="true"></span>
-                        <span class="inspeccion-checklist-toggle-label">${escapeHtml(subItem.label)}</span>
-                        <span class="inspeccion-checklist-toggle-estado">${estadoLabel}</span>
-                    </button>
+                    <div class="inspeccion-checklist-row" title="${escapeHtml(subItem.label)}">
+                        <span class="inspeccion-checklist-row-label">${escapeHtml(subItem.label)}</span>
+                        <div class="inspeccion-checklist-row-actions">
+                            <button type="button" class="inspeccion-checklist-pill is-tiene ${estado === "bien" ? "is-active" : ""}" data-codigo="${escapeHtml(subItem.codigo)}" data-valor="bien">
+                                <span aria-hidden="true">✓</span> Tiene
+                            </button>
+                            <button type="button" class="inspeccion-checklist-pill is-notiene ${estado === "mal" ? "is-active" : ""}" data-codigo="${escapeHtml(subItem.codigo)}" data-valor="mal">
+                                <span aria-hidden="true">✕</span> No tiene
+                            </button>
+                        </div>
+                    </div>
                 `;
             }).join("")}
         </div>
     `;
 
-    inspeccionPanelEl.querySelectorAll(".inspeccion-checklist-toggle").forEach((btn) => {
+    inspeccionPanelEl.querySelectorAll(".inspeccion-checklist-pill").forEach((btn) => {
         btn.addEventListener("click", () => {
             const codigo = btn.dataset.codigo;
             const estadoActual = inspeccionMarcados.get(codigo)?.estado;
-            const siguienteEstado = !estadoActual ? "bien" : estadoActual === "bien" ? "mal" : null;
+            const valorBoton = btn.dataset.valor;
 
-            if (siguienteEstado === null) {
+            if (estadoActual === valorBoton) {
                 inspeccionMarcados.delete(codigo);
             } else {
-                inspeccionMarcados.set(codigo, { estado: siguienteEstado, comentario: "", fotoFile: null, fotoNombre: null });
+                inspeccionMarcados.set(codigo, { estado: valorBoton, comentario: "", fotoFile: null, fotoNombre: null });
             }
             renderHotspots();
             renderPanel();
@@ -193,17 +225,28 @@ function renderPanelGrupo(item) {
 function renderResumen() {
     const totalMarcados = inspeccionMarcados.size;
     const totalMal = [...inspeccionMarcados.values()].filter((item) => item.estado === "mal").length;
+    const totalItems = getTotalItemsCount();
+    const faltantes = totalItems - totalMarcados;
 
     if (!totalMarcados) {
         inspeccionResumenEl.innerHTML = "";
-        guardarInspeccionButton.disabled = true;
+        guardarInspeccionButton.classList.add("hidden");
         return;
     }
 
+    const itemsFaltantes = faltantes ? getItemsPlanos().filter((item) => !inspeccionMarcados.has(item.codigo)) : [];
+
     inspeccionResumenEl.innerHTML = `
-        <span class="pill">${totalMarcados} de ${getTotalItemsCount()} marcados</span>
+        <span class="pill">${totalMarcados} de ${totalItems} marcados</span>
+        ${faltantes ? `<span class="pill pill-warning">${faltantes} sin marcar</span>` : ""}
         ${totalMal ? `<span class="pill pill-danger">${totalMal} en mal estado</span>` : '<span class="pill pill-success">Todo bien</span>'}
+        ${itemsFaltantes.length ? `<p class="field-help inspeccion-faltantes-detalle">Falta marcar: ${itemsFaltantes.map((item) => escapeHtml(item.label)).join(", ")}.</p>` : ""}
     `;
+
+    // El boton "Guardar inspeccion" solo aparece cuando ya se marco cada
+    // item del catalogo (diagrama + kit de herramientas) -- antes de eso no
+    // tiene sentido ofrecer guardar una inspeccion a medio llenar.
+    guardarInspeccionButton.classList.toggle("hidden", faltantes > 0);
     guardarInspeccionButton.disabled = !inspeccionPuedeCrear;
 }
 
@@ -224,8 +267,31 @@ async function resetInspeccion({ confirmar = false } = {}) {
     renderResumen();
 }
 
+// Antes de guardar, advierte si quedaron items sin revisar o si algo quedo
+// marcado en mal estado -- el conductor debe confirmar explicitamente que
+// quiere guardar la inspeccion asi, en vez de que quede guardada sin que se
+// haya dado cuenta de un faltante o una falla.
+async function confirmarAdvertenciaInspeccion() {
+    const totalMal = [...inspeccionMarcados.values()].filter((item) => item.estado === "mal").length;
+    const faltantes = getTotalItemsCount() - inspeccionMarcados.size;
+
+    if (!totalMal && !faltantes) return true;
+
+    const partes = [];
+    if (faltantes) partes.push(`${faltantes} ítem${faltantes === 1 ? "" : "s"} sin marcar`);
+    if (totalMal) partes.push(`${totalMal} ítem${totalMal === 1 ? "" : "s"} en mal estado`);
+
+    return window.VehiAmb.ui.confirm({
+        title: "Advertencia",
+        message: `Hay ${partes.join(" y ")}. ¿Deseas guardar la inspección de todas formas?`,
+        confirmText: "Guardar de todas formas"
+    });
+}
+
 async function guardarInspeccion() {
     if (!inspeccionMarcados.size) return;
+
+    if (!(await confirmarAdvertenciaInspeccion())) return;
 
     const items = [];
     const formData = new FormData();
@@ -243,6 +309,7 @@ async function guardarInspeccion() {
         guardarInspeccionButton.disabled = true;
         await window.VehiAmb.api.crearInspeccion(inspeccionVehiculoId, formData);
         window.VehiAmb.ui.showMessage(inspeccionMensaje, "Inspección guardada correctamente");
+        document.dispatchEvent(new CustomEvent("inspeccion:guardada"));
         await resetInspeccion();
         await cargarHistorial();
     } catch (error) {
@@ -330,12 +397,12 @@ async function cargarHistorial() {
 async function initInspeccion() {
     if (!vehicleInspeccionSection) return;
 
-    if (!window.VehiAmb.auth?.hasPermission?.("maintenance.view")) {
+    if (!window.VehiAmb.auth?.hasPermission?.("inspections.view")) {
         vehicleInspeccionSection.classList.add("hidden");
         return;
     }
 
-    inspeccionPuedeCrear = Boolean(window.VehiAmb.auth?.hasPermission?.("maintenance.create"));
+    inspeccionPuedeCrear = Boolean(window.VehiAmb.auth?.hasPermission?.("inspections.create"));
     inspeccionVehiculoId = new URLSearchParams(window.location.search).get("id") || "";
     if (!inspeccionVehiculoId) return;
 

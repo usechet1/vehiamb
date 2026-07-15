@@ -735,5 +735,21 @@ window.VehiAmb.api = {
             { method: "POST", body: formData },
             "No se pudo guardar la inspección"
         );
+    },
+
+    crearViaje(payload) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/viajes`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            },
+            "No se pudo registrar el viaje"
+        );
+    },
+
+    getMisViajesRecientes() {
+        return requestJson(`${window.VehiAmb.API_URL}/viajes`, undefined, "No se pudo cargar el historial de viajes");
     }
 };
