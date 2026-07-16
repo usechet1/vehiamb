@@ -403,6 +403,12 @@ async function cargarRepuestosSugeridos() {
         }
         if (requestToken !== sugeridosRequestToken) return;
 
+        // El aceite (medido por volumen: GLS/GLN/LTR) es el unico repuesto
+        // sugerido que NO es obligatorio en un cambio de aceite -- los demas
+        // (filtros, siempre en UND) si lo son y no se pueden desmarcar.
+        const esAceite = String(sugerido.unidad_medida || "").toUpperCase() !== "UND";
+        const obligatorio = !esAceite;
+
         if (disponibilidad.principal.stock_disponible > 0) {
             repuestosState.push({
                 repuesto: sugerido.nombre,
@@ -411,7 +417,9 @@ async function cargarRepuestosSugeridos() {
                 notas: "",
                 repuesto_id: sugerido.repuesto_id,
                 cantidad: Number(sugerido.cantidad || 1),
-                valor_unitario: Number(sugerido.valor_promedio || 0)
+                valor_unitario: Number(sugerido.valor_promedio || 0),
+                incluido: obligatorio,
+                obligatorio
             });
         } else if (disponibilidad.equivalencias.length) {
             const elegida = disponibilidad.equivalencias[0];
@@ -424,7 +432,9 @@ async function cargarRepuestosSugeridos() {
                 repuesto_sugerido_id: sugerido.repuesto_id,
                 motivo_sustitucion: "Sin stock del repuesto principal",
                 cantidad: Number(sugerido.cantidad || 1),
-                valor_unitario: 0
+                valor_unitario: 0,
+                incluido: obligatorio,
+                obligatorio
             });
         } else {
             sinStock.push(sugerido.nombre);
@@ -486,12 +496,14 @@ function parseRepuestos(value) {
 // el render del historial (renderRepuestosMeta/renderDetailRepuestos) no
 // necesita cambiar una linea.
 function syncRepuestosField() {
+    const incluidos = repuestosState.filter((item) => item.incluido !== false);
+
     repuestosData.value = JSON.stringify(
-        repuestosState.map((item) => ({ repuesto: item.repuesto, proveedor: item.proveedor, valor: item.valor, notas: item.notas }))
+        incluidos.map((item) => ({ repuesto: item.repuesto, proveedor: item.proveedor, valor: item.valor, notas: item.notas }))
     );
 
     repuestosEstructuradosData.value = JSON.stringify(
-        repuestosState
+        incluidos
             .filter((item) => item.repuesto_id)
             .map((item) => ({
                 repuesto_id: item.repuesto_id,
@@ -504,20 +516,28 @@ function syncRepuestosField() {
 
 function updateCostoTotal() {
     const manoObra = Number(window.VehiAmb.ui.parseFormattedMoneda(valorManoObraInput.value));
-    const totalRepuestos = repuestosState.reduce((sum, item) => sum + Number(item.valor || 0), 0);
+    const totalRepuestos = repuestosState
+        .filter((item) => item.incluido !== false)
+        .reduce((sum, item) => sum + Number(item.valor || 0), 0);
     costoTotalDisplay.value = formatCurrency(manoObra + totalRepuestos);
 }
 
+// Cada repuesto (sugerido o agregado a mano) trae un checkbox marcado por
+// defecto ("incluido"): desmarcarlo lo excluye del total y de lo que se
+// guarda, sin borrarlo de la lista -- asi el usuario puede desmarcar/volver a
+// marcar sin perder el item ni tener que buscarlo de nuevo.
 function renderRepuestosBuilder() {
     repuestosList.innerHTML = repuestosState.map((item, index) => `
-        <li class="simple-checklist-item">
+        <li class="simple-checklist-item${item.incluido === false ? " simple-checklist-item--excluido" : ""}">
+            <label class="simple-checklist-check" title="${item.obligatorio ? "Repuesto obligatorio" : ""}">
+                <input type="checkbox" data-index="${index}" ${item.incluido !== false ? "checked" : ""} ${item.obligatorio ? "disabled" : ""}>
+            </label>
             <div class="simple-checklist-content">
-                <span class="simple-checklist-label">${item.repuesto}${item.cantidad ? ` × ${item.cantidad}` : ""}</span>
+                <span class="simple-checklist-label">${item.repuesto}${item.cantidad ? ` × ${item.cantidad}` : ""}${item.obligatorio ? ' <span class="simple-checklist-badge">Obligatorio</span>' : ""}</span>
                 <span class="simple-checklist-detail">${item.proveedor || "Sin proveedor"}</span>
                 <span class="simple-checklist-detail">${item.valor ? formatCurrency(item.valor) : "Sin valor"}</span>
                 <span class="simple-checklist-detail">${item.notas || "Sin notas"}</span>
             </div>
-            <button type="button" class="simple-checklist-remove" data-index="${index}">Quitar</button>
         </li>
     `).join("");
 
@@ -525,10 +545,10 @@ function renderRepuestosBuilder() {
     syncRepuestosField();
     updateCostoTotal();
 
-    repuestosList.querySelectorAll(".simple-checklist-remove").forEach((button) => {
-        button.addEventListener("click", () => {
-            const index = Number(button.dataset.index);
-            repuestosState.splice(index, 1);
+    repuestosList.querySelectorAll(".simple-checklist-check input:not([disabled])").forEach((checkbox) => {
+        checkbox.addEventListener("change", () => {
+            const index = Number(checkbox.dataset.index);
+            repuestosState[index].incluido = checkbox.checked;
             renderRepuestosBuilder();
         });
     });
@@ -601,7 +621,8 @@ function agregarRepuestoAlBuilder(repuesto, cantidad, { repuestoSugeridoId, moti
         repuesto_sugerido_id: repuestoSugeridoId || null,
         motivo_sustitucion: motivoSustitucion || null,
         cantidad,
-        valor_unitario: Number(repuesto.valor_promedio || 0)
+        valor_unitario: Number(repuesto.valor_promedio || 0),
+        incluido: true
     });
 
     repuestoInput.value = "";

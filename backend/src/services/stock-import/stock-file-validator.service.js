@@ -1,6 +1,7 @@
 const XLSX = require("xlsx");
 const HttpError = require("../../errors/http-error");
 
+const SHEET_NAME = "SALDO 10-11";
 const MAX_HEADER_SCAN_ROWS = 10;
 
 // Columnas que el Excel de saldos debe tener si o si. El orden real no
@@ -29,10 +30,11 @@ function findHeaderRowIndex(rows) {
 }
 
 /**
- * Abre el Excel de saldos (read-only) y valida que tenga las columnas
- * esperadas. A diferencia del validador de facturas, no se exige un nombre
- * de hoja especifico (se desconoce de antemano): se usa la primera hoja del
- * libro.
+ * Abre el Excel de saldos (read-only) y valida que tenga la hoja y las
+ * columnas esperadas. El archivo real comparte libro con el de repuestos
+ * sugeridos/cambio de aceite (CONFIG_EXCEL_FILE_PATH puede apuntar al mismo
+ * archivo), asi que el saldo de inventario vive en su propia hoja llamada
+ * "SALDO" -- no se puede asumir "la primera hoja del libro".
  *
  * @param {string} filePath ruta a la copia temporal local del archivo
  * @returns {{ rows: any[][], headerRowIndex: number, columnIndex: Record<string, number> }}
@@ -46,11 +48,13 @@ function validate(filePath) {
     throw new HttpError(422, `No fue posible abrir el archivo Excel: ${error.message}`);
   }
 
-  const sheetName = workbook.SheetNames[0];
-  const sheet = sheetName ? workbook.Sheets[sheetName] : null;
+  const sheet = workbook.Sheets[SHEET_NAME];
 
   if (!sheet) {
-    throw new HttpError(422, "El archivo no tiene ninguna hoja");
+    throw new HttpError(
+      422,
+      `La hoja "${SHEET_NAME}" no existe en el archivo (hojas disponibles: ${workbook.SheetNames.join(", ")})`
+    );
   }
 
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: null, blankrows: true });
@@ -78,4 +82,4 @@ function validate(filePath) {
   return { rows, headerRowIndex, columnIndex };
 }
 
-module.exports = { validate, REQUIRED_COLUMNS };
+module.exports = { validate, SHEET_NAME, REQUIRED_COLUMNS };

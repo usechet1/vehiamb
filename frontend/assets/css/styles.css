@@ -3152,16 +3152,52 @@ label[for="loginPassword"] {
     background: var(--color-surface-2);
 }
 
+.simple-checklist-item--excluido {
+    opacity: 0.55;
+}
+
+.simple-checklist-check {
+    display: flex;
+    align-items: center;
+    padding-top: 2px;
+}
+
+.simple-checklist-check input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--color-primary);
+    cursor: pointer;
+}
+
 .simple-checklist-content {
     display: flex;
     flex-direction: column;
     gap: 4px;
+    flex: 1;
 }
 
 .simple-checklist-label {
     color: var(--color-ink);
     font-size: 0.9rem;
     font-weight: 650;
+}
+
+.simple-checklist-badge {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: var(--color-primary-soft, rgba(37, 99, 235, 0.12));
+    color: var(--color-primary);
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    vertical-align: middle;
+}
+
+.simple-checklist-check input:disabled {
+    cursor: not-allowed;
+    opacity: 0.85;
 }
 
 .simple-checklist-detail {

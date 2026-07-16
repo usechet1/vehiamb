@@ -1,4 +1,6 @@
-const PLACA_REGEX = /\b[A-Z]{3}-\d{3}\b/g;
+// Algunas placas del Excel real solo traen 2 letras de prefijo (ej. "WD-483",
+// motocicletas/remolques), no siempre 3 como los vehiculos de carga estandar.
+const PLACA_REGEX = /\b[A-Z]{2,3}-\d{2,4}\b/g;
 const TITULO_REGEX = /CAMBIO DE ACEITE/i;
 const INTERVALO_REGEX = /\d+/;
 
@@ -81,11 +83,14 @@ function parseKitsPorVehiculo(rows) {
  * Hoja "VEHICULOS ": 2 bloques de columnas independientes (0-8 y 10-18).
  * La columna VEHICULO solo trae valor en la primera fila de cada grupo; las
  * siguientes filas heredan el ultimo valor no nulo (arrastre de "vehiculo
- * actual"), igual que una celda combinada en Excel.
+ * actual"), igual que una celda combinada en Excel. Columnas relevantes por
+ * bloque: CODIGO(1), REFERENCIA/nombre(2), CANTIDAD PARA USO(4),
+ * CODIGO EQUIVALENTE(6), REFERENCIA EQUIVALENCIA/nombre del equivalente(7)
+ * -- bloque derecho corrido 10 posiciones.
  */
 function parseVehiculosConEquivalencias(rows) {
-  const sugeridos = []; // { placa, codigoInterno, cantidad }
-  const equivalencias = []; // { codigoPrincipal, codigoEquivalente }
+  const sugeridos = []; // { placa, codigoInterno, nombre, cantidad }
+  const equivalencias = []; // { codigoPrincipal, codigoEquivalente, nombreEquivalente }
   const incidencias = [];
 
   let placasIzq = [];
@@ -109,21 +114,25 @@ function parseVehiculosConEquivalencias(rows) {
 
     if (!isBlank(row[1]) && placasIzq.length) {
       const codigoInterno = String(row[1]).trim();
+      const nombre = isBlank(row[2]) ? "" : String(row[2]).trim();
       const cantidad = Number(row[4]) || 1;
-      placasIzq.forEach((placa) => sugeridos.push({ placa, codigoInterno, cantidad }));
+      placasIzq.forEach((placa) => sugeridos.push({ placa, codigoInterno, nombre, cantidad }));
 
       if (!isBlank(row[6])) {
-        equivalencias.push({ codigoPrincipal: codigoInterno, codigoEquivalente: String(row[6]).trim() });
+        const nombreEquivalente = isBlank(row[7]) ? "" : String(row[7]).trim();
+        equivalencias.push({ codigoPrincipal: codigoInterno, nombrePrincipal: nombre, codigoEquivalente: String(row[6]).trim(), nombreEquivalente });
       }
     }
 
     if (!isBlank(row[11]) && placasDer.length) {
       const codigoInterno = String(row[11]).trim();
+      const nombre = isBlank(row[12]) ? "" : String(row[12]).trim();
       const cantidad = Number(row[14]) || 1;
-      placasDer.forEach((placa) => sugeridos.push({ placa, codigoInterno, cantidad }));
+      placasDer.forEach((placa) => sugeridos.push({ placa, codigoInterno, nombre, cantidad }));
 
       if (!isBlank(row[16])) {
-        equivalencias.push({ codigoPrincipal: codigoInterno, codigoEquivalente: String(row[16]).trim() });
+        const nombreEquivalente = isBlank(row[17]) ? "" : String(row[17]).trim();
+        equivalencias.push({ codigoPrincipal: codigoInterno, nombrePrincipal: nombre, codigoEquivalente: String(row[16]).trim(), nombreEquivalente });
       }
     }
   }

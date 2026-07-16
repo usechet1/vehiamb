@@ -156,8 +156,16 @@ async function findById(id, empresaId) {
   return db.get("SELECT * FROM vehiculos WHERE id = ? AND empresa_id = ?", [id, empresaId]);
 }
 
+// La placa en vehiculos no siempre trae guion de forma consistente (datos
+// historicos mezclados, ej. "OBA489" vs "SKP-098") y el Excel de
+// configuracion tampoco es consistente con eso -- se compara ignorando
+// guiones y mayusculas/minusculas para no depender de que ambos lados
+// escriban la placa exactamente igual.
 async function findByPlaca(placa, empresaId) {
-  return db.get("SELECT * FROM vehiculos WHERE placa = ? AND empresa_id = ?", [placa, empresaId]);
+  return db.get(
+    "SELECT * FROM vehiculos WHERE REPLACE(UPPER(placa), '-', '') = REPLACE(UPPER(?), '-', '') AND empresa_id = ?",
+    [placa, empresaId]
+  );
 }
 
 async function create(vehiculo) {

@@ -27,9 +27,31 @@ function hashArchivo(filePath) {
   });
 }
 
-async function resolverRepuestoCache(cache, codigoInterno, empresaId) {
+// Si el codigo no existe aun en el catalogo, se crea con stock 0 en vez de
+// saltarlo: el Excel de configuracion referencia repuestos que a veces estan
+// descontinuados o simplemente aun no aparecen en el Excel de saldos (el que
+// alimenta el catalogo via stock-import), pero siguen siendo una referencia
+// valida que el vehiculo puede necesitar (con su equivalencia si la tiene).
+async function resolverRepuestoCache(cache, codigoInterno, empresaId, nombre) {
   if (cache.has(codigoInterno)) return cache.get(codigoInterno);
-  const repuesto = await repuestosRepository.findByCodigoInterno(codigoInterno, empresaId);
+
+  let repuesto = await repuestosRepository.findByCodigoInterno(codigoInterno, empresaId);
+
+  if (!repuesto) {
+    repuesto = await repuestosRepository.create({
+      codigo_interno: codigoInterno,
+      nombre: nombre || codigoInterno,
+      categoria: "otros",
+      marca: null,
+      referencia: null,
+      unidad_medida: "UND",
+      valor_promedio: 0,
+      estado: "activo",
+      observaciones: "Creado automaticamente desde la importacion de configuracion (sin stock en el Excel de saldos).",
+      empresa_id: empresaId
+    });
+  }
+
   cache.set(codigoInterno, repuesto || null);
   return repuesto || null;
 }
@@ -173,9 +195,9 @@ async function sincronizarConfiguracion({ workbook, hash, nombreArchivo, usuario
   const intervaloKmPorPlaca = new Map();
   kits.forEach((kit) => intervaloKmPorPlaca.set(kit.placa, kit.intervaloKm));
 
-  // Combina candidatos de ambas hojas en una sola lista {placa, codigoInterno, cantidad}
+  // Combina candidatos de ambas hojas en una sola lista {placa, codigoInterno, nombre, cantidad}
   const candidatosSugeridos = [
-    ...kits.flatMap((kit) => kit.items.map((item) => ({ placa: kit.placa, codigoInterno: item.codigoInterno, cantidad: item.cantidad }))),
+    ...kits.flatMap((kit) => kit.items.map((item) => ({ placa: kit.placa, codigoInterno: item.codigoInterno, nombre: item.nombre, cantidad: item.cantidad }))),
     ...sugeridos
   ];
 
@@ -194,12 +216,7 @@ async function sincronizarConfiguracion({ workbook, hash, nombreArchivo, usuario
       continue;
     }
 
-    const repuesto = await resolverRepuestoCache(repuestoCache, candidato.codigoInterno, empresaId);
-    if (!repuesto) {
-      incidencias.push({ hoja: "sugeridos", motivo: "repuesto_no_encontrado", valor: candidato.codigoInterno, placa: candidato.placa });
-      totalOmitidos += 1;
-      continue;
-    }
+    const repuesto = await resolverRepuestoCache(repuestoCache, candidato.codigoInterno, empresaId, candidato.nombre);
 
     const orden = ordenPorVehiculo.get(vehiculo.id) ?? 0;
     ordenPorVehiculo.set(vehiculo.id, orden + 1);
@@ -234,18 +251,8 @@ async function sincronizarConfiguracion({ workbook, hash, nombreArchivo, usuario
   let totalEquivalenciasCreadas = 0;
 
   for (const equivalencia of equivalencias) {
-    const principal = await resolverRepuestoCache(repuestoCache, equivalencia.codigoPrincipal, empresaId);
-    const equivalente = await resolverRepuestoCache(repuestoCache, equivalencia.codigoEquivalente, empresaId);
-
-    if (!principal || !equivalente) {
-      incidencias.push({
-        hoja: "equivalencias",
-        motivo: !principal ? "repuesto_no_encontrado" : "repuesto_no_encontrado",
-        valor: !principal ? equivalencia.codigoPrincipal : equivalencia.codigoEquivalente
-      });
-      totalOmitidos += 1;
-      continue;
-    }
+    const principal = await resolverRepuestoCache(repuestoCache, equivalencia.codigoPrincipal, empresaId, equivalencia.nombrePrincipal);
+    const equivalente = await resolverRepuestoCache(repuestoCache, equivalencia.codigoEquivalente, empresaId, equivalencia.nombreEquivalente);
 
     if (principal.id === equivalente.id) {
       totalOmitidos += 1;
