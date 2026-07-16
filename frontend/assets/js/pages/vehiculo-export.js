@@ -1,11 +1,8 @@
 (function () {
     const APP_NAME = "VehiAmb";
-    const LOGO_PATH = "img/membrete_logo.png";
-    const MEMBRETE_FOOTER_PATH = "img/membrete_footer.png";
-    const MEMBRETE_FOOTER_ASPECT = 2550 / 315;
     const MARGIN_X = 40;
     const PAGE_BOTTOM_LIMIT = 720;
-    const FOOTER_TEXT = () => `Generado por ${APP_NAME} - Software propio de Ambientes Cerámicos - el ${new Date().toLocaleString("es-CO")}`;
+    const FOOTER_TEXT = (nombreEmpresa) => (nombreEmpresa ? `Generado por ${APP_NAME} para ${nombreEmpresa}` : `Generado por ${APP_NAME}`);
 
     const tiposMantenimiento = {
         revision: "Revisión general",
@@ -179,12 +176,12 @@
         };
     }
 
-    async function addHeader(doc, layout, vehiculo) {
-        try {
-            const logoDataUrl = await window.VehiAmb.pdfExport.loadAsDataUrl(LOGO_PATH);
-            doc.addImage(logoDataUrl, "PNG", MARGIN_X, layout.y, 90, 47);
-        } catch (error) {
-            console.error("No se pudo cargar el logo para el PDF:", error);
+    async function addHeader(doc, layout, vehiculo, branding) {
+        if (branding?.logo) {
+            const maxWidth = 90;
+            const maxHeight = 47;
+            const scale = Math.min(maxWidth / branding.logo.width, maxHeight / branding.logo.height);
+            doc.addImage(branding.logo.dataUrl, "JPEG", MARGIN_X, layout.y, branding.logo.width * scale, branding.logo.height * scale);
         }
 
         const vehicleName = `${vehiculo.marca || ""} ${vehiculo.modelo || ""}`.trim();
@@ -348,29 +345,16 @@
         addComparendosTable(doc, layout, simit.detalle?.comparendos);
     }
 
-    async function addFooter(doc) {
+    function addFooter(doc, branding) {
         const pageCount = doc.internal.getNumberOfPages();
-        const generado = FOOTER_TEXT();
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const bandHeight = pageWidth / MEMBRETE_FOOTER_ASPECT;
-
-        let footerDataUrl = null;
-        try {
-            footerDataUrl = await window.VehiAmb.pdfExport.loadAsDataUrl(MEMBRETE_FOOTER_PATH);
-        } catch (error) {
-            console.error("No se pudo cargar el membrete de pie de página para el PDF:", error);
-        }
+        const generado = FOOTER_TEXT(branding?.nombreEmpresa);
 
         for (let page = 1; page <= pageCount; page += 1) {
             doc.setPage(page);
             const pageHeight = doc.internal.pageSize.getHeight();
             doc.setFontSize(8);
             doc.setTextColor(120, 128, 140);
-            doc.text(generado, MARGIN_X, pageHeight - bandHeight - 10);
-
-            if (footerDataUrl) {
-                doc.addImage(footerDataUrl, "PNG", 0, pageHeight - bandHeight, pageWidth, bandHeight);
-            }
+            doc.text(generado, MARGIN_X, pageHeight - 20);
         }
     }
 
@@ -381,8 +365,9 @@
 
         const doc = window.VehiAmb.pdfExport.createDocument();
         const layout = makeLayout(doc);
+        const branding = await window.VehiAmb.pdfExport.getEmpresaBranding();
 
-        await addHeader(doc, layout, vehiculo);
+        await addHeader(doc, layout, vehiculo, branding);
 
         layout.sectionTitle("Información general");
         const infoStartY = layout.y;
@@ -418,7 +403,7 @@
         addDocumentosTable(doc, layout, documentos);
         addSimitSection(doc, layout, simit);
 
-        await addFooter(doc);
+        addFooter(doc, branding);
 
         doc.save(buildFileName(vehiculo));
     }

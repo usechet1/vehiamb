@@ -86,10 +86,36 @@ function formatDateForPdf(value) {
     return `${day}/${month}/${year}`;
 }
 
+// Cada empresa tiene su propio logo (configurado en Empresa > Configuración,
+// sidebar) y ese es el unico membrete que deben llevar los PDF exportados --
+// no hay membrete generico de la plataforma. Si la empresa aun no subio un
+// logo, el encabezado simplemente se exporta sin imagen (nunca con un logo
+// ajeno). loadImageAsJpegDataUrl normaliza cualquier formato subido
+// (png/jpg/webp) a jpeg, que es lo unico que jsPDF puede incrustar de forma
+// confiable.
+async function getEmpresaBranding() {
+    const user = window.VehiAmb.auth?.getUser?.();
+    const nombreEmpresa = user?.empresa_nombre || "";
+
+    if (!user?.empresa_logo_url) {
+        return { nombreEmpresa, logo: null };
+    }
+
+    try {
+        const url = window.VehiAmb.api.getAssetUrl(user.empresa_logo_url);
+        const logo = await loadImageAsJpegDataUrl(url);
+        return { nombreEmpresa, logo };
+    } catch (error) {
+        console.error("No se pudo cargar el logo de la empresa para el PDF:", error);
+        return { nombreEmpresa, logo: null };
+    }
+}
+
 window.VehiAmb.pdfExport = {
     createDocument,
     loadAsDataUrl,
     detectImageFormat,
     loadImageAsJpegDataUrl,
+    getEmpresaBranding,
     formatDateForPdf
 };

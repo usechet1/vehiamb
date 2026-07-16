@@ -1266,6 +1266,7 @@ if (env.dbClient === "sqlite") {
     .then(seedEmpresaDefault)
     .then(() => Promise.all([
       ensureColumn("empresas", "logo_url", "TEXT"),
+      ensureColumn("empresas", "modulos_deshabilitados", "TEXT[] NOT NULL DEFAULT '{}'"),
       ensureColumn("usuarios", "role_id", "BIGINT REFERENCES roles(id)"),
       ensureColumn("roles", "permisos_configurados", "BOOLEAN NOT NULL DEFAULT FALSE"),
       ensureColumn("mantenimientos", "repuestos", "TEXT"),

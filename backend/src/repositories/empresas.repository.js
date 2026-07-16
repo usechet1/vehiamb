@@ -2,7 +2,7 @@ const db = require("../database/query");
 
 async function findAll() {
   return db.all(`
-    SELECT id, nombre, slug, activo, logo_url, created_at
+    SELECT id, nombre, slug, activo, logo_url, modulos_deshabilitados, created_at
     FROM empresas
     ORDER BY nombre
   `);
@@ -11,7 +11,7 @@ async function findAll() {
 async function findById(id) {
   return db.get(
     `
-      SELECT id, nombre, slug, activo, logo_url, created_at
+      SELECT id, nombre, slug, activo, logo_url, modulos_deshabilitados, created_at
       FROM empresas
       WHERE id = ?
     `,
@@ -22,7 +22,7 @@ async function findById(id) {
 async function findBySlug(slug) {
   return db.get(
     `
-      SELECT id, nombre, slug, activo, logo_url, created_at
+      SELECT id, nombre, slug, activo, logo_url, modulos_deshabilitados, created_at
       FROM empresas
       WHERE slug = ?
     `,
@@ -38,6 +38,19 @@ async function update(id, { nombre, logo_url }) {
       WHERE id = ?
     `,
     [nombre, logo_url, id]
+  );
+
+  return findById(id);
+}
+
+async function setModulosDeshabilitados(id, modulosDeshabilitados) {
+  await db.run(
+    `
+      UPDATE empresas
+      SET modulos_deshabilitados = ?
+      WHERE id = ?
+    `,
+    [modulosDeshabilitados, id]
   );
 
   return findById(id);
@@ -73,5 +86,6 @@ module.exports = {
   findBySlug,
   create,
   update,
+  setModulosDeshabilitados,
   findEmpresaPrincipal
 };

@@ -34,7 +34,8 @@ async function requireAuth(req, res, next) {
         empresa_id: empresaActiva.id,
         empresa_nombre: empresaActiva.nombre,
         empresa_logo_url: empresaActiva.logo_url,
-        empresa_home_id: user.empresa_id
+        empresa_home_id: user.empresa_id,
+        permisos: authService.aplicarModulosDeshabilitados(user.permisos, empresaActiva.modulos_deshabilitados)
       };
     }
 

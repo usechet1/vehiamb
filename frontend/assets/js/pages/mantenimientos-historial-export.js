@@ -1,12 +1,9 @@
 (function () {
     const APP_NAME = "VehiAmb";
-    const LOGO_PATH = "img/membrete_logo.png";
-    const MEMBRETE_FOOTER_PATH = "img/membrete_footer.png";
-    const MEMBRETE_FOOTER_ASPECT = 2550 / 315;
     const MARGIN_X = 40;
     const ROW_HEIGHT = 18;
     const ROW_LINE_HEIGHT = 12;
-    const FOOTER_TEXT = () => `Generado por ${APP_NAME} - Software propio de Ambientes Cerámicos - el ${new Date().toLocaleString("es-CO")}`;
+    const FOOTER_TEXT = (nombreEmpresa) => (nombreEmpresa ? `Generado por ${APP_NAME} para ${nombreEmpresa}` : `Generado por ${APP_NAME}`);
 
     function safe(value, fallback = "No registrado") {
         if (value === null || value === undefined || value === "") return fallback;
@@ -47,12 +44,12 @@
         });
     }
 
-    async function addHeader(doc, layout, filtros, totalRegistros) {
-        try {
-            const logoDataUrl = await window.VehiAmb.pdfExport.loadAsDataUrl(LOGO_PATH);
-            doc.addImage(logoDataUrl, "PNG", MARGIN_X, layout.y, 90, 47);
-        } catch (error) {
-            console.error("No se pudo cargar el logo para el PDF:", error);
+    async function addHeader(doc, layout, filtros, totalRegistros, branding) {
+        if (branding?.logo) {
+            const maxWidth = 90;
+            const maxHeight = 47;
+            const scale = Math.min(maxWidth / branding.logo.width, maxHeight / branding.logo.height);
+            doc.addImage(branding.logo.dataUrl, "JPEG", MARGIN_X, layout.y, branding.logo.width * scale, branding.logo.height * scale);
         }
 
         doc.setFontSize(16);
@@ -103,30 +100,18 @@
         doc.setFont(undefined, "normal");
     }
 
-    async function addFooter(doc) {
+    function addFooter(doc, branding) {
         const pageCount = doc.internal.getNumberOfPages();
-        const generado = FOOTER_TEXT();
+        const generado = FOOTER_TEXT(branding?.nombreEmpresa);
         const pageWidth = doc.internal.pageSize.getWidth();
-        const bandHeight = pageWidth / MEMBRETE_FOOTER_ASPECT;
-
-        let footerDataUrl = null;
-        try {
-            footerDataUrl = await window.VehiAmb.pdfExport.loadAsDataUrl(MEMBRETE_FOOTER_PATH);
-        } catch (error) {
-            console.error("No se pudo cargar el membrete de pie de página para el PDF:", error);
-        }
 
         for (let page = 1; page <= pageCount; page += 1) {
             doc.setPage(page);
             const pageHeight = doc.internal.pageSize.getHeight();
             doc.setFontSize(8);
             doc.setTextColor(120, 128, 140);
-            doc.text(generado, MARGIN_X, pageHeight - bandHeight - 10);
-            doc.text(`Página ${page} de ${pageCount}`, pageWidth - MARGIN_X, pageHeight - bandHeight - 10, { align: "right" });
-
-            if (footerDataUrl) {
-                doc.addImage(footerDataUrl, "PNG", 0, pageHeight - bandHeight, pageWidth, bandHeight);
-            }
+            doc.text(generado, MARGIN_X, pageHeight - 20);
+            doc.text(`Página ${page} de ${pageCount}`, pageWidth - MARGIN_X, pageHeight - 20, { align: "right" });
         }
     }
 
@@ -138,7 +123,8 @@
         const doc = window.VehiAmb.pdfExport.createDocument({ orientation: "landscape" });
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
-        const bottomLimit = pageHeight - (pageWidth / MEMBRETE_FOOTER_ASPECT) - 30;
+        const bottomLimit = pageHeight - 50;
+        const branding = await window.VehiAmb.pdfExport.getEmpresaBranding();
 
         let y = 40;
         const layout = {
@@ -149,7 +135,7 @@
 
         const columns = buildColumns(pageWidth);
 
-        await addHeader(doc, layout, filtros, items.length);
+        await addHeader(doc, layout, filtros, items.length, branding);
         addTableHeader(doc, layout, columns);
 
         items.forEach((item) => {
@@ -184,7 +170,7 @@
             layout.y += rowHeight;
         });
 
-        await addFooter(doc);
+        addFooter(doc, branding);
 
         doc.save(buildFileName());
     }
@@ -200,6 +186,7 @@
         }
 
         const excel = window.VehiAmb.excelExport;
+        const branding = await window.VehiAmb.pdfExport.getEmpresaBranding();
         const columnCount = COLUMN_WIDTHS.length;
 
         const workbook = excel.createWorkbook();
@@ -242,7 +229,7 @@
             row.getCell(7).numFmt = "$#,##0";
         });
 
-        excel.addFooterRow(sheet, FOOTER_TEXT(), columnCount);
+        excel.addFooterRow(sheet, FOOTER_TEXT(branding?.nombreEmpresa), columnCount);
         sheet.views = [{ state: "frozen", ySplit: headerRow.number }];
 
         await excel.downloadWorkbook(workbook, buildExcelFileName());

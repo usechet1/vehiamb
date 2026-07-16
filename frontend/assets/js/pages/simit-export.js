@@ -1,12 +1,9 @@
 (function () {
     const APP_NAME = "VehiAmb";
-    const LOGO_PATH = "img/membrete_logo.png";
-    const MEMBRETE_FOOTER_PATH = "img/membrete_footer.png";
-    const MEMBRETE_FOOTER_ASPECT = 2550 / 315;
     const MARGIN_X = 40;
     const PAGE_BOTTOM_LIMIT = 720;
     const ROW_LINE_HEIGHT = 12;
-    const FOOTER_TEXT = () => `Generado por ${APP_NAME} - Software propio de Ambientes Cerámicos - el ${new Date().toLocaleString("es-CO")}`;
+    const FOOTER_TEXT = (nombreEmpresa) => (nombreEmpresa ? `Generado por ${APP_NAME} para ${nombreEmpresa}` : `Generado por ${APP_NAME}`);
 
     function safe(value, fallback = "No registrado") {
         if (value === null || value === undefined || value === "") return fallback;
@@ -72,12 +69,12 @@
         };
     }
 
-    async function addHeader(doc, layout) {
-        try {
-            const logoDataUrl = await window.VehiAmb.pdfExport.loadAsDataUrl(LOGO_PATH);
-            doc.addImage(logoDataUrl, "PNG", MARGIN_X, layout.y, 90, 47);
-        } catch (error) {
-            console.error("No se pudo cargar el logo para el PDF:", error);
+    async function addHeader(doc, layout, branding) {
+        if (branding?.logo) {
+            const maxWidth = 90;
+            const maxHeight = 47;
+            const scale = Math.min(maxWidth / branding.logo.width, maxHeight / branding.logo.height);
+            doc.addImage(branding.logo.dataUrl, "JPEG", MARGIN_X, layout.y, branding.logo.width * scale, branding.logo.height * scale);
         }
 
         doc.setFontSize(16);
@@ -181,29 +178,16 @@
         });
     }
 
-    async function addFooter(doc) {
+    function addFooter(doc, branding) {
         const pageCount = doc.internal.getNumberOfPages();
-        const generadoEl = FOOTER_TEXT();
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const bandHeight = pageWidth / MEMBRETE_FOOTER_ASPECT;
-
-        let footerDataUrl = null;
-        try {
-            footerDataUrl = await window.VehiAmb.pdfExport.loadAsDataUrl(MEMBRETE_FOOTER_PATH);
-        } catch (error) {
-            console.error("No se pudo cargar el membrete de pie de página para el PDF:", error);
-        }
+        const generadoEl = FOOTER_TEXT(branding?.nombreEmpresa);
 
         for (let page = 1; page <= pageCount; page += 1) {
             doc.setPage(page);
             const pageHeight = doc.internal.pageSize.getHeight();
             doc.setFontSize(8);
             doc.setTextColor(120, 128, 140);
-            doc.text(generadoEl, MARGIN_X, pageHeight - bandHeight - 10);
-
-            if (footerDataUrl) {
-                doc.addImage(footerDataUrl, "PNG", 0, pageHeight - bandHeight, pageWidth, bandHeight);
-            }
+            doc.text(generadoEl, MARGIN_X, pageHeight - 20);
         }
     }
 
@@ -214,9 +198,10 @@
 
         const doc = window.VehiAmb.pdfExport.createDocument();
         const layout = makeLayout(doc);
+        const branding = await window.VehiAmb.pdfExport.getEmpresaBranding();
         const vehicleName = `${row.marca || ""} ${row.modelo || ""}`.trim();
 
-        await addHeader(doc, layout);
+        await addHeader(doc, layout, branding);
 
         layout.sectionTitle("Información general");
         layout.row("Vehículo", vehicleName);
@@ -233,7 +218,7 @@
         layout.spacer(4);
         addHistorialTable(doc, layout, historial);
 
-        await addFooter(doc);
+        addFooter(doc, branding);
 
         doc.save(buildFileName(row, "pdf"));
     }
@@ -246,6 +231,7 @@
         }
 
         const excel = window.VehiAmb.excelExport;
+        const branding = await window.VehiAmb.pdfExport.getEmpresaBranding();
         const vehicleName = `${row.marca || ""} ${row.modelo || ""}`.trim();
         const comparendos = detalle?.comparendos || [];
 
@@ -318,7 +304,7 @@
             excel.addTableDataRow(sheet, ["Este vehículo aún no tiene consultas SIMIT registradas.", "", "", "", "", ""]);
         }
 
-        excel.addFooterRow(sheet, FOOTER_TEXT(), EXCEL_COLUMN_COUNT);
+        excel.addFooterRow(sheet, FOOTER_TEXT(branding?.nombreEmpresa), EXCEL_COLUMN_COUNT);
 
         await excel.downloadWorkbook(workbook, buildFileName(row, "xlsx"));
     }

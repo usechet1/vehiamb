@@ -13,7 +13,8 @@ const USER_SELECT = `
     u.created_at,
     r.nombre AS role_nombre,
     e.nombre AS empresa_nombre,
-    e.logo_url AS empresa_logo_url
+    e.logo_url AS empresa_logo_url,
+    e.modulos_deshabilitados AS empresa_modulos_deshabilitados
   FROM usuarios u
   LEFT JOIN roles r ON r.id = u.role_id
   LEFT JOIN empresas e ON e.id = u.empresa_id

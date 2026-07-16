@@ -176,8 +176,8 @@
 <body>
     <div id="estadoCarga">Cargando etiqueta...</div>
     <div class="etiqueta hidden" id="etiqueta">
-        <div class="etiqueta-logo-wrap">
-            <img src="img/logo_amb.png" alt="Logo" class="etiqueta-logo">
+        <div class="etiqueta-logo-wrap hidden" id="etqLogoWrap">
+            <img alt="Logo" class="etiqueta-logo" id="etqLogo">
         </div>
         <div class="etiqueta-head">
             <h1>Cambio de aceite</h1>
@@ -272,8 +272,15 @@
                         : "<li>Sin repuestos registrados para este mantenimiento.</li>";
                 }
 
-                document.getElementById("etqFooter").textContent =
-                    `Generado por VehiAmb - Software propio de Ambientes Cerámicos - el ${new Date().toLocaleString("es-CO")}`;
+                const usuarioActual = window.VehiAmb.auth.getUser();
+                if (usuarioActual?.empresa_logo_url) {
+                    document.getElementById("etqLogo").src = window.VehiAmb.api.getAssetUrl(usuarioActual.empresa_logo_url);
+                    document.getElementById("etqLogoWrap").classList.remove("hidden");
+                }
+
+                document.getElementById("etqFooter").textContent = usuarioActual?.empresa_nombre
+                    ? `Generado por VehiAmb para ${usuarioActual.empresa_nombre}`
+                    : "Generado por VehiAmb";
 
                 estadoCarga.classList.add("hidden");
                 document.getElementById("etiqueta").classList.remove("hidden");

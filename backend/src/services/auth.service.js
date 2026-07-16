@@ -18,8 +18,20 @@ function toSafeUser(user) {
   };
 }
 
+// Los modulos deshabilitados son un ajuste POR EMPRESA (no por rol, que es
+// catalogo global): permiten venderle a una empresa un subconjunto de la app
+// sin duplicar roles. Se restan de los permisos ya resueltos por rol, asi
+// que tanto el sidebar (oculta el boton) como cada requirePermission() del
+// backend (bloquea el endpoint) quedan protegidos con este unico filtro.
+function aplicarModulosDeshabilitados(permisos, modulosDeshabilitados) {
+  if (!Array.isArray(modulosDeshabilitados) || !modulosDeshabilitados.length) return permisos;
+  const deshabilitados = new Set(modulosDeshabilitados);
+  return permisos.filter((codigo) => !deshabilitados.has(codigo));
+}
+
 async function enrichUser(user) {
-  const permisos = await usuariosRepository.findPermissionsByUserId(user.id);
+  const permisosDelRol = await usuariosRepository.findPermissionsByUserId(user.id);
+  const permisos = aplicarModulosDeshabilitados(permisosDelRol, user.empresa_modulos_deshabilitados);
   return toSafeUser({ ...user, permisos });
 }
 
@@ -63,5 +75,6 @@ async function getCurrentUser(authToken) {
 
 module.exports = {
   login,
-  getCurrentUser
+  getCurrentUser,
+  aplicarModulosDeshabilitados
 };
