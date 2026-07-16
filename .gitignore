@@ -12,6 +12,9 @@ node_modules/
 # Local uploads
 backend/uploads/
 
+# Respaldos de Postgres (contienen datos reales de clientes)
+backups/
+
 # Archivos de datos reales (no deben versionarse)
 *.xlsm
 *.xlsx

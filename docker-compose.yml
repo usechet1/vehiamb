@@ -42,6 +42,31 @@ services:
     volumes:
       - "${DESPACHOS_HOST_PATH}:/mnt/despachos:ro"
       - "./saldo-real.xlsx:/data/saldo-real.xlsx:ro"
+      - uploads_data:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Respaldo automatico y con rotacion de Postgres (pg_dump comprimido a
+  # diario/semanal/mensual). Usa una imagen probada en vez de un script propio
+  # -- ver README para restaurar un dump (gunzip + psql). Los .sql.gz quedan
+  # en ./backups en el HOST, fuera de cualquier volumen de Docker, para poder
+  # copiarlos/sincronizarlos a almacenamiento externo sin depender de Docker.
+  postgres-backup:
+    image: prodrigestivill/postgres-backup-local:16
+    container_name: vehiamb-postgres-backup
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: vehiamb
+      POSTGRES_USER: vehiamb
+      POSTGRES_PASSWORD: vehiamb_dev
+      SCHEDULE: "@daily"
+      BACKUP_KEEP_DAYS: 7
+      BACKUP_KEEP_WEEKS: 4
+      BACKUP_KEEP_MONTHS: 6
+    volumes:
+      - ./backups:/backups
     depends_on:
       postgres:
         condition: service_healthy
@@ -58,3 +83,4 @@ services:
 
 volumes:
   postgres_data:
+  uploads_data:
