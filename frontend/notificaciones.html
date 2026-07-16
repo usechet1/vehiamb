@@ -19,10 +19,11 @@
             </div>
 
             <section class="section-card">
-                <div class="section-card-head">
+                <details class="section-card-collapsible" open>
+                <summary class="section-card-head">
                     <h2>Filtros</h2>
                     <p>Combina filtros y búsqueda para encontrar una notificación específica.</p>
-                </div>
+                </summary>
                 <div class="section-card-body">
                     <form id="notifFilterForm" class="filter-form">
                         <div class="form-group">
@@ -92,21 +93,24 @@
                         </div>
                     </form>
                 </div>
+                </details>
             </section>
 
             <section class="section-card">
-                <div class="section-card-head">
+                <details class="section-card-collapsible" open>
+                <summary class="section-card-head">
                     <h2>Notificaciones</h2>
                     <div class="notif-bulk-actions">
                         <button type="button" id="notifMarkAllReadButton" class="btn-secondary">Marcar todas leídas</button>
                         <button type="button" id="notifDeleteReadButton" class="btn-secondary">Eliminar leídas</button>
                     </div>
-                </div>
+                </summary>
                 <div class="section-card-body">
                     <div id="notifCenterList" class="records-list notif-center-list">
                         <p class="dash-empty">Cargando...</p>
                     </div>
                 </div>
+                </details>
             </section>
 
             <div id="loader" class="loader hidden">

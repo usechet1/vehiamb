@@ -1,11 +1,3 @@
-document.getElementById("fecha-hoy").textContent =
-    new Date().toLocaleDateString("es-CO", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric"
-    });
-
 const loader = document.getElementById("loader");
 const mensaje = document.getElementById("mensaje");
 const vehicleHero = document.getElementById("vehicleHero");
@@ -401,13 +393,13 @@ function renderRepuestosSugeridosBuilder() {
 
 async function cargarRepuestosSugeridosVehiculo(vehiculoId) {
     try {
-        const items = await window.VehiAmb.api.getVehiculoRepuestosSugeridos(vehiculoId, "cambio_aceite");
+        const { intervalo_km, items } = await window.VehiAmb.api.getVehiculoRepuestosSugeridos(vehiculoId, "cambio_aceite");
         repuestosSugeridosState = items.map((item) => ({
             repuesto_id: item.repuesto_id,
             nombre: item.nombre,
             cantidad: Number(item.cantidad)
         }));
-        repuestoSugeridoIntervaloKm.value = items.find((item) => item.intervalo_km)?.intervalo_km || "";
+        repuestoSugeridoIntervaloKm.value = intervalo_km || "";
         renderRepuestosSugeridosBuilder();
     } catch (error) {
         console.error("No fue posible cargar los repuestos sugeridos:", error);
@@ -446,11 +438,11 @@ guardarRepuestosSugeridosButton?.addEventListener("click", async () => {
     try {
         await window.VehiAmb.api.updateVehiculoRepuestosSugeridos(currentVehicleId, {
             tipo_mantenimiento: "cambio_aceite",
+            intervalo_km: repuestoSugeridoIntervaloKm.value || null,
             items: repuestosSugeridosState.map((item, index) => ({
                 repuesto_id: item.repuesto_id,
                 cantidad: item.cantidad,
-                orden: index,
-                intervalo_km: repuestoSugeridoIntervaloKm.value || null
+                orden: index
             }))
         });
         window.VehiAmb.ui.showMessage(mensaje, "Repuestos sugeridos guardados correctamente");
@@ -475,6 +467,13 @@ async function cargarDetalle() {
     if (vehicleRepuestosSugeridosSection && !window.VehiAmb.auth?.hasPermission?.("vehicles.edit")) {
         vehicleRepuestosSugeridosSection.classList.add("hidden");
     }
+
+    // Algunas empresas no usan repuestos sugeridos para cambio de aceite (ver
+    // empresas.modulos_deshabilitados) -- para esas, esta seccion solo debe
+    // dejar configurar el intervalo de cambio, sin el buscador/lista de
+    // repuestos que no van a usar.
+    const usaRepuestosSugeridos = window.VehiAmb.auth?.hasPermission?.("vehicles.repuestos_sugeridos");
+    document.getElementById("repuestosSugeridosPickerWrap")?.classList.toggle("hidden", !usaRepuestosSugeridos);
 
     if (editVehicleLink && !window.VehiAmb.auth?.hasPermission?.("vehicles.edit")) {
         editVehicleLink.classList.add("hidden");

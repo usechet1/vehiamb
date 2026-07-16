@@ -1,3 +1,16 @@
+// Algunas secciones colapsables (.section-card-collapsible) tienen botones o
+// enlaces propios dentro del encabezado (ej. "Marcar todas leidas" en
+// notificaciones.html), ademas del titulo. Sin esto, cualquier clic ahi
+// tambien colapsaria/expandiria la seccion (comportamiento nativo de
+// <summary>), interfiriendo con la accion real del boton.
+document.addEventListener("click", (event) => {
+    const summary = event.target.closest("summary.section-card-head");
+    if (!summary) return;
+    if (event.target.closest("button, a, input, select, textarea, label")) {
+        event.preventDefault();
+    }
+});
+
 function escapeHtml(value) {
     return String(value ?? "")
         .replace(/&/g, "&amp;")
@@ -14,6 +27,63 @@ function getInitials(name) {
         .slice(0, 2)
         .map((part) => part[0]?.toUpperCase() || "")
         .join("");
+}
+
+function formatearFechaHoy() {
+    return new Date().toLocaleDateString("es-CO", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+    });
+}
+
+// Coloca (o actualiza) el nombre de la empresa justo debajo de un elemento de
+// fecha ya existente -- se usa tanto para el encabezado generico
+// (.page-header-right) como para los dos layouts especiales de index.html
+// (dashboardHome / conductorHome), que no usan .page-header.
+function actualizarBloqueFechaEmpresa(fechaEl, empresaNombre) {
+    if (!fechaEl) return;
+    fechaEl.textContent = formatearFechaHoy();
+
+    let empresaEl = fechaEl.nextElementSibling;
+    if (!empresaEl || !empresaEl.classList.contains("page-header-empresa")) {
+        empresaEl = document.createElement("p");
+        empresaEl.className = "page-header-empresa";
+        fechaEl.insertAdjacentElement("afterend", empresaEl);
+    }
+    empresaEl.textContent = empresaNombre || "";
+}
+
+// Todas las paginas (menos index.html, que tiene su propio layout) usan
+// .page-header; si a la pagina le faltaba el bloque de fecha (varias no lo
+// tenian), se crea aqui en vez de tener que agregarlo a mano en cada HTML.
+function actualizarEncabezadoPagina(empresaNombre) {
+    const pageHeader = document.querySelector(".page-header");
+
+    if (pageHeader) {
+        let right = pageHeader.querySelector(".page-header-right");
+        if (!right) {
+            right = document.createElement("div");
+            right.className = "page-header-right";
+            pageHeader.appendChild(right);
+        }
+
+        let fechaEl = right.querySelector("#fecha-hoy");
+        if (!fechaEl) {
+            fechaEl = document.createElement("p");
+            fechaEl.className = "dash-fecha";
+            fechaEl.id = "fecha-hoy";
+            fechaEl.setAttribute("aria-label", "Fecha de hoy");
+            right.insertBefore(fechaEl, right.firstChild);
+        }
+
+        actualizarBloqueFechaEmpresa(fechaEl, empresaNombre);
+        return;
+    }
+
+    actualizarBloqueFechaEmpresa(document.getElementById("fecha-hoy"), empresaNombre);
+    actualizarBloqueFechaEmpresa(document.getElementById("fecha-hoy-conductor"), empresaNombre);
 }
 
 function findNextButton(element) {
@@ -341,6 +411,7 @@ async function cargarSidebar() {
         if (roleEl) roleEl.textContent = user.rol || "Usuario";
         if (empresaEl) empresaEl.textContent = user.empresa_nombre || "";
         if (avatarEl) avatarEl.textContent = getInitials(user.nombre);
+        actualizarEncabezadoPagina(user.empresa_nombre);
 
         await setupEmpresaSwitcher(aside, user);
 

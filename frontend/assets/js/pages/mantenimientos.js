@@ -40,6 +40,7 @@ const costoTotalDisplay = document.getElementById("costoTotalDisplay");
 const mantenimientoTipo = document.getElementById("mantenimientoTipo");
 const cambioAceiteFields = document.getElementById("cambioAceiteFields");
 const proximoCambioKmInput = document.getElementById("proximoCambioKmInput");
+const proximoCambioKmHelp = document.getElementById("proximoCambioKmHelp");
 const proximoCambioFechaInput = document.getElementById("proximoCambioFechaInput");
 const maintenanceDrawer = document.getElementById("maintenanceDrawer");
 const maintenanceDrawerBackdrop = document.getElementById("maintenanceDrawerBackdrop");
@@ -239,8 +240,11 @@ function updateKilometrajeValidation() {
 function validateKilometrajeBeforeSubmit() {
     updateKilometrajeValidation();
 
+    // Se evita reportValidity() (globo nativo del navegador, poco confiable
+    // en moviles) y en su lugar se usa el toast + foco/scroll al campo.
     if (!mantenimientoKilometraje.checkValidity()) {
-        mantenimientoKilometraje.reportValidity();
+        mantenimientoKilometraje.focus();
+        mantenimientoKilometraje.scrollIntoView({ behavior: "smooth", block: "center" });
         window.VehiAmb.ui.showMessage(mensaje, mantenimientoKilometraje.validationMessage, "error");
         return false;
     }
@@ -252,11 +256,11 @@ function updateCambioAceiteFields() {
     const isCambioAceite = mantenimientoTipo.value === "cambio_aceite";
 
     cambioAceiteFields.classList.toggle("hidden", !isCambioAceite);
-    proximoCambioKmInput.required = isCambioAceite;
     proximoCambioFechaInput.required = isCambioAceite;
 
     if (!isCambioAceite) {
         proximoCambioKmInput.value = "";
+        proximoCambioKmHelp.textContent = "";
         proximoCambioFechaInput.value = "";
         repuestosSugeridosAviso.classList.add("hidden");
         repuestosPermitidosVehiculo = null;
@@ -274,7 +278,7 @@ function updateCambioAceiteFields() {
  * vehiculo puntual, no se puede mezclar con los de otro).
  */
 function actualizarEstadoBusquedaRepuesto() {
-    const isCambioAceite = mantenimientoTipo.value === "cambio_aceite";
+    const isCambioAceite = mantenimientoTipo.value === "cambio_aceite" && window.VehiAmb.auth.hasPermission("vehicles.repuestos_sugeridos");
 
     if (!isCambioAceite) {
         repuestoInput.disabled = false;
@@ -325,6 +329,34 @@ async function cargarRepuestosSugeridos() {
         return;
     }
 
+    // El intervalo de cambio siempre se auto-completa (es un dato propio del
+    // vehiculo, ver vehiculos.intervalo_cambio_aceite_km), independiente de
+    // si esta empresa usa repuestos sugeridos. El campo es de solo lectura
+    // (igual que "Gasto total del mantenimiento"): no se recalcula a mano,
+    // se corrige configurando el intervalo en la ficha del vehiculo.
+    proximoCambioKmInput.value = "";
+    proximoCambioKmHelp.textContent = "";
+
+    if (vehiculo) {
+        if (vehiculo.intervalo_cambio_aceite_km) {
+            proximoCambioKmInput.value = window.VehiAmb.ui.formatearNumeroParaMostrar(
+                Math.round(Number(vehiculo.kilometraje_actual || 0) + Number(vehiculo.intervalo_cambio_aceite_km))
+            );
+        } else {
+            proximoCambioKmHelp.textContent = "Este vehículo no tiene un intervalo de cambio configurado. Configúralo desde su ficha.";
+        }
+    }
+
+    // Algunas empresas no usan repuestos sugeridos para cambio de aceite (ver
+    // empresas.modulos_deshabilitados): para esas, cambio de aceite se
+    // comporta como cualquier otro tipo de mantenimiento -- busqueda libre de
+    // repuestos, sin pre-llenado ni restriccion.
+    if (!window.VehiAmb.auth.hasPermission("vehicles.repuestos_sugeridos")) {
+        repuestosPermitidosVehiculo = null;
+        actualizarEstadoBusquedaRepuesto();
+        return;
+    }
+
     if (!vehiculo) {
         repuestosPermitidosVehiculo = new Set();
         actualizarEstadoBusquedaRepuesto();
@@ -335,7 +367,8 @@ async function cargarRepuestosSugeridos() {
 
     let sugeridos = [];
     try {
-        sugeridos = await window.VehiAmb.api.getVehiculoRepuestosSugeridos(vehiculo.id, "cambio_aceite");
+        const respuesta = await window.VehiAmb.api.getVehiculoRepuestosSugeridos(vehiculo.id, "cambio_aceite");
+        sugeridos = respuesta.items;
     } catch (error) {
         return;
     }
@@ -360,7 +393,6 @@ async function cargarRepuestosSugeridos() {
     repuestosState = [];
 
     const sinStock = [];
-    const intervaloKm = sugeridos.find((item) => item.intervalo_km)?.intervalo_km;
 
     for (const sugerido of sugeridos) {
         let disponibilidad;
@@ -397,10 +429,6 @@ async function cargarRepuestosSugeridos() {
         } else {
             sinStock.push(sugerido.nombre);
         }
-    }
-
-    if (!proximoCambioKmInput.value && intervaloKm) {
-        proximoCambioKmInput.value = Math.round(Number(vehiculo.kilometraje_actual || 0) + Number(intervaloKm));
     }
 
     renderRepuestosBuilder();
@@ -689,10 +717,10 @@ function renderRepuestosMeta(value) {
 
     return repuestos.map((repuesto) => `
         <span class="pill">
-            ${repuesto.repuesto}
-            ${repuesto.proveedor ? ` - ${repuesto.proveedor}` : ""}
+            ${escapeHtml(repuesto.repuesto)}
+            ${repuesto.proveedor ? ` - ${escapeHtml(repuesto.proveedor)}` : ""}
             ${repuesto.valor ? ` - ${formatCurrency(repuesto.valor)}` : ""}
-            ${repuesto.notas ? ` - ${repuesto.notas}` : ""}
+            ${repuesto.notas ? ` - ${escapeHtml(repuesto.notas)}` : ""}
         </span>
     `).join("");
 }
@@ -700,8 +728,8 @@ function renderRepuestosMeta(value) {
 function renderAttachment(item) {
     if (!item.soporte_url) return "";
 
-    const fileUrl = window.VehiAmb.api.getAssetUrl(item.soporte_url);
-    const fileLabel = item.soporte_nombre || "Ver adjunto";
+    const fileUrl = escapeHtml(window.VehiAmb.api.getAssetUrl(item.soporte_url));
+    const fileLabel = escapeHtml(item.soporte_nombre || "Ver adjunto");
 
     return `
         <a class="record-link" href="${fileUrl}" target="_blank" rel="noreferrer">
@@ -851,23 +879,23 @@ function renderMantenimientos(mantenimientos) {
     }
 
     mantenimientosList.innerHTML = mantenimientos.map((item) => `
-        <article class="record-item clickable-record" data-maintenance-id="${item.id}" tabindex="0" role="button" aria-label="Ver detalle de mantenimiento ${item.placa || ""}">
+        <article class="record-item clickable-record" data-maintenance-id="${item.id}" tabindex="0" role="button" aria-label="Ver detalle de mantenimiento ${escapeHtml(item.placa) || ""}">
             <div class="record-top">
                 <div>
-                    <span class="record-title">${tiposMantenimiento[item.tipo] || item.tipo}</span>
-                    <span class="record-sub">${item.placa || "Sin placa"} - ${item.marca || ""} ${item.modelo || ""}</span>
+                    <span class="record-title">${escapeHtml(tiposMantenimiento[item.tipo] || item.tipo)}</span>
+                    <span class="record-sub">${escapeHtml(item.placa) || "Sin placa"} - ${escapeHtml(item.marca) || ""} ${escapeHtml(item.modelo) || ""}</span>
                 </div>
                 <span class="pill">${formatDate(item.fecha)}</span>
             </div>
-            <p>${item.descripcion || "Sin detalle de revisión"}</p>
+            <p>${escapeHtml(item.descripcion) || "Sin detalle de revisión"}</p>
             <div class="record-meta">
                 <span class="pill">${formatCurrency(item.valor)}</span>
                 <span class="pill">${Number(item.kilometraje || 0).toLocaleString("es-CO")} km</span>
                 ${renderEstadoBadge(item.estado)}
                 ${item.vehiculo_varado ? '<span class="pill">Vehículo varado</span>' : ""}
                 ${renderRepuestosMeta(item.repuestos)}
-                <span class="pill">Autorizado por: ${item.autorizado_por || "No registrado"}</span>
-                <span class="pill">Hecho por: ${item.hecho_por || "No registrado"}</span>
+                <span class="pill">Autorizado por: ${escapeHtml(item.autorizado_por) || "No registrado"}</span>
+                <span class="pill">Hecho por: ${escapeHtml(item.hecho_por) || "No registrado"}</span>
                 ${item.soporte_url ? '<span class="pill">Soporte adjunto</span>' : ""}
             </div>
             ${renderAttachment(item)}
@@ -963,9 +991,17 @@ mantenimientoForm.addEventListener("submit", async (event) => {
 
     if (!validateKilometrajeBeforeSubmit()) return;
 
+    if (mantenimientoTipo.value === "cambio_aceite" && !proximoCambioKmInput.value) {
+        window.VehiAmb.ui.showMessage(mensaje, "Este vehículo no tiene un intervalo de cambio configurado. Configúralo desde su ficha antes de registrar el cambio de aceite.", "error");
+        return;
+    }
+
     const formData = new FormData(mantenimientoForm);
     formData.set("kilometraje", window.VehiAmb.ui.parseFormattedNumber(mantenimientoKilometraje.value));
     formData.set("valor_mano_obra", window.VehiAmb.ui.parseFormattedMoneda(valorManoObraInput.value));
+    if (proximoCambioKmInput.value) {
+        formData.set("proximo_cambio_km", window.VehiAmb.ui.parseFormattedNumber(proximoCambioKmInput.value));
+    }
 
     try {
         window.VehiAmb.ui.show(loader);
@@ -998,6 +1034,7 @@ mantenimientoSelect.addEventListener("change", () => {
     updateKilometrajeValidation();
     cargarRepuestosSugeridos();
 });
+
 mantenimientoKilometraje.addEventListener("input", () => {
     window.VehiAmb.ui.formatearNumeroEnVivo(mantenimientoKilometraje);
     updateKilometrajeValidation();

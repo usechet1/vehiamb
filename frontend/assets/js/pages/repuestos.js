@@ -9,6 +9,9 @@ const repuestoReferencia = document.getElementById("repuestoReferencia");
 const repuestoUnidadMedida = document.getElementById("repuestoUnidadMedida");
 const repuestoValorPromedio = document.getElementById("repuestoValorPromedio");
 const repuestoEstado = document.getElementById("repuestoEstado");
+const repuestoFoto = document.getElementById("repuestoFoto");
+const repuestoFotoPreview = document.getElementById("repuestoFotoPreview");
+const repuestoFotoPlaceholder = document.getElementById("repuestoFotoPlaceholder");
 const repuestoObservaciones = document.getElementById("repuestoObservaciones");
 const repuestoSubmitButton = document.getElementById("repuestoSubmitButton");
 const repuestoCancelEditButton = document.getElementById("repuestoCancelEditButton");
@@ -60,11 +63,32 @@ function escapeHtml(value) {
 }
 
 function formatMoney(value) {
-    return Number(value || 0).toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+    return Number(value || 0).toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 2 });
 }
 
 function formatNumber(value) {
     return Number(value || 0).toLocaleString("es-CO", { maximumFractionDigits: 3 });
+}
+
+function mostrarFoto(fotoUrl) {
+    if (fotoUrl) {
+        repuestoFotoPreview.src = window.VehiAmb.api.getAssetUrl(fotoUrl);
+        window.VehiAmb.ui.show(repuestoFotoPreview);
+        window.VehiAmb.ui.hide(repuestoFotoPlaceholder);
+    } else {
+        window.VehiAmb.ui.hide(repuestoFotoPreview);
+        window.VehiAmb.ui.show(repuestoFotoPlaceholder);
+    }
+}
+
+async function mostrarSiguienteCodigo() {
+    repuestoCodigoInterno.value = "...";
+    try {
+        const { codigo_interno } = await window.VehiAmb.api.getSiguienteCodigoRepuesto();
+        repuestoCodigoInterno.value = codigo_interno;
+    } catch (error) {
+        repuestoCodigoInterno.value = "";
+    }
 }
 
 function resetForm() {
@@ -73,11 +97,27 @@ function resetForm() {
     repuestoUnidadMedida.value = "UND";
     repuestoCategoria.value = "otros";
     repuestoEstado.value = "activo";
+    repuestoValorPromedio.value = "";
+    mostrarFoto(null);
+    mostrarSiguienteCodigo();
     repuestoFormTitle.textContent = "Registrar repuesto";
     repuestoSubmitButton.textContent = "Guardar repuesto";
     repuestoCancelEditButton.classList.add("hidden");
     equivalenciasSection.classList.add("hidden");
 }
+
+repuestoValorPromedio.addEventListener("input", () => {
+    window.VehiAmb.ui.formatearMonedaDecimalEnVivo(repuestoValorPromedio);
+});
+
+repuestoFoto.addEventListener("change", () => {
+    const file = repuestoFoto.files?.[0];
+    if (!file) return;
+
+    repuestoFotoPreview.src = URL.createObjectURL(file);
+    window.VehiAmb.ui.show(repuestoFotoPreview);
+    window.VehiAmb.ui.hide(repuestoFotoPlaceholder);
+});
 
 function renderEquivalencias(equivalencias) {
     equivalenciasList.innerHTML = equivalencias.map((eq) => `
@@ -232,8 +272,10 @@ repuestosTableBody.addEventListener("click", async (event) => {
         repuestoMarca.value = repuesto.marca || "";
         repuestoReferencia.value = repuesto.referencia || "";
         repuestoUnidadMedida.value = repuesto.unidad_medida;
-        repuestoValorPromedio.value = repuesto.valor_promedio;
+        repuestoValorPromedio.value = window.VehiAmb.ui.formatearMonedaDecimalParaMostrar(repuesto.valor_promedio);
         repuestoEstado.value = repuesto.estado;
+        repuestoFoto.value = "";
+        mostrarFoto(repuesto.foto_url);
         repuestoObservaciones.value = repuesto.observaciones || "";
 
         repuestoFormTitle.textContent = `Editar repuesto: ${repuesto.codigo_interno}`;
@@ -252,17 +294,18 @@ repuestoCancelEditButton.addEventListener("click", resetForm);
 repuestoForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    const payload = {
-        codigo_interno: repuestoCodigoInterno.value.trim(),
-        nombre: repuestoNombre.value.trim(),
-        categoria: repuestoCategoria.value,
-        marca: repuestoMarca.value.trim(),
-        referencia: repuestoReferencia.value.trim(),
-        unidad_medida: repuestoUnidadMedida.value.trim() || "UND",
-        valor_promedio: repuestoValorPromedio.value || 0,
-        estado: repuestoEstado.value,
-        observaciones: repuestoObservaciones.value.trim()
-    };
+    const formData = new FormData();
+    formData.append("nombre", repuestoNombre.value.trim());
+    formData.append("categoria", repuestoCategoria.value);
+    formData.append("marca", repuestoMarca.value.trim());
+    formData.append("referencia", repuestoReferencia.value.trim());
+    formData.append("unidad_medida", repuestoUnidadMedida.value);
+    formData.append("valor_promedio", window.VehiAmb.ui.parseFormattedMonedaDecimal(repuestoValorPromedio.value));
+    formData.append("estado", repuestoEstado.value);
+    formData.append("observaciones", repuestoObservaciones.value.trim());
+    if (repuestoFoto.files?.[0]) {
+        formData.append("foto", repuestoFoto.files[0]);
+    }
 
     repuestoSubmitButton.disabled = true;
 
@@ -270,11 +313,11 @@ repuestoForm.addEventListener("submit", async (event) => {
         window.VehiAmb.ui.show(loader);
 
         if (repuestoId.value) {
-            await window.VehiAmb.api.updateRepuesto(repuestoId.value, payload);
+            await window.VehiAmb.api.updateRepuesto(repuestoId.value, formData);
             window.VehiAmb.ui.showMessage(mensaje, "Repuesto actualizado correctamente");
         } else {
-            await window.VehiAmb.api.createRepuesto(payload);
-            window.VehiAmb.ui.showMessage(mensaje, "Repuesto registrado correctamente");
+            const creado = await window.VehiAmb.api.createRepuesto(formData);
+            window.VehiAmb.ui.showMessage(mensaje, `Repuesto registrado correctamente (código ${creado.codigo_interno})`);
         }
 
         resetForm();

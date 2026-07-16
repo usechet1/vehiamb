@@ -21,10 +21,11 @@
             <div class="module-grid">
                 <div class="stack">
                     <section class="section-card">
-                        <div class="section-card-head">
+                        <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
                             <h2 id="repuestoFormTitle">Registrar repuesto</h2>
                             <p>El stock se actualiza desde la importación del Excel de saldos, no desde este formulario.</p>
-                        </div>
+                        </summary>
                         <div class="section-card-body">
                             <form id="repuestoForm" class="compact-form">
                                 <input type="hidden" id="repuestoId">
@@ -32,7 +33,8 @@
                                 <div class="form-grid">
                                     <div class="form-group">
                                         <label>Código interno</label>
-                                        <input type="text" id="repuestoCodigoInterno" required>
+                                        <input type="text" id="repuestoCodigoInterno" disabled>
+                                        <span class="field-help">Se asigna automáticamente; no se puede editar.</span>
                                     </div>
                                     <div class="form-group">
                                         <label>Nombre</label>
@@ -70,14 +72,26 @@
                                     </div>
                                     <div class="form-group">
                                         <label>Unidad de medida</label>
-                                        <input type="text" id="repuestoUnidadMedida" value="UND">
+                                        <select id="repuestoUnidadMedida">
+                                            <option value="UND" selected>Unidad (UND)</option>
+                                            <option value="GAL">Galón (GAL)</option>
+                                            <option value="LT">Litro (LT)</option>
+                                            <option value="KG">Kilogramo (KG)</option>
+                                            <option value="GR">Gramo (GR)</option>
+                                            <option value="M">Metro (M)</option>
+                                            <option value="CM">Centímetro (CM)</option>
+                                            <option value="PAR">Par (PAR)</option>
+                                            <option value="JGO">Juego (JGO)</option>
+                                            <option value="CJA">Caja (CJA)</option>
+                                            <option value="ROLLO">Rollo (ROLLO)</option>
+                                        </select>
                                     </div>
                                 </div>
 
                                 <div class="form-grid">
                                     <div class="form-group">
                                         <label>Valor promedio</label>
-                                        <input type="number" id="repuestoValorPromedio" min="0" step="1">
+                                        <input type="text" id="repuestoValorPromedio" inputmode="decimal" placeholder="$ 0">
                                     </div>
                                     <div class="form-group">
                                         <label>Estado</label>
@@ -86,6 +100,16 @@
                                             <option value="inactivo">Inactivo</option>
                                         </select>
                                     </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Foto del repuesto</label>
+                                    <div class="empresa-logo-preview-wrap">
+                                        <img id="repuestoFotoPreview" class="empresa-logo-preview hidden" alt="Foto del repuesto">
+                                        <div id="repuestoFotoPlaceholder" class="empresa-logo-placeholder">Sin foto</div>
+                                    </div>
+                                    <input type="file" id="repuestoFoto" accept="image/png, image/jpeg, image/webp">
+                                    <span class="field-help">PNG, JPG o WEBP. Máximo 5 MB.</span>
                                 </div>
 
                                 <div class="form-group">
@@ -99,13 +123,15 @@
                                 </div>
                             </form>
                         </div>
+                        </details>
                     </section>
 
                     <section class="section-card hidden" id="equivalenciasSection">
-                        <div class="section-card-head">
+                        <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
                             <h2>Equivalencias</h2>
                             <p>Repuestos compatibles del mismo tipo, en orden de prioridad de sugerencia.</p>
-                        </div>
+                        </summary>
                         <div class="section-card-body">
                             <div class="simple-list-entry">
                                 <input type="text" id="equivalenciaInput" placeholder="Buscar repuesto equivalente...">
@@ -115,15 +141,17 @@
                             <ul id="equivalenciasList" class="simple-checklist"></ul>
                             <div id="equivalenciasEmpty" class="field-help">Este repuesto aún no tiene equivalencias configuradas.</div>
                         </div>
+                        </details>
                     </section>
                 </div>
 
                 <div class="stack">
                     <section class="section-card">
-                        <div class="section-card-head">
+                        <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
                             <h2>Repuestos registrados</h2>
                             <p>Busca por código, nombre o referencia.</p>
-                        </div>
+                        </summary>
                         <div class="section-card-body">
                             <form id="repuestosFilterForm" class="filter-form">
                                 <div class="form-grid-3">
@@ -187,6 +215,7 @@
                                 </div>
                             </div>
                         </div>
+                        </details>
                     </section>
                 </div>
             </div>

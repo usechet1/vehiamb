@@ -21,26 +21,30 @@
             <div class="module-grid">
                 <div class="stack">
                     <section class="section-card">
-                        <div class="section-card-head">
+                        <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
                             <h2>Ejecutar sincronización manual</h2>
                             <p>Procesa el Excel de saldos completo bajo demanda, sin esperar al proceso automático. El archivo es una foto del saldo actual, no un log por día.</p>
-                        </div>
+                        </summary>
                         <div class="section-card-body">
                             <button type="button" class="btn-primary" id="stockImportSubmitButton">Ejecutar importación de stock</button>
                             <div id="stockImportRunResult" class="import-run-result hidden"></div>
                         </div>
+                        </details>
                     </section>
                 </div>
 
                 <div class="stack">
                     <section class="section-card">
-                        <div class="section-card-head">
+                        <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
                             <h2>Última sincronización automática</h2>
                             <p>Se ejecuta todos los días según STOCK_IMPORT_SCHEDULE.</p>
-                        </div>
+                        </summary>
                         <div class="section-card-body" id="stockImportStatusBody">
                             <p class="dash-empty">Cargando...</p>
                         </div>
+                        </details>
                     </section>
                 </div>
             </div>
@@ -48,32 +52,37 @@
             <div class="module-grid">
                 <div class="stack">
                     <section class="section-card">
-                        <div class="section-card-head">
+                        <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
                             <h2>Importar configuración de vehículos (repuestos sugeridos + equivalencias)</h2>
                             <p>Carga bootstrap: crea lo que no existe, nunca pisa lo que ya configuraste a mano desde la ficha del vehículo o el catálogo. Solo aplica a mantenimientos de tipo Cambio de aceite. Se sincroniza sola todos los días; este botón la ejecuta ahora mismo.</p>
-                        </div>
+                        </summary>
                         <div class="section-card-body">
                             <button type="button" class="btn-primary" id="configImportSyncButton">Sincronizar ahora</button>
                             <div id="configImportResult" class="import-run-result hidden"></div>
                         </div>
+                        </details>
                     </section>
                 </div>
 
                 <div class="stack">
                     <section class="section-card">
-                        <div class="section-card-head">
+                        <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
                             <h2>Última sincronización de configuración</h2>
                             <p>Se ejecuta todos los días según CONFIG_SYNC_SCHEDULE.</p>
-                        </div>
+                        </summary>
                         <div class="section-card-body" id="configImportStatusBody">
                             <p class="dash-empty">Cargando...</p>
                         </div>
+                        </details>
                     </section>
                 </div>
             </div>
 
             <section class="section-card import-history-card">
-                <div class="section-card-head">
+                <details class="section-card-collapsible" open>
+                <summary class="section-card-head">
                     <h2>Historial de sincronizaciones</h2>
                     <div class="filter-form" style="flex-direction: row; align-items: center; gap: 10px;">
                         <select id="stockImportFiltroEstado">
@@ -85,7 +94,7 @@
                             <option value="pendiente">Pendiente</option>
                         </select>
                     </div>
-                </div>
+                </summary>
                 <div class="section-card-body">
                     <div class="table-scroll">
                         <table class="import-table">
@@ -115,6 +124,7 @@
                         </div>
                     </div>
                 </div>
+                </details>
             </section>
 
             <div id="loader" class="loader hidden">

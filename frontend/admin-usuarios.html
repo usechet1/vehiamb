@@ -42,7 +42,7 @@
                         <div class="form-group">
                             <label for="userEmail">Correo</label>
                             <input type="email" id="userEmail" name="email" autocomplete="off" placeholder="correo@empresa.com" minlength="4" required>
-                            <span class="field-help">Mínimo 4 caracteres.</span>
+                            <span class="field-help" id="userEmailHelp">Mínimo 4 caracteres.</span>
                         </div>
 
                         <div class="form-group">
@@ -84,35 +84,39 @@
                 </section>
 
                 <section class="section-card">
-                    <div class="section-card-head">
-                        <h2>Usuarios registrados</h2>
-                        <p>Activa, desactiva o edita los accesos del sistema.</p>
-                    </div>
-                    <div class="section-card-body">
-                        <div class="kpis-grid" id="usersKpisGrid"></div>
+                    <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
+                            <h2>Usuarios registrados</h2>
+                            <p>Activa, desactiva o edita los accesos del sistema.</p>
+                        </summary>
+                        <div class="section-card-body">
+                            <div class="kpis-grid" id="usersKpisGrid"></div>
 
-                        <div class="form-group">
-                            <label for="userSearchInput">Buscar</label>
-                            <input type="text" id="userSearchInput" placeholder="Buscar por nombre o correo...">
-                        </div>
+                            <div class="form-group">
+                                <label for="userSearchInput">Buscar</label>
+                                <input type="text" id="userSearchInput" placeholder="Buscar por nombre o correo...">
+                            </div>
 
-                        <div id="usersList" class="admin-users-list">
-                            <p class="dash-empty">Cargando usuarios...</p>
+                            <div id="usersList" class="admin-users-list">
+                                <p class="dash-empty">Cargando usuarios...</p>
+                            </div>
                         </div>
-                    </div>
+                    </details>
                 </section>
             </div>
 
             <section class="section-card admin-permissions-card">
-                <div class="section-card-head">
-                    <h2>Permisos por rol</h2>
-                    <p>Los permisos se aplican automáticamente a cada usuario según su rol asignado.</p>
-                </div>
-                <div class="section-card-body">
-                    <div id="rolesPermissions" class="roles-permissions-grid">
-                        <p class="dash-empty">Cargando permisos...</p>
+                <details class="section-card-collapsible" open>
+                    <summary class="section-card-head">
+                        <h2>Permisos por rol</h2>
+                        <p>Los permisos se aplican automáticamente a cada usuario según su rol asignado.</p>
+                    </summary>
+                    <div class="section-card-body">
+                        <div id="rolesPermissions" class="roles-permissions-grid">
+                            <p class="dash-empty">Cargando permisos...</p>
+                        </div>
                     </div>
-                </div>
+                </details>
             </section>
         </main>
     </div>

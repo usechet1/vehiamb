@@ -38,12 +38,24 @@ function createAuthToken(user) {
   return `${encoded}.${sign(encoded)}`;
 }
 
+// Comparacion en tiempo constante: "!==" sobre strings compara byte a byte y
+// corta en el primer caracter distinto, filtrando por timing cuanto de la
+// firma esperada acerto un atacante. timingSafeEqual exige buffers del mismo
+// largo, por eso se valida el largo antes (con un valor fijo, no derivado de
+// la firma recibida, para no reintroducir el mismo problema).
+function firmaValida(esperada, recibida) {
+  const bufferEsperado = Buffer.from(esperada);
+  const bufferRecibido = Buffer.from(recibida);
+  if (bufferEsperado.length !== bufferRecibido.length) return false;
+  return crypto.timingSafeEqual(bufferEsperado, bufferRecibido);
+}
+
 function verifyAuthToken(token) {
   if (!token || !token.includes(".")) return null;
 
   const [encoded, signature] = token.split(".");
   if (!encoded || !signature) return null;
-  if (sign(encoded) !== signature) return null;
+  if (!firmaValida(sign(encoded), signature)) return null;
 
   const payload = JSON.parse(fromBase64Url(encoded));
   if (!payload.exp || payload.exp < Date.now()) return null;

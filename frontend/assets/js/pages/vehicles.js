@@ -1,11 +1,3 @@
-document.getElementById("fecha-hoy").textContent =
-    new Date().toLocaleDateString("es-CO", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric"
-    });
-
 const container = document.getElementById("vehiculosContainer");
 const loader = document.getElementById("loader");
 const emptyState = document.getElementById("vehiculosEmptyState");

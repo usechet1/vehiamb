@@ -16,14 +16,17 @@
                     <h1>Consulta SIMIT</h1>
                     <p class="page-kicker">Estado de comparendos por placa, historial de consultas y novedades de la flota</p>
                 </div>
-                <button type="button" id="actualizarFlotaButton" class="header-action">Actualizar toda la flota</button>
+                <div class="page-header-right">
+                    <button type="button" id="actualizarFlotaButton" class="header-action">Actualizar toda la flota</button>
+                </div>
             </div>
 
             <section class="section-card">
-                <div class="section-card-head">
+                <details class="section-card-collapsible" open>
+                <summary class="section-card-head">
                     <h2>Resumen de la flota</h2>
                     <p>Basado en la última consulta registrada de cada vehículo.</p>
-                </div>
+                </summary>
                 <div class="section-card-body">
                     <div id="simitKpisGrid" class="kpis-grid"></div>
 
@@ -60,6 +63,7 @@
                         <p class="dash-empty">Cargando...</p>
                     </div>
                 </div>
+                </details>
             </section>
 
             <div id="loader" class="loader hidden">

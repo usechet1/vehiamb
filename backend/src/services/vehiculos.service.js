@@ -30,6 +30,11 @@ const VIN_REGEX = /^[A-HJ-NPR-Z0-9]+$/i;
 const VIN_MIN_LENGTH = 5;
 const VIN_MAX_LENGTH = 17;
 
+// Formato colombiano estandar: 3 letras + 3 numeros (AAA123). Las motos usan
+// un formato distinto (3 letras + 2 numeros + 1 letra, ej. AAA12B).
+const PLACA_REGEX_ESTANDAR = /^[A-Z]{3}[0-9]{3}$/;
+const PLACA_REGEX_MOTO = /^[A-Z]{3}[0-9]{2}[A-Z]$/;
+
 const ANIO_MIN = 1900;
 const ANIO_REGEX = /^\d{4}$/;
 const CILINDRAJE_MAX = 20000;
@@ -111,6 +116,17 @@ function validateVehiculo(vehiculo) {
   }
 
   vehiculo.anio = validarAnio(vehiculo.anio);
+
+  const esMoto = vehiculo.tipo_vehiculo === "Motocicleta";
+  const placaValida = esMoto ? PLACA_REGEX_MOTO.test(vehiculo.placa) : PLACA_REGEX_ESTANDAR.test(vehiculo.placa);
+  if (!placaValida) {
+    throw new HttpError(
+      400,
+      esMoto
+        ? "La placa de moto debe tener el formato AAA12B (3 letras, 2 números, 1 letra)"
+        : "La placa debe tener el formato AAA123 (3 letras y 3 números)"
+    );
+  }
 
   if (vehiculo.cilindraje !== null) {
     if (vehiculo.cilindraje < 0 || vehiculo.cilindraje > CILINDRAJE_MAX) {
@@ -278,11 +294,12 @@ const TIPOS_MANTENIMIENTO_VALIDOS = new Set([
 
 async function getRepuestosSugeridos(vehiculoId, tipoMantenimiento, empresaId) {
   const tipo = TIPOS_MANTENIMIENTO_VALIDOS.has(tipoMantenimiento) ? tipoMantenimiento : "cambio_aceite";
-  await getVehiculo(vehiculoId, empresaId);
-  return vehiculoRepuestosSugeridosRepository.findByVehiculo(vehiculoId, tipo, empresaId);
+  const vehiculo = await getVehiculo(vehiculoId, empresaId);
+  const items = await vehiculoRepuestosSugeridosRepository.findByVehiculo(vehiculoId, tipo, empresaId);
+  return { intervalo_km: vehiculo.intervalo_cambio_aceite_km, items };
 }
 
-async function updateRepuestosSugeridos(vehiculoId, tipoMantenimiento, items, empresaId) {
+async function updateRepuestosSugeridos(vehiculoId, tipoMantenimiento, items, intervaloKm, empresaId) {
   const tipo = TIPOS_MANTENIMIENTO_VALIDOS.has(tipoMantenimiento) ? tipoMantenimiento : "cambio_aceite";
   await getVehiculo(vehiculoId, empresaId);
 
@@ -294,13 +311,18 @@ async function updateRepuestosSugeridos(vehiculoId, tipoMantenimiento, items, em
     .map((item, index) => ({
       repuesto_id: Number(item.repuesto_id),
       cantidad: Number(item.cantidad) > 0 ? Number(item.cantidad) : 1,
-      orden: Number.isFinite(Number(item.orden)) ? Number(item.orden) : index,
-      intervalo_km: item.intervalo_km ? Number(item.intervalo_km) : null
+      orden: Number.isFinite(Number(item.orden)) ? Number(item.orden) : index
     }))
     .filter((item) => item.repuesto_id);
 
   await vehiculoRepuestosSugeridosRepository.replaceParaVehiculoYTipo(vehiculoId, tipo, normalizados, empresaId);
-  return vehiculoRepuestosSugeridosRepository.findByVehiculo(vehiculoId, tipo, empresaId);
+  const vehiculo = await vehiculosRepository.updateIntervaloCambioAceite(
+    vehiculoId,
+    intervaloKm ? Number(intervaloKm) : null,
+    empresaId
+  );
+  const savedItems = await vehiculoRepuestosSugeridosRepository.findByVehiculo(vehiculoId, tipo, empresaId);
+  return { intervalo_km: vehiculo.intervalo_cambio_aceite_km, items: savedItems };
 }
 
 module.exports = {

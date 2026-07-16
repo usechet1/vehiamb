@@ -218,6 +218,19 @@ async function sincronizarConfiguracion({ workbook, hash, nombreArchivo, usuario
     else totalOmitidos += 1;
   }
 
+  // El intervalo de cambio de aceite ahora vive en vehiculos.intervalo_cambio_aceite_km
+  // (no en cada fila de vehiculo_repuestos_sugeridos, ver vehiculos.service.js).
+  // Igual que el resto de esta carga bootstrap, solo se completa si esta vacio --
+  // nunca pisa un intervalo que ya se haya configurado a mano desde la ficha.
+  for (const [placa, intervaloKm] of intervaloKmPorPlaca) {
+    if (!intervaloKm) continue;
+
+    const vehiculo = await resolverVehiculoCache(vehiculoCache, placa, empresaId);
+    if (!vehiculo || vehiculo.intervalo_cambio_aceite_km) continue;
+
+    await vehiculosRepository.updateIntervaloCambioAceite(vehiculo.id, intervaloKm, empresaId);
+  }
+
   let totalEquivalenciasCreadas = 0;
 
   for (const equivalencia of equivalencias) {

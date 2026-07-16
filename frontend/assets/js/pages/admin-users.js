@@ -52,6 +52,20 @@ function escapeHtml(value) {
         .replace(/'/g, "&#039;");
 }
 
+const userEmailHelp = document.getElementById("userEmailHelp");
+
+// El dominio requerido es el del correo del propio usuario logueado --
+// coincide con el que exige el backend en la enorme mayoria de los casos (el
+// admin de una empresa crea usuarios para su misma empresa). Es solo un
+// aviso anticipado en el formulario; la validacion real (que si contempla el
+// caso de un SuperAdministrador operando sobre otra empresa) vive en el
+// servidor -- ver usuarios.service.js createUser.
+function getDominioSugerido() {
+    const email = window.VehiAmb.auth.getUser()?.email || "";
+    const partes = email.split("@");
+    return partes.length === 2 ? partes[1] : "";
+}
+
 function resetForm() {
     userForm.reset();
     userId.value = "";
@@ -60,6 +74,11 @@ function resetForm() {
     userFormMode.textContent = "Nuevo usuario";
     hideUserPassword();
     fillRoles();
+
+    const dominio = getDominioSugerido();
+    userEmailHelp.textContent = dominio
+        ? `Debe terminar en @${dominio}, igual que el resto de la empresa.`
+        : "Mínimo 4 caracteres.";
 }
 
 function fillRoles() {
@@ -227,6 +246,7 @@ function editUser(id) {
     userRole.value = user.role_id || "";
     userActive.checked = Boolean(user.activo);
     userFormMode.textContent = "Editar usuario";
+    userEmailHelp.textContent = "Mínimo 4 caracteres.";
     userName.focus();
 }
 
@@ -335,7 +355,7 @@ async function initAdminUsers() {
         permissionsState = permissions;
         usersState = users;
 
-        fillRoles();
+        resetForm();
         renderUsersKpis();
         applyUserFilters();
         renderRolePermissions();

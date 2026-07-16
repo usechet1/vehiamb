@@ -1113,25 +1113,48 @@ label[for="loginPassword"] {
 
 .mensaje {
     position: fixed;
-    top: 18px;
+    /* env(safe-area-inset-top) evita que el notch/isla dinamica de un
+       telefono se coma parte del mensaje cuando la app corre agregada a
+       pantalla de inicio (donde si aplica el area segura); en navegador
+       normal el fallback "0px" no cambia nada. */
+    top: calc(18px + env(safe-area-inset-top, 0px));
     left: 50%;
-    z-index: 1000;
+    /* Por encima de CUALQUIER overlay de la app (sidebar movil, su fondo,
+       modales, drawers) -- antes empataba en 1000 con el sidebar abierto,
+       y en un empate gana el que este despues en el DOM, no el mensaje. */
+    z-index: 2000;
     width: min(92%, 480px);
-    padding: 12px 14px;
+    max-width: calc(100vw - 24px);
+    padding: 14px 16px;
     border: 1px solid rgba(20, 122, 69, 0.25);
     border-radius: var(--radius-sm);
     background: var(--color-success-bg);
     color: var(--color-success);
     font-weight: 700;
+    line-height: 1.45;
     text-align: center;
+    overflow-wrap: break-word;
     box-shadow: var(--shadow);
     transform: translateX(-50%);
+    cursor: pointer;
 }
 
 .mensaje.error {
     border-color: rgba(178, 31, 45, 0.22);
     background: #fff0f2;
     color: var(--color-primary);
+}
+
+@media (max-width: 900px) {
+    .mensaje {
+        /* Debajo de la topbar movil (sticky, ~54px) en vez de flotar encima
+           y taparle el boton de menu -- en desktop no hay topbar, por eso
+           este offset extra solo aplica en el breakpoint movil. */
+        top: calc(66px + env(safe-area-inset-top, 0px));
+        width: min(94%, 480px);
+        font-size: 0.95rem;
+        padding: 13px 14px;
+    }
 }
 
 .loader {
@@ -1219,6 +1242,16 @@ label[for="loginPassword"] {
 
 .dash-fecha {
     text-transform: capitalize;
+}
+
+.page-header-empresa {
+    font-size: 0.82rem;
+    font-weight: 650;
+    color: var(--color-ink-soft);
+}
+
+.page-header-empresa:empty {
+    display: none;
 }
 
 .dash-cards {
@@ -1440,6 +1473,10 @@ label[for="loginPassword"] {
 
 .conductor-hero .dash-fecha {
     color: rgba(255, 255, 255, 0.85);
+}
+
+.conductor-hero .page-header-empresa {
+    color: rgba(255, 255, 255, 0.7);
 }
 
 .conductor-card {

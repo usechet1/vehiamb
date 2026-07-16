@@ -29,6 +29,11 @@ services:
       CORS_ORIGIN: http://localhost:8080
       DB_CLIENT: postgres
       DATABASE_URL: postgres://vehiamb:vehiamb_dev@postgres:5432/vehiamb
+      # Obligatorios (ver .env.example en la raiz): con NODE_ENV=production,
+      # backend/src/config/env.js rechaza el arranque si quedan en el valor
+      # de desarrollo o vacios, para no correr con un secreto/clave publicos.
+      AUTH_SECRET: ${AUTH_SECRET:?Definir AUTH_SECRET en el .env de la raiz, ver .env.example}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:?Definir SEED_ADMIN_PASSWORD en el .env de la raiz, ver .env.example}
       # El contenedor es Linux: no puede resolver rutas UNC (\\servidor\...) por
       # si solo. DESPACHOS_HOST_PATH (definida en .env, ver .env.example) debe
       # apuntar, desde el HOST donde corre Docker, a la carpeta ya montada del

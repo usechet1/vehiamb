@@ -24,9 +24,9 @@
             background: linear-gradient(160deg, #eef1f5 0%, #e4e9f0 100%);
         }
 
-        .etiqueta {
+        .etiqueta-pagina {
             max-width: 430px;
-            margin: 0 auto;
+            margin: 0 auto 28px;
             background: #fff;
             border-radius: 16px;
             padding: 0;
@@ -35,14 +35,17 @@
             border: 1px solid var(--color-border);
         }
 
+        .etiqueta-pagina:last-child { margin-bottom: 0; }
+
         .etiqueta-logo-wrap {
             text-align: center;
-            padding: 20px 20px 14px;
+            padding: 24px 20px 18px;
             background: #fff;
         }
 
         .etiqueta-logo {
-            height: 64px;
+            height: 120px;
+            max-width: 90%;
             width: auto;
         }
 
@@ -166,35 +169,51 @@
 
         #estadoCarga { text-align: center; padding: 40px; color: var(--color-muted); }
 
+        /* Se imprime a doble cara: la pagina 1 (frente) termina en un salto
+           de pagina fijo, asi la pagina 2 (aceites y filtros) cae siempre en
+           la hoja siguiente -- que al imprimir duplex queda en el reverso de
+           la primera, como si estuviera escrito ahi mismo. */
         @media print {
             body { background: #fff; padding: 0; }
-            .etiqueta { border-width: 1px; box-shadow: none; }
+            .etiqueta-pagina { border-width: 1px; box-shadow: none; margin-bottom: 0; }
+            .etiqueta-pagina-1 { page-break-after: always; break-after: page; }
             .etiqueta-acciones { display: none; }
         }
     </style>
 </head>
 <body>
     <div id="estadoCarga">Cargando etiqueta...</div>
-    <div class="etiqueta hidden" id="etiqueta">
-        <div class="etiqueta-logo-wrap hidden" id="etqLogoWrap">
-            <img alt="Logo" class="etiqueta-logo" id="etqLogo">
-        </div>
-        <div class="etiqueta-head">
-            <h1>Cambio de aceite</h1>
-            <div class="etiqueta-placa" id="etqPlaca">---</div>
-        </div>
-        <div class="etiqueta-body">
-            <div class="etiqueta-fila"><strong>Fecha</strong><span id="etqFecha">--</span></div>
-            <div class="etiqueta-fila"><strong>Kilometraje actual</strong><span id="etqKm">--</span></div>
-            <div class="etiqueta-fila"><strong>Responsable</strong><span id="etqResponsable">--</span></div>
-            <div class="etiqueta-proximo">
-                <span class="etiqueta-proximo-label">Próximo cambio</span>
-                <span class="etiqueta-proximo-valor" id="etqProximo">--</span>
+    <div id="etiqueta" class="hidden">
+        <div class="etiqueta-pagina etiqueta-pagina-1">
+            <div class="etiqueta-logo-wrap hidden" id="etqLogoWrap">
+                <img alt="Logo" class="etiqueta-logo" id="etqLogo">
             </div>
-            <p class="etiqueta-section-title">Aceite y filtros reemplazados</p>
-            <ul class="etiqueta-lista" id="etqRepuestos"></ul>
+            <div class="etiqueta-head">
+                <h1>Cambio de aceite</h1>
+                <div class="etiqueta-placa" id="etqPlaca">---</div>
+            </div>
+            <div class="etiqueta-body">
+                <div class="etiqueta-fila"><strong>Fecha</strong><span id="etqFecha">--</span></div>
+                <div class="etiqueta-fila"><strong>Kilometraje actual</strong><span id="etqKm">--</span></div>
+                <div class="etiqueta-fila"><strong>Responsable</strong><span id="etqResponsable">--</span></div>
+                <div class="etiqueta-proximo">
+                    <span class="etiqueta-proximo-label">Próximo cambio</span>
+                    <span class="etiqueta-proximo-valor" id="etqProximo">--</span>
+                </div>
+            </div>
+            <div class="etiqueta-footer" id="etqFooter"></div>
         </div>
-        <div class="etiqueta-footer" id="etqFooter"></div>
+
+        <div class="etiqueta-pagina etiqueta-pagina-2">
+            <div class="etiqueta-head">
+                <h1>Aceite y filtros reemplazados</h1>
+                <div class="etiqueta-placa" id="etqPlacaReverso">---</div>
+            </div>
+            <div class="etiqueta-body">
+                <ul class="etiqueta-lista" id="etqRepuestos"></ul>
+            </div>
+            <div class="etiqueta-footer" id="etqFooterReverso"></div>
+        </div>
     </div>
     <div class="etiqueta-acciones hidden" id="etiquetaAcciones">
         <button type="button" onclick="window.print()">Imprimir / Descargar PDF</button>
@@ -253,6 +272,7 @@
                 }
 
                 document.getElementById("etqPlaca").textContent = mantenimiento.placa || "SIN PLACA";
+                document.getElementById("etqPlacaReverso").textContent = mantenimiento.placa || "SIN PLACA";
                 document.getElementById("etqFecha").textContent = formatDate(mantenimiento.fecha);
                 document.getElementById("etqKm").textContent = `${Number(mantenimiento.kilometraje || 0).toLocaleString("es-CO")} km`;
                 document.getElementById("etqResponsable").textContent = mantenimiento.hecho_por || "No registrado";
@@ -278,9 +298,11 @@
                     document.getElementById("etqLogoWrap").classList.remove("hidden");
                 }
 
-                document.getElementById("etqFooter").textContent = usuarioActual?.empresa_nombre
+                const footerTexto = usuarioActual?.empresa_nombre
                     ? `Generado por VehiAmb para ${usuarioActual.empresa_nombre}`
                     : "Generado por VehiAmb";
+                document.getElementById("etqFooter").textContent = footerTexto;
+                document.getElementById("etqFooterReverso").textContent = footerTexto;
 
                 estadoCarga.classList.add("hidden");
                 document.getElementById("etiqueta").classList.remove("hidden");

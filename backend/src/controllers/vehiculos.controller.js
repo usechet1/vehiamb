@@ -46,6 +46,12 @@ exports.getRepuestosSugeridos = async (req, res) => {
 };
 
 exports.updateRepuestosSugeridos = async (req, res) => {
-  const items = await vehiculosService.updateRepuestosSugeridos(req.params.id, req.body.tipo_mantenimiento, req.body.items, req.empresaId);
+  const items = await vehiculosService.updateRepuestosSugeridos(
+    req.params.id,
+    req.body.tipo_mantenimiento,
+    req.body.items,
+    req.body.intervalo_km,
+    req.empresaId
+  );
   res.json(items);
 };

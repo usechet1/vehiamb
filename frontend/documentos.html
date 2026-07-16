@@ -20,13 +20,18 @@
 
             <div class="kpis-grid" id="documentosKpisGrid"></div>
 
-            <div class="module-grid">
-                <div class="stack" id="registrarDocumentoSection">
-                    <section class="section-card">
-                        <div class="section-card-head">
+            <div class="tabs" role="tablist">
+                <button type="button" class="tab-button active" id="tabDocumentosHistorialButton" role="tab" aria-selected="true" data-tab="historial">Documentos registrados</button>
+                <button type="button" class="tab-button" id="tabDocumentosRegistrarButton" role="tab" aria-selected="false" data-tab="registrar">Registrar documento</button>
+            </div>
+
+            <div class="stack">
+                <section class="section-card hidden" id="registrarDocumentoSection">
+                    <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
                             <h2>Registrar documento</h2>
                             <p>Agenda documentos asociados a cada vehículo y sus fechas clave.</p>
-                        </div>
+                        </summary>
                         <div class="section-card-body">
                             <form id="documentoForm" class="compact-form">
                                 <div class="form-group">
@@ -75,15 +80,15 @@
                                 <button type="submit" class="btn-primary">Guardar documento</button>
                             </form>
                         </div>
-                    </section>
-                </div>
+                    </details>
+                </section>
 
-                <div class="stack">
-                    <section class="section-card">
-                        <div class="section-card-head">
+                <section class="section-card" id="documentosRegistradosSection">
+                    <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
                             <h2>Documentos registrados</h2>
                             <p>Vencimientos de Tecnomecánica, SOAT, seguros y documentos.</p>
-                        </div>
+                        </summary>
                         <div class="section-card-body">
                             <form id="documentosFilterForm" class="filter-form">
                                 <div class="form-grid-4">
@@ -127,8 +132,8 @@
                                 <p class="dash-empty">Cargando...</p>
                             </div>
                         </div>
-                    </section>
-                </div>
+                    </details>
+                </section>
             </div>
 
             <div id="loader" class="loader hidden">

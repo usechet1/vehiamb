@@ -16,13 +16,18 @@ exports.getRepuestoById = async (req, res) => {
   res.json(repuesto);
 };
 
+exports.getSiguienteCodigo = async (req, res) => {
+  const codigo_interno = await repuestosService.previsualizarCodigoInterno(req.empresaId);
+  res.json({ codigo_interno });
+};
+
 exports.createRepuesto = async (req, res) => {
-  const repuesto = await repuestosService.createRepuesto(req.body, req.empresaId);
+  const repuesto = await repuestosService.createRepuesto(req.body, req.empresaId, req.file);
   res.status(201).json(repuesto);
 };
 
 exports.updateRepuesto = async (req, res) => {
-  const repuesto = await repuestosService.updateRepuesto(req.params.id, req.body, req.empresaId);
+  const repuesto = await repuestosService.updateRepuesto(req.params.id, req.body, req.empresaId, req.file);
   res.json(repuesto);
 };
 

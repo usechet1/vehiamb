@@ -1,4 +1,8 @@
 const documentoForm = document.getElementById("documentoForm");
+const tabDocumentosHistorialButton = document.getElementById("tabDocumentosHistorialButton");
+const tabDocumentosRegistrarButton = document.getElementById("tabDocumentosRegistrarButton");
+const registrarDocumentoSection = document.getElementById("registrarDocumentoSection");
+const documentosRegistradosSection = document.getElementById("documentosRegistradosSection");
 const documentosFilterForm = document.getElementById("documentosFilterForm");
 const documentoSelect = document.getElementById("vehiculoDocumento");
 const documentosList = document.getElementById("documentosList");
@@ -138,8 +142,8 @@ function renderDocumentos(documentos) {
             <article class="record-item">
                 <div class="record-top">
                     <div>
-                        <span class="record-title">${tiposDocumento[item.tipo] || item.tipo}</span>
-                        <span class="record-sub">${item.placa || "Sin placa"} - ${item.numero_documento || "Sin número"}</span>
+                        <span class="record-title">${escapeHtml(tiposDocumento[item.tipo] || item.tipo)}</span>
+                        <span class="record-sub">${escapeHtml(item.placa) || "Sin placa"} - ${escapeHtml(item.numero_documento) || "Sin número"}</span>
                     </div>
                     <span class="pill ${pillClass}">${statusText}</span>
                 </div>
@@ -149,8 +153,8 @@ function renderDocumentos(documentos) {
                     ${item.archivo_url ? '<span class="pill">Adjunto disponible</span>' : ""}
                 </div>
                 ${item.archivo_url ? `
-                    <a class="record-link" href="${window.VehiAmb.api.getAssetUrl(item.archivo_url)}" target="_blank" rel="noreferrer">
-                        ${item.archivo_nombre || "Ver adjunto"}
+                    <a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(item.archivo_url))}" target="_blank" rel="noreferrer">
+                        ${escapeHtml(item.archivo_nombre) || "Ver adjunto"}
                     </a>
                 ` : ""}
             </article>
@@ -227,6 +231,21 @@ async function cargarDatos() {
     }
 }
 
+function switchTab(tab) {
+    const esRegistrar = tab === "registrar";
+
+    tabDocumentosRegistrarButton.classList.toggle("active", esRegistrar);
+    tabDocumentosHistorialButton.classList.toggle("active", !esRegistrar);
+    tabDocumentosRegistrarButton.setAttribute("aria-selected", String(esRegistrar));
+    tabDocumentosHistorialButton.setAttribute("aria-selected", String(!esRegistrar));
+
+    window.VehiAmb.ui[esRegistrar ? "show" : "hide"](registrarDocumentoSection);
+    window.VehiAmb.ui[esRegistrar ? "hide" : "show"](documentosRegistradosSection);
+}
+
+tabDocumentosHistorialButton.addEventListener("click", () => switchTab("historial"));
+tabDocumentosRegistrarButton.addEventListener("click", () => switchTab("registrar"));
+
 documentoForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
@@ -238,6 +257,7 @@ documentoForm.addEventListener("submit", async (event) => {
         window.VehiAmb.ui.showMessage(mensaje, "Documento guardado correctamente");
         documentoForm.reset();
         await cargarDatos();
+        switchTab("historial");
     } catch (error) {
         console.error(error);
         window.VehiAmb.ui.showMessage(mensaje, "Error al guardar el documento", "error");
@@ -267,7 +287,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await window.VehiAmb.auth.fetchCurrentUser();
 
     if (!window.VehiAmb.auth.hasPermission("documents.create")) {
-        document.getElementById("registrarDocumentoSection")?.classList.add("hidden");
+        tabDocumentosRegistrarButton?.classList.add("hidden");
     }
 
     cargarDatos();

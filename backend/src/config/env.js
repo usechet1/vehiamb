@@ -1,16 +1,38 @@
 require("dotenv").config({ quiet: true });
 
+const DEFAULT_DEV_AUTH_SECRET = "vehiamb-dev-secret";
+const DEFAULT_DEV_ADMIN_PASSWORD = "Admin123*";
+const nodeEnv = process.env.NODE_ENV || "development";
+
+// En produccion no se acepta el secreto/clave de desarrollo: ambos son
+// publicos en el repo (.env.example), asi que quedarse con el default fuera
+// de "development" permite forjar tokens validos para cualquier usuario o
+// entrar con la clave del admin semilla. Falla rapido en el arranque en vez
+// de exponer un bypass de autenticacion silencioso.
+if (nodeEnv === "production") {
+  if (!process.env.AUTH_SECRET || process.env.AUTH_SECRET === DEFAULT_DEV_AUTH_SECRET) {
+    throw new Error(
+      "AUTH_SECRET debe definirse en produccion con un valor propio (no el de .env.example). " +
+      "Generar uno con: node -e \"console.log(require('crypto').randomBytes(48).toString('hex'))\""
+    );
+  }
+
+  if (!process.env.SEED_ADMIN_PASSWORD || process.env.SEED_ADMIN_PASSWORD === DEFAULT_DEV_ADMIN_PASSWORD) {
+    throw new Error("SEED_ADMIN_PASSWORD debe definirse en produccion con un valor propio (no el de .env.example).");
+  }
+}
+
 const env = {
-  nodeEnv: process.env.NODE_ENV || "development",
+  nodeEnv,
   port: Number(process.env.PORT || 3000),
   corsOrigin: process.env.CORS_ORIGIN || "*",
   dbClient: process.env.DB_CLIENT || "postgres",
   databaseUrl: process.env.DATABASE_URL || "postgres://vehiamb:vehiamb_dev@localhost:5432/vehiamb",
-  authSecret: process.env.AUTH_SECRET || "vehiamb-dev-secret",
+  authSecret: process.env.AUTH_SECRET || DEFAULT_DEV_AUTH_SECRET,
   authTokenHours: Number(process.env.AUTH_TOKEN_HOURS || 12),
   seedAdminName: process.env.SEED_ADMIN_NAME || "Administrador VehiAmb",
   seedAdminEmail: process.env.SEED_ADMIN_EMAIL || "admin@vehiamb.local",
-  seedAdminPassword: process.env.SEED_ADMIN_PASSWORD || "Admin123*",
+  seedAdminPassword: process.env.SEED_ADMIN_PASSWORD || DEFAULT_DEV_ADMIN_PASSWORD,
   seedAdminRole: process.env.SEED_ADMIN_ROLE || "Administrador",
   excelFilePath: process.env.EXCEL_FILE_PATH || "",
   excelRetryAttempts: Number(process.env.EXCEL_RETRY_ATTEMPTS || 3),

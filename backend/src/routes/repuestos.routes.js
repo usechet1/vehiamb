@@ -4,6 +4,9 @@ const router = express.Router();
 const repuestosController = require("../controllers/repuestos.controller");
 const asyncHandler = require("../middlewares/async-handler");
 const requirePermission = require("../middlewares/require-permission");
+const uploadRepuesto = require("../middlewares/upload-repuesto");
+const compressImage = require("../middlewares/compress-image");
+const validateUpload = require("../middlewares/validate-upload");
 
 // GET listado paginado con busqueda/filtros
 router.get("/", requirePermission("inventory.view"), asyncHandler(repuestosController.getRepuestos));
@@ -11,14 +14,31 @@ router.get("/", requirePermission("inventory.view"), asyncHandler(repuestosContr
 // GET buscador predictivo (autocomplete del formulario de mantenimiento)
 router.get("/buscar", requirePermission("inventory.view"), asyncHandler(repuestosController.buscarRepuestos));
 
+// GET previsualizacion del proximo codigo interno (antes de guardar)
+router.get("/siguiente-codigo", requirePermission("inventory.manage"), asyncHandler(repuestosController.getSiguienteCodigo));
+
 // GET repuesto por id
 router.get("/:id", requirePermission("inventory.view"), asyncHandler(repuestosController.getRepuestoById));
 
 // POST crear repuesto
-router.post("/", requirePermission("inventory.manage"), asyncHandler(repuestosController.createRepuesto));
+router.post(
+  "/",
+  requirePermission("inventory.manage"),
+  uploadRepuesto.single("foto"),
+  asyncHandler(validateUpload),
+  asyncHandler(compressImage),
+  asyncHandler(repuestosController.createRepuesto)
+);
 
 // PUT editar repuesto
-router.put("/:id", requirePermission("inventory.manage"), asyncHandler(repuestosController.updateRepuesto));
+router.put(
+  "/:id",
+  requirePermission("inventory.manage"),
+  uploadRepuesto.single("foto"),
+  asyncHandler(validateUpload),
+  asyncHandler(compressImage),
+  asyncHandler(repuestosController.updateRepuesto)
+);
 
 // GET disponibilidad (principal + equivalencias con stock) -- usado por el formulario de mantenimiento
 router.get("/:id/disponibilidad", requirePermission("inventory.view"), asyncHandler(repuestosController.getDisponibilidad));

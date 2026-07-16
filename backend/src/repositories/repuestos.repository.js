@@ -10,8 +10,11 @@ const REPUESTO_FIELDS = [
   "valor_promedio",
   "estado",
   "observaciones",
+  "foto_url",
   "empresa_id"
 ];
+
+const CODIGO_INTERNO_PREFIJO = "REP-";
 
 const SEARCH_COLUMNS = ["r.codigo_interno", "r.nombre", "r.referencia"];
 
@@ -135,6 +138,24 @@ async function findByCodigosInternos(codigos, empresaId) {
   return mapa;
 }
 
+// Encuentra el numero mas alto ya usado en codigos "REP-000N" de esta
+// empresa, para poder generar el siguiente de forma incremental. Filtra por
+// el patron exacto para no romperse con codigos legados que no lo siguen
+// (importados de otro sistema, etc.) -- esos simplemente no cuentan para el
+// contador.
+async function findSiguienteNumeroCodigo(empresaId) {
+  const row = await db.get(
+    `
+      SELECT COALESCE(MAX(CAST(SUBSTRING(codigo_interno FROM '^${CODIGO_INTERNO_PREFIJO}(\\d+)$') AS INTEGER)), 0) AS max_numero
+      FROM repuestos
+      WHERE empresa_id = ? AND codigo_interno ~ '^${CODIGO_INTERNO_PREFIJO}\\d+$'
+    `,
+    [empresaId]
+  );
+
+  return Number(row?.max_numero || 0) + 1;
+}
+
 async function create(repuesto) {
   const placeholders = REPUESTO_FIELDS.map(() => "?").join(", ");
   const values = REPUESTO_FIELDS.map((field) => repuesto[field] ?? null);
@@ -177,7 +198,9 @@ module.exports = {
   findById,
   findByCodigoInterno,
   findByCodigosInternos,
+  findSiguienteNumeroCodigo,
   create,
   update,
-  updateDatosImportados
+  updateDatosImportados,
+  CODIGO_INTERNO_PREFIJO
 };

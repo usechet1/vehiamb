@@ -1,11 +1,3 @@
-document.getElementById("fecha-hoy").textContent =
-    new Date().toLocaleDateString("es-CO", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric"
-    });
-
 const tiposMantenimiento = {
     revision: "Revisión general",
     preventivo: "Preventivo",
@@ -591,7 +583,6 @@ function pintarViajesRecientes(viajes) {
 async function inicializarConductorHome(user) {
     document.getElementById("dashboardHome").classList.add("hidden");
     document.getElementById("conductorHome").classList.remove("hidden");
-    document.getElementById("fecha-hoy-conductor").textContent = document.getElementById("fecha-hoy").textContent;
 
     const primerNombre = String(user?.nombre || "").trim().split(" ")[0];
     document.getElementById("conductorSaludo").textContent = primerNombre ? `¡Hola, ${primerNombre}!` : "¡Hola!";

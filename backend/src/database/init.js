@@ -45,6 +45,7 @@ const PERMISSIONS = [
   ["vehicles.create", "Vehiculos", "Crear vehiculos"],
   ["vehicles.edit", "Vehiculos", "Editar vehiculos"],
   ["vehicles.delete", "Vehiculos", "Eliminar vehiculos"],
+  ["vehicles.repuestos_sugeridos", "Vehiculos", "Configurar y usar repuestos sugeridos para cambio de aceite"],
   ["maintenance.view", "Mantenimientos", "Ver mantenimientos"],
   ["maintenance.create", "Mantenimientos", "Registrar mantenimientos"],
   ["maintenance.approve", "Mantenimientos", "Aprobar o rechazar mantenimientos"],
@@ -78,6 +79,7 @@ const ROLE_PERMISSIONS = {
     "vehicles.view",
     "vehicles.create",
     "vehicles.edit",
+    "vehicles.repuestos_sugeridos",
     "maintenance.view",
     "maintenance.create",
     "documents.view",
@@ -183,7 +185,8 @@ const PERMISOS_NUEVOS_POR_ROL = {
   "inspections.create": ["Administrador", "Operador"],
   "trips.view": ["Administrador", "Conductor"],
   "trips.create": ["Administrador", "Conductor"],
-  "empresa.manage": ["Administrador"]
+  "empresa.manage": ["Administrador"],
+  "vehicles.repuestos_sugeridos": ["Administrador", "Operador", "SuperAdministrador"]
 };
 
 async function grantPermisosNuevos() {
@@ -1267,6 +1270,8 @@ if (env.dbClient === "sqlite") {
     .then(() => Promise.all([
       ensureColumn("empresas", "logo_url", "TEXT"),
       ensureColumn("empresas", "modulos_deshabilitados", "TEXT[] NOT NULL DEFAULT '{}'"),
+      ensureColumn("repuestos", "foto_url", "TEXT"),
+      ensureColumn("vehiculos", "intervalo_cambio_aceite_km", "INTEGER"),
       ensureColumn("usuarios", "role_id", "BIGINT REFERENCES roles(id)"),
       ensureColumn("roles", "permisos_configurados", "BOOLEAN NOT NULL DEFAULT FALSE"),
       ensureColumn("mantenimientos", "repuestos", "TEXT"),

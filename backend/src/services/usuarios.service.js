@@ -10,6 +10,11 @@ function normalizeEmail(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+function getDominio(email) {
+  const partes = normalizeEmail(email).split("@");
+  return partes.length === 2 ? partes[1] : "";
+}
+
 function toSafeUser(user) {
   return {
     id: user.id,
@@ -49,7 +54,7 @@ async function resolveRole(roleId, { allowInactiveId = null, callerPermisos = []
   return role;
 }
 
-async function validateUserPayload(payload, { isUpdate = false, existingRoleId = null, callerPermisos = [] } = {}) {
+async function validateUserPayload(payload, { isUpdate = false, existingRoleId = null, callerPermisos = [], dominioRequerido = null } = {}) {
   const nombre = String(payload.nombre || "").trim();
   const email = normalizeEmail(payload.email);
   const password = String(payload.password || "");
@@ -57,6 +62,13 @@ async function validateUserPayload(payload, { isUpdate = false, existingRoleId =
 
   if (!nombre || !email || !roleId) {
     throw new HttpError(400, "Nombre, correo y rol son obligatorios");
+  }
+
+  // Al CREAR (no al editar, para no romper usuarios ya existentes con otro
+  // dominio) se exige que el correo comparta dominio con el resto de la
+  // empresa -- ver findPrimerEmailPorEmpresa.
+  if (!isUpdate && dominioRequerido && getDominio(email) !== dominioRequerido) {
+    throw new HttpError(400, `El correo debe pertenecer al dominio @${dominioRequerido}, igual que el resto de los usuarios de la empresa`);
   }
 
   if (nombre.length < 4) {
@@ -97,7 +109,10 @@ async function listUsers(empresaId) {
 // = una empresa, el login no pide elegir empresa), asi que la verificacion
 // de unicidad de email es deliberadamente global, sin filtrar por empresaId.
 async function createUser(payload, empresaId, callerPermisos = []) {
-  const user = await validateUserPayload(payload, { callerPermisos });
+  const primerEmail = await usuariosRepository.findPrimerEmailPorEmpresa(empresaId);
+  const dominioRequerido = primerEmail ? getDominio(primerEmail) : null;
+
+  const user = await validateUserPayload(payload, { callerPermisos, dominioRequerido });
   const existing = await usuariosRepository.findByEmail(user.email);
 
   if (existing) {

@@ -27,10 +27,11 @@
 
             <div class="stack">
                 <section class="section-card hidden" id="registrarMantenimientoSection">
-                    <div class="section-card-head">
+                    <details class="section-card-collapsible" open>
+                    <summary class="section-card-head">
                         <h2>Registrar mantenimiento</h2>
                         <p>Revisión, preventivo, correctivo, aceite, frenos, llantas u otro trabajo.</p>
-                    </div>
+                    </summary>
                     <div class="section-card-body">
                         <form id="mantenimientoForm" class="compact-form">
                             <h3 class="form-section-title">Datos generales</h3>
@@ -65,7 +66,8 @@
                             <div class="form-grid hidden" id="cambioAceiteFields">
                                 <div class="form-group">
                                     <label>Próximo cambio de aceite (km)</label>
-                                    <input type="number" name="proximo_cambio_km" id="proximoCambioKmInput" min="0">
+                                    <input type="text" id="proximoCambioKmInput" readonly disabled>
+                                    <span id="proximoCambioKmHelp" class="field-help"></span>
                                 </div>
 
                                 <div class="form-group">
@@ -176,13 +178,15 @@
                             <button type="submit" class="btn-primary">Guardar mantenimiento</button>
                         </form>
                     </div>
+                    </details>
                 </section>
 
                 <section class="section-card" id="historialMantenimientosSection">
-                    <div class="section-card-head">
+                    <details class="section-card-collapsible" open>
+                    <summary class="section-card-head">
                         <h2>Historial reciente</h2>
                         <p>Últimas revisiones y mantenimientos registrados.</p>
-                    </div>
+                    </summary>
                     <div class="section-card-body">
                         <form id="mantenimientosFilterForm" class="filter-form">
                             <div class="form-grid-4">
@@ -232,6 +236,7 @@
                             <p class="dash-empty">Cargando...</p>
                         </div>
                     </div>
+                    </details>
                 </section>
             </div>
 

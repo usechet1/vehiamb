@@ -498,6 +498,10 @@ window.VehiAmb.api = {
         );
     },
 
+    getSiguienteCodigoRepuesto() {
+        return requestJson(`${window.VehiAmb.API_URL}/repuestos/siguiente-codigo`, undefined, "No se pudo obtener el siguiente código");
+    },
+
     buscarRepuestos(term) {
         const params = new URLSearchParams({ q: term });
 
@@ -512,18 +516,18 @@ window.VehiAmb.api = {
         return requestJson(`${window.VehiAmb.API_URL}/repuestos/${id}`, undefined, "No se pudo cargar el repuesto");
     },
 
-    createRepuesto(payload) {
+    createRepuesto(formData) {
         return requestJson(
             `${window.VehiAmb.API_URL}/repuestos`,
-            { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) },
+            { method: "POST", body: formData },
             "No se pudo guardar el repuesto"
         );
     },
 
-    updateRepuesto(id, payload) {
+    updateRepuesto(id, formData) {
         return requestJson(
             `${window.VehiAmb.API_URL}/repuestos/${id}`,
-            { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) },
+            { method: "PUT", body: formData },
             "No se pudo actualizar el repuesto"
         );
     },

@@ -6,6 +6,7 @@ const asyncHandler = require("../middlewares/async-handler");
 const requirePermission = require("../middlewares/require-permission");
 const uploadVehiculo = require("../middlewares/upload-vehiculo");
 const compressImage = require("../middlewares/compress-image");
+const validateUpload = require("../middlewares/validate-upload");
 
 // GET todos los vehículos (con busqueda, filtros, orden y paginacion)
 router.get("/", requirePermission("vehicles.view"), asyncHandler(vehiculosController.getVehiculos));
@@ -24,6 +25,7 @@ router.post(
   "/",
   requirePermission("vehicles.create"),
   uploadVehiculo.single("imagen"),
+  asyncHandler(validateUpload),
   asyncHandler(compressImage),
   asyncHandler(vehiculosController.createVehiculo)
 );
@@ -33,6 +35,7 @@ router.put(
   "/:id",
   requirePermission("vehicles.edit"),
   uploadVehiculo.single("imagen"),
+  asyncHandler(validateUpload),
   asyncHandler(compressImage),
   asyncHandler(vehiculosController.updateVehiculo)
 );

@@ -12,14 +12,37 @@ window.VehiAmb.ui = {
     showMessage(element, text, type = "success") {
         if (!element) return;
 
+        // Un mensaje nuevo cancela el auto-ocultado del anterior -- sin esto,
+        // dos avisos seguidos (comun en moviles con conexion lenta, donde el
+        // usuario reintenta) podian terminar con el timeout del primero
+        // ocultando el segundo antes de que se alcance a leer.
+        if (element._hideTimeout) {
+            window.clearTimeout(element._hideTimeout);
+        }
+
         element.textContent = text;
         element.classList.toggle("error", type === "error");
         element.classList.remove("hidden");
 
-        window.setTimeout(() => {
+        if (!element._dismissOnTap) {
+            element._dismissOnTap = true;
+            element.addEventListener("click", () => {
+                window.clearTimeout(element._hideTimeout);
+                element.classList.add("hidden");
+                element.classList.remove("error");
+            });
+        }
+
+        // Duracion proporcional al largo del texto (los mensajes de error
+        // del backend suelen ser una frase completa) -- minimo 3.5s, maximo
+        // 9s, para que en pantallas chicas alcance a leerse sin quedar
+        // pegado en camino demasiado tiempo si es corto.
+        const duracion = Math.min(9000, Math.max(3500, text.length * 65));
+
+        element._hideTimeout = window.setTimeout(() => {
             element.classList.add("hidden");
             element.classList.remove("error");
-        }, 3000);
+        }, duracion);
     },
 
     // Formatea un input de texto con separador de miles ("." estilo es-CO)
@@ -81,6 +104,47 @@ window.VehiAmb.ui = {
         if (value === null || value === undefined) return "0";
         const digitos = String(value).replace(/[^\d]/g, "");
         return digitos || "0";
+    },
+
+    // Igual que formatearMonedaEnVivo, pero admite decimales (","), para
+    // valores unitarios de repuestos que si necesitan centavos (ej. insumos
+    // importados con precio fraccionario). El valor real se obtiene con
+    // parseFormattedMonedaDecimal().
+    formatearMonedaDecimalEnVivo(input) {
+        const posicionDesdeElFinal = input.value.length - input.selectionStart;
+
+        let raw = input.value.replace(/[^\d,]/g, "");
+        const primeraComa = raw.indexOf(",");
+        if (primeraComa !== -1) {
+            raw = raw.slice(0, primeraComa + 1) + raw.slice(primeraComa + 1).replaceAll(",", "");
+        }
+
+        let [parteEntera, parteDecimal] = raw.split(",");
+        parteEntera = parteEntera.replace(/^0+(?=\d)/, "");
+        const parteEnteraFormateada = parteEntera.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        const cuerpo = parteDecimal !== undefined ? `${parteEnteraFormateada},${parteDecimal}` : parteEnteraFormateada;
+
+        input.value = `$ ${cuerpo}`;
+
+        const nuevaPosicion = Math.max(0, input.value.length - posicionDesdeElFinal);
+        input.setSelectionRange(nuevaPosicion, nuevaPosicion);
+    },
+
+    formatearMonedaDecimalParaMostrar(value) {
+        if (value === null || value === undefined || value === "") return "$ 0";
+
+        const numero = Number(value);
+        if (!Number.isFinite(numero)) return `$ ${value}`;
+
+        const [parteEntera, parteDecimal] = numero.toFixed(2).split(".");
+        const parteEnteraFormateada = parteEntera.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        return parteDecimal === "00" ? `$ ${parteEnteraFormateada}` : `$ ${parteEnteraFormateada},${parteDecimal}`;
+    },
+
+    parseFormattedMonedaDecimal(value) {
+        if (value === null || value === undefined) return "0";
+        const sinSigno = String(value).replace(/^\$\s*/, "");
+        return window.VehiAmb.ui.parseFormattedNumber(sinSigno) || "0";
     },
 
     // Reemplaza window.confirm() nativo (dialogo del sistema operativo, sin

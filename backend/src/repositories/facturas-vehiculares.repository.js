@@ -71,8 +71,8 @@ async function update(id, factura, empresaId) {
     );
   }
 
-  await db.run(`UPDATE facturas_vehiculares SET ${assignments} WHERE id = ?`, [...values, id]);
-  return db.get("SELECT * FROM facturas_vehiculares WHERE id = ?", [id]);
+  await db.run(`UPDATE facturas_vehiculares SET ${assignments} WHERE id = ? AND empresa_id = ?`, [...values, id, empresaId]);
+  return db.get("SELECT * FROM facturas_vehiculares WHERE id = ? AND empresa_id = ?", [id, empresaId]);
 }
 
 async function replaceGastos(facturaId, gastos, importacionId, empresaId) {

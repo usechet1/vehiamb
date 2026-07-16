@@ -190,7 +190,7 @@ async function update(id, vehiculo, empresaId) {
     );
   }
 
-  await db.run(`UPDATE vehiculos SET ${assignments} WHERE id = ?`, [...values, id]);
+  await db.run(`UPDATE vehiculos SET ${assignments} WHERE id = ? AND empresa_id = ?`, [...values, id, empresaId]);
   return findById(id, empresaId);
 }
 
@@ -202,12 +202,25 @@ async function updateEstado(id, estado, empresaId) {
     );
   }
 
-  await db.run("UPDATE vehiculos SET estado = ? WHERE id = ?", [estado, id]);
+  await db.run("UPDATE vehiculos SET estado = ? WHERE id = ? AND empresa_id = ?", [estado, id, empresaId]);
   return findById(id, empresaId);
 }
 
 async function remove(id, empresaId) {
   return db.run("DELETE FROM vehiculos WHERE id = ? AND empresa_id = ?", [id, empresaId]);
+}
+
+// El intervalo de cambio de aceite es un dato propio del vehiculo, no de un
+// repuesto puntual -- se guarda aparte para que una empresa que no usa
+// repuestos sugeridos (ver empresas.modulos_deshabilitados) igual pueda
+// configurar cada cuantos km le toca el cambio, sin depender de tener al
+// menos un repuesto asociado (vehiculo_repuestos_sugeridos.repuesto_id es
+// NOT NULL, asi que no admite una fila "solo intervalo, sin repuesto").
+async function updateIntervaloCambioAceite(id, intervaloKm, empresaId) {
+  return db.get(
+    "UPDATE vehiculos SET intervalo_cambio_aceite_km = ? WHERE id = ? AND empresa_id = ? RETURNING *",
+    [intervaloKm, id, empresaId]
+  );
 }
 
 module.exports = {
@@ -220,6 +233,7 @@ module.exports = {
   create,
   update,
   updateEstado,
+  updateIntervaloCambioAceite,
   remove,
   SORT_KEYS: Object.keys(SORT_OPTIONS),
   DEFAULT_SORT

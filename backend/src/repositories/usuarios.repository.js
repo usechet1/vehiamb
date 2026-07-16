@@ -38,6 +38,21 @@ async function findById(id, empresaId = null) {
   return db.get(`${USER_SELECT} WHERE u.id = ? AND u.empresa_id = ?`, [id, empresaId]);
 }
 
+// Usado para exigir que los usuarios nuevos de una empresa compartan el
+// mismo dominio de correo (ver usuarios.service.js: createUser). Se toma del
+// usuario mas antiguo de la empresa (normalmente el admin creado por
+// create-empresa.js) en vez del correo de quien esta creando el usuario, para
+// que tambien funcione bien cuando quien crea es un SuperAdministrador
+// operando sobre otra empresa (su propio correo no tiene por que compartir
+// dominio con esa empresa).
+async function findPrimerEmailPorEmpresa(empresaId) {
+  const row = await db.get(
+    "SELECT email FROM usuarios WHERE empresa_id = ? ORDER BY created_at ASC, id ASC LIMIT 1",
+    [empresaId]
+  );
+  return row?.email || null;
+}
+
 async function findAll(empresaId) {
   return db.all(
     `
@@ -165,6 +180,7 @@ module.exports = {
   findByEmail,
   findById,
   findAll,
+  findPrimerEmailPorEmpresa,
   create,
   update,
   setActive,

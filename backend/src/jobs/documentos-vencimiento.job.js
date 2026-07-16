@@ -9,10 +9,15 @@ const HORAS_SIN_DUPLICAR = 24;
 const DESTINATARIO_PERMISSION = "documents.view";
 
 // Documentos cubiertos por el recordatorio automatico. Agregar un tipo nuevo
-// (ej. "seguro") es una entrada mas aqui, sin tocar el resto del job.
+// es una entrada mas aqui, sin tocar el resto del job. Cubre los 5 tipos
+// validos de documentos.service.js -- antes solo cubria SOAT/Tecnomecanica,
+// dejando Seguro y Tarjeta de operacion (y "otro") sin ningun aviso.
 const TIPO_DOCUMENTO_NOTIFICACION = {
   soat: { proximo: "soat_proximo", vencido: "soat_vencido", label: "SOAT" },
-  tecnomecanica: { proximo: "tecnomecanica_proxima", vencido: "tecnomecanica_vencida", label: "Tecnico-Mecanica" }
+  tecnomecanica: { proximo: "tecnomecanica_proxima", vencido: "tecnomecanica_vencida", label: "Tecnico-Mecanica" },
+  seguro: { proximo: "seguro_proximo", vencido: "seguro_vencido", label: "Seguro" },
+  tarjeta_operacion: { proximo: "tarjeta_operacion_proxima", vencido: "tarjeta_operacion_vencida", label: "Tarjeta de operacion" },
+  otro: { proximo: "documento_proximo", vencido: "documento_vencido", label: "Documento" }
 };
 
 async function obtenerDocumentosVigentes() {
@@ -20,7 +25,7 @@ async function obtenerDocumentosVigentes() {
     SELECT d.id, d.vehiculo_id, d.tipo, d.fecha_vencimiento, d.empresa_id, v.placa, v.marca, v.modelo
     FROM documentos d
     INNER JOIN vehiculos v ON v.id = d.vehiculo_id
-    WHERE d.tipo IN ('soat', 'tecnomecanica')
+    WHERE d.tipo IN ('soat', 'tecnomecanica', 'seguro', 'tarjeta_operacion', 'otro')
       AND d.fecha_vencimiento IS NOT NULL
   `);
 }

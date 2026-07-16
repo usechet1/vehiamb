@@ -21,10 +21,11 @@
             <div class="module-grid">
                 <div class="stack">
                     <section class="section-card">
-                        <div class="section-card-head">
+                        <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
                             <h2>Ejecutar sincronización manual</h2>
                             <p>Procesa uno o varios días del Excel bajo demanda, sin esperar al proceso automático. El período se determina por Fecha de Envío.</p>
-                        </div>
+                        </summary>
                         <div class="section-card-body">
                             <form id="importForm" class="compact-form">
                                 <div class="form-group">
@@ -58,24 +59,28 @@
                             </form>
                             <div id="importRunResult" class="import-run-result hidden"></div>
                         </div>
+                        </details>
                     </section>
                 </div>
 
                 <div class="stack">
                     <section class="section-card">
-                        <div class="section-card-head">
+                        <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
                             <h2>Última sincronización automática</h2>
                             <p>Se ejecuta todos los días según IMPORT_SCHEDULE, procesando el día anterior.</p>
-                        </div>
+                        </summary>
                         <div class="section-card-body" id="importStatusBody">
                             <p class="dash-empty">Cargando...</p>
                         </div>
+                        </details>
                     </section>
                 </div>
             </div>
 
             <section class="section-card import-history-card">
-                <div class="section-card-head">
+                <details class="section-card-collapsible" open>
+                <summary class="section-card-head">
                     <h2>Historial de sincronizaciones</h2>
                     <div class="filter-form" style="flex-direction: row; align-items: center; gap: 10px;">
                         <select id="importFiltroEstado">
@@ -88,7 +93,7 @@
                             <option value="pendiente">Pendiente</option>
                         </select>
                     </div>
-                </div>
+                </summary>
                 <div class="section-card-body">
                     <div class="table-scroll">
                         <table class="import-table">
@@ -119,6 +124,7 @@
                         </div>
                     </div>
                 </div>
+                </details>
             </section>
 
             <div id="loader" class="loader hidden">

@@ -1,11 +1,3 @@
-document.getElementById("fecha-hoy").textContent =
-    new Date().toLocaleDateString("es-CO", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric"
-    });
-
 const form = document.getElementById("vehiculoForm");
 const loader = document.getElementById("loader");
 const mensaje = document.getElementById("mensaje");
@@ -29,6 +21,33 @@ const isEditMode = Boolean(vehicleId);
 
 const ANIO_MIN = 1950;
 const ANIO_REGEX = /^\d{4}$/;
+
+const selectTipoVehiculo = document.getElementById("select-tipo-vehiculo");
+
+// Formato colombiano estandar: 3 letras + 3 numeros (AAA123). Las motos usan
+// un formato distinto (3 letras + 2 numeros + 1 letra, ej. AAA12B), asi que
+// se valida contra uno u otro segun el tipo de vehiculo elegido.
+const PLACA_REGEX_ESTANDAR = /^[A-Z]{3}[0-9]{3}$/;
+const PLACA_REGEX_MOTO = /^[A-Z]{3}[0-9]{2}[A-Z]$/;
+
+function validarPlacaField() {
+    if (!inputPlaca) return;
+
+    const raw = inputPlaca.value.trim().toUpperCase();
+    if (!raw) {
+        inputPlaca.setCustomValidity("La placa es obligatoria.");
+        return;
+    }
+
+    const esMoto = selectTipoVehiculo?.value === "Motocicleta";
+    const valida = esMoto ? PLACA_REGEX_MOTO.test(raw) : PLACA_REGEX_ESTANDAR.test(raw);
+
+    inputPlaca.setCustomValidity(
+        valida ? "" : esMoto
+            ? "La placa de moto debe tener el formato AAA12B (3 letras, 2 números, 1 letra)."
+            : "La placa debe tener el formato AAA123 (3 letras y 3 números)."
+    );
+}
 
 function validarAnioField() {
     if (!inputAnio) return;
@@ -143,9 +162,12 @@ if (isEditMode) {
 
 inputPlaca?.addEventListener("input", () => {
     const { selectionStart, selectionEnd } = inputPlaca;
-    inputPlaca.value = inputPlaca.value.toUpperCase();
+    inputPlaca.value = inputPlaca.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
     inputPlaca.setSelectionRange(selectionStart, selectionEnd);
+    validarPlacaField();
 });
+inputPlaca?.addEventListener("blur", validarPlacaField);
+selectTipoVehiculo?.addEventListener("change", validarPlacaField);
 
 // Kilometraje, cilindraje y capacidad de carga se escriben como texto para
 // poder mostrar el separador de miles ("." estilo es-CO) mientras el usuario
@@ -203,10 +225,23 @@ if (imageDropzone && imageInput) {
 form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
+    // No se usa reportValidity() (el globo nativo del navegador): en moviles
+    // aparece de forma inconsistente -- a veces no se ve, a veces queda
+    // tapado por el teclado virtual -- asi que el aviso visible es solo el
+    // toast (.mensaje), reforzado con foco + scroll al campo con el error.
     validarAnioField();
     if (inputAnio && !inputAnio.checkValidity()) {
-        inputAnio.reportValidity();
+        inputAnio.focus();
+        inputAnio.scrollIntoView({ behavior: "smooth", block: "center" });
         window.VehiAmb.ui.showMessage(mensaje, inputAnio.validationMessage, "error");
+        return;
+    }
+
+    validarPlacaField();
+    if (inputPlaca && !inputPlaca.checkValidity()) {
+        inputPlaca.focus();
+        inputPlaca.scrollIntoView({ behavior: "smooth", block: "center" });
+        window.VehiAmb.ui.showMessage(mensaje, inputPlaca.validationMessage, "error");
         return;
     }
 

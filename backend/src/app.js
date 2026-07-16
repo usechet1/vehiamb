@@ -23,12 +23,26 @@ const simitRoutes = require("./routes/simit.routes");
 const inspeccionesRoutes = require("./routes/inspecciones.routes");
 const viajesRoutes = require("./routes/viajes.routes");
 const empresasRoutes = require("./routes/empresas.routes");
+const { apiLimiter } = require("./middlewares/rate-limit");
 
 const app = express();
 
 app.use(cors({ origin: env.corsOrigin }));
 app.use(express.json({ limit: "1mb" }));
-app.use("/uploads", express.static(path.resolve(__dirname, "..", "uploads")));
+app.use("/api", apiLimiter);
+// nosniff evita que el navegador reinterprete un archivo por su contenido
+// real si el Content-Type declarado no coincide -- mitigacion adicional a la
+// validacion de magic bytes en validate-upload.js. No se fuerza
+// Content-Disposition: attachment aqui porque romperia el "Ver adjunto" que
+// abre PDFs/fotos inline en pestana nueva (documentos.js, mantenimientos.js).
+app.use(
+  "/uploads",
+  express.static(path.resolve(__dirname, "..", "uploads"), {
+    setHeaders(res) {
+      res.setHeader("X-Content-Type-Options", "nosniff");
+    }
+  })
+);
 
 const frontendDir = path.resolve(__dirname, "..", "..", "frontend");
 app.use(express.static(frontendDir));

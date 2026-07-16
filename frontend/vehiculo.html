@@ -198,98 +198,111 @@
                 </section>
 
                 <section class="section-card" id="vehicleImagenSection">
-                    <div class="section-card-head">
-                        <h2>Imagen del vehículo</h2>
-                        <p>Referencia visual de esta unidad.</p>
-                    </div>
-                    <div class="section-card-body">
-                        <div class="vehicle-image-card">
-                            <div class="vehicle-image-frame">
-                                <img id="vehicleImage" class="hidden" src="" alt="Imagen del vehículo">
-                                <div id="vehicleImagePlaceholder" class="vehicle-image-placeholder">Sin imagen disponible</div>
-                            </div>
-                            <div class="vehicle-image-meta">
-                                <div>
-                                    <span class="plate" id="vehicleImagePlate">---</span>
-                                    <h3 id="vehicleImageName">---</h3>
-                                    <p id="vehicleImageModel">Modelo no disponible</p>
+                    <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
+                            <h2>Imagen del vehículo</h2>
+                            <p>Referencia visual de esta unidad.</p>
+                        </summary>
+                        <div class="section-card-body">
+                            <div class="vehicle-image-card">
+                                <div class="vehicle-image-frame">
+                                    <img id="vehicleImage" class="hidden" src="" alt="Imagen del vehículo">
+                                    <div id="vehicleImagePlaceholder" class="vehicle-image-placeholder">Sin imagen disponible</div>
+                                </div>
+                                <div class="vehicle-image-meta">
+                                    <div>
+                                        <span class="plate" id="vehicleImagePlate">---</span>
+                                        <h3 id="vehicleImageName">---</h3>
+                                        <p id="vehicleImageModel">Modelo no disponible</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </details>
                 </section>
             </div>
 
             <div id="vehicleRecords" class="vehicle-records-grid hidden">
                 <section class="section-card" id="vehicleMantenimientosSection">
-                    <div class="section-card-head">
-                        <h2>Mantenimientos y revisiones</h2>
-                        <p>Trabajos realizados, repuestos y costos asociados.</p>
-                    </div>
-                    <div class="section-card-body">
-                        <div id="vehicleMaintenanceList" class="records-list">
-                            <p class="dash-empty">Cargando...</p>
+                    <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
+                            <h2>Mantenimientos y revisiones</h2>
+                            <p>Trabajos realizados, repuestos y costos asociados.</p>
+                        </summary>
+                        <div class="section-card-body">
+                            <div id="vehicleMaintenanceList" class="records-list">
+                                <p class="dash-empty">Cargando...</p>
+                            </div>
                         </div>
-                    </div>
+                    </details>
                 </section>
 
                 <section class="section-card" id="vehicleVencimientosSection">
-                    <div class="section-card-head">
-                        <h2>Vencimientos</h2>
-                        <p>Tecnomecánica, SOAT, seguros y documentos futuros.</p>
-                    </div>
-                    <div class="section-card-body">
-                        <div id="vehicleDocumentList" class="records-list">
-                            <p class="dash-empty">Cargando...</p>
+                    <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
+                            <h2>Vencimientos</h2>
+                            <p>Tecnomecánica, SOAT, seguros y documentos futuros.</p>
+                        </summary>
+                        <div class="section-card-body">
+                            <div id="vehicleDocumentList" class="records-list">
+                                <p class="dash-empty">Cargando...</p>
+                            </div>
                         </div>
-                    </div>
+                    </details>
                 </section>
 
                 <section class="section-card hidden" id="vehicleSimitSection">
-                    <div class="section-card-head">
-                        <h2>Estado SIMIT</h2>
-                        <p>Comparendos vigentes según la última consulta a la plataforma oficial.</p>
-                    </div>
-                    <div class="section-card-body">
-                        <div id="vehicleSimitBody">
-                            <p class="dash-empty">Cargando estado SIMIT...</p>
+                    <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
+                            <h2>Estado SIMIT</h2>
+                            <p>Comparendos vigentes según la última consulta a la plataforma oficial.</p>
+                        </summary>
+                        <div class="section-card-body">
+                            <div id="vehicleSimitBody">
+                                <p class="dash-empty">Cargando estado SIMIT...</p>
+                            </div>
+                            <div class="vehicle-simit-actions">
+                                <button type="button" id="consultarSimitButton" class="btn-secondary">Consultar SIMIT ahora</button>
+                                <a class="btn-secondary" href="simit.html">Ver módulo SIMIT completo</a>
+                            </div>
                         </div>
-                        <div class="vehicle-simit-actions">
-                            <button type="button" id="consultarSimitButton" class="btn-secondary">Consultar SIMIT ahora</button>
-                            <a class="btn-secondary" href="simit.html">Ver módulo SIMIT completo</a>
-                        </div>
-                    </div>
+                    </details>
                 </section>
 
                 <section class="section-card" id="vehicleRepuestosSugeridosSection">
-                    <div class="section-card-head">
-                        <h2>Repuestos sugeridos (Cambio de aceite)</h2>
-                        <p>Kit de repuestos y el intervalo de cambio para este vehículo. Se preselecciona automáticamente al registrar un cambio de aceite.</p>
-                        <p class="field-help">Se sincroniza automáticamente desde el Excel de cambio de aceite; edítalo aquí solo para corregir un dato o para vehículos que no están incluidos en ese Excel.</p>
-                    </div>
-                    <div class="section-card-body">
-                        <div class="form-group">
-                            <label>Intervalo de cambio (km)</label>
-                            <input type="number" id="repuestoSugeridoIntervaloKm" min="0" placeholder="Ej: 6000">
+                    <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
+                            <h2>Repuestos sugeridos (Cambio de aceite)</h2>
+                            <p>Kit de repuestos y el intervalo de cambio para este vehículo. Se preselecciona automáticamente al registrar un cambio de aceite.</p>
+                            <p class="field-help">Se sincroniza automáticamente desde el Excel de cambio de aceite; edítalo aquí solo para corregir un dato o para vehículos que no están incluidos en ese Excel.</p>
+                        </summary>
+                        <div class="section-card-body">
+                            <div class="form-group">
+                                <label>Intervalo de cambio (km)</label>
+                                <input type="number" id="repuestoSugeridoIntervaloKm" min="0" placeholder="Ej: 6000">
+                            </div>
+                            <div id="repuestosSugeridosPickerWrap">
+                                <div class="simple-list-entry">
+                                    <input type="text" id="repuestoSugeridoInput" placeholder="Buscar repuesto del catálogo...">
+                                    <input type="number" id="repuestoSugeridoCantidadInput" placeholder="Cantidad" min="0.001" step="0.001" value="1">
+                                    <button type="button" id="addRepuestoSugeridoButton" class="btn-secondary" disabled>Agregar</button>
+                                </div>
+                                <div id="repuestoSugeridoSeleccionadoInfo" class="field-help hidden"></div>
+                                <ul id="repuestosSugeridosList" class="simple-checklist"></ul>
+                                <div id="repuestosSugeridosEmpty" class="field-help">Aún no hay repuestos sugeridos configurados.</div>
+                            </div>
+                            <button type="button" id="guardarRepuestosSugeridosButton" class="btn-primary">Guardar repuestos sugeridos</button>
                         </div>
-                        <div class="simple-list-entry">
-                            <input type="text" id="repuestoSugeridoInput" placeholder="Buscar repuesto del catálogo...">
-                            <input type="number" id="repuestoSugeridoCantidadInput" placeholder="Cantidad" min="0.001" step="0.001" value="1">
-                            <button type="button" id="addRepuestoSugeridoButton" class="btn-secondary" disabled>Agregar</button>
-                        </div>
-                        <div id="repuestoSugeridoSeleccionadoInfo" class="field-help hidden"></div>
-                        <ul id="repuestosSugeridosList" class="simple-checklist"></ul>
-                        <div id="repuestosSugeridosEmpty" class="field-help">Aún no hay repuestos sugeridos configurados.</div>
-                        <button type="button" id="guardarRepuestosSugeridosButton" class="btn-primary">Guardar repuestos sugeridos</button>
-                    </div>
+                    </details>
                 </section>
 
                 <section class="section-card inspeccion-section" id="vehicleInspeccionSection">
-                    <div class="section-card-head">
-                        <h2>Inspección preventiva</h2>
-                        <p>Haz click sobre cada punto del diagrama para marcar su estado, como una radiografía del vehículo.</p>
-                    </div>
-                    <div class="section-card-body">
+                    <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
+                            <h2>Inspección preventiva</h2>
+                            <p>Haz click sobre cada punto del diagrama para marcar su estado, como una radiografía del vehículo.</p>
+                        </summary>
+                        <div class="section-card-body">
                         <div class="inspeccion-layout">
                             <div class="inspeccion-diagram-wrap">
                                 <svg class="inspeccion-diagram" viewBox="0 0 200 340" role="img" aria-label="Diagrama genérico del vehículo visto desde arriba">
@@ -366,6 +379,7 @@
                             </div>
                         </div>
                     </div>
+                    </details>
                 </section>
             </div>
 

@@ -6,6 +6,7 @@ const asyncHandler = require("../middlewares/async-handler");
 const requirePermission = require("../middlewares/require-permission");
 const uploadMantenimiento = require("../middlewares/upload-mantenimiento");
 const compressImage = require("../middlewares/compress-image");
+const validateUpload = require("../middlewares/validate-upload");
 
 router.get("/", requirePermission("maintenance.view"), asyncHandler(mantenimientosController.getMantenimientos));
 router.get("/vehiculo/:vehiculoId", requirePermission("maintenance.view"), asyncHandler(mantenimientosController.getMantenimientosByVehicle));
@@ -15,6 +16,7 @@ router.post(
   "/",
   requirePermission("maintenance.create"),
   uploadMantenimiento.single("soporte"),
+  asyncHandler(validateUpload),
   asyncHandler(compressImage),
   asyncHandler(mantenimientosController.createMantenimiento)
 );
