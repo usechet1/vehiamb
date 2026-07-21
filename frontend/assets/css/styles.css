@@ -278,9 +278,8 @@ label[for="loginPassword"] {
     gap: 3px;
     flex: 1;
     padding: 6px 12px;
-    /* Nunca debe aparecer scrollbar aqui: el layout esta calculado para que
-       todo el menu entre siempre, y overflow:hidden es la garantia final. */
-    overflow: hidden;
+    /* overflow-y:auto se define mas abajo (estilo de scrollbar del sidebar):
+       solo aparece cuando el menu no cabe en el alto disponible. */
 }
 
 .sidebar-menu button {
@@ -4353,5 +4352,62 @@ label[for="loginPassword"] {
     .inspeccion-checklist-pill {
         flex: 1;
         justify-content: center;
+    }
+}
+
+/* ── Sidebar cuando el menu no cabe en la ventana ────────────────
+   Si el numero de botones (varia segun los permisos de cada usuario)
+   no cabe en el alto disponible (laptop chico, ventana sin
+   maximizar, zoom), en vez de recortar opciones en silencio se deja
+   scrollear el propio sidebar -- overflow-y:auto solo muestra
+   scrollbar cuando de verdad hace falta, asi que en el caso normal
+   (todo cabe) no se ve nada distinto. Se estiliza fino y en la
+   paleta oscura del sidebar en vez del scrollbar generico del
+   navegador. */
+.sidebar-menu {
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+}
+
+.sidebar-menu::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar-menu::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.22);
+    border-radius: 999px;
+}
+
+.sidebar-menu::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.38);
+}
+
+@media (max-width: 900px) {
+    .sidebar {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+    }
+
+    .sidebar::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .sidebar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .sidebar::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.22);
+        border-radius: 999px;
+    }
+
+    .sidebar::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.38);
     }
 }

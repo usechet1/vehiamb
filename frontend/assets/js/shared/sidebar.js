@@ -452,6 +452,7 @@ async function cargarSidebar() {
             window.location.href = btn.dataset.page;
         });
     });
+
 }
 
 cargarSidebar();
