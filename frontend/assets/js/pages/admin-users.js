@@ -16,6 +16,10 @@ const rolesPermissions = document.getElementById("rolesPermissions");
 const toggleUserPasswordButton = document.getElementById("toggleUserPasswordButton");
 const userPasswordIconEye = toggleUserPasswordButton.querySelector(".icon-eye");
 const userPasswordIconEyeOff = toggleUserPasswordButton.querySelector(".icon-eye-off");
+const userPhoto = document.getElementById("userPhoto");
+const userPhotoDropzone = document.getElementById("userPhotoDropzone");
+const userPhotoPlaceholder = document.getElementById("userPhotoPlaceholder");
+const userPhotoPreview = document.getElementById("userPhotoPreview");
 
 let usersState = [];
 let rolesState = [];
@@ -52,18 +56,11 @@ function escapeHtml(value) {
         .replace(/'/g, "&#039;");
 }
 
-const userEmailHelp = document.getElementById("userEmailHelp");
-
-// El dominio requerido es el del correo del propio usuario logueado --
-// coincide con el que exige el backend en la enorme mayoria de los casos (el
-// admin de una empresa crea usuarios para su misma empresa). Es solo un
-// aviso anticipado en el formulario; la validacion real (que si contempla el
-// caso de un SuperAdministrador operando sobre otra empresa) vive en el
-// servidor -- ver usuarios.service.js createUser.
-function getDominioSugerido() {
-    const email = window.VehiAmb.auth.getUser()?.email || "";
-    const partes = email.split("@");
-    return partes.length === 2 ? partes[1] : "";
+function resetPhotoField() {
+    userPhoto.value = "";
+    userPhotoPreview.removeAttribute("src");
+    window.VehiAmb.ui.hide(userPhotoPreview);
+    window.VehiAmb.ui.show(userPhotoPlaceholder);
 }
 
 function resetForm() {
@@ -73,12 +70,8 @@ function resetForm() {
     userPassword.required = true;
     userFormMode.textContent = "Nuevo usuario";
     hideUserPassword();
+    resetPhotoField();
     fillRoles();
-
-    const dominio = getDominioSugerido();
-    userEmailHelp.textContent = dominio
-        ? `Debe terminar en @${dominio}, igual que el resto de la empresa.`
-        : "Mínimo 4 caracteres.";
 }
 
 function fillRoles() {
@@ -156,19 +149,24 @@ function renderUsers(rows) {
 
     usersList.innerHTML = rows.map((user) => `
         <article class="admin-user-item">
-            <div>
-                <div class="record-top">
+            <div class="record-top">
+                <div class="user-list-identity">
+                    <div class="user-avatar">
+                        ${user.foto_url
+                            ? `<img src="${window.VehiAmb.api.getAssetUrl(user.foto_url)}" alt="">`
+                            : window.getInitials(user.nombre)}
+                    </div>
                     <div>
                         <span class="record-title">${escapeHtml(user.nombre)}</span>
                         <span class="record-sub">${escapeHtml(user.email)}</span>
                     </div>
-                    <span class="badge ${user.activo ? "badge-verde" : "badge-rojo"}">
-                        ${user.activo ? "Activo" : "Inactivo"}
-                    </span>
                 </div>
-                <div class="record-meta">
-                    <span class="pill">${escapeHtml(user.rol || roleNameById(user.role_id))}</span>
-                </div>
+                <span class="badge ${user.activo ? "badge-verde" : "badge-rojo"}">
+                    ${user.activo ? "Activo" : "Inactivo"}
+                </span>
+            </div>
+            <div class="record-meta">
+                <span class="pill">${escapeHtml(user.rol || roleNameById(user.role_id))}</span>
             </div>
             <div class="admin-user-actions">
                 <button type="button" class="btn-secondary" data-action="edit" data-id="${user.id}">Editar</button>
@@ -246,7 +244,15 @@ function editUser(id) {
     userRole.value = user.role_id || "";
     userActive.checked = Boolean(user.activo);
     userFormMode.textContent = "Editar usuario";
-    userEmailHelp.textContent = "Mínimo 4 caracteres.";
+
+    if (user.foto_url) {
+        userPhotoPreview.src = window.VehiAmb.api.getAssetUrl(user.foto_url);
+        window.VehiAmb.ui.show(userPhotoPreview);
+        window.VehiAmb.ui.hide(userPhotoPlaceholder);
+    } else {
+        resetPhotoField();
+    }
+
     userName.focus();
 }
 
@@ -274,25 +280,64 @@ async function toggleUser(id, active) {
     }
 }
 
+function updatePhotoPreview() {
+    const file = userPhoto.files?.[0];
+
+    if (!file) {
+        resetPhotoField();
+        return;
+    }
+
+    userPhotoPreview.src = URL.createObjectURL(file);
+    window.VehiAmb.ui.show(userPhotoPreview);
+    window.VehiAmb.ui.hide(userPhotoPlaceholder);
+}
+
+userPhoto.addEventListener("change", updatePhotoPreview);
+
+["dragenter", "dragover"].forEach((eventName) => {
+    userPhotoDropzone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        userPhotoDropzone.classList.add("dropzone-active");
+    });
+});
+
+["dragleave", "drop"].forEach((eventName) => {
+    userPhotoDropzone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        userPhotoDropzone.classList.remove("dropzone-active");
+    });
+});
+
+userPhotoDropzone.addEventListener("drop", (event) => {
+    const file = event.dataTransfer?.files?.[0];
+    if (!file || !file.type.startsWith("image/")) return;
+
+    userPhoto.files = event.dataTransfer.files;
+    userPhoto.dispatchEvent(new Event("change"));
+});
+
 async function saveUser(event) {
     event.preventDefault();
 
-    const payload = {
-        nombre: userName.value,
-        email: buildEmail(userEmail.value),
-        password: userPassword.value,
-        role_id: userRole.value,
-        activo: userActive.checked
-    };
+    const formData = new FormData();
+    formData.set("nombre", userName.value);
+    formData.set("email", buildEmail(userEmail.value));
+    formData.set("password", userPassword.value);
+    formData.set("role_id", userRole.value);
+    formData.set("activo", String(userActive.checked));
+    if (userPhoto.files?.[0]) {
+        formData.set("foto", userPhoto.files[0]);
+    }
 
     try {
         window.VehiAmb.ui.show(loader);
 
         if (userId.value) {
-            await window.VehiAmb.api.updateUsuario(userId.value, payload);
+            await window.VehiAmb.api.updateUsuario(userId.value, formData);
             window.VehiAmb.ui.showMessage(mensaje, "Usuario actualizado correctamente");
         } else {
-            await window.VehiAmb.api.createUsuario(payload);
+            await window.VehiAmb.api.createUsuario(formData);
             window.VehiAmb.ui.showMessage(mensaje, "Usuario creado correctamente");
         }
 

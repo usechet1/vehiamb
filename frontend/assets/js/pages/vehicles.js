@@ -37,7 +37,8 @@ const DEFAULT_FILTERS = {
 const ESTADOS = {
     activo: { label: "Activo", badge: "badge-verde" },
     reparacion: { label: "En reparación", badge: "badge-amarillo" },
-    fuera_servicio: { label: "Fuera de servicio", badge: "badge-rojo" }
+    fuera_servicio: { label: "Fuera de servicio", badge: "badge-rojo" },
+    dado_de_baja: { label: "Dado de baja", badge: "badge-gris" }
 };
 
 let filters = loadFilters();

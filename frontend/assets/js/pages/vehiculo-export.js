@@ -25,7 +25,8 @@
     const ESTADO_VEHICULO_LABELS = {
         activo: "Activo",
         reparacion: "En reparación",
-        fuera_servicio: "Fuera de servicio"
+        fuera_servicio: "Fuera de servicio",
+        dado_de_baja: "Dado de baja"
     };
 
     const ESTADO_SIMIT_LABELS = {

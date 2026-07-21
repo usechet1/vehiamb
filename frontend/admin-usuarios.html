@@ -34,6 +34,17 @@
                         <input type="hidden" id="userId" name="id">
 
                         <div class="form-group">
+                            <label>Foto de perfil</label>
+                            <div class="avatar-dropzone" id="userPhotoDropzone">
+                                <input type="file" name="foto" id="userPhoto" accept="image/*" class="avatar-dropzone-input">
+                                <div class="avatar-dropzone-placeholder" id="userPhotoPlaceholder">
+                                    <span>Arrastra o haz clic</span>
+                                </div>
+                                <img id="userPhotoPreview" class="avatar-dropzone-preview hidden" alt="Vista previa de la foto de perfil">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
                             <label for="userName">Nombre</label>
                             <input type="text" id="userName" name="nombre" placeholder="Ej: Juan Pérez" minlength="4" required>
                             <span class="field-help">Mínimo 4 caracteres.</span>

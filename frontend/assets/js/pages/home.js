@@ -106,7 +106,8 @@ function pintarResumen(vehiculos, mantenimientos = [], documentos = []) {
 const ESTADOS_VEHICULO = {
     activo: { label: "Activo", color: "var(--color-success)" },
     reparacion: { label: "En reparación", color: "var(--color-warning)" },
-    fuera_servicio: { label: "Fuera de servicio", color: "var(--color-primary)" }
+    fuera_servicio: { label: "Fuera de servicio", color: "var(--color-primary)" },
+    dado_de_baja: { label: "Dado de baja", color: "var(--color-muted)" }
 };
 
 function pintarFlotaEstado(vehiculos) {

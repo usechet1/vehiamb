@@ -1,3 +1,5 @@
+const fs = require("fs/promises");
+const path = require("path");
 const HttpError = require("../errors/http-error");
 const rolesRepository = require("../repositories/roles.repository");
 const usuariosRepository = require("../repositories/usuarios.repository");
@@ -5,14 +7,29 @@ const { hashPassword } = require("../utils/password");
 const notificacionesService = require("./notificaciones.service");
 
 const PERMISO_SUPER_ADMIN = "empresas.switch";
+const UPLOADS_ROOT = path.resolve(__dirname, "..", "..", "uploads");
 
 function normalizeEmail(value) {
   return String(value || "").trim().toLowerCase();
 }
 
-function getDominio(email) {
-  const partes = normalizeEmail(email).split("@");
-  return partes.length === 2 ? partes[1] : "";
+// El checkbox "activo" llega como boolean real en JSON pero como string
+// ("true"/"false") cuando el formulario se envia como multipart (necesario
+// para poder adjuntar la foto). Boolean("false") seria true por error, asi
+// que se compara explicitamente contra el string.
+function parseActivo(value) {
+  if (value === undefined) return true;
+  if (typeof value === "string") return value === "true";
+  return Boolean(value);
+}
+
+async function eliminarFotoAnterior(fotoUrl) {
+  if (!fotoUrl) return;
+  try {
+    await fs.unlink(path.join(UPLOADS_ROOT, fotoUrl.replace(/^\/uploads[\\/]/, "")));
+  } catch (error) {
+    // El archivo ya pudo haber sido borrado o movido; no bloquea la actualizacion.
+  }
 }
 
 function toSafeUser(user) {
@@ -23,6 +40,7 @@ function toSafeUser(user) {
     rol: user.role_nombre || user.rol,
     role_id: user.role_id,
     activo: Boolean(user.activo),
+    foto_url: user.foto_url || null,
     empresa_id: user.empresa_id,
     created_at: user.created_at
   };
@@ -54,7 +72,7 @@ async function resolveRole(roleId, { allowInactiveId = null, callerPermisos = []
   return role;
 }
 
-async function validateUserPayload(payload, { isUpdate = false, existingRoleId = null, callerPermisos = [], dominioRequerido = null } = {}) {
+async function validateUserPayload(payload, { isUpdate = false, existingRoleId = null, callerPermisos = [] } = {}) {
   const nombre = String(payload.nombre || "").trim();
   const email = normalizeEmail(payload.email);
   const password = String(payload.password || "");
@@ -62,13 +80,6 @@ async function validateUserPayload(payload, { isUpdate = false, existingRoleId =
 
   if (!nombre || !email || !roleId) {
     throw new HttpError(400, "Nombre, correo y rol son obligatorios");
-  }
-
-  // Al CREAR (no al editar, para no romper usuarios ya existentes con otro
-  // dominio) se exige que el correo comparta dominio con el resto de la
-  // empresa -- ver findPrimerEmailPorEmpresa.
-  if (!isUpdate && dominioRequerido && getDominio(email) !== dominioRequerido) {
-    throw new HttpError(400, `El correo debe pertenecer al dominio @${dominioRequerido}, igual que el resto de los usuarios de la empresa`);
   }
 
   if (nombre.length < 4) {
@@ -96,7 +107,7 @@ async function validateUserPayload(payload, { isUpdate = false, existingRoleId =
     password,
     role_id: role.id,
     rol: role.nombre,
-    activo: payload.activo === undefined ? true : Boolean(payload.activo)
+    activo: parseActivo(payload.activo)
   };
 }
 
@@ -108,11 +119,8 @@ async function listUsers(empresaId) {
 // El email es unico en TODA la plataforma (decision de producto: una cuenta
 // = una empresa, el login no pide elegir empresa), asi que la verificacion
 // de unicidad de email es deliberadamente global, sin filtrar por empresaId.
-async function createUser(payload, empresaId, callerPermisos = []) {
-  const primerEmail = await usuariosRepository.findPrimerEmailPorEmpresa(empresaId);
-  const dominioRequerido = primerEmail ? getDominio(primerEmail) : null;
-
-  const user = await validateUserPayload(payload, { callerPermisos, dominioRequerido });
+async function createUser(payload, file, empresaId, callerPermisos = []) {
+  const user = await validateUserPayload(payload, { callerPermisos });
   const existing = await usuariosRepository.findByEmail(user.email);
 
   if (existing) {
@@ -122,6 +130,7 @@ async function createUser(payload, empresaId, callerPermisos = []) {
   const created = await usuariosRepository.create({
     ...user,
     password_hash: await hashPassword(user.password),
+    foto_url: file ? `/uploads/usuarios/${file.filename}` : null,
     empresa_id: empresaId
   });
 
@@ -134,7 +143,7 @@ async function createUser(payload, empresaId, callerPermisos = []) {
   return safeUser;
 }
 
-async function updateUser(id, payload, empresaId, callerPermisos = []) {
+async function updateUser(id, payload, file, empresaId, callerPermisos = []) {
   const existing = await usuariosRepository.findById(id, empresaId);
   if (!existing) {
     throw new HttpError(404, "Usuario no encontrado");
@@ -147,14 +156,21 @@ async function updateUser(id, payload, empresaId, callerPermisos = []) {
     throw new HttpError(409, "Ya existe un usuario con ese correo");
   }
 
+  const fotoUrl = file ? `/uploads/usuarios/${file.filename}` : existing.foto_url;
+
   const updated = await usuariosRepository.update(
     id,
     {
       ...user,
+      foto_url: fotoUrl,
       password_hash: user.password ? await hashPassword(user.password) : null
     },
     empresaId
   );
+
+  if (file && existing.foto_url) {
+    await eliminarFotoAnterior(existing.foto_url);
+  }
 
   const safeUser = toSafeUser(updated);
 

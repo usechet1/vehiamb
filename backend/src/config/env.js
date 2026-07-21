@@ -44,7 +44,23 @@ const env = {
   stockImportSchedule: process.env.STOCK_IMPORT_SCHEDULE || "0 3 * * *",
   stockImportTimezone: process.env.STOCK_IMPORT_TIMEZONE || process.env.IMPORT_TIMEZONE || "America/Bogota",
   configExcelFilePath: process.env.CONFIG_EXCEL_FILE_PATH || "",
-  configSyncSchedule: process.env.CONFIG_SYNC_SCHEDULE || "0 4 * * *"
+  configSyncSchedule: process.env.CONFIG_SYNC_SCHEDULE || "0 4 * * *",
+
+  // Canal de email para notificaciones (ver notificaciones-email.channel.js).
+  // Se activa solo si SMTP_HOST esta definido; sin eso el canal queda
+  // silenciosamente inactivo (no rompe nada en dev/local sin SMTP).
+  smtpHost: process.env.SMTP_HOST || "",
+  smtpPort: Number(process.env.SMTP_PORT || 587),
+  smtpSecure: process.env.SMTP_SECURE === "true",
+  smtpUser: process.env.SMTP_USER || "",
+  smtpPass: process.env.SMTP_PASS || "",
+  smtpFrom: process.env.SMTP_FROM || "VehiAmb <notificaciones@vehiamb.local>",
+  // Prioridad minima que dispara email (critica/alta/media/informativa). Por
+  // defecto solo critica y alta: evita saturar el correo con avisos de baja
+  // urgencia que ya se ven en el centro de notificaciones in-app.
+  emailAlertPrioridadMinima: process.env.EMAIL_ALERT_PRIORIDAD_MINIMA || "alta",
+  // Base para armar enlaces "Ver en VehiAmb" dentro del correo (sin / final).
+  appBaseUrl: process.env.APP_BASE_URL || "http://localhost:8080"
 };
 
 module.exports = env;

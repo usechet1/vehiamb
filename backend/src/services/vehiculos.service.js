@@ -60,7 +60,7 @@ function validarAnio(rawValue) {
   return anio;
 }
 
-const ESTADOS_VEHICULO = new Set(["activo", "reparacion", "fuera_servicio"]);
+const ESTADOS_VEHICULO = new Set(["activo", "reparacion", "fuera_servicio", "dado_de_baja"]);
 
 const PAGE_SIZE_OPTIONS = new Set([10, 20, 50, 100]);
 const DEFAULT_LIMIT = 20;

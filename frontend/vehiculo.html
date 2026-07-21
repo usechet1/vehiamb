@@ -172,6 +172,7 @@
                         <option value="activo">Activo</option>
                         <option value="reparacion">En reparación</option>
                         <option value="fuera_servicio">Fuera de servicio</option>
+                        <option value="dado_de_baja">Dado de baja</option>
                     </select>
                     <span id="vehicleKm" class="pill">-- km</span>
                 </div>
@@ -440,7 +441,8 @@
             const ESTADO_BADGES = {
                 activo: { label: "Activo", clase: "badge-verde" },
                 reparacion: { label: "En reparación", clase: "badge-amarillo" },
-                fuera_servicio: { label: "Fuera de servicio", clase: "badge-rojo" }
+                fuera_servicio: { label: "Fuera de servicio", clase: "badge-rojo" },
+                dado_de_baja: { label: "Dado de baja", clase: "badge-gris" }
             };
 
             function getVehicleImageSource(vehiculo) {

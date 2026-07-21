@@ -1225,6 +1225,7 @@ if (env.dbClient === "sqlite") {
 
   Promise.all([
     ensureColumn("usuarios", "role_id", "INTEGER"),
+    ensureColumn("usuarios", "foto_url", "TEXT"),
     ensureColumn("roles", "permisos_configurados", "INTEGER NOT NULL DEFAULT 0"),
     ensureColumn("mantenimientos", "repuestos", "TEXT"),
     ensureColumn("mantenimientos", "autorizado_por", "TEXT"),
@@ -1273,6 +1274,7 @@ if (env.dbClient === "sqlite") {
       ensureColumn("repuestos", "foto_url", "TEXT"),
       ensureColumn("vehiculos", "intervalo_cambio_aceite_km", "INTEGER"),
       ensureColumn("usuarios", "role_id", "BIGINT REFERENCES roles(id)"),
+    ensureColumn("usuarios", "foto_url", "TEXT"),
       ensureColumn("roles", "permisos_configurados", "BOOLEAN NOT NULL DEFAULT FALSE"),
       ensureColumn("mantenimientos", "repuestos", "TEXT"),
       ensureColumn("mantenimientos", "autorizado_por", "TEXT"),

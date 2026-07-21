@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
   rol TEXT NOT NULL DEFAULT 'Administrador',
   role_id BIGINT REFERENCES roles(id),
   activo BOOLEAN NOT NULL DEFAULT TRUE,
+  foto_url TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

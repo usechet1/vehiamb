@@ -207,29 +207,23 @@ window.VehiAmb.api = {
         return requestJson(`${window.VehiAmb.API_URL}/usuarios`, undefined, "No se pudieron cargar los usuarios");
     },
 
-    createUsuario(payload) {
+    createUsuario(formData) {
         return requestJson(
             `${window.VehiAmb.API_URL}/usuarios`,
             {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(payload)
+                body: formData
             },
             "No se pudo crear el usuario"
         );
     },
 
-    updateUsuario(id, payload) {
+    updateUsuario(id, formData) {
         return requestJson(
             `${window.VehiAmb.API_URL}/usuarios/${id}`,
             {
                 method: "PUT",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(payload)
+                body: formData
             },
             "No se pudo actualizar el usuario"
         );

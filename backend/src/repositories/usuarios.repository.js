@@ -9,6 +9,7 @@ const USER_SELECT = `
     u.rol,
     u.role_id,
     u.activo,
+    u.foto_url,
     u.empresa_id,
     u.created_at,
     r.nombre AS role_nombre,
@@ -38,21 +39,6 @@ async function findById(id, empresaId = null) {
   return db.get(`${USER_SELECT} WHERE u.id = ? AND u.empresa_id = ?`, [id, empresaId]);
 }
 
-// Usado para exigir que los usuarios nuevos de una empresa compartan el
-// mismo dominio de correo (ver usuarios.service.js: createUser). Se toma del
-// usuario mas antiguo de la empresa (normalmente el admin creado por
-// create-empresa.js) en vez del correo de quien esta creando el usuario, para
-// que tambien funcione bien cuando quien crea es un SuperAdministrador
-// operando sobre otra empresa (su propio correo no tiene por que compartir
-// dominio con esa empresa).
-async function findPrimerEmailPorEmpresa(empresaId) {
-  const row = await db.get(
-    "SELECT email FROM usuarios WHERE empresa_id = ? ORDER BY created_at ASC, id ASC LIMIT 1",
-    [empresaId]
-  );
-  return row?.email || null;
-}
-
 async function findAll(empresaId) {
   return db.all(
     `
@@ -67,8 +53,8 @@ async function findAll(empresaId) {
 async function create(user) {
   const result = await db.get(
     `
-      INSERT INTO usuarios (nombre, email, password_hash, rol, role_id, activo, empresa_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO usuarios (nombre, email, password_hash, rol, role_id, activo, foto_url, empresa_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING id
     `,
     [
@@ -78,6 +64,7 @@ async function create(user) {
       user.rol,
       user.role_id,
       user.activo,
+      user.foto_url ?? null,
       user.empresa_id
     ]
   );
@@ -91,14 +78,16 @@ async function update(id, user, empresaId) {
     "email = ?",
     "rol = ?",
     "role_id = ?",
-    "activo = ?"
+    "activo = ?",
+    "foto_url = ?"
   ];
   const values = [
     user.nombre,
     user.email,
     user.rol,
     user.role_id,
-    user.activo
+    user.activo,
+    user.foto_url ?? null
   ];
 
   if (user.password_hash) {
@@ -180,7 +169,6 @@ module.exports = {
   findByEmail,
   findById,
   findAll,
-  findPrimerEmailPorEmpresa,
   create,
   update,
   setActive,

@@ -743,6 +743,67 @@ label[for="loginPassword"] {
     background: currentColor;
 }
 
+/* ── Foto de perfil de usuario (avatar circular arrastrable) ────── */
+.avatar-dropzone {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 88px;
+    height: 88px;
+    margin: 0 auto;
+    border: 2px dashed var(--color-border);
+    border-radius: 50%;
+    background: var(--color-surface-2);
+    overflow: hidden;
+    transition: var(--transition);
+}
+
+.avatar-dropzone.dropzone-active {
+    border-color: var(--color-primary);
+    background: rgba(178, 31, 45, 0.05);
+}
+
+.avatar-dropzone-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.avatar-dropzone-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    color: var(--color-muted);
+    font-size: 0.66rem;
+    font-weight: 650;
+    text-align: center;
+    pointer-events: none;
+}
+
+.avatar-dropzone-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.user-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.user-list-identity {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 .form-card {
     width: min(100%, 680px);
     padding: 28px;

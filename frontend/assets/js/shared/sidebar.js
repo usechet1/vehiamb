@@ -410,7 +410,11 @@ async function cargarSidebar() {
         if (nameEl) nameEl.textContent = user.nombre;
         if (roleEl) roleEl.textContent = user.rol || "Usuario";
         if (empresaEl) empresaEl.textContent = user.empresa_nombre || "";
-        if (avatarEl) avatarEl.textContent = getInitials(user.nombre);
+        if (avatarEl) {
+            avatarEl.innerHTML = user.foto_url
+                ? `<img src="${window.VehiAmb.api.getAssetUrl(user.foto_url)}" alt="">`
+                : getInitials(user.nombre);
+        }
         actualizarEncabezadoPagina(user.empresa_nombre);
 
         await setupEmpresaSwitcher(aside, user);
