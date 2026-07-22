@@ -9,6 +9,8 @@ const FIELDS = [
   "valor",
   "estado",
   "detalle_json",
+  "cedula_infractor",
+  "nombre_infractor",
   "empresa_id"
 ];
 
@@ -26,6 +28,8 @@ async function bulkCreate(consultaId, vehiculoId, comparendos, empresaId, dbClie
       valor: comparendo.valor,
       estado: comparendo.estado,
       detalle_json: comparendo.detalle ? JSON.stringify(comparendo.detalle) : null,
+      cedula_infractor: comparendo.cedula_infractor || null,
+      nombre_infractor: comparendo.nombre_infractor || null,
       empresa_id: empresaId
     };
 

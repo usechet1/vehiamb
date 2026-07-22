@@ -247,6 +247,12 @@ async function cargarFlota() {
     }
 }
 
+// Cedula/nombre del infractor se obtienen del propio portal SIMIT: al hacer
+// clic en cada fila de su tabla de resultados, SIMIT expande un panel "Datos
+// conductor" que el scraper lee (ver simit-scraper.js). SIMIT los muestra
+// parcialmente enmascarados por proteccion de datos (ej. "JU** CAR***",
+// "10496*****") -- es el mismo dato que veria cualquiera en el portal
+// publico, no un valor completo, y aqui solo se despliega tal cual llega.
 function renderComparendosTable(comparendos) {
     if (!comparendos || !comparendos.length) {
         return '<p class="dash-empty detail-empty">No hay comparendos registrados en esta consulta.</p>';
@@ -262,6 +268,8 @@ function renderComparendosTable(comparendos) {
                         <th>Descripción</th>
                         <th>Valor</th>
                         <th>Estado</th>
+                        <th>Cédula infractor</th>
+                        <th>Nombre infractor</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -272,6 +280,8 @@ function renderComparendosTable(comparendos) {
                             <td>${escapeHtml(item.descripcion || "Sin descripción")}</td>
                             <td>${formatCurrency(item.valor)}</td>
                             <td>${escapeHtml(item.estado)}</td>
+                            <td>${escapeHtml(item.cedula_infractor || "No disponible")}</td>
+                            <td>${escapeHtml(item.nombre_infractor || "No disponible")}</td>
                         </tr>
                     `).join("")}
                 </tbody>

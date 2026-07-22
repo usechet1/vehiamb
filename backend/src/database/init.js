@@ -725,6 +725,8 @@ async function ensurePostgresTables() {
       valor NUMERIC(14, 2) NOT NULL DEFAULT 0,
       estado TEXT NOT NULL DEFAULT 'pendiente',
       detalle_json JSONB,
+      cedula_infractor TEXT,
+      nombre_infractor TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
@@ -736,6 +738,9 @@ async function ensurePostgresTables() {
       usuario_id BIGINT REFERENCES usuarios(id),
       fecha TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       observaciones TEXT,
+      latitud DOUBLE PRECISION,
+      longitud DOUBLE PRECISION,
+      ubicacion_precision NUMERIC(10, 2),
       creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
@@ -1253,7 +1258,13 @@ if (env.dbClient === "sqlite") {
     ensureColumn("notificaciones", "accion_tipo", "TEXT"),
     ensureColumn("notificaciones", "accion_payload", "TEXT"),
     ensureColumn("notificaciones", "estado", "TEXT NOT NULL DEFAULT 'no_leida'"),
-    ensureColumn("notificaciones", "updated_at", "DATETIME DEFAULT CURRENT_TIMESTAMP")
+    ensureColumn("notificaciones", "updated_at", "DATETIME DEFAULT CURRENT_TIMESTAMP"),
+    ensureColumn("inspecciones_preventivas", "latitud", "REAL"),
+    ensureColumn("inspecciones_preventivas", "longitud", "REAL"),
+    ensureColumn("inspecciones_preventivas", "ubicacion_precision", "REAL"),
+    ensureColumn("simit_comparendos", "cedula_infractor", "TEXT"),
+    ensureColumn("simit_comparendos", "nombre_infractor", "TEXT"),
+    ensureColumn("inspecciones_preventivas", "viaje_id", "INTEGER")
   ])
     .then(() => db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_vehiculos_numero_chasis ON vehiculos (numero_chasis) WHERE numero_chasis IS NOT NULL"))
     .then(() => db.run("UPDATE notificaciones SET estado = 'leida' WHERE leido = 1 AND estado = 'no_leida'"))
@@ -1303,7 +1314,13 @@ if (env.dbClient === "sqlite") {
       ensureColumn("notificaciones", "accion_payload", "TEXT"),
       ensureColumn("notificaciones", "estado", "TEXT NOT NULL DEFAULT 'no_leida'"),
       ensureColumn("notificaciones", "updated_at", "TIMESTAMPTZ NOT NULL DEFAULT NOW()"),
-      ensureColumn("importaciones_config_vehiculos", "hash_archivo", "TEXT")
+      ensureColumn("importaciones_config_vehiculos", "hash_archivo", "TEXT"),
+      ensureColumn("inspecciones_preventivas", "latitud", "DOUBLE PRECISION"),
+      ensureColumn("inspecciones_preventivas", "longitud", "DOUBLE PRECISION"),
+      ensureColumn("inspecciones_preventivas", "ubicacion_precision", "NUMERIC(10, 2)"),
+      ensureColumn("simit_comparendos", "cedula_infractor", "TEXT"),
+      ensureColumn("simit_comparendos", "nombre_infractor", "TEXT"),
+      ensureColumn("inspecciones_preventivas", "viaje_id", "BIGINT REFERENCES viajes(id) ON DELETE SET NULL")
     ]))
     .then(ensureEmpresaIdColumns)
     .then(() => Promise.all([

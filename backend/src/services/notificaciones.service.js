@@ -124,7 +124,7 @@ async function notificarUsuariosPorRol(roleNames, payload, empresaId) {
 // tiene": Administrador y Operador necesitan saber que el vehiculo salio a
 // ruta con hallazgos pendientes. No aplica a inspecciones que registren
 // Administrador/Operador por su cuenta (no estan "iniciando un viaje").
-async function evaluarNotificacionInspeccion({ inspeccion, vehiculo, currentUser, totalItemsFaltantes, totalItemsMal }) {
+async function evaluarNotificacionInspeccion({ inspeccion, vehiculo, currentUser, totalItemsFaltantes, totalItemsMal, itemsMal }) {
   if (currentUser?.rol !== "Conductor") return;
   if (totalItemsFaltantes <= 0 && totalItemsMal <= 0) return;
 
@@ -132,13 +132,36 @@ async function evaluarNotificacionInspeccion({ inspeccion, vehiculo, currentUser
   if (totalItemsFaltantes > 0) partes.push(`${totalItemsFaltantes} ítem${totalItemsFaltantes === 1 ? "" : "s"} sin revisar`);
   if (totalItemsMal > 0) partes.push(`${totalItemsMal} ítem${totalItemsMal === 1 ? "" : "s"} en mal estado`);
 
+  // El payload de la accion "ver_vehiculo" viaja como el resto (para el CTA
+  // y el enlace de la app), pero aqui se aprovecha para cargar tambien el
+  // detalle que el canal de email necesita (items malos, ubicacion, fecha)
+  // sin tener que volver a consultar la BD desde notificaciones-email.channel.js.
   await notificarUsuariosPorRol(["Administrador", "Operador"], {
     tipo: "inspeccion_con_hallazgos",
     mensaje: `El conductor ${currentUser.nombre} inició un viaje con el vehículo ${vehiculo.marca} ${vehiculo.modelo} (${vehiculo.placa}) y la inspección preventiva quedó con ${partes.join(" y ")}.`,
     vehiculo_id: vehiculo.id,
     referencia_tipo: "inspeccion",
     referencia_id: inspeccion.id,
-    accion: { tipo: "ver_vehiculo", payload: { vehiculo_id: vehiculo.id } }
+    accion: {
+      tipo: "ver_vehiculo",
+      payload: {
+        vehiculo_id: vehiculo.id,
+        detalle_inspeccion: {
+          conductor_nombre: currentUser.nombre,
+          vehiculo_placa: vehiculo.placa,
+          vehiculo_marca: vehiculo.marca,
+          vehiculo_modelo: vehiculo.modelo,
+          fecha: inspeccion.fecha,
+          latitud: inspeccion.latitud,
+          longitud: inspeccion.longitud,
+          items_mal: (itemsMal || []).map((item) => ({
+            label: item.item_label,
+            comentario: item.comentario,
+            foto_url: item.foto_url
+          }))
+        }
+      }
+    }
   }, vehiculo.empresa_id);
 }
 

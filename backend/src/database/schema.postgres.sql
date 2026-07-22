@@ -405,6 +405,8 @@ CREATE TABLE IF NOT EXISTS simit_comparendos (
   valor NUMERIC(14, 2) NOT NULL DEFAULT 0,
   estado TEXT NOT NULL DEFAULT 'pendiente',
   detalle_json JSONB,
+  cedula_infractor TEXT,
+  nombre_infractor TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -417,8 +419,12 @@ CREATE TABLE IF NOT EXISTS inspecciones_preventivas (
   id BIGSERIAL PRIMARY KEY,
   vehiculo_id BIGINT NOT NULL REFERENCES vehiculos(id) ON DELETE CASCADE,
   usuario_id BIGINT REFERENCES usuarios(id),
+  viaje_id BIGINT REFERENCES viajes(id) ON DELETE SET NULL,
   fecha TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   observaciones TEXT,
+  latitud DOUBLE PRECISION,
+  longitud DOUBLE PRECISION,
+  ubicacion_precision NUMERIC(10, 2),
   creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

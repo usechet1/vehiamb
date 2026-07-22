@@ -111,11 +111,29 @@ async function getEmpresaBranding() {
     }
 }
 
+// Membrete fijo de pie de pagina (frontend/img/membrete_footer.png): a
+// diferencia del logo de getEmpresaBranding (que varia por empresa), este es
+// el mismo banner de contacto para todos los PDF exportables de la
+// plataforma. Se cachea en un modulo-level promise porque es un archivo
+// estatico que no cambia entre exportaciones dentro de la misma sesion.
+let membreteFooterPromise = null;
+
+function getMembreteFooterImage() {
+    if (!membreteFooterPromise) {
+        membreteFooterPromise = loadImageAsJpegDataUrl("img/membrete_footer.png").catch((error) => {
+            console.error("No se pudo cargar el membrete del pie de pagina:", error);
+            return null;
+        });
+    }
+    return membreteFooterPromise;
+}
+
 window.VehiAmb.pdfExport = {
     createDocument,
     loadAsDataUrl,
     detectImageFormat,
     loadImageAsJpegDataUrl,
     getEmpresaBranding,
+    getMembreteFooterImage,
     formatDateForPdf
 };

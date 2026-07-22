@@ -8,6 +8,7 @@ const limpiarInspeccionButton = document.getElementById("limpiarInspeccionButton
 const inspeccionHistorialList = document.getElementById("inspeccionHistorialList");
 
 let inspeccionVehiculoId = "";
+let inspeccionViajeId = "";
 let inspeccionCatalogo = [];
 let inspeccionMarcados = new Map();
 let inspeccionActivo = null;
@@ -288,6 +289,31 @@ async function confirmarAdvertenciaInspeccion() {
     });
 }
 
+// Toma la posicion GPS del dispositivo del conductor en el momento de
+// guardar la inspeccion. Si el navegador no soporta geolocalizacion o el
+// conductor niega el permiso, se resuelve con null en vez de rechazar: la
+// ubicacion es un dato adicional, nunca debe bloquear el guardado del
+// checklist.
+function obtenerUbicacion() {
+    return new Promise((resolve) => {
+        if (!navigator.geolocation) {
+            resolve(null);
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                resolve({
+                    latitud: position.coords.latitude,
+                    longitud: position.coords.longitude,
+                    precision: position.coords.accuracy
+                });
+            },
+            () => resolve(null),
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+        );
+    });
+}
+
 async function guardarInspeccion() {
     if (!inspeccionMarcados.size) return;
 
@@ -304,9 +330,19 @@ async function guardarInspeccion() {
     });
 
     formData.append("items", JSON.stringify(items));
+    if (inspeccionViajeId) {
+        formData.append("viaje_id", inspeccionViajeId);
+    }
 
     try {
         guardarInspeccionButton.disabled = true;
+        window.VehiAmb.ui.showMessage(inspeccionMensaje, "Obteniendo ubicación...");
+        const ubicacion = await obtenerUbicacion();
+        if (ubicacion) {
+            formData.append("latitud", ubicacion.latitud);
+            formData.append("longitud", ubicacion.longitud);
+            formData.append("ubicacion_precision", ubicacion.precision);
+        }
         await window.VehiAmb.api.crearInspeccion(inspeccionVehiculoId, formData);
         window.VehiAmb.ui.showMessage(inspeccionMensaje, "Inspección guardada correctamente");
         document.dispatchEvent(new CustomEvent("inspeccion:guardada"));
@@ -320,13 +356,27 @@ async function guardarInspeccion() {
 }
 
 function renderHistorialDetalle(container, detalle) {
-    container.innerHTML = detalle.items.map((item) => `
+    const cabecera = `
+        <div class="inspeccion-detalle-cabecera">
+            <p><strong>Conductor:</strong> ${escapeHtml(detalle.usuario_nombre) || "Usuario no registrado"}</p>
+            <p><strong>Punto de partida:</strong> ${
+                detalle.latitud != null && detalle.longitud != null
+                    ? `<a class="record-link" href="https://www.google.com/maps?q=${detalle.latitud},${detalle.longitud}" target="_blank" rel="noreferrer">📍 Ver en el mapa</a>`
+                    : "Sin ubicación registrada"
+            }</p>
+            <p><strong>Punto de llegada:</strong> ${detalle.destino ? escapeHtml(detalle.destino) : "Sin viaje asociado"}</p>
+        </div>
+    `;
+
+    const items = detalle.items.map((item) => `
         <div class="inspeccion-detalle-item">
             <span class="pill ${item.estado === "mal" ? "pill-danger" : "pill-success"}">${escapeHtml(item.item_label)}</span>
             ${item.comentario ? `<p class="field-help">${escapeHtml(item.comentario)}</p>` : ""}
             ${item.foto_url ? `<a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(item.foto_url))}" target="_blank" rel="noreferrer">Ver foto</a>` : ""}
         </div>
     `).join("");
+
+    container.innerHTML = cabecera + items;
 }
 
 function renderHistorial(inspecciones) {
@@ -350,6 +400,7 @@ function renderHistorial(inspecciones) {
                 <span class="pill">${item.total_items} ítems revisados</span>
             </div>
             <button type="button" class="record-link" data-inspeccion-id="${item.id}">Ver detalle</button>
+            ${item.latitud != null && item.longitud != null ? `<a class="record-link" href="https://www.google.com/maps?q=${item.latitud},${item.longitud}" target="_blank" rel="noreferrer">📍 Ver ubicación</a>` : ""}
             <div class="inspeccion-detalle hidden" id="inspeccionDetalle-${item.id}"></div>
         </article>
     `).join("");
@@ -404,6 +455,7 @@ async function initInspeccion() {
 
     inspeccionPuedeCrear = Boolean(window.VehiAmb.auth?.hasPermission?.("inspections.create"));
     inspeccionVehiculoId = new URLSearchParams(window.location.search).get("id") || "";
+    inspeccionViajeId = new URLSearchParams(window.location.search).get("viaje") || "";
     if (!inspeccionVehiculoId) return;
 
     if (!inspeccionPuedeCrear) {

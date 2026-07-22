@@ -55,12 +55,94 @@ function construirEnlace(notificacion) {
   return `${env.appBaseUrl}/${ACCION_RUTAS[notificacion.accion_tipo](payload)}`;
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function formatFechaCorreo(value) {
+  if (!value) return "";
+  return new Date(value).toLocaleString("es-CO", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+// Bloque adicional para el correo de "inspeccion_con_hallazgos": el resto de
+// tipos de notificacion se resuelven con un solo parrafo (notificacion.mensaje),
+// pero este es el unico que en la practica reemplaza la necesidad de entrar
+// a la plataforma -- el conductor no siempre esta cerca para preguntarle
+// detalles, asi que Administrador/Operador deben poder ver de una vez que
+// fallo, con que comentario, la foto y donde quedo el vehiculo.
+function construirDetalleInspeccion(detalle) {
+  if (!detalle) return "";
+
+  const filas = [];
+  if (detalle.vehiculo_placa) {
+    filas.push(`<strong>Vehículo:</strong> ${escapeHtml(detalle.vehiculo_marca)} ${escapeHtml(detalle.vehiculo_modelo)} (${escapeHtml(detalle.vehiculo_placa)})`);
+  }
+  if (detalle.conductor_nombre) {
+    filas.push(`<strong>Conductor:</strong> ${escapeHtml(detalle.conductor_nombre)}`);
+  }
+  if (detalle.fecha) {
+    filas.push(`<strong>Fecha:</strong> ${escapeHtml(formatFechaCorreo(detalle.fecha))}`);
+  }
+
+  const datosBasicos = filas.length
+    ? `<p style="color: #303947; line-height: 1.6; margin: 12px 0;">${filas.join("<br>")}</p>`
+    : "";
+
+  const itemsMal = detalle.items_mal || [];
+  const listaItems = itemsMal.length
+    ? `
+      <div style="margin: 16px 0;">
+        <p style="color: #18202b; font-weight: bold; margin: 0 0 8px;">Ítems en mal estado:</p>
+        <ul style="margin: 0; padding-left: 20px; color: #303947; line-height: 1.6;">
+          ${itemsMal.map((item) => `
+            <li style="margin-bottom: 6px;">
+              <strong>${escapeHtml(item.label)}</strong>
+              ${item.comentario ? ` — ${escapeHtml(item.comentario)}` : ""}
+              ${item.foto_url ? ` (<a href="${env.appBaseUrl}${item.foto_url}" style="color: #b21f2d;">ver foto</a>)` : ""}
+            </li>
+          `).join("")}
+        </ul>
+      </div>
+    `
+    : "";
+
+  const ubicacion = (detalle.latitud != null && detalle.longitud != null)
+    ? `<p style="margin: 12px 0;"><a href="https://www.google.com/maps?q=${detalle.latitud},${detalle.longitud}" style="color: #b21f2d;">📍 Ver ubicación donde se registró la inspección</a></p>`
+    : "";
+
+  return `${datosBasicos}${listaItems}${ubicacion}`;
+}
+
 function construirCorreo(notificacion) {
   const defaults = notifConfig.tipoConfig(notificacion.tipo);
   const prioridad = notifConfig.PRIORIDADES[notifConfig.normalizarPrioridad(notificacion.prioridad || defaults.prioridad)];
   const categoria = notifConfig.CATEGORIAS[notificacion.categoria || defaults.categoria];
   const titulo = notificacion.titulo || defaults.titulo;
   const enlace = construirEnlace(notificacion);
+
+  let payload = null;
+  if (notificacion.accion_payload) {
+    try {
+      payload = JSON.parse(notificacion.accion_payload);
+    } catch (error) {
+      payload = null;
+    }
+  }
+
+  const detalleHtml = notificacion.tipo === "inspeccion_con_hallazgos"
+    ? construirDetalleInspeccion(payload?.detalle_inspeccion)
+    : "";
 
   return {
     subject: `${prioridad.icono} ${titulo} - VehiAmb`,
@@ -71,6 +153,7 @@ function construirCorreo(notificacion) {
         </p>
         <h2 style="color: #18202b; margin: 0 0 12px;">${titulo}</h2>
         <p style="color: #303947; line-height: 1.5;">${notificacion.mensaje}</p>
+        ${detalleHtml}
         <a href="${enlace}" style="display: inline-block; margin-top: 16px; padding: 10px 18px; background: #b21f2d; color: #fff; border-radius: 6px; text-decoration: none; font-weight: bold;">
           Ver en VehiAmb
         </a>

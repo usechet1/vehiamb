@@ -107,23 +107,27 @@
             return;
         }
 
-        const colX = [MARGIN_X, MARGIN_X + 100, MARGIN_X + 150, MARGIN_X + 340, MARGIN_X + 420];
+        const colX = [MARGIN_X, MARGIN_X + 65, MARGIN_X + 115, MARGIN_X + 225, MARGIN_X + 280, MARGIN_X + 335, MARGIN_X + 400];
 
         doc.setFont(undefined, "bold");
+        doc.setFontSize(8);
         doc.text("Número", colX[0], layout.y);
         doc.text("Fecha", colX[1], layout.y);
         doc.text("Descripción", colX[2], layout.y);
         doc.text("Valor", colX[3], layout.y);
         doc.text("Estado", colX[4], layout.y);
+        doc.text("Cédula infractor", colX[5], layout.y);
+        doc.text("Nombre infractor", colX[6], layout.y);
         layout.spacer(6);
         doc.line(MARGIN_X, layout.y, layout.pageWidth - MARGIN_X, layout.y);
         layout.spacer(14);
         doc.setFont(undefined, "normal");
 
         comparendos.forEach((item) => {
-            const numeroLines = doc.splitTextToSize(safe(item.numero_comparendo), 95);
-            const descripcionLines = doc.splitTextToSize(safe(item.descripcion, "Sin descripción"), 185);
-            const maxLines = Math.max(1, numeroLines.length, descripcionLines.length);
+            const numeroLines = doc.splitTextToSize(safe(item.numero_comparendo), 60);
+            const descripcionLines = doc.splitTextToSize(safe(item.descripcion, "Sin descripción"), 105);
+            const nombreLines = doc.splitTextToSize(safe(item.nombre_infractor, "—"), 110);
+            const maxLines = Math.max(1, numeroLines.length, descripcionLines.length, nombreLines.length);
             const rowHeight = maxLines * ROW_LINE_HEIGHT + 4;
 
             layout.ensureSpace(rowHeight);
@@ -132,8 +136,12 @@
             doc.text(descripcionLines, colX[2], layout.y);
             doc.text(formatCurrency(item.valor), colX[3], layout.y);
             doc.text(safe(item.estado), colX[4], layout.y);
+            doc.text(safe(item.cedula_infractor, "—"), colX[5], layout.y);
+            doc.text(nombreLines, colX[6], layout.y);
             layout.spacer(rowHeight);
         });
+
+        doc.setFontSize(10);
     }
 
     function addHistorialTable(doc, layout, historial) {
@@ -178,16 +186,26 @@
         });
     }
 
-    function addFooter(doc, branding) {
+    async function addFooter(doc, branding) {
         const pageCount = doc.internal.getNumberOfPages();
         const generadoEl = FOOTER_TEXT(branding?.nombreEmpresa);
+        const membrete = await window.VehiAmb.pdfExport.getMembreteFooterImage();
 
         for (let page = 1; page <= pageCount; page += 1) {
             doc.setPage(page);
+            const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
             doc.setFontSize(8);
             doc.setTextColor(120, 128, 140);
-            doc.text(generadoEl, MARGIN_X, pageHeight - 20);
+
+            if (membrete) {
+                const imgWidth = pageWidth - MARGIN_X * 2;
+                const imgHeight = imgWidth / (membrete.width / membrete.height);
+                doc.text(generadoEl, MARGIN_X, pageHeight - imgHeight - 10);
+                doc.addImage(membrete.dataUrl, "JPEG", MARGIN_X, pageHeight - imgHeight, imgWidth, imgHeight);
+            } else {
+                doc.text(generadoEl, MARGIN_X, pageHeight - 20);
+            }
         }
     }
 
@@ -218,12 +236,12 @@
         layout.spacer(4);
         addHistorialTable(doc, layout, historial);
 
-        addFooter(doc, branding);
+        await addFooter(doc, branding);
 
         doc.save(buildFileName(row, "pdf"));
     }
 
-    const EXCEL_COLUMN_COUNT = 6;
+    const EXCEL_COLUMN_COUNT = 7;
 
     async function exportComparendosExcel({ row, historial, detalle, estado }) {
         if (!row) {
@@ -237,7 +255,7 @@
 
         const workbook = excel.createWorkbook();
         const sheet = workbook.addWorksheet("Comparendos SIMIT");
-        excel.setColumnWidths(sheet, [24, 16, 40, 16, 16, 20]);
+        excel.setColumnWidths(sheet, [22, 14, 32, 14, 14, 18, 24]);
 
         excel.addTitleBar(sheet, {
             title: "Reporte de comparendos SIMIT",
@@ -257,7 +275,7 @@
         sheet.addRow([]);
 
         excel.addSectionHeader(sheet, "Comparendos de la última consulta", EXCEL_COLUMN_COUNT);
-        excel.addTableHeaderRow(sheet, ["Número", "Fecha", "Descripción", "Valor", "Estado", ""]);
+        excel.addTableHeaderRow(sheet, ["Número", "Fecha", "Descripción", "Valor", "Estado", "Cédula infractor", "Nombre infractor"]);
 
         if (comparendos.length) {
             comparendos.forEach((item, index) => {
@@ -269,19 +287,20 @@
                         safe(item.descripcion, "Sin descripción"),
                         Number(item.valor || 0),
                         safe(item.estado),
-                        ""
+                        safe(item.cedula_infractor, "—"),
+                        safe(item.nombre_infractor, "—")
                     ],
                     { band: index % 2 === 1 }
                 );
                 dataRow.getCell(4).numFmt = "$#,##0";
             });
         } else {
-            excel.addTableDataRow(sheet, ["No hay comparendos registrados en esta consulta.", "", "", "", "", ""]);
+            excel.addTableDataRow(sheet, ["No hay comparendos registrados en esta consulta.", "", "", "", "", "", ""]);
         }
 
         sheet.addRow([]);
         excel.addSectionHeader(sheet, "Historial de consultas", EXCEL_COLUMN_COUNT);
-        excel.addTableHeaderRow(sheet, ["Fecha", "Origen", "Resultado", "Estado cartera", "Comparendos", "Valor total"]);
+        excel.addTableHeaderRow(sheet, ["Fecha", "Origen", "Resultado", "Estado cartera", "Comparendos", "Valor total", ""]);
 
         if (historial && historial.length) {
             historial.forEach((item, index) => {
@@ -294,14 +313,15 @@
                         estadoConsultaOk ? "OK" : safe(item.estado_consulta),
                         estadoLabel(estadoConsultaOk ? item.estado_cartera : "desconocido"),
                         Number(item.total_comparendos ?? 0),
-                        Number(item.valor_total || 0)
+                        Number(item.valor_total || 0),
+                        ""
                     ],
                     { band: index % 2 === 1 }
                 );
                 dataRow.getCell(6).numFmt = "$#,##0";
             });
         } else {
-            excel.addTableDataRow(sheet, ["Este vehículo aún no tiene consultas SIMIT registradas.", "", "", "", "", ""]);
+            excel.addTableDataRow(sheet, ["Este vehículo aún no tiene consultas SIMIT registradas.", "", "", "", "", "", ""]);
         }
 
         excel.addFooterRow(sheet, FOOTER_TEXT(branding?.nombreEmpresa), EXCEL_COLUMN_COUNT);

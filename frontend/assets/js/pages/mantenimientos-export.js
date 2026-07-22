@@ -167,16 +167,26 @@
         }
     }
 
-    function addFooter(doc, branding) {
+    async function addFooter(doc, branding) {
         const pageCount = doc.internal.getNumberOfPages();
         const generadoEl = FOOTER_TEXT(branding?.nombreEmpresa);
+        const membrete = await window.VehiAmb.pdfExport.getMembreteFooterImage();
 
         for (let page = 1; page <= pageCount; page += 1) {
             doc.setPage(page);
+            const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
             doc.setFontSize(8);
             doc.setTextColor(120, 128, 140);
-            doc.text(generadoEl, MARGIN_X, pageHeight - 20);
+
+            if (membrete) {
+                const imgWidth = pageWidth - MARGIN_X * 2;
+                const imgHeight = imgWidth / (membrete.width / membrete.height);
+                doc.text(generadoEl, MARGIN_X, pageHeight - imgHeight - 10);
+                doc.addImage(membrete.dataUrl, "JPEG", MARGIN_X, pageHeight - imgHeight, imgWidth, imgHeight);
+            } else {
+                doc.text(generadoEl, MARGIN_X, pageHeight - 20);
+            }
         }
     }
 
@@ -230,7 +240,7 @@
         layout.row("Archivo de soporte", item.soporte_nombre);
         await addSoportePreview(doc, layout, item);
 
-        addFooter(doc, branding);
+        await addFooter(doc, branding);
 
         doc.save(buildFileName(item));
     }

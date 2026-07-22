@@ -10,7 +10,7 @@
 // {
 //   estado_consulta: "ok" | "error" | "bloqueado",
 //   estado_cartera: "sin_multas" | "con_multas" | "cobro_coactivo" | "acuerdo_pago" | "desconocido",
-//   comparendos: [{ numero_comparendo, fecha_infraccion, descripcion, valor, estado, detalle }],
+//   comparendos: [{ numero_comparendo, fecha_infraccion, descripcion, valor, estado, cedula_infractor, nombre_infractor, detalle }],
 //   total_comparendos, valor_total, mensaje_error
 // }
 //
@@ -28,8 +28,58 @@
 //   Si el vehiculo tiene mas multas que las capturadas, el conteo/total viene
 //   igual de la tarjeta Resumen (siempre correcto); solo la lista item-a-item
 //   puede quedar incompleta para flotas con historiales muy largos.
+const fs = require("fs");
+const path = require("path");
 const { chromium } = require("playwright-core");
 const config = require("./simit-scraper.config");
+
+// Depuracion TEMPORAL para calibrar la extraccion de "Datos conductor" contra
+// el portal real (no se pudo verificar el markup exacto desde este entorno de
+// desarrollo). Vuelca a backend/debug/simit-infractor/ el HTML relevante de
+// cada fila en cada consulta, exito o fallo, para poder ajustar los
+// selectores con datos reales. Quitar esta funcion y sus llamadas una vez que
+// la extraccion quede confirmada funcionando.
+// Bitacora de una sola linea por evento, en un archivo aparte (append-only):
+// a diferencia de volcarDebugInfractor (que puede fallar a medias si algo se
+// rompe a mitad de camino, ej. screenshot con el contexto de pagina ya
+// destruido por la navegacion), esto es lo minimo indispensable para saber
+// cuantas veces se llamo leerInfractor y en que paso se quedo cada vez.
+function registrarEventoInfractor(mensaje) {
+  try {
+    const debugDir = path.join(__dirname, "..", "..", "..", "debug", "simit-infractor");
+    fs.mkdirSync(debugDir, { recursive: true });
+    fs.appendFileSync(path.join(debugDir, "eventos.log"), `${new Date().toISOString()} ${mensaje}\n`);
+  } catch (logError) {
+    console.error("No se pudo escribir el log de eventos de infractor SIMIT:", logError.message);
+  }
+}
+
+async function volcarDebugInfractor(page, fila, datos, error) {
+  try {
+    const debugDir = path.join(__dirname, "..", "..", "..", "debug", "simit-infractor");
+    fs.mkdirSync(debugDir, { recursive: true });
+
+    const nombreBase = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const filaHtml = await fila.evaluate((el) => el.outerHTML).catch(() => null);
+    // Vuelca tambien un recorte del <body> completo (no solo la fila): si el
+    // panel es un modal, vive fuera de la tabla y no aparece en filaHtml.
+    const bodyHtml = await page.evaluate(() => document.body.innerHTML).catch(() => null);
+
+    const payload = {
+      timestamp: new Date().toISOString(),
+      error: error ? error.message : null,
+      datos: datos || null,
+      filaHtml,
+      bodyHtmlLength: bodyHtml ? bodyHtml.length : 0
+    };
+
+    fs.writeFileSync(path.join(debugDir, `${nombreBase}.json`), JSON.stringify(payload, null, 2));
+    if (bodyHtml) fs.writeFileSync(path.join(debugDir, `${nombreBase}-body.html`), bodyHtml);
+    await page.screenshot({ path: path.join(debugDir, `${nombreBase}.png`) }).catch(() => {});
+  } catch (debugError) {
+    console.error("No se pudo escribir el debug de infractor SIMIT:", debugError.message);
+  }
+}
 
 const DATE_PATTERN = /\d{1,2}\/\d{1,2}\/\d{2,4}/;
 
@@ -120,6 +170,168 @@ async function leerResumen(page) {
   };
 }
 
+// Cada fila de #multaTable tiene un enlace a#verDetalle (dentro de la celda
+// "Tipo") que abre el detalle del comparendo -- confirmado con un volcado de
+// debug real (2026-07-22): la fila en si NO tiene el panel de identidad, y
+// clicar la fila completa solo activa el acordeon vecino "Proyeccion pago".
+// El detalle con "Datos conductor" (Tipo documento/Numero documento/Nombres/
+// Apellidos) vive fuera de la fila (probablemente un modal), de ahi que se
+// busque en todo el documento en vez de en el sibling de la fila. SIMIT
+// muestra esa identidad parcialmente enmascarada por proteccion de datos
+// (ej. "JU** CAR***", "10496*****") -- es lo maximo que expone la consulta
+// publica.
+async function leerDatosConductor(page) {
+  return page.evaluate(() => {
+    function textoPropio(el) {
+      return el.children.length === 0 ? el.textContent.trim() : "";
+    }
+
+    function buscarSeccion(root) {
+      const candidatos = Array.from(root.querySelectorAll("*")).filter((el) => textoPropio(el) === "Datos conductor");
+      if (!candidatos.length) return null;
+      const titulo = candidatos[candidatos.length - 1];
+      return titulo.closest("div") || titulo.parentElement;
+    }
+
+    function leerCampo(seccion, etiqueta) {
+      const candidatos = Array.from(seccion.querySelectorAll("*")).filter((el) => textoPropio(el) === etiqueta);
+      for (const candidato of candidatos) {
+        const siguiente = candidato.nextElementSibling;
+        if (siguiente && siguiente.textContent.trim()) return siguiente.textContent.trim();
+      }
+      return null;
+    }
+
+    const seccion = buscarSeccion(document.body);
+
+    // Respaldo: la seccion "Informacion legal"/normativa tiene ademas una
+    // linea suelta "Infractor: NOMBRE COMPLETO" (label con dos puntos,
+    // distinto formato al resto de "Datos conductor"). Sirve cuando el panel
+    // principal viene vacio pero esta otra linea si trae el nombre.
+    function leerInfractorSuelto() {
+      const candidatos = Array.from(document.querySelectorAll("*")).filter((el) => textoPropio(el).replace(/\s+/g, " ").trim() === "Infractor:");
+      for (const candidato of candidatos) {
+        const siguiente = candidato.nextElementSibling;
+        if (siguiente && siguiente.textContent.trim()) return siguiente.textContent.trim();
+      }
+      return null;
+    }
+
+    if (!seccion) {
+      const nombreSuelto = leerInfractorSuelto();
+      return nombreSuelto ? { tipoDocumento: null, numeroDocumento: null, nombres: nombreSuelto, apellidos: null } : null;
+    }
+
+    const datos = {
+      tipoDocumento: leerCampo(seccion, "Tipo documento"),
+      numeroDocumento: leerCampo(seccion, "Número documento"),
+      nombres: leerCampo(seccion, "Nombres"),
+      apellidos: leerCampo(seccion, "Apellidos")
+    };
+
+    if (!datos.nombres && !datos.apellidos) {
+      datos.nombres = leerInfractorSuelto();
+    }
+
+    return datos;
+  });
+}
+
+// Confirmado con un volcado de debug real (2026-07-22): #verDetalle NO abre
+// un modal, navega a una vista de detalle que REEMPLAZA la tabla de
+// resultados (queda un comentario "<!-- end master view -->" en el HTML de
+// esa vista). Por eso hay que volver atras explicitamente con goBack() y
+// re-esperar la tabla antes de seguir con la siguiente fila -- de lo
+// contrario se pierden todas las filas restantes (bug ya visto una vez).
+// Confirmado con un volcado de debug real (2026-07-22): la vista de detalle
+// tiene su propio boton "Volver" (<button class="btn btn-outline-primary
+// btn-block">Volver</button>) para regresar a la tabla de resultados. NO es
+// navegacion de historial del navegador -- page.goBack() se colgo 30s
+// esperando #multaTable porque el "back" real es este boton, no un cambio
+// de URL. Se intenta primero el boton por texto; goBack() queda solo como
+// ultimo recurso si el boton no aparece.
+async function volverATabla(page, indice) {
+  const volvioPorBoton = await page
+    .click("text=Volver", { timeout: 5000 })
+    .then(() => true)
+    .catch(() => false);
+  registrarEventoInfractor(`fila ${indice}: boton 'Volver' ${volvioPorBoton ? "clicado" : "no encontrado, se intenta goBack"}`);
+
+  if (!volvioPorBoton) {
+    await page.goBack({ waitUntil: "domcontentloaded" }).catch((err) => registrarEventoInfractor(`fila ${indice}: goBack fallo: ${err.message}`));
+  }
+
+  await page.waitForSelector(config.SELECTORS.resultsTable, { timeout: config.RESULT_TIMEOUT_MS }).catch((err) => registrarEventoInfractor(`fila ${indice}: tabla no reaparecio: ${err.message}`));
+  // Deja que Angular termine de re-hidratar las filas antes de que la
+  // siguiente iteracion vuelva a consultar #multaTable.
+  await page.waitForTimeout(1000);
+}
+
+async function leerInfractor(page, fila, indice) {
+  registrarEventoInfractor(`fila ${indice}: inicio`);
+  try {
+    const verDetalle = await fila.$("#verDetalle");
+    registrarEventoInfractor(`fila ${indice}: #verDetalle ${verDetalle ? "encontrado" : "NO encontrado, se usa la fila completa"}`);
+    const disparador = verDetalle || fila;
+    await disparador.click({ timeout: 3000 });
+    registrarEventoInfractor(`fila ${indice}: clic hecho`);
+
+    const aparecio = await page
+      .waitForSelector("text=Datos conductor", { timeout: 6000 })
+      .then(() => true)
+      .catch(() => false);
+    registrarEventoInfractor(`fila ${indice}: panel 'Datos conductor' ${aparecio ? "aparecio" : "NO aparecio (timeout)"}`);
+
+    // El encabezado "Datos conductor" aparece antes de que sus campos (Tipo
+    // documento, etc.) terminen de poblarse via una llamada asincrona
+    // aparte -- confirmado con pruebas reales: una espera fija de 800ms fue
+    // insuficiente unas veces y de sobra otras (resultado no determinista
+    // entre corridas). Se sondea activamente hasta que la seccion ya no sean
+    // puros comentarios Angular vacios, con un tope de 4s.
+    let camposListos = false;
+    if (aparecio) {
+      camposListos = await page
+        .waitForFunction(() => {
+          function textoPropio(el) {
+            return el.children.length === 0 ? el.textContent.trim() : "";
+          }
+          const candidatos = Array.from(document.querySelectorAll("*")).filter((el) => textoPropio(el) === "Datos conductor");
+          if (!candidatos.length) return false;
+          const seccion = candidatos[candidatos.length - 1].closest("div") || candidatos[candidatos.length - 1].parentElement;
+          if (!seccion) return false;
+          return Array.from(seccion.children).some((child) => child.nodeType === 1 && child.textContent.trim().length > 0);
+        }, { timeout: 4000 })
+        .then(() => true)
+        .catch(() => false);
+    }
+    registrarEventoInfractor(`fila ${indice}: campos del panel ${camposListos ? "poblados" : "vacios/timeout"}`);
+
+    const datos = aparecio ? await leerDatosConductor(page) : null;
+    registrarEventoInfractor(`fila ${indice}: datos leidos = ${JSON.stringify(datos)}`);
+    await volcarDebugInfractor(page, fila, datos, aparecio ? null : new Error("No aparecio el panel 'Datos conductor' tras el clic"));
+
+    await volverATabla(page, indice);
+    registrarEventoInfractor(`fila ${indice}: fin (exito)`);
+
+    if (!datos) return { cedula_infractor: null, nombre_infractor: null };
+
+    const nombreCompleto = [datos.nombres, datos.apellidos].filter(Boolean).join(" ").trim();
+
+    return {
+      cedula_infractor: datos.numeroDocumento || null,
+      nombre_infractor: nombreCompleto || null
+    };
+  } catch (error) {
+    // No bloquea la extraccion del resto de la fila/tabla: el infractor es
+    // un dato adicional, no critico para el conteo/valor de comparendos.
+    registrarEventoInfractor(`fila ${indice}: EXCEPCION ${error.message}`);
+    await volcarDebugInfractor(page, fila, null, error);
+    await volverATabla(page, indice);
+    registrarEventoInfractor(`fila ${indice}: fin (con error)`);
+    return { cedula_infractor: null, nombre_infractor: null };
+  }
+}
+
 async function extraerMuestraComparendos(page) {
   // Maximiza el tamano de pagina disponible (hasta 15) antes de leer, para
   // capturar la mayor muestra posible en una sola pasada sin paginar.
@@ -133,10 +345,17 @@ async function extraerMuestraComparendos(page) {
     }
   }
 
-  const filas = await page.$$(config.SELECTORS.resultRow);
-  const resultados = [];
+  // Fase 1: lee TODAS las celdas de la tabla antes de abrir ningun detalle.
+  // Es necesario porque abrir el detalle de una fila (leerInfractor) navega
+  // fuera de la tabla, invalidando cualquier ElementHandle capturado antes --
+  // asi que las celdas se guardan aqui, y el emparejamiento con la fila real
+  // para leerInfractor se hace despues por indice, re-consultando el DOM en
+  // cada iteracion (ver fase 2).
+  const filasIniciales = await page.$$(config.SELECTORS.resultRow);
+  const entradas = [];
 
-  for (const fila of filas) {
+  for (let indice = 0; indice < filasIniciales.length; indice += 1) {
+    const fila = filasIniciales[indice];
     const visible = await fila.isVisible().catch(() => false);
     if (!visible) continue;
 
@@ -167,9 +386,23 @@ async function extraerMuestraComparendos(page) {
     });
 
     if (!celdas.tipo) continue;
+    entradas.push({ indice, celdas });
+  }
 
+  // Fase 2: por cada fila valida, re-consulta la tabla en su estado actual
+  // (recien vuelta atras de la fila anterior) y abre su detalle para leer
+  // el infractor.
+  const resultados = [];
+
+  for (const { indice, celdas } of entradas) {
     const numeroMatch = celdas.tipo.match(/\d[\d.]{5,}/);
     const fechaMatch = celdas.tipo.match(DATE_PATTERN);
+
+    const filasActuales = await page.$$(config.SELECTORS.resultRow);
+    const filaActual = filasActuales[indice];
+    const infractor = filaActual
+      ? await leerInfractor(page, filaActual, indice)
+      : { cedula_infractor: null, nombre_infractor: null };
 
     resultados.push({
       numero_comparendo: numeroMatch ? numeroMatch[0] : celdas.tipo.split("\n")[0].trim(),
@@ -177,7 +410,9 @@ async function extraerMuestraComparendos(page) {
       descripcion: (celdas.infraccionDetalle || celdas.infraccionResumen || null),
       valor: parseValor(celdas.valorAPagar),
       estado: detectarEstado(celdas.estado),
-      detalle: celdas
+      cedula_infractor: infractor.cedula_infractor,
+      nombre_infractor: infractor.nombre_infractor,
+      detalle: { ...celdas, infractor }
     });
   }
 

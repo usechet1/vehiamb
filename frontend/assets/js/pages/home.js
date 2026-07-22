@@ -627,11 +627,11 @@ async function inicializarConductorHome(user) {
         iniciarBtn.disabled = true;
 
         try {
-            await window.VehiAmb.api.crearViaje({
+            const viaje = await window.VehiAmb.api.crearViaje({
                 vehiculo_id: conductorVehiculoSeleccionado,
                 destino: obtenerConductorDestino()
             });
-            window.location.href = `vehiculo.html?id=${conductorVehiculoSeleccionado}`;
+            window.location.href = `vehiculo.html?id=${conductorVehiculoSeleccionado}&viaje=${viaje.id}`;
         } catch (error) {
             mensaje.textContent = error.message || "No se pudo registrar el viaje";
             mensaje.classList.remove("hidden");

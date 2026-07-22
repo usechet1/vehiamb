@@ -2,6 +2,7 @@ const HttpError = require("../errors/http-error");
 const vehiculosRepository = require("../repositories/vehiculos.repository");
 const inspeccionesRepository = require("../repositories/inspecciones-preventivas.repository");
 const itemsRepository = require("../repositories/inspeccion-items.repository");
+const viajesRepository = require("../repositories/viajes.repository");
 const notificacionesService = require("./notificaciones.service");
 
 // Catalogo fijo del checklist "radiografia". x/y son coordenadas porcentuales
@@ -58,6 +59,15 @@ for (const item of ITEMS_CHECKLIST) {
 
 const ESTADOS_VALIDOS = new Set(["bien", "mal"]);
 
+function parseCoordenada(valor, min, max) {
+  if (valor === undefined || valor === null || valor === "") return null;
+  const numero = Number(valor);
+  if (!Number.isFinite(numero) || numero < min || numero > max) {
+    throw new HttpError(400, "Las coordenadas de ubicación son inválidas");
+  }
+  return numero;
+}
+
 function getCatalogo() {
   return ITEMS_CHECKLIST;
 }
@@ -84,8 +94,13 @@ function toSafeInspeccion(inspeccion) {
     vehiculo_id: inspeccion.vehiculo_id,
     usuario_id: inspeccion.usuario_id,
     usuario_nombre: inspeccion.usuario_nombre,
+    viaje_id: inspeccion.viaje_id,
+    destino: inspeccion.viaje_destino,
     fecha: inspeccion.fecha,
     observaciones: inspeccion.observaciones,
+    latitud: inspeccion.latitud != null ? Number(inspeccion.latitud) : null,
+    longitud: inspeccion.longitud != null ? Number(inspeccion.longitud) : null,
+    ubicacion_precision: inspeccion.ubicacion_precision != null ? Number(inspeccion.ubicacion_precision) : null,
     total_items: Number(inspeccion.total_items || 0),
     total_items_mal: Number(inspeccion.total_items_mal || 0)
   };
@@ -135,10 +150,30 @@ async function crear(vehiculoId, payload, archivos, currentUser) {
     };
   });
 
+  const latitud = parseCoordenada(payload.latitud, -90, 90);
+  const longitud = parseCoordenada(payload.longitud, -180, 180);
+  const ubicacionPrecision = parseCoordenada(payload.ubicacion_precision, 0, 1000000);
+
+  // El viaje_id llega como query param desde home.js (se crea justo antes de
+  // entrar al wizard). Si no es de este mismo vehiculo/empresa se ignora en
+  // silencio en vez de bloquear el guardado -- es solo el dato de "punto de
+  // llegada", nunca debe impedir registrar la inspeccion.
+  let viajeId = null;
+  if (payload.viaje_id) {
+    const viaje = await viajesRepository.findById(payload.viaje_id, empresaId);
+    if (viaje && String(viaje.vehiculo_id) === String(vehiculoId)) {
+      viajeId = viaje.id;
+    }
+  }
+
   const inspeccion = await inspeccionesRepository.create({
     vehiculo_id: vehiculoId,
     usuario_id: currentUser?.id ?? null,
+    viaje_id: viajeId,
     observaciones: payload.observaciones ? String(payload.observaciones).trim().slice(0, 1000) : null,
+    latitud,
+    longitud,
+    ubicacion_precision: ubicacionPrecision,
     empresa_id: empresaId
   });
 
@@ -149,7 +184,8 @@ async function crear(vehiculoId, payload, archivos, currentUser) {
     vehiculo,
     currentUser,
     totalItemsFaltantes: getTotalItemsCatalogo() - itemsCreados.length,
-    totalItemsMal: itemsCreados.filter((item) => item.estado === "mal").length
+    totalItemsMal: itemsCreados.filter((item) => item.estado === "mal").length,
+    itemsMal: itemsCreados.filter((item) => item.estado === "mal").map(toSafeItem)
   });
 
   return {

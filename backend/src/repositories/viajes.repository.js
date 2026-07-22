@@ -7,6 +7,10 @@ async function create({ vehiculo_id, usuario_id, destino, empresa_id }) {
   );
 }
 
+async function findById(id, empresaId) {
+  return db.get("SELECT * FROM viajes WHERE id = ? AND empresa_id = ?", [id, empresaId]);
+}
+
 // Ultimos viajes de un conductor, con los datos del vehiculo ya resueltos
 // para no tener que pedirlos aparte al pintar "Tus ultimos viajes". Ya viene
 // implicitamente acotado a una sola empresa via usuario_id (un usuario
@@ -29,4 +33,4 @@ async function findRecientesPorUsuario(usuarioId, { limit = 10 } = {}) {
   );
 }
 
-module.exports = { create, findRecientesPorUsuario };
+module.exports = { create, findById, findRecientesPorUsuario };

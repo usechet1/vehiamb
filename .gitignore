@@ -15,6 +15,9 @@ backend/uploads/
 # Respaldos de Postgres (contienen datos reales de clientes)
 backups/
 
+# Volcado de depuracion del scraper SIMIT (contiene datos personales reales)
+backend/debug/
+
 # Archivos de datos reales (no deben versionarse)
 *.xlsm
 *.xlsx
