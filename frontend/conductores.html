@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conductores - VehiAmb</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar"></aside>
+
+        <main class="content">
+            <div class="page-header">
+                <div>
+                    <h1>Conductores</h1>
+                    <p class="page-kicker">Catálogo de conductores para las actas de entrega y recibida de vehículos.</p>
+                </div>
+            </div>
+
+            <div class="module-grid">
+                <div class="stack">
+                    <section class="section-card">
+                        <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
+                            <h2 id="conductorFormTitle">Registrar conductor</h2>
+                            <p>Datos básicos para identificarlo en las actas de entrega y recibida.</p>
+                        </summary>
+                        <div class="section-card-body">
+                            <form id="conductorForm" class="compact-form">
+                                <input type="hidden" id="conductorId">
+
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Nombres *</label>
+                                        <input type="text" id="conductorNombres" pattern="[A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]+" title="Solo letras, sin números" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Apellidos *</label>
+                                        <input type="text" id="conductorApellidos" pattern="[A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]+" title="Solo letras, sin números" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Cédula *</label>
+                                        <input type="text" inputmode="numeric" id="conductorCedula" pattern="\d{6,10}" minlength="6" maxlength="10" title="Solo números, entre 6 y 10 dígitos" required>
+                                        <span class="field-help">Solo números, sin puntos ni guiones (6 a 10 dígitos).</span>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Teléfono *</label>
+                                        <input type="text" inputmode="numeric" id="conductorTelefono" pattern="\d{7,10}" minlength="7" maxlength="10" title="Solo números, entre 7 y 10 dígitos" required>
+                                        <span class="field-help">Solo números (7 a 10 dígitos).</span>
+                                    </div>
+                                </div>
+
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Categoría de licencia *</label>
+                                        <select id="conductorLicenciaCategoria" required>
+                                            <option value="">Selecciona...</option>
+                                            <option value="A1">A1 (Motos hasta 125 c.c.)</option>
+                                            <option value="A2">A2 (Motos más de 125 c.c.)</option>
+                                            <option value="B1">B1 (Automóvil, camioneta, campero particular)</option>
+                                            <option value="B2">B2 (Camión rígido particular)</option>
+                                            <option value="B3">B3 (Vehículo articulado particular)</option>
+                                            <option value="C1">C1 (Automóvil, camioneta, campero público)</option>
+                                            <option value="C2">C2 (Camión rígido público)</option>
+                                            <option value="C3">C3 (Vehículo articulado público)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Estado</label>
+                                        <select id="conductorEstado">
+                                            <option value="activo" selected>Activo</option>
+                                            <option value="inactivo">Inactivo</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Foto o comprobante de la licencia</label>
+                                    <input type="file" id="conductorLicenciaArchivo" accept="image/png,image/jpeg,image/webp,application/pdf">
+                                    <span class="field-help">PDF o imagen (PNG, JPG, WEBP), máximo 5MB.</span>
+                                    <div id="conductorLicenciaArchivoActual" class="field-help hidden"></div>
+                                </div>
+
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Correo *</label>
+                                        <input type="email" id="conductorEmail" required>
+                                        <span class="field-help">Con este correo el conductor accede a su módulo.</span>
+                                    </div>
+                                    <div class="form-group">
+                                        <label id="conductorPasswordLabel">Contraseña *</label>
+                                        <input type="password" id="conductorPassword" minlength="6" required>
+                                        <span class="field-help" id="conductorPasswordHelp">Con esta contraseña el conductor entra a su cuenta (mínimo 6 caracteres).</span>
+                                    </div>
+                                </div>
+
+                                <span class="field-help">* Campos obligatorios</span>
+
+                                <div class="filter-actions">
+                                    <button type="button" id="conductorCancelEditButton" class="btn-secondary hidden">Cancelar edición</button>
+                                    <button type="submit" class="btn-primary" id="conductorSubmitButton">Guardar conductor</button>
+                                </div>
+                            </form>
+                        </div>
+                        </details>
+                    </section>
+                </div>
+
+                <div class="stack">
+                    <section class="section-card">
+                        <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
+                            <h2>Conductores registrados</h2>
+                            <p>Busca por nombres, apellidos, cédula o teléfono.</p>
+                        </summary>
+                        <div class="section-card-body">
+                            <form id="conductoresFilterForm" class="filter-form">
+                                <div class="form-grid-3">
+                                    <div class="form-group">
+                                        <label>Buscar</label>
+                                        <input type="search" id="conductoresSearch" placeholder="Nombres, apellidos, cédula o teléfono...">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Estado</label>
+                                        <select id="conductoresFiltroEstado">
+                                            <option value="">Todos</option>
+                                            <option value="activo">Activo</option>
+                                            <option value="inactivo">Inactivo</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </form>
+
+                            <div class="table-scroll">
+                                <table class="import-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nombre</th>
+                                            <th>Cédula</th>
+                                            <th>Teléfono</th>
+                                            <th>Correo</th>
+                                            <th>Licencia</th>
+                                            <th>Archivo</th>
+                                            <th>Estado</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="conductoresTableBody">
+                                        <tr><td colspan="8" class="dash-empty">Cargando...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="filter-actions">
+                                <span id="conductoresListSummary" class="field-help"></span>
+                                <div class="pagination-buttons">
+                                    <button type="button" id="conductoresPrevPage" class="btn-secondary">Anterior</button>
+                                    <button type="button" id="conductoresNextPage" class="btn-secondary">Siguiente</button>
+                                </div>
+                            </div>
+                        </div>
+                        </details>
+                    </section>
+                </div>
+            </div>
+
+            <div id="loader" class="loader hidden">
+                <video src="img/loader.mp4" autoplay loop muted playsinline></video>
+            </div>
+            <div id="mensaje" class="mensaje hidden"></div>
+        </main>
+    </div>
+
+    <script src="assets/js/shared/auth.js"></script>
+    <script src="assets/js/shared/api.js"></script>
+    <script src="assets/js/shared/ui.js"></script>
+    <script src="assets/js/shared/notificaciones-config.js"></script>
+    <script src="assets/js/shared/sidebar.js"></script>
+    <script src="assets/js/pages/conductores.js"></script>
+</body>
+</html>

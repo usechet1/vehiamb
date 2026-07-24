@@ -16,7 +16,9 @@ const PAGE_PERMISSIONS = {
     "costos.html": "costs.view",
     "admin-usuarios.html": "users.manage",
     "stock-importaciones.html": "inventory.import",
-    "empresa.html": "empresa.manage"
+    "empresa.html": "empresa.manage",
+    "conductores.html": "conductores.view",
+    "entrega-recibida.html": "delivery.view"
 };
 
 function getStoredSession() {

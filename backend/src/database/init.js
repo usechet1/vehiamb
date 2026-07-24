@@ -39,6 +39,64 @@ async function ensureNumericColumn(tableName, columnName, precision = "12, 2") {
   await db.run(`ALTER TABLE ${tableName} ALTER COLUMN ${columnName} TYPE NUMERIC(${precision}) USING ${columnName}::numeric`);
 }
 
+// conductores.nombre (un solo campo de texto libre) se reemplazo por
+// nombres/apellidos por separado -- ver [[feedback_nombres_apellidos_separados]].
+// Si la instalacion ya tenia la columna vieja "nombre" (creada antes de este
+// cambio), se rellenan nombres/apellidos a partir de ella (primera palabra =
+// nombres, resto = apellidos, mejor esfuerzo) y se elimina la columna vieja.
+// En una instalacion nueva "nombre" nunca existio (ver ensurePostgresTables),
+// asi que columnExists devuelve false y esta funcion no hace nada.
+async function migrarConductoresNombreSplit() {
+  if (!(await columnExists("conductores", "nombre"))) return;
+
+  await db.run(`
+    UPDATE conductores
+    SET
+      nombres = COALESCE(NULLIF(SPLIT_PART(nombre, ' ', 1), ''), 'Sin nombre'),
+      apellidos = CASE
+        WHEN POSITION(' ' IN nombre) = 0 THEN ''
+        ELSE TRIM(SUBSTRING(nombre FROM POSITION(' ' IN nombre) + 1))
+      END
+    WHERE nombres IS NULL
+  `);
+
+  await db.run("ALTER TABLE conductores ALTER COLUMN nombres SET NOT NULL");
+  await db.run("ALTER TABLE conductores ALTER COLUMN apellidos SET NOT NULL");
+  await db.run("ALTER TABLE conductores DROP COLUMN nombre");
+}
+
+// "Quien entrega" / "quien recibe" el vehiculo dejo de limitarse al catalogo
+// de Conductores (cedula/licencia) y ahora puede ser cualquier usuario de la
+// empresa (un conductor le puede entregar el vehiculo a su jefe y viceversa).
+// Si la instalacion ya tenia las columnas viejas conductor_entrega_id /
+// conductor_recibe_id (FK a conductores), se migran a usuario_entrega_id /
+// usuario_recibe_id (FK a usuarios) usando el vinculo conductores.usuario_id
+// cuando exista (mejor esfuerzo; si el conductor de esa acta nunca tuvo
+// cuenta de usuario, queda NULL). En una instalacion nueva esas columnas
+// viejas nunca existieron, asi que columnExists devuelve false y no hace nada.
+async function migrarEntregasConductorAUsuario() {
+  if (!(await columnExists("entregas_recibidas", "conductor_entrega_id"))) return;
+
+  await db.run("ALTER TABLE entregas_recibidas ADD COLUMN IF NOT EXISTS usuario_entrega_id BIGINT REFERENCES usuarios(id)");
+  await db.run("ALTER TABLE entregas_recibidas ADD COLUMN IF NOT EXISTS usuario_recibe_id BIGINT REFERENCES usuarios(id)");
+
+  await db.run(`
+    UPDATE entregas_recibidas er
+    SET usuario_entrega_id = c.usuario_id
+    FROM conductores c
+    WHERE er.conductor_entrega_id = c.id AND er.usuario_entrega_id IS NULL
+  `);
+  await db.run(`
+    UPDATE entregas_recibidas er
+    SET usuario_recibe_id = c.usuario_id
+    FROM conductores c
+    WHERE er.conductor_recibe_id = c.id AND er.usuario_recibe_id IS NULL
+  `);
+
+  await db.run("ALTER TABLE entregas_recibidas DROP COLUMN conductor_entrega_id");
+  await db.run("ALTER TABLE entregas_recibidas DROP COLUMN conductor_recibe_id");
+}
+
 const PERMISSIONS = [
   ["dashboard.view", "Inicio", "Ver panel principal"],
   ["vehicles.view", "Vehiculos", "Ver vehiculos"],
@@ -64,7 +122,11 @@ const PERMISSIONS = [
   ["trips.view", "Viajes", "Ver el historial de viajes"],
   ["trips.create", "Viajes", "Registrar el viaje e iniciar recorrido"],
   ["empresa.manage", "Empresa", "Editar el nombre y el logo de la empresa"],
-  ["empresas.switch", "Empresas", "Cambiar de empresa activa entre todas las empresas"]
+  ["empresas.switch", "Empresas", "Cambiar de empresa activa entre todas las empresas"],
+  ["conductores.view", "Conductores", "Ver el catalogo de conductores"],
+  ["conductores.manage", "Conductores", "Crear y editar conductores del catalogo"],
+  ["delivery.view", "Entrega y recibida", "Ver las actas de entrega y recibida de vehiculos"],
+  ["delivery.create", "Entrega y recibida", "Registrar actas de entrega y recibida de vehiculos"]
 ];
 
 const ROLE_PERMISSIONS = {
@@ -89,7 +151,11 @@ const ROLE_PERMISSIONS = {
     "inventory.view",
     "inventory.manage",
     "inspections.view",
-    "inspections.create"
+    "inspections.create",
+    "conductores.view",
+    "conductores.manage",
+    "delivery.view",
+    "delivery.create"
   ],
   Consulta: [
     "dashboard.view",
@@ -99,7 +165,9 @@ const ROLE_PERMISSIONS = {
     "simit.view",
     "costs.view",
     "inventory.view",
-    "inspections.view"
+    "inspections.view",
+    "conductores.view",
+    "delivery.view"
   ],
   // Personal que maneja los vehiculos: elige un vehiculo, revisa sus
   // mantenimientos/documentos y hace la inspeccion preventiva. Sin acceso a
@@ -113,7 +181,10 @@ const ROLE_PERMISSIONS = {
     "inspections.view",
     "inspections.create",
     "trips.view",
-    "trips.create"
+    "trips.create",
+    "conductores.view",
+    "delivery.view",
+    "delivery.create"
   ]
 };
 
@@ -186,7 +257,11 @@ const PERMISOS_NUEVOS_POR_ROL = {
   "trips.view": ["Administrador", "Conductor"],
   "trips.create": ["Administrador", "Conductor"],
   "empresa.manage": ["Administrador"],
-  "vehicles.repuestos_sugeridos": ["Administrador", "Operador", "SuperAdministrador"]
+  "vehicles.repuestos_sugeridos": ["Administrador", "Operador", "SuperAdministrador"],
+  "conductores.view": ["Administrador", "Operador", "Consulta", "Conductor"],
+  "conductores.manage": ["Administrador", "Operador"],
+  "delivery.view": ["Administrador", "Operador", "Consulta", "Conductor"],
+  "delivery.create": ["Administrador", "Operador", "Conductor"]
 };
 
 async function grantPermisosNuevos() {
@@ -770,6 +845,59 @@ async function ensurePostgresTables() {
     )
   `);
 
+  // ── Modulo de Entrega y Recibida de Vehiculo (checklist de daños + firma) ──
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS conductores (
+      id BIGSERIAL PRIMARY KEY,
+      nombres TEXT NOT NULL,
+      apellidos TEXT NOT NULL,
+      cedula TEXT,
+      telefono TEXT,
+      licencia_categoria TEXT,
+      licencia_archivo_url TEXT,
+      licencia_archivo_nombre TEXT,
+      licencia_archivo_mime TEXT,
+      email TEXT,
+      usuario_id BIGINT REFERENCES usuarios(id) ON DELETE SET NULL,
+      estado TEXT NOT NULL DEFAULT 'activo',
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS entregas_recibidas (
+      id BIGSERIAL PRIMARY KEY,
+      vehiculo_id BIGINT NOT NULL REFERENCES vehiculos(id) ON DELETE CASCADE,
+      usuario_id BIGINT REFERENCES usuarios(id),
+      usuario_entrega_id BIGINT REFERENCES usuarios(id),
+      usuario_recibe_id BIGINT REFERENCES usuarios(id),
+      motivo TEXT NOT NULL DEFAULT 'cambio_conductor',
+      kilometraje NUMERIC(12, 2),
+      observaciones TEXT,
+      firma_entrega_url TEXT,
+      firma_entrega_nombre TEXT,
+      firma_recibe_url TEXT,
+      firma_recibe_nombre TEXT,
+      fecha TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS entrega_items (
+      id BIGSERIAL PRIMARY KEY,
+      entrega_id BIGINT NOT NULL REFERENCES entregas_recibidas(id) ON DELETE CASCADE,
+      vehiculo_id BIGINT NOT NULL REFERENCES vehiculos(id) ON DELETE CASCADE,
+      item_codigo TEXT NOT NULL,
+      item_label TEXT NOT NULL,
+      estado TEXT NOT NULL DEFAULT 'bien',
+      comentario TEXT,
+      foto_url TEXT,
+      foto_nombre TEXT,
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
   await db.run("CREATE INDEX IF NOT EXISTS idx_vehiculos_placa ON vehiculos (placa)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios (email)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_mantenimientos_vehiculo_id ON mantenimientos (vehiculo_id)");
@@ -806,6 +934,9 @@ async function ensurePostgresTables() {
   await db.run("CREATE INDEX IF NOT EXISTS idx_inspecciones_preventivas_vehiculo_id ON inspecciones_preventivas (vehiculo_id, fecha DESC)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_inspeccion_items_inspeccion_id ON inspeccion_items (inspeccion_id)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_viajes_usuario_id ON viajes (usuario_id, creado_en DESC)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_conductores_estado ON conductores (estado)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_entregas_recibidas_vehiculo_id ON entregas_recibidas (vehiculo_id, fecha DESC)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_entrega_items_entrega_id ON entrega_items (entrega_id)");
 
   // La bodega y configuracion por defecto ya NO se insertan aqui: bodegas.codigo
   // y configuracion_inventario.clave pasan a ser unicos POR EMPRESA (ver mas abajo
@@ -857,7 +988,10 @@ const TABLAS_CON_EMPRESA_ID = [
   "simit_comparendos",
   "inspecciones_preventivas",
   "inspeccion_items",
-  "viajes"
+  "viajes",
+  "conductores",
+  "entregas_recibidas",
+  "entrega_items"
 ];
 
 async function seedEmpresaDefault() {
@@ -1320,8 +1454,17 @@ if (env.dbClient === "sqlite") {
       ensureColumn("inspecciones_preventivas", "ubicacion_precision", "NUMERIC(10, 2)"),
       ensureColumn("simit_comparendos", "cedula_infractor", "TEXT"),
       ensureColumn("simit_comparendos", "nombre_infractor", "TEXT"),
-      ensureColumn("inspecciones_preventivas", "viaje_id", "BIGINT REFERENCES viajes(id) ON DELETE SET NULL")
+      ensureColumn("inspecciones_preventivas", "viaje_id", "BIGINT REFERENCES viajes(id) ON DELETE SET NULL"),
+      ensureColumn("conductores", "nombres", "TEXT"),
+      ensureColumn("conductores", "apellidos", "TEXT"),
+      ensureColumn("conductores", "licencia_archivo_url", "TEXT"),
+      ensureColumn("conductores", "licencia_archivo_nombre", "TEXT"),
+      ensureColumn("conductores", "licencia_archivo_mime", "TEXT"),
+      ensureColumn("conductores", "email", "TEXT"),
+      ensureColumn("conductores", "usuario_id", "BIGINT REFERENCES usuarios(id) ON DELETE SET NULL")
     ]))
+    .then(migrarConductoresNombreSplit)
+    .then(migrarEntregasConductorAUsuario)
     .then(ensureEmpresaIdColumns)
     .then(() => Promise.all([
       ensureNumericColumn("vehiculos", "kilometraje_actual"),

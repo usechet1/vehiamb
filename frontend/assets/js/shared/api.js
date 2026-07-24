@@ -759,6 +759,95 @@ window.VehiAmb.api = {
         );
     },
 
+    getConductores(filters = {}) {
+        const params = new URLSearchParams();
+        if (filters.estado) params.set("estado", filters.estado);
+        if (filters.search) params.set("search", filters.search);
+        if (filters.page) params.set("page", filters.page);
+        if (filters.limit) params.set("limit", filters.limit);
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/conductores${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudieron cargar los conductores"
+        );
+    },
+
+    getConductoresActivos() {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/conductores/activos`,
+            undefined,
+            "No se pudieron cargar los conductores"
+        );
+    },
+
+    getConductor(id) {
+        return requestJson(`${window.VehiAmb.API_URL}/conductores/${id}`, undefined, "No se pudo cargar el conductor");
+    },
+
+    createConductor(formData) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/conductores`,
+            {
+                method: "POST",
+                body: formData
+            },
+            "No se pudo guardar el conductor"
+        );
+    },
+
+    updateConductor(id, formData) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/conductores/${id}`,
+            {
+                method: "PUT",
+                body: formData
+            },
+            "No se pudo actualizar el conductor"
+        );
+    },
+
+    getEntregaChecklistCatalogo() {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/entregas-recibidas/catalogo`,
+            undefined,
+            "No se pudo cargar el catálogo del checklist"
+        );
+    },
+
+    getEntregaUsuariosDisponibles() {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/entregas-recibidas/usuarios-disponibles`,
+            undefined,
+            "No se pudieron cargar los usuarios disponibles"
+        );
+    },
+
+    getEntregasByVehicle(vehiculoId) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/entregas-recibidas/vehiculo/${vehiculoId}`,
+            undefined,
+            "No se pudo cargar el historial de entregas y recibidas"
+        );
+    },
+
+    getEntregaDetalle(entregaId) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/entregas-recibidas/${entregaId}`,
+            undefined,
+            "No se pudo cargar el detalle del acta"
+        );
+    },
+
+    crearEntregaRecibida(vehiculoId, formData) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/entregas-recibidas/vehiculo/${vehiculoId}`,
+            { method: "POST", body: formData },
+            "No se pudo guardar el acta de entrega y recibida"
+        );
+    },
+
     crearViaje(payload) {
         return requestJson(
             `${window.VehiAmb.API_URL}/viajes`,

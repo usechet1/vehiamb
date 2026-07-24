@@ -10,7 +10,8 @@ const CATEGORIAS = {
   usuario: { label: "Usuarios", icono: "👤" },
   sistema: { label: "Sistema", icono: "⚙️" },
   inventario: { label: "Inventario", icono: "📦" },
-  inspeccion: { label: "Inspecciones", icono: "🔍" }
+  inspeccion: { label: "Inspecciones", icono: "🔍" },
+  entrega: { label: "Entrega y recibida", icono: "🤝" }
 };
 
 // orden: menor = mayor urgencia. Las críticas siempre se muestran primero.
@@ -54,7 +55,8 @@ const TIPOS = {
   simit_multa_detectada: { categoria: "incidente", prioridad: "alta", titulo: "Nuevo comparendo detectado en SIMIT" },
   simit_estado_cambiado: { categoria: "incidente", prioridad: "media", titulo: "Cambio de estado en SIMIT" },
   simit_consulta_fallo: { categoria: "sistema", prioridad: "media", titulo: "Consulta SIMIT fallida" },
-  inspeccion_con_hallazgos: { categoria: "inspeccion", prioridad: "alta", titulo: "Inspección con hallazgos" }
+  inspeccion_con_hallazgos: { categoria: "inspeccion", prioridad: "alta", titulo: "Inspección con hallazgos" },
+  entrega_recibida_registrada: { categoria: "entrega", prioridad: "media", titulo: "Acta de entrega y recibida registrada" }
 };
 
 // Umbrales (en días) para generar recordatorios automáticos de vencimiento.

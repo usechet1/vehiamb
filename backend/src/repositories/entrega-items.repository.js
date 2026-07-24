@@ -1,0 +1,52 @@
+const db = require("../database/query");
+
+const FIELDS = [
+  "entrega_id",
+  "vehiculo_id",
+  "item_codigo",
+  "item_label",
+  "estado",
+  "comentario",
+  "foto_url",
+  "foto_nombre",
+  "empresa_id"
+];
+
+async function bulkCreate(entregaId, vehiculoId, items, empresaId, dbClient = db) {
+  if (!items.length) return [];
+
+  const creados = [];
+  for (const item of items) {
+    const row = {
+      entrega_id: entregaId,
+      vehiculo_id: vehiculoId,
+      item_codigo: item.item_codigo,
+      item_label: item.item_label,
+      estado: item.estado,
+      comentario: item.comentario || null,
+      foto_url: item.foto_url || null,
+      foto_nombre: item.foto_nombre || null,
+      empresa_id: empresaId
+    };
+
+    const values = FIELDS.map((field) => row[field] ?? null);
+    const placeholders = FIELDS.map(() => "?").join(", ");
+
+    const creado = await dbClient.get(
+      `INSERT INTO entrega_items (${FIELDS.join(", ")}) VALUES (${placeholders}) RETURNING *`,
+      values
+    );
+    creados.push(creado);
+  }
+
+  return creados;
+}
+
+async function findByEntrega(entregaId, empresaId) {
+  return db.all(
+    "SELECT * FROM entrega_items WHERE entrega_id = ? AND empresa_id = ? ORDER BY id ASC",
+    [entregaId, empresaId]
+  );
+}
+
+module.exports = { bulkCreate, findByEntrega };

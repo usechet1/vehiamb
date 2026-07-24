@@ -39,6 +39,22 @@ async function findById(id, empresaId = null) {
   return db.get(`${USER_SELECT} WHERE u.id = ? AND u.empresa_id = ?`, [id, empresaId]);
 }
 
+// Version liviana para selectores (ej. "quien entrega"/"quien recibe" del
+// acta de entrega y recibida): solo lo minimo para mostrar en un <select>,
+// nunca password_hash u otros datos sensibles que si trae findAll (pensado
+// para el panel de administracion de usuarios, permiso users.manage).
+async function findAllActivosSimplificado(empresaId) {
+  return db.all(
+    `
+      SELECT id, nombre, email
+      FROM usuarios
+      WHERE empresa_id = ? AND activo = TRUE
+      ORDER BY nombre ASC
+    `,
+    [empresaId]
+  );
+}
+
 async function findAll(empresaId) {
   return db.all(
     `
@@ -169,6 +185,7 @@ module.exports = {
   findByEmail,
   findById,
   findAll,
+  findAllActivosSimplificado,
   create,
   update,
   setActive,

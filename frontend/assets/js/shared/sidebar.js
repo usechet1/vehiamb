@@ -381,6 +381,8 @@ async function cargarSidebar() {
                 <button data-page="mantenimientos.html" data-permission="maintenance.view">Mantenimientos</button>
                 <button data-page="documentos.html" data-permission="documents.view">Documentos</button>
                 <button data-page="simit.html" data-permission="simit.view">Consulta SIMIT</button>
+                <button data-page="conductores.html" data-permission="conductores.view">Conductores</button>
+                <button data-page="entrega-recibida.html" data-permission="delivery.view">Entrega y recibida</button>
                 <button data-page="costos.html" data-permission="costs.view">Gastos</button>
                 <button data-page="importaciones.html" data-permission="imports.view">Importaciones</button>
                 <button data-page="notificaciones.html" data-permission="dashboard.view">Notificaciones</button>
@@ -429,7 +431,7 @@ async function cargarSidebar() {
         // El bloqueo real de acceso directo por URL vive en auth.js
         // (PAGINAS_BLOQUEADAS_POR_ROL), esto solo oculta el boton del menu.
         const paginasOcultasPorRol = {
-            Conductor: ["mantenimientos.html", "documentos.html", "dashboard.html"]
+            Conductor: ["mantenimientos.html", "documentos.html", "dashboard.html", "conductores.html"]
         };
 
         aside.querySelectorAll("button[data-permission]").forEach((btn) => {

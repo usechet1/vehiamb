@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrega y recibida - VehiAmb</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar"></aside>
+
+        <main class="content">
+            <div class="page-header">
+                <div>
+                    <h1>Entrega y recibida de vehículo</h1>
+                    <p class="page-kicker">Deja constancia del estado del vehículo (rayones, golpes, novedades) al cambiar de conductor, por vacaciones o retiro, con firma de ambas partes.</p>
+                </div>
+            </div>
+
+            <section class="section-card">
+                <details class="section-card-collapsible" open>
+                    <summary class="section-card-head">
+                        <h2>Selecciona el vehículo</h2>
+                        <p>Elige el vehículo sobre el que vas a registrar el acta.</p>
+                    </summary>
+                    <div class="section-card-body">
+                        <div class="form-group">
+                            <label>Vehículo</label>
+                            <select id="entregaVehiculoSelect">
+                                <option value="">Selecciona un vehículo...</option>
+                            </select>
+                        </div>
+                    </div>
+                </details>
+            </section>
+
+            <section class="section-card inspeccion-section hidden" id="entregaFormSection">
+                <details class="section-card-collapsible" open>
+                    <summary class="section-card-head">
+                        <h2 id="entregaFormTitle">Acta de entrega y recibida</h2>
+                        <p>Haz click sobre cada punto del diagrama para marcar su estado, como una radiografía del vehículo.</p>
+                    </summary>
+                    <div class="section-card-body">
+                    <div class="form-grid-4">
+                        <div class="form-group">
+                            <label>Motivo</label>
+                            <select id="entregaMotivo">
+                                <option value="cambio_conductor">Cambio de conductor</option>
+                                <option value="vacaciones">Vacaciones</option>
+                                <option value="retiro">Retiro definitivo</option>
+                                <option value="otro">Otro</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Kilometraje actual</label>
+                            <input type="text" inputmode="decimal" id="entregaKilometraje" placeholder="Ej: 45.000">
+                            <span id="entregaKilometrajeHelp" class="field-help">Cargando kilometraje actual del vehículo...</span>
+                        </div>
+                        <div class="form-group">
+                            <label>Quién entrega</label>
+                            <select id="entregaConductorEntrega"><option value="">Selecciona...</option></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Quién recibe</label>
+                            <select id="entregaConductorRecibe"><option value="">Selecciona...</option></select>
+                        </div>
+                    </div>
+                    <p class="field-help">Puedes elegir a cualquier usuario activo de la empresa (conductor, administrador, operador, etc.).</p>
+
+                    <div class="inspeccion-layout">
+                        <div class="inspeccion-diagram-wrap">
+                            <svg class="inspeccion-diagram" viewBox="0 0 200 340" role="img" aria-label="Diagrama genérico del vehículo visto desde arriba">
+                                <g fill="#454e5c">
+                                    <rect x="28" y="68" width="20" height="52" rx="8"></rect>
+                                    <rect x="152" y="68" width="20" height="52" rx="8"></rect>
+                                    <rect x="28" y="220" width="20" height="52" rx="8"></rect>
+                                    <rect x="152" y="220" width="20" height="52" rx="8"></rect>
+                                </g>
+                                <g fill="#20242c">
+                                    <circle cx="38" cy="94" r="5"></circle>
+                                    <circle cx="162" cy="94" r="5"></circle>
+                                    <circle cx="38" cy="246" r="5"></circle>
+                                    <circle cx="162" cy="246" r="5"></circle>
+                                </g>
+
+                                <path d="M90,25 L110,25 A45,45 0 0 1 155,70 L155,290 A25,25 0 0 1 130,315 L70,315 A25,25 0 0 1 45,290 L45,70 A45,45 0 0 1 90,25 Z"
+                                      fill="#eef1f6" stroke="#b9c2d0" stroke-width="2"></path>
+
+                                <line x1="100" y1="32" x2="100" y2="308" stroke="#c7cedb" stroke-width="1.5" stroke-dasharray="3 7"></line>
+
+                                <polygon points="78,76 122,76 132,110 68,110" fill="#c7d3e0"></polygon>
+                                <polygon points="68,230 132,230 122,264 78,264" fill="#c7d3e0"></polygon>
+
+                                <rect x="66" y="112" width="68" height="116" rx="16" fill="#dbe2ec"></rect>
+
+                                <rect x="36" y="90" width="9" height="15" rx="3" fill="#8b93a3"></rect>
+                                <rect x="155" y="90" width="9" height="15" rx="3" fill="#8b93a3"></rect>
+
+                                <rect x="56" y="32" width="15" height="8" rx="4" fill="#f5c451"></rect>
+                                <rect x="129" y="32" width="15" height="8" rx="4" fill="#f5c451"></rect>
+                                <rect x="56" y="300" width="15" height="8" rx="4" fill="#d7434f"></rect>
+                                <rect x="129" y="300" width="15" height="8" rx="4" fill="#d7434f"></rect>
+                            </svg>
+                            <div class="inspeccion-hotspots" id="entregaHotspots"></div>
+                        </div>
+                        <div class="inspeccion-diagram-legend">
+                            <span><i class="inspeccion-legend-dot"></i> Sin marcar</span>
+                            <span><i class="inspeccion-legend-dot is-bien"></i> Sin novedad</span>
+                            <span><i class="inspeccion-legend-dot is-mal"></i> Con novedad</span>
+                            <span><i class="inspeccion-legend-dot is-parcial"></i> Grupo incompleto</span>
+                        </div>
+
+                        <div class="inspeccion-content">
+                            <div class="inspeccion-top-row">
+                                <div class="inspeccion-panel" id="entregaPanel">
+                                    <p class="dash-empty">Selecciona un punto del diagrama para marcar su estado.</p>
+                                </div>
+
+                                <div class="inspeccion-side">
+                                    <div class="inspeccion-resumen" id="entregaResumen"></div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Observaciones generales</label>
+                                <textarea id="entregaObservaciones" rows="2" placeholder="Situaciones especiales, acuerdos entre las partes, etc."></textarea>
+                            </div>
+
+                            <div class="entrega-firmas-grid">
+                                <div class="entrega-firma-box">
+                                    <label>Firma de quien entrega</label>
+                                    <canvas id="entregaFirmaEntregaCanvas" class="entrega-firma-canvas" width="320" height="160"></canvas>
+                                    <div class="entrega-firma-acciones">
+                                        <button type="button" class="btn-secondary" data-guardar-firma="entrega">Guardar firma</button>
+                                        <button type="button" class="btn-secondary" data-limpiar-firma="entrega">Limpiar firma</button>
+                                    </div>
+                                </div>
+                                <div class="entrega-firma-box">
+                                    <label>Firma de quien recibe</label>
+                                    <canvas id="entregaFirmaRecibeCanvas" class="entrega-firma-canvas" width="320" height="160"></canvas>
+                                    <div class="entrega-firma-acciones">
+                                        <button type="button" class="btn-secondary" data-guardar-firma="recibe">Guardar firma</button>
+                                        <button type="button" class="btn-secondary" data-limpiar-firma="recibe">Limpiar firma</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="button" id="guardarEntregaButton" class="btn-primary hidden" disabled>Guardar acta</button>
+                                <button type="button" id="limpiarEntregaButton" class="btn-secondary">Limpiar</button>
+                            </div>
+
+                            <details class="inspeccion-historial">
+                                <summary><h3>Historial de actas</h3></summary>
+                                <div id="entregaHistorialList" class="records-list">
+                                    <p class="dash-empty">Cargando...</p>
+                                </div>
+                            </details>
+                        </div>
+                    </div>
+                    </div>
+                </details>
+            </section>
+
+            <div id="loader" class="loader hidden">
+                <video src="img/loader.mp4" autoplay loop muted playsinline></video>
+            </div>
+            <div id="mensaje" class="mensaje hidden"></div>
+
+            <div id="entregaDrawerBackdrop" class="drawer-backdrop hidden"></div>
+            <aside id="entregaDrawer" class="detail-drawer hidden" aria-hidden="true" aria-labelledby="entregaDrawerTitle">
+                <div class="detail-drawer-head">
+                    <div>
+                        <span class="form-step">Detalle del acta</span>
+                        <h2 id="entregaDrawerTitle">Acta de entrega y recibida</h2>
+                        <p id="entregaDrawerSubtitle">Información completa del registro</p>
+                    </div>
+                    <div class="detail-drawer-actions">
+                        <button type="button" id="exportEntregaDrawerButton" class="btn-secondary btn-pdf">Exportar PDF</button>
+                        <button type="button" id="closeEntregaDrawer" class="drawer-close" aria-label="Cerrar detalle">×</button>
+                    </div>
+                </div>
+                <div id="entregaDrawerBody" class="detail-drawer-body"></div>
+            </aside>
+        </main>
+    </div>
+
+    <script src="assets/js/shared/auth.js"></script>
+    <script src="assets/js/shared/api.js"></script>
+    <script src="assets/js/shared/ui.js"></script>
+    <script src="assets/js/shared/notificaciones-config.js"></script>
+    <script src="assets/js/shared/sidebar.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="assets/js/shared/pdf-export.js"></script>
+    <script src="assets/js/pages/entrega-export.js"></script>
+    <script src="assets/js/pages/entrega-recibida.js"></script>
+</body>
+</html>

@@ -19,6 +19,17 @@ async function findById(id) {
   );
 }
 
+async function findByNombre(nombre) {
+  return db.get(
+    `
+      SELECT id, nombre, descripcion, activo, created_at
+      FROM roles
+      WHERE nombre = ?
+    `,
+    [nombre]
+  );
+}
+
 async function findPermissions() {
   return db.all(`
     SELECT id, codigo, modulo, descripcion
@@ -62,6 +73,7 @@ async function updatePermissions(roleId, permissionIds) {
 module.exports = {
   findAll,
   findById,
+  findByNombre,
   findPermissions,
   findPermissionsByRoleId,
   updatePermissions
