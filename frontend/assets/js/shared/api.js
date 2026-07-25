@@ -203,6 +203,17 @@ window.VehiAmb.api = {
         );
     },
 
+    updateDocumento(id, payload) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/documentos/${id}`,
+            {
+                method: "PUT",
+                body: payload
+            },
+            "No se pudo actualizar el documento"
+        );
+    },
+
     getUsuarios() {
         return requestJson(`${window.VehiAmb.API_URL}/usuarios`, undefined, "No se pudieron cargar los usuarios");
     },

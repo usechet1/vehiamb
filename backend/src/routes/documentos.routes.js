@@ -18,5 +18,13 @@ router.post(
   asyncHandler(compressImage),
   asyncHandler(documentosController.createDocumento)
 );
+router.put(
+  "/:id",
+  requirePermission("documents.create"),
+  uploadDocumento.single("archivo"),
+  asyncHandler(validateUpload),
+  asyncHandler(compressImage),
+  asyncHandler(documentosController.updateDocumento)
+);
 
 module.exports = router;
