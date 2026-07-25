@@ -14,7 +14,7 @@ const DESTINATARIO_PERMISSION = "documents.view";
 // dejando Seguro y Tarjeta de operacion (y "otro") sin ningun aviso.
 const TIPO_DOCUMENTO_NOTIFICACION = {
   soat: { proximo: "soat_proximo", vencido: "soat_vencido", label: "SOAT" },
-  tecnomecanica: { proximo: "tecnomecanica_proxima", vencido: "tecnomecanica_vencida", label: "Tecnico-Mecanica" },
+  tecnomecanica: { proximo: "tecnomecanica_proxima", vencido: "tecnomecanica_vencida", label: "RTM" },
   seguro: { proximo: "seguro_proximo", vencido: "seguro_vencido", label: "Seguro" },
   tarjeta_operacion: { proximo: "tarjeta_operacion_proxima", vencido: "tarjeta_operacion_vencida", label: "Tarjeta de operacion" },
   otro: { proximo: "documento_proximo", vencido: "documento_vencido", label: "Documento" }

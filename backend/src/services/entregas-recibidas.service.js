@@ -215,7 +215,7 @@ async function crear(vehiculoId, payload, archivos, currentUser) {
     ["Administrador", "Operador"],
     {
       tipo: "entrega_recibida_registrada",
-      mensaje: `Se registró el acta de entrega y recibida del vehículo ${vehiculo.marca} ${vehiculo.modelo} (${vehiculo.placa}) entre ${usuarioEntrega.nombre} y ${usuarioRecibe.nombre}${itemsMal.length ? `, con ${itemsMal.length} novedad${itemsMal.length === 1 ? "" : "es"} registrada${itemsMal.length === 1 ? "" : "s"}` : ""}.`,
+      mensaje: `Se registró el acta de vehículo de ${vehiculo.marca} ${vehiculo.modelo} (${vehiculo.placa}) entre ${usuarioEntrega.nombre} y ${usuarioRecibe.nombre}${itemsMal.length ? `, con ${itemsMal.length} novedad${itemsMal.length === 1 ? "" : "es"} registrada${itemsMal.length === 1 ? "" : "s"}` : ""}.`,
       vehiculo_id: vehiculo.id,
       referencia_tipo: "entrega_recibida",
       referencia_id: entrega.id,
@@ -252,7 +252,7 @@ async function listarPorVehiculo(vehiculoId, empresaId) {
 async function obtenerDetalle(entregaId, empresaId) {
   const entrega = await entregasRepository.findById(entregaId, empresaId);
   if (!entrega) {
-    throw new HttpError(404, "Acta de entrega y recibida no encontrada");
+    throw new HttpError(404, "Acta de vehículo no encontrada");
   }
 
   const items = await itemsRepository.findByEntrega(entregaId, empresaId);

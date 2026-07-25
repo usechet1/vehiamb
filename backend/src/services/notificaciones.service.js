@@ -4,6 +4,7 @@ const usuariosRepository = require("../repositories/usuarios.repository");
 const mantenimientosRepository = require("../repositories/mantenimientos.repository");
 const notifConfig = require("../config/notificaciones.config");
 const emailChannel = require("./notificaciones-email.channel");
+const whatsappChannel = require("./notificaciones-whatsapp.channel");
 
 const APPROVAL_PERMISSION = "maintenance.approve";
 
@@ -43,9 +44,10 @@ const CHANNELS = [
     // La notificacion ya quedo persistida en la base de datos: es el canal
     // por defecto y siempre esta activo.
   },
-  emailChannel
-  // Proximo canal externo (WhatsApp Business API, Slack, Teams...): una
-  // funcion mas en este arreglo, siguiendo el mismo patron que emailChannel.
+  emailChannel,
+  whatsappChannel
+  // Proximo canal externo (Slack, Teams...): una funcion mas en este
+  // arreglo, siguiendo el mismo patron que emailChannel/whatsappChannel.
 ];
 
 function dispatchChannels(notificacion) {

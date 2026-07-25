@@ -1,4 +1,7 @@
 const documentoForm = document.getElementById("documentoForm");
+const documentoTipo = document.getElementById("documentoTipo");
+const documentoFechaExpedicion = document.getElementById("documentoFechaExpedicion");
+const documentoFechaVencimiento = document.getElementById("documentoFechaVencimiento");
 const tabDocumentosHistorialButton = document.getElementById("tabDocumentosHistorialButton");
 const tabDocumentosRegistrarButton = document.getElementById("tabDocumentosRegistrarButton");
 const registrarDocumentoSection = document.getElementById("registrarDocumentoSection");
@@ -17,9 +20,31 @@ const loader = document.getElementById("loader");
 const mensaje = document.getElementById("mensaje");
 
 let documentosState = [];
+let vencimientoEditadoManualmente = false;
+
+// Tipos con vigencia legal fija de 1 año en Colombia: al escribir la fecha de
+// expedicion se sugiere el vencimiento automaticamente, pero el usuario
+// puede corregirlo (ej. polizas con vigencia distinta) sin que se le pise.
+const TIPOS_VENCIMIENTO_UN_ANIO = ["tecnomecanica", "soat"];
+
+function calcularVencimientoUnAnio(fechaExpedicion) {
+    const expedicion = new Date(`${fechaExpedicion}T00:00:00`);
+    if (Number.isNaN(expedicion.getTime())) return "";
+
+    expedicion.setFullYear(expedicion.getFullYear() + 1);
+    return expedicion.toISOString().slice(0, 10);
+}
+
+function autocompletarVencimiento() {
+    if (vencimientoEditadoManualmente) return;
+    if (!TIPOS_VENCIMIENTO_UN_ANIO.includes(documentoTipo.value)) return;
+    if (!documentoFechaExpedicion.value) return;
+
+    documentoFechaVencimiento.value = calcularVencimientoUnAnio(documentoFechaExpedicion.value);
+}
 
 const tiposDocumento = {
-    tecnomecanica: "Tecnomecánica",
+    tecnomecanica: "RTM",
     soat: "SOAT",
     seguro: "Seguro",
     tarjeta_operacion: "Tarjeta de operación",
@@ -246,6 +271,12 @@ function switchTab(tab) {
 tabDocumentosHistorialButton.addEventListener("click", () => switchTab("historial"));
 tabDocumentosRegistrarButton.addEventListener("click", () => switchTab("registrar"));
 
+documentoTipo.addEventListener("change", autocompletarVencimiento);
+documentoFechaExpedicion.addEventListener("change", autocompletarVencimiento);
+documentoFechaVencimiento.addEventListener("input", () => {
+    vencimientoEditadoManualmente = true;
+});
+
 documentoForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
@@ -256,6 +287,7 @@ documentoForm.addEventListener("submit", async (event) => {
         await window.VehiAmb.api.createDocumento(formData);
         window.VehiAmb.ui.showMessage(mensaje, "Documento guardado correctamente");
         documentoForm.reset();
+        vencimientoEditadoManualmente = false;
         await cargarDatos();
         switchTab("historial");
     } catch (error) {

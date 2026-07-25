@@ -4,6 +4,7 @@ const userForm = document.getElementById("userForm");
 const userId = document.getElementById("userId");
 const userName = document.getElementById("userName");
 const userEmail = document.getElementById("userEmail");
+const userCelular = document.getElementById("userCelular");
 const userPassword = document.getElementById("userPassword");
 const userRole = document.getElementById("userRole");
 const userActive = document.getElementById("userActive");
@@ -237,6 +238,7 @@ function editUser(id) {
     userId.value = user.id;
     userName.value = user.nombre || "";
     userEmail.value = user.email || "";
+    userCelular.value = user.celular || "";
     userPassword.value = "";
     userPassword.required = false;
     hideUserPassword();
@@ -323,6 +325,7 @@ async function saveUser(event) {
     const formData = new FormData();
     formData.set("nombre", userName.value);
     formData.set("email", buildEmail(userEmail.value));
+    formData.set("celular", userCelular.value);
     formData.set("password", userPassword.value);
     formData.set("role_id", userRole.value);
     formData.set("activo", String(userActive.checked));

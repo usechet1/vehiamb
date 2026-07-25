@@ -60,7 +60,16 @@ const env = {
   // urgencia que ya se ven en el centro de notificaciones in-app.
   emailAlertPrioridadMinima: process.env.EMAIL_ALERT_PRIORIDAD_MINIMA || "alta",
   // Base para armar enlaces "Ver en VehiAmb" dentro del correo (sin / final).
-  appBaseUrl: process.env.APP_BASE_URL || "http://localhost:8080"
+  appBaseUrl: process.env.APP_BASE_URL || "http://localhost:8080",
+
+  // Canal de WhatsApp para notificaciones (ver notificaciones-whatsapp.channel.js).
+  // Se activa solo si whatsappToken/whatsappPhoneNumberId estan definidos.
+  whatsappToken: process.env.WHATSAPP_ACCESS_TOKEN || "",
+  whatsappPhoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || "",
+  whatsappApiVersion: process.env.WHATSAPP_API_VERSION || "v21.0",
+  whatsappTemplateName: process.env.WHATSAPP_TEMPLATE_NAME || "alerta_vehiamb",
+  whatsappTemplateLang: process.env.WHATSAPP_TEMPLATE_LANG || "es_CO",
+  whatsappAlertPrioridadMinima: process.env.WHATSAPP_ALERT_PRIORIDAD_MINIMA || "alta"
 };
 
 module.exports = env;

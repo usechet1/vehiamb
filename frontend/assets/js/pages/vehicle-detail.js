@@ -39,7 +39,7 @@ const tiposMantenimiento = {
 };
 
 const tiposDocumento = {
-    tecnomecanica: "Tecnomecánica",
+    tecnomecanica: "RTM",
     soat: "SOAT",
     seguro: "Seguro",
     tarjeta_operacion: "Tarjeta de operación",
@@ -264,7 +264,13 @@ function renderDocumentos(documentos) {
                 <div class="record-meta">
                     <span class="pill">Expedición: ${formatDate(item.fecha_expedicion)}</span>
                     <span class="pill">Vencimiento: ${formatDate(item.fecha_vencimiento)}</span>
+                    ${item.archivo_url ? '<span class="pill">Adjunto disponible</span>' : ""}
                 </div>
+                ${item.archivo_url ? `
+                    <a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(item.archivo_url))}" target="_blank" rel="noreferrer">
+                        ${escapeHtml(item.archivo_nombre) || "Ver documento"}
+                    </a>
+                ` : ""}
             </article>
         `;
     }).join("");

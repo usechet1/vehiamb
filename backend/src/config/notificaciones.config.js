@@ -11,7 +11,7 @@ const CATEGORIAS = {
   sistema: { label: "Sistema", icono: "⚙️" },
   inventario: { label: "Inventario", icono: "📦" },
   inspeccion: { label: "Inspecciones", icono: "🔍" },
-  entrega: { label: "Entrega y recibida", icono: "🤝" }
+  entrega: { label: "Actas de vehículo", icono: "🤝" }
 };
 
 // orden: menor = mayor urgencia. Las críticas siempre se muestran primero.
@@ -31,8 +31,8 @@ const TIPOS = {
   cambio_aceite_proximo: { categoria: "mantenimiento", prioridad: "media", titulo: "Cambio de aceite próximo" },
   soat_proximo: { categoria: "documentacion", prioridad: "alta", titulo: "SOAT próximo a vencer" },
   soat_vencido: { categoria: "documentacion", prioridad: "critica", titulo: "SOAT vencido" },
-  tecnomecanica_proxima: { categoria: "documentacion", prioridad: "alta", titulo: "Técnico-Mecánica próxima a vencer" },
-  tecnomecanica_vencida: { categoria: "documentacion", prioridad: "critica", titulo: "Técnico-Mecánica vencida" },
+  tecnomecanica_proxima: { categoria: "documentacion", prioridad: "alta", titulo: "RTM próxima a vencer" },
+  tecnomecanica_vencida: { categoria: "documentacion", prioridad: "critica", titulo: "RTM vencida" },
   seguro_proximo: { categoria: "documentacion", prioridad: "alta", titulo: "Seguro próximo a vencer" },
   seguro_vencido: { categoria: "documentacion", prioridad: "critica", titulo: "Seguro vencido" },
   tarjeta_operacion_proxima: { categoria: "documentacion", prioridad: "alta", titulo: "Tarjeta de operación próxima a vencer" },
@@ -56,7 +56,7 @@ const TIPOS = {
   simit_estado_cambiado: { categoria: "incidente", prioridad: "media", titulo: "Cambio de estado en SIMIT" },
   simit_consulta_fallo: { categoria: "sistema", prioridad: "media", titulo: "Consulta SIMIT fallida" },
   inspeccion_con_hallazgos: { categoria: "inspeccion", prioridad: "alta", titulo: "Inspección con hallazgos" },
-  entrega_recibida_registrada: { categoria: "entrega", prioridad: "media", titulo: "Acta de entrega y recibida registrada" }
+  entrega_recibida_registrada: { categoria: "entrega", prioridad: "media", titulo: "Acta de vehículo registrada" }
 };
 
 // Umbrales (en días) para generar recordatorios automáticos de vencimiento.

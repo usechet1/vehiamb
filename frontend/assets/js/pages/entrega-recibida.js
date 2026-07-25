@@ -463,7 +463,7 @@ async function guardarEntrega() {
         formData.append("firma_recibe", firmaRecibeBlob, "firma_recibe.png");
 
         await window.VehiAmb.api.crearEntregaRecibida(entregaVehiculoId, formData);
-        window.VehiAmb.ui.showMessage(entregaMensaje, "Acta de entrega y recibida guardada correctamente");
+        window.VehiAmb.ui.showMessage(entregaMensaje, "Acta de vehículo guardada correctamente");
         await resetEntrega();
         await cargarHistorial();
     } catch (error) {
@@ -586,7 +586,7 @@ exportEntregaDrawerButton.addEventListener("click", () => {
 
 function renderHistorial(entregas) {
     if (!entregas.length) {
-        entregaHistorialList.innerHTML = '<p class="dash-empty">Este vehículo aún no tiene actas de entrega y recibida registradas</p>';
+        entregaHistorialList.innerHTML = '<p class="dash-empty">Este vehículo aún no tiene actas de vehículo registradas</p>';
         return;
     }
 
@@ -681,7 +681,7 @@ async function onVehiculoSeleccionado() {
     }
 
     entregaFormSection.classList.remove("hidden");
-    entregaFormTitle.textContent = `Acta de entrega y recibida — ${entregaVehiculoSelect.selectedOptions[0].textContent}`;
+    entregaFormTitle.textContent = `Acta de vehículo — ${entregaVehiculoSelect.selectedOptions[0].textContent}`;
     entregaKilometrajeActual = Number(entregaVehiculoActual?.kilometraje_actual || 0);
 
     await resetEntrega();

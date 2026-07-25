@@ -52,7 +52,7 @@
     function buildFileName(vehiculo, entrega) {
         const placa = String(vehiculo?.placa || "SINPLACA").replace(/\s+/g, "").toUpperCase();
         const fecha = String(entrega.fecha || "").slice(0, 10) || new Date().toISOString().slice(0, 10);
-        return `Acta_entrega_recibida_${placa}_${fecha}.pdf`;
+        return `Acta_vehiculo_${placa}_${fecha}.pdf`;
     }
 
     function makeLayout(doc) {
@@ -118,7 +118,7 @@
         doc.setFontSize(16);
         doc.setFont(undefined, "bold");
         doc.setTextColor(24, 32, 43);
-        doc.text("Acta de entrega y recibida de vehículo", layout.pageWidth - MARGIN_X, layout.y + 18, { align: "right" });
+        doc.text("Acta de vehículo", layout.pageWidth - MARGIN_X, layout.y + 18, { align: "right" });
         doc.setFontSize(10);
         doc.setFont(undefined, "normal");
         doc.setTextColor(105, 115, 134);

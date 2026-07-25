@@ -844,7 +844,7 @@ window.VehiAmb.api = {
         return requestJson(
             `${window.VehiAmb.API_URL}/entregas-recibidas/vehiculo/${vehiculoId}`,
             { method: "POST", body: formData },
-            "No se pudo guardar el acta de entrega y recibida"
+            "No se pudo guardar el acta de vehículo"
         );
     },
 
