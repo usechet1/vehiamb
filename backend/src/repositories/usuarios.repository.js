@@ -10,6 +10,7 @@ const USER_SELECT = `
     u.role_id,
     u.activo,
     u.foto_url,
+    u.celular,
     u.empresa_id,
     u.created_at,
     r.nombre AS role_nombre,
@@ -69,8 +70,8 @@ async function findAll(empresaId) {
 async function create(user) {
   const result = await db.get(
     `
-      INSERT INTO usuarios (nombre, email, password_hash, rol, role_id, activo, foto_url, empresa_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO usuarios (nombre, email, password_hash, rol, role_id, activo, foto_url, celular, empresa_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING id
     `,
     [
@@ -81,6 +82,7 @@ async function create(user) {
       user.role_id,
       user.activo,
       user.foto_url ?? null,
+      user.celular ?? null,
       user.empresa_id
     ]
   );
@@ -95,7 +97,8 @@ async function update(id, user, empresaId) {
     "rol = ?",
     "role_id = ?",
     "activo = ?",
-    "foto_url = ?"
+    "foto_url = ?",
+    "celular = ?"
   ];
   const values = [
     user.nombre,
@@ -103,7 +106,8 @@ async function update(id, user, empresaId) {
     user.rol,
     user.role_id,
     user.activo,
-    user.foto_url ?? null
+    user.foto_url ?? null,
+    user.celular ?? null
   ];
 
   if (user.password_hash) {

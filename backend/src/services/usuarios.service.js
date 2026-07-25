@@ -41,9 +41,19 @@ function toSafeUser(user) {
     role_id: user.role_id,
     activo: Boolean(user.activo),
     foto_url: user.foto_url || null,
+    celular: user.celular || null,
     empresa_id: user.empresa_id,
     created_at: user.created_at
   };
+}
+
+// Solo digitos (permite que lo escriban con espacios/guiones/+); vacio queda
+// como null. Sin validar longitud/pais especifico: el formato E.164 exacto
+// que exige la API de WhatsApp se normaliza en notificaciones-whatsapp.channel.js
+// al momento de enviar, no aqui.
+function normalizeCelular(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  return digits || null;
 }
 
 // Un rol inactivo ya no se puede asignar de cero, pero un usuario que ya lo
@@ -107,7 +117,8 @@ async function validateUserPayload(payload, { isUpdate = false, existingRoleId =
     password,
     role_id: role.id,
     rol: role.nombre,
-    activo: parseActivo(payload.activo)
+    activo: parseActivo(payload.activo),
+    celular: normalizeCelular(payload.celular)
   };
 }
 

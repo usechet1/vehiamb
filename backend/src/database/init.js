@@ -125,8 +125,8 @@ const PERMISSIONS = [
   ["empresas.switch", "Empresas", "Cambiar de empresa activa entre todas las empresas"],
   ["conductores.view", "Conductores", "Ver el catalogo de conductores"],
   ["conductores.manage", "Conductores", "Crear y editar conductores del catalogo"],
-  ["delivery.view", "Entrega y recibida", "Ver las actas de entrega y recibida de vehiculos"],
-  ["delivery.create", "Entrega y recibida", "Registrar actas de entrega y recibida de vehiculos"]
+  ["delivery.view", "Actas de vehiculo", "Ver las actas de vehiculo"],
+  ["delivery.create", "Actas de vehiculo", "Registrar actas de vehiculo"]
 ];
 
 const ROLE_PERMISSIONS = {
@@ -1365,6 +1365,7 @@ if (env.dbClient === "sqlite") {
   Promise.all([
     ensureColumn("usuarios", "role_id", "INTEGER"),
     ensureColumn("usuarios", "foto_url", "TEXT"),
+    ensureColumn("usuarios", "celular", "TEXT"),
     ensureColumn("roles", "permisos_configurados", "INTEGER NOT NULL DEFAULT 0"),
     ensureColumn("mantenimientos", "repuestos", "TEXT"),
     ensureColumn("mantenimientos", "autorizado_por", "TEXT"),
@@ -1420,6 +1421,7 @@ if (env.dbClient === "sqlite") {
       ensureColumn("vehiculos", "intervalo_cambio_aceite_km", "INTEGER"),
       ensureColumn("usuarios", "role_id", "BIGINT REFERENCES roles(id)"),
     ensureColumn("usuarios", "foto_url", "TEXT"),
+      ensureColumn("usuarios", "celular", "TEXT"),
       ensureColumn("roles", "permisos_configurados", "BOOLEAN NOT NULL DEFAULT FALSE"),
       ensureColumn("mantenimientos", "repuestos", "TEXT"),
       ensureColumn("mantenimientos", "autorizado_por", "TEXT"),

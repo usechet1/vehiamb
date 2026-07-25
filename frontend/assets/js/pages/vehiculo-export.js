@@ -15,7 +15,7 @@
     };
 
     const tiposDocumento = {
-        tecnomecanica: "Tecnomecánica",
+        tecnomecanica: "RTM",
         soat: "SOAT",
         seguro: "Seguro",
         tarjeta_operacion: "Tarjeta de operación",

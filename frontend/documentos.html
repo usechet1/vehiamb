@@ -14,7 +14,7 @@
             <div class="page-header">
                 <div>
                     <h1>Documentos del vehículo</h1>
-                    <p class="page-kicker">Controla Tecnomecánica, SOAT, seguros y otros vencimientos</p>
+                    <p class="page-kicker">Controla RTM, SOAT, seguros y otros vencimientos</p>
                 </div>
             </div>
 
@@ -44,8 +44,8 @@
                                 <div class="form-grid">
                                     <div class="form-group">
                                         <label>Tipo</label>
-                                        <select name="tipo" required>
-                                            <option value="tecnomecanica">Tecnomecánica</option>
+                                        <select name="tipo" id="documentoTipo" required>
+                                            <option value="tecnomecanica">RTM</option>
                                             <option value="soat">SOAT</option>
                                             <option value="seguro">Seguro</option>
                                             <option value="tarjeta_operacion">Tarjeta de operación</option>
@@ -62,12 +62,12 @@
                                 <div class="form-grid">
                                     <div class="form-group">
                                         <label>Expedición</label>
-                                        <input type="date" name="fecha_expedicion">
+                                        <input type="date" name="fecha_expedicion" id="documentoFechaExpedicion">
                                     </div>
 
                                     <div class="form-group">
                                         <label>Vencimiento</label>
-                                        <input type="date" name="fecha_vencimiento" required>
+                                        <input type="date" name="fecha_vencimiento" id="documentoFechaVencimiento" required>
                                     </div>
                                 </div>
 
@@ -87,7 +87,7 @@
                     <details class="section-card-collapsible" open>
                         <summary class="section-card-head">
                             <h2>Documentos registrados</h2>
-                            <p>Vencimientos de Tecnomecánica, SOAT, seguros y documentos.</p>
+                            <p>Vencimientos de RTM, SOAT, seguros y documentos.</p>
                         </summary>
                         <div class="section-card-body">
                             <form id="documentosFilterForm" class="filter-form">
@@ -103,7 +103,7 @@
                                         <label>Tipo de documento</label>
                                         <select id="filterDocumentoTipo">
                                             <option value="">Todos</option>
-                                            <option value="tecnomecanica">Tecnomecánica</option>
+                                            <option value="tecnomecanica">RTM</option>
                                             <option value="soat">SOAT</option>
                                             <option value="seguro">Seguro</option>
                                             <option value="tarjeta_operacion">Tarjeta de operación</option>
