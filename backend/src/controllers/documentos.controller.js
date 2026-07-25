@@ -14,3 +14,8 @@ exports.createDocumento = async (req, res) => {
   const documento = await documentosService.createDocumento(req.body, req.file, req.empresaId);
   res.status(201).json(documento);
 };
+
+exports.updateDocumento = async (req, res) => {
+  const documento = await documentosService.updateDocumento(req.params.id, req.body, req.file, req.empresaId);
+  res.json(documento);
+};

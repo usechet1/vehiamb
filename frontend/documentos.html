@@ -29,11 +29,13 @@
                 <section class="section-card hidden" id="registrarDocumentoSection">
                     <details class="section-card-collapsible" open>
                         <summary class="section-card-head">
-                            <h2>Registrar documento</h2>
+                            <h2 id="documentoFormTitle">Registrar documento</h2>
                             <p>Agenda documentos asociados a cada vehículo y sus fechas clave.</p>
                         </summary>
                         <div class="section-card-body">
                             <form id="documentoForm" class="compact-form">
+                                <input type="hidden" id="documentoId">
+
                                 <div class="form-group">
                                     <label>Vehículo</label>
                                     <select name="vehiculo_id" id="vehiculoDocumento" required>
@@ -75,9 +77,13 @@
                                     <label>Adjuntos</label>
                                     <input type="file" name="archivo" accept=".pdf,image/png,image/jpeg,image/webp">
                                     <p class="field-help">Soporta PDF, PNG, JPG o WEBP hasta 5 MB.</p>
+                                    <div id="documentoArchivoActual" class="field-help hidden"></div>
                                 </div>
 
-                                <button type="submit" class="btn-primary">Guardar documento</button>
+                                <div class="form-actions">
+                                    <button type="button" id="documentoCancelEditButton" class="btn-secondary hidden">Cancelar edición</button>
+                                    <button type="submit" class="btn-primary" id="documentoSubmitButton">Guardar documento</button>
+                                </div>
                             </form>
                         </div>
                     </details>

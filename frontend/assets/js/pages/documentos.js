@@ -1,7 +1,12 @@
 const documentoForm = document.getElementById("documentoForm");
+const documentoFormTitle = document.getElementById("documentoFormTitle");
+const documentoId = document.getElementById("documentoId");
 const documentoTipo = document.getElementById("documentoTipo");
 const documentoFechaExpedicion = document.getElementById("documentoFechaExpedicion");
 const documentoFechaVencimiento = document.getElementById("documentoFechaVencimiento");
+const documentoArchivoActual = document.getElementById("documentoArchivoActual");
+const documentoSubmitButton = document.getElementById("documentoSubmitButton");
+const documentoCancelEditButton = document.getElementById("documentoCancelEditButton");
 const tabDocumentosHistorialButton = document.getElementById("tabDocumentosHistorialButton");
 const tabDocumentosRegistrarButton = document.getElementById("tabDocumentosRegistrarButton");
 const registrarDocumentoSection = document.getElementById("registrarDocumentoSection");
@@ -41,6 +46,17 @@ function autocompletarVencimiento() {
     if (!documentoFechaExpedicion.value) return;
 
     documentoFechaVencimiento.value = calcularVencimientoUnAnio(documentoFechaExpedicion.value);
+}
+
+function resetForm() {
+    documentoForm.reset();
+    documentoId.value = "";
+    vencimientoEditadoManualmente = false;
+    documentoFormTitle.textContent = "Registrar documento";
+    documentoSubmitButton.textContent = "Guardar documento";
+    documentoCancelEditButton.classList.add("hidden");
+    documentoArchivoActual.classList.add("hidden");
+    documentoArchivoActual.innerHTML = "";
 }
 
 const tiposDocumento = {
@@ -182,6 +198,11 @@ function renderDocumentos(documentos) {
                         ${escapeHtml(item.archivo_nombre) || "Ver adjunto"}
                     </a>
                 ` : ""}
+                ${window.VehiAmb.auth.hasPermission("documents.create") ? `
+                    <div class="record-actions">
+                        <button type="button" class="btn-secondary" data-editar-documento="${item.id}">Editar</button>
+                    </div>
+                ` : ""}
             </article>
         `;
     }).join("");
@@ -277,6 +298,39 @@ documentoFechaVencimiento.addEventListener("input", () => {
     vencimientoEditadoManualmente = true;
 });
 
+documentosList.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-editar-documento]");
+    if (!button) return;
+
+    const item = documentosState.find((doc) => String(doc.id) === button.dataset.editarDocumento);
+    if (!item) return;
+
+    documentoId.value = item.id;
+    documentoSelect.value = item.vehiculo_id;
+    documentoTipo.value = item.tipo;
+    documentoForm.querySelector('[name="numero_documento"]').value = item.numero_documento || "";
+    documentoFechaExpedicion.value = String(item.fecha_expedicion || "").slice(0, 10);
+    documentoFechaVencimiento.value = String(item.fecha_vencimiento || "").slice(0, 10);
+    vencimientoEditadoManualmente = true;
+
+    if (item.archivo_url) {
+        const archivoUrl = window.VehiAmb.api.getAssetUrl(item.archivo_url);
+        documentoArchivoActual.innerHTML = `Archivo actual: <a href="${escapeHtml(archivoUrl)}" target="_blank" rel="noreferrer">${escapeHtml(item.archivo_nombre || "ver archivo")}</a> (sube uno nuevo para reemplazarlo)`;
+        documentoArchivoActual.classList.remove("hidden");
+    } else {
+        documentoArchivoActual.classList.add("hidden");
+        documentoArchivoActual.innerHTML = "";
+    }
+
+    documentoFormTitle.textContent = "Editar documento";
+    documentoSubmitButton.textContent = "Guardar cambios";
+    documentoCancelEditButton.classList.remove("hidden");
+    switchTab("registrar");
+    documentoForm.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+documentoCancelEditButton.addEventListener("click", resetForm);
+
 documentoForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
@@ -284,10 +338,16 @@ documentoForm.addEventListener("submit", async (event) => {
 
     try {
         window.VehiAmb.ui.show(loader);
-        await window.VehiAmb.api.createDocumento(formData);
-        window.VehiAmb.ui.showMessage(mensaje, "Documento guardado correctamente");
-        documentoForm.reset();
-        vencimientoEditadoManualmente = false;
+
+        if (documentoId.value) {
+            await window.VehiAmb.api.updateDocumento(documentoId.value, formData);
+            window.VehiAmb.ui.showMessage(mensaje, "Documento actualizado correctamente");
+        } else {
+            await window.VehiAmb.api.createDocumento(formData);
+            window.VehiAmb.ui.showMessage(mensaje, "Documento guardado correctamente");
+        }
+
+        resetForm();
         await cargarDatos();
         switchTab("historial");
     } catch (error) {

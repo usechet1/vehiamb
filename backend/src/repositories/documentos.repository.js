@@ -64,9 +64,25 @@ async function create(documento) {
   return db.get("SELECT * FROM documentos WHERE id = ?", [result.lastID]);
 }
 
+async function update(id, documento, empresaId) {
+  const assignments = DOCUMENTO_FIELDS.map((field) => `${field} = ?`).join(", ");
+  const values = DOCUMENTO_FIELDS.map((field) => documento[field] ?? null);
+
+  if (db.client === "postgres") {
+    return db.get(
+      `UPDATE documentos SET ${assignments} WHERE id = ? AND empresa_id = ? RETURNING *`,
+      [...values, id, empresaId]
+    );
+  }
+
+  await db.run(`UPDATE documentos SET ${assignments} WHERE id = ? AND empresa_id = ?`, [...values, id, empresaId]);
+  return findById(id, empresaId);
+}
+
 module.exports = {
   findAll,
   findByVehicle,
   findById,
-  create
+  create,
+  update
 };

@@ -1,6 +1,20 @@
+const fs = require("fs/promises");
+const path = require("path");
 const HttpError = require("../errors/http-error");
 const documentosRepository = require("../repositories/documentos.repository");
 const vehiculosRepository = require("../repositories/vehiculos.repository");
+
+const UPLOADS_ROOT = path.resolve(__dirname, "..", "..", "uploads");
+
+async function eliminarArchivoAnterior(archivoUrl) {
+  if (!archivoUrl) return;
+
+  try {
+    await fs.unlink(path.join(UPLOADS_ROOT, archivoUrl.replace(/^\/uploads[\\/]/, "")));
+  } catch (error) {
+    // Si el archivo ya no existe o no se puede borrar, no interrumpe el flujo principal.
+  }
+}
 
 const TIPOS_VALIDOS = new Set([
   "tecnomecanica",
@@ -66,8 +80,33 @@ async function createDocumento(payload, file, empresaId) {
   return documentosRepository.create(documento);
 }
 
+async function updateDocumento(id, payload, file, empresaId) {
+  const existing = await documentosRepository.findById(id, empresaId);
+  if (!existing) {
+    throw new HttpError(404, "Documento no encontrado");
+  }
+
+  const documento = normalizePayload({
+    ...payload,
+    archivo_url: file ? `/uploads/documentos/${file.filename}` : existing.archivo_url,
+    archivo_nombre: file ? file.originalname : existing.archivo_nombre,
+    archivo_mime: file ? file.mimetype : existing.archivo_mime
+  });
+  await validateDocumento(documento, empresaId);
+  documento.empresa_id = empresaId;
+
+  const actualizado = await documentosRepository.update(id, documento, empresaId);
+
+  if (file && existing.archivo_url) {
+    await eliminarArchivoAnterior(existing.archivo_url);
+  }
+
+  return actualizado;
+}
+
 module.exports = {
   listDocumentos,
   listDocumentosByVehicle,
-  createDocumento
+  createDocumento,
+  updateDocumento
 };
