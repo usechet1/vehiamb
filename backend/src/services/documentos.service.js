@@ -104,9 +104,20 @@ async function updateDocumento(id, payload, file, empresaId) {
   return actualizado;
 }
 
+async function deleteDocumento(id, empresaId) {
+  const existing = await documentosRepository.findById(id, empresaId);
+  if (!existing) {
+    throw new HttpError(404, "Documento no encontrado");
+  }
+
+  await documentosRepository.remove(id, empresaId);
+  await eliminarArchivoAnterior(existing.archivo_url);
+}
+
 module.exports = {
   listDocumentos,
   listDocumentosByVehicle,
   createDocumento,
-  updateDocumento
+  updateDocumento,
+  deleteDocumento
 };

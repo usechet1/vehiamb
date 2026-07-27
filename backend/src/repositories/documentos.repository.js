@@ -79,10 +79,15 @@ async function update(id, documento, empresaId) {
   return findById(id, empresaId);
 }
 
+async function remove(id, empresaId) {
+  return db.run("DELETE FROM documentos WHERE id = ? AND empresa_id = ?", [id, empresaId]);
+}
+
 module.exports = {
   findAll,
   findByVehicle,
   findById,
   create,
-  update
+  update,
+  remove
 };

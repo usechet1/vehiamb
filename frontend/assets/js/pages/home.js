@@ -237,14 +237,16 @@ function buildCalendarEvents(mantenimientos, documentos) {
         addEvent(mantenimiento.fecha, {
             kind: "mantenimiento",
             title: tiposMantenimiento[mantenimiento.tipo] || mantenimiento.tipo || "Mantenimiento",
-            sub: vehicle
+            sub: vehicle,
+            placa: mantenimiento.placa || "Sin placa"
         });
 
         if (mantenimiento.tipo === "cambio_aceite" && mantenimiento.proximo_cambio_fecha) {
             addEvent(mantenimiento.proximo_cambio_fecha, {
                 kind: "mantenimiento",
                 title: `Próximo cambio de aceite - ${mantenimiento.placa || "Sin placa"}`,
-                sub: vehicle
+                sub: vehicle,
+                placa: mantenimiento.placa || "Sin placa"
             });
         }
     });
@@ -255,7 +257,8 @@ function buildCalendarEvents(mantenimientos, documentos) {
         addEvent(documento.fecha_vencimiento, {
             kind: "vencimiento",
             title: tiposDocumento[documento.tipo] || documento.tipo || "Documento",
-            sub: vehicle
+            sub: vehicle,
+            placa: documento.placa || "Sin placa"
         });
     });
 
@@ -268,7 +271,7 @@ function buildEventBadgeTooltip(kind, events, dateKey) {
 
     const detailLines = events
         .filter((event) => event.kind === kind)
-        .map((event) => `${escapeHtml(event.title)}<br>${escapeHtml(event.sub)}`)
+        .map((event) => `${escapeHtml(event.title)}<br>${escapeHtml(event.placa)}`)
         .join("<br><br>");
 
     return `<strong>${escapeHtml(config.label)}</strong>${detailLines}<br>${dateLabel}`;

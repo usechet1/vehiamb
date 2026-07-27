@@ -214,6 +214,14 @@ window.VehiAmb.api = {
         );
     },
 
+    deleteDocumento(id) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/documentos/${id}`,
+            { method: "DELETE" },
+            "No se pudo eliminar el documento"
+        );
+    },
+
     getUsuarios() {
         return requestJson(`${window.VehiAmb.API_URL}/usuarios`, undefined, "No se pudieron cargar los usuarios");
     },

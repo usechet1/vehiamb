@@ -26,5 +26,6 @@ router.put(
   asyncHandler(compressImage),
   asyncHandler(documentosController.updateDocumento)
 );
+router.delete("/:id", requirePermission("documents.delete"), asyncHandler(documentosController.deleteDocumento));
 
 module.exports = router;
