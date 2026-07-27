@@ -2,14 +2,25 @@ const db = require("../database/query");
 
 // "CLIENTE" es una entrada sintetica (no existe en la tabla vehiculos): agrupa
 // todas las facturas donde estado_vehiculo = 'cliente'. Para el resto, la
-// identidad es placa_original tal como quedo normalizada en la importacion.
-const PLACA_EXPR = "(CASE WHEN f.estado_vehiculo = 'cliente' THEN 'CLIENTE' ELSE f.placa_original END)";
+// identidad es placa_original normalizada (mayusculas, sin guion): el Excel
+// importado siempre trae la placa con guion ("WOO-375") mientras el catalogo
+// de vehiculos la guarda sin guion ("WOO375") -- sin esta normalizacion cada
+// vehiculo aparecia duplicado (una entrada con el gasto real bajo la placa
+// con guion, y otra en cero bajo la placa del catalogo sin guion).
+const PLACA_EXPR = "(CASE WHEN f.estado_vehiculo = 'cliente' THEN 'CLIENTE' ELSE UPPER(REPLACE(f.placa_original, '-', '')) END)";
+
+function normalizarPlaca(placa) {
+  return String(placa || "").toUpperCase().replace(/-/g, "");
+}
 
 function whereVehiculo(placa, empresaId) {
   if (placa === "CLIENTE") {
     return { clause: "f.estado_vehiculo = 'cliente' AND f.empresa_id = ?", values: [empresaId] };
   }
-  return { clause: "f.estado_vehiculo != 'cliente' AND f.placa_original = ? AND f.empresa_id = ?", values: [placa, empresaId] };
+  return {
+    clause: "f.estado_vehiculo != 'cliente' AND UPPER(REPLACE(f.placa_original, '-', '')) = ? AND f.empresa_id = ?",
+    values: [normalizarPlaca(placa), empresaId]
+  };
 }
 
 // El dashboard de costos se basa en Fecha de Envio (cuando la factura llega
@@ -28,9 +39,9 @@ async function aggregarPorVehiculo(desde, hasta, empresaId) {
   return db.all(
     `
       WITH universo AS (
-        SELECT placa FROM vehiculos WHERE empresa_id = ?
+        SELECT UPPER(REPLACE(placa, '-', '')) AS placa FROM vehiculos WHERE empresa_id = ?
         UNION
-        SELECT DISTINCT placa_original FROM facturas_vehiculares
+        SELECT DISTINCT UPPER(REPLACE(placa_original, '-', '')) FROM facturas_vehiculares
         WHERE estado_vehiculo != 'cliente' AND placa_original IS NOT NULL AND placa_original <> '' AND empresa_id = ?
         UNION
         SELECT 'CLIENTE'

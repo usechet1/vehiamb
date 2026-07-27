@@ -54,6 +54,9 @@ function normalizarCelular(celular) {
  * hay WHATSAPP_ACCESS_TOKEN/WHATSAPP_PHONE_NUMBER_ID configurados, y solo
  * envia para prioridad alta/critica (configurable via
  * WHATSAPP_ALERT_PRIORIDAD_MINIMA), mismo criterio que el canal de email.
+ *
+ * La plantilla ("notify_v2") tiene header/footer fijos, 3 variables en el
+ * cuerpo (nombre del usuario, titulo, mensaje) y un boton de URL dinamica.
  */
 async function whatsappChannel(notificacion) {
   try {
@@ -87,6 +90,7 @@ async function whatsappChannel(notificacion) {
             {
               type: "body",
               parameters: [
+                { type: "text", text: usuario?.nombre || "" },
                 { type: "text", text: titulo },
                 { type: "text", text: notificacion.mensaje }
               ]

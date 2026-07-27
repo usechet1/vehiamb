@@ -19,3 +19,8 @@ exports.updateDocumento = async (req, res) => {
   const documento = await documentosService.updateDocumento(req.params.id, req.body, req.file, req.empresaId);
   res.json(documento);
 };
+
+exports.deleteDocumento = async (req, res) => {
+  await documentosService.deleteDocumento(req.params.id, req.empresaId);
+  res.status(204).send();
+};

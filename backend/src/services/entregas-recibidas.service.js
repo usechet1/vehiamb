@@ -211,8 +211,8 @@ async function crear(vehiculoId, payload, archivos, currentUser) {
   const itemsCreados = await itemsRepository.bulkCreate(entrega.id, vehiculoId, itemsValidados, empresaId);
   const itemsMal = itemsCreados.filter((item) => item.estado === "mal");
 
-  await notificacionesService.notificarUsuariosPorRol(
-    ["Administrador", "Operador"],
+  await notificacionesService.notificarUsuariosConPermiso(
+    "vehicles.edit",
     {
       tipo: "entrega_recibida_registrada",
       mensaje: `Se registró el acta de vehículo de ${vehiculo.marca} ${vehiculo.modelo} (${vehiculo.placa}) entre ${usuarioEntrega.nombre} y ${usuarioRecibe.nombre}${itemsMal.length ? `, con ${itemsMal.length} novedad${itemsMal.length === 1 ? "" : "es"} registrada${itemsMal.length === 1 ? "" : "s"}` : ""}.`,

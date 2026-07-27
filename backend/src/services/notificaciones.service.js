@@ -113,14 +113,6 @@ async function notificarUsuariosConPermiso(permissionCode, payload, empresaId) {
   );
 }
 
-async function notificarUsuariosPorRol(roleNames, payload, empresaId) {
-  const usuarios = await usuariosRepository.findByRoles(roleNames, empresaId);
-
-  return Promise.all(
-    usuarios.map((usuario) => notificar({ ...payload, usuario_id: usuario.id, empresa_id: empresaId }))
-  );
-}
-
 // Se dispara cuando un Conductor guarda la inspeccion preventiva de un viaje
 // (paso 3 del wizard) y queda con items sin revisar y/o marcados "mal"/"no
 // tiene": Administrador y Operador necesitan saber que el vehiculo salio a
@@ -138,7 +130,7 @@ async function evaluarNotificacionInspeccion({ inspeccion, vehiculo, currentUser
   // y el enlace de la app), pero aqui se aprovecha para cargar tambien el
   // detalle que el canal de email necesita (items malos, ubicacion, fecha)
   // sin tener que volver a consultar la BD desde notificaciones-email.channel.js.
-  await notificarUsuariosPorRol(["Administrador", "Operador"], {
+  await notificarUsuariosConPermiso("vehicles.edit", {
     tipo: "inspeccion_con_hallazgos",
     mensaje: `El conductor ${currentUser.nombre} inició un viaje con el vehículo ${vehiculo.marca} ${vehiculo.modelo} (${vehiculo.placa}) y la inspección preventiva quedó con ${partes.join(" y ")}.`,
     vehiculo_id: vehiculo.id,
@@ -440,7 +432,6 @@ module.exports = {
   notificar,
   crearNotificacion,
   notificarUsuariosConPermiso,
-  notificarUsuariosPorRol,
   evaluarNotificacionInspeccion,
   evaluarNotificacionesMantenimiento,
   notificarIncoherenciaKilometraje,

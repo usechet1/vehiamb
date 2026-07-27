@@ -198,9 +198,10 @@ function renderDocumentos(documentos) {
                         ${escapeHtml(item.archivo_nombre) || "Ver adjunto"}
                     </a>
                 ` : ""}
-                ${window.VehiAmb.auth.hasPermission("documents.create") ? `
+                ${window.VehiAmb.auth.hasPermission("documents.create") || window.VehiAmb.auth.hasPermission("documents.delete") ? `
                     <div class="record-actions">
-                        <button type="button" class="btn-secondary" data-editar-documento="${item.id}">Editar</button>
+                        ${window.VehiAmb.auth.hasPermission("documents.create") ? `<button type="button" class="btn-secondary" data-editar-documento="${item.id}">Editar</button>` : ""}
+                        ${window.VehiAmb.auth.hasPermission("documents.delete") ? `<button type="button" class="btn-danger" data-eliminar-documento="${item.id}">Eliminar</button>` : ""}
                     </div>
                 ` : ""}
             </article>
@@ -330,6 +331,34 @@ documentosList.addEventListener("click", (event) => {
 });
 
 documentoCancelEditButton.addEventListener("click", resetForm);
+
+documentosList.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-eliminar-documento]");
+    if (!button) return;
+
+    const item = documentosState.find((doc) => String(doc.id) === button.dataset.eliminarDocumento);
+    if (!item) return;
+
+    const confirmado = await window.VehiAmb.ui.confirm({
+        title: "Eliminar documento",
+        message: `Se eliminará el documento "${tiposDocumento[item.tipo] || item.tipo}" de ${item.placa || "este vehículo"} (${item.numero_documento || "sin número"}). Esta acción no se puede deshacer.`,
+        confirmText: "Eliminar"
+    });
+    if (!confirmado) return;
+
+    try {
+        window.VehiAmb.ui.show(loader);
+        await window.VehiAmb.api.deleteDocumento(item.id);
+        window.VehiAmb.ui.showMessage(mensaje, "Documento eliminado correctamente");
+        if (documentoId.value === String(item.id)) resetForm();
+        await cargarDatos();
+    } catch (error) {
+        console.error(error);
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo eliminar el documento", "error");
+    } finally {
+        window.VehiAmb.ui.hide(loader);
+    }
+});
 
 documentoForm.addEventListener("submit", async (event) => {
     event.preventDefault();
