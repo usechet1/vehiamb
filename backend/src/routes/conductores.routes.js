@@ -8,7 +8,6 @@ const uploadConductor = require("../middlewares/upload-conductor");
 const validateUpload = require("../middlewares/validate-upload");
 
 router.get("/", requirePermission("conductores.view"), asyncHandler(conductoresController.getConductores));
-router.get("/activos", requirePermission("conductores.view"), asyncHandler(conductoresController.getConductoresActivos));
 router.get("/:id", requirePermission("conductores.view"), asyncHandler(conductoresController.getConductorById));
 router.post(
   "/",

@@ -276,6 +276,5 @@ module.exports = {
   crear,
   listarPorVehiculo,
   obtenerDetalle,
-  listUsuariosDisponibles,
-  MOTIVOS_VALIDOS
+  listUsuariosDisponibles
 };

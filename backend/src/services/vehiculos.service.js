@@ -335,6 +335,5 @@ module.exports = {
   updateEstadoVehiculo,
   deleteVehiculo,
   getRepuestosSugeridos,
-  updateRepuestosSugeridos,
-  ESTADOS_VEHICULO
+  updateRepuestosSugeridos
 };

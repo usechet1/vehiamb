@@ -106,10 +106,6 @@ async function listConductores(query, empresaId) {
   return { items: rows, page: filters.page, limit: filters.limit, total, totalPages };
 }
 
-async function listConductoresActivos(empresaId) {
-  return conductoresRepository.findAllActivos(empresaId);
-}
-
 async function getConductor(id, empresaId) {
   const conductor = await conductoresRepository.findById(id, empresaId);
   if (!conductor) {
@@ -237,9 +233,7 @@ async function updateConductor(id, payload, file, empresaId) {
 
 module.exports = {
   listConductores,
-  listConductoresActivos,
   getConductor,
   createConductor,
-  updateConductor,
-  ESTADOS_VALIDOS
+  updateConductor
 };

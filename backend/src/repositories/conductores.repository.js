@@ -57,15 +57,6 @@ async function findAll(filters = {}, empresaId) {
   return { rows, total: Number(totalRow?.total || 0) };
 }
 
-// Listado simple sin paginar, usado por los selectores de "quien entrega" /
-// "quien recibe" del acta de entrega y recibida.
-async function findAllActivos(empresaId) {
-  return db.all(
-    `SELECT * FROM conductores WHERE empresa_id = ? AND estado = 'activo' ORDER BY ${ORDER_BY}`,
-    [empresaId]
-  );
-}
-
 async function findById(id, empresaId) {
   return db.get("SELECT * FROM conductores WHERE id = ? AND empresa_id = ?", [id, empresaId]);
 }
@@ -89,7 +80,6 @@ async function update(id, conductor, empresaId) {
 
 module.exports = {
   findAll,
-  findAllActivos,
   findById,
   create,
   update

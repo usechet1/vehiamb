@@ -100,11 +100,6 @@ async function notificar({
   return notificacion;
 }
 
-// Alias retrocompatible: el nombre anterior de la funcion nucleo.
-async function crearNotificacion(payload) {
-  return notificar(payload);
-}
-
 async function notificarUsuariosConPermiso(permissionCode, payload, empresaId) {
   const usuarios = await usuariosRepository.findByPermission(permissionCode, empresaId);
 
@@ -352,11 +347,6 @@ async function listNotificaciones(usuarioId, empresaId, filters = {}) {
   return agruparNotificaciones(items);
 }
 
-// Compatibilidad con el nombre anterior (listado sin filtros, usado en versiones previas).
-async function listNotificacionesByUsuario(usuarioId, empresaId) {
-  return listNotificaciones(usuarioId, empresaId, {});
-}
-
 async function contarPendientes(usuarioId) {
   return notificacionesRepository.countPendientes(usuarioId);
 }
@@ -428,9 +418,7 @@ async function rechazarNotificacion(notificacionId, currentUser) {
 }
 
 module.exports = {
-  APPROVAL_PERMISSION,
   notificar,
-  crearNotificacion,
   notificarUsuariosConPermiso,
   evaluarNotificacionInspeccion,
   evaluarNotificacionesMantenimiento,
@@ -439,7 +427,6 @@ module.exports = {
   notificarUsuarioCreado,
   notificarPermisosActualizados,
   listNotificaciones,
-  listNotificacionesByUsuario,
   contarPendientes,
   marcarLeida,
   marcarTodasLeidas,

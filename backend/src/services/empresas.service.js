@@ -103,7 +103,6 @@ async function actualizarEmpresa(empresaId, { nombre, file }) {
 
 module.exports = {
   createEmpresa,
-  slugify,
   listarTodas,
   obtenerEmpresa,
   actualizarEmpresa

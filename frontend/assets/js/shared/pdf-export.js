@@ -1,27 +1,5 @@
 window.VehiAmb = window.VehiAmb || {};
 
-async function loadAsDataUrl(url) {
-    const response = await fetch(url);
-    if (!response.ok) {
-        throw new Error(`No se pudo cargar el recurso: ${url}`);
-    }
-
-    const blob = await response.blob();
-
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(reader.error);
-        reader.readAsDataURL(blob);
-    });
-}
-
-function detectImageFormat(mime) {
-    if (mime === "image/png") return "PNG";
-    if (mime === "image/jpeg" || mime === "image/jpg") return "JPEG";
-    return null;
-}
-
 /**
  * Normaliza cualquier imagen soportada por el navegador (png/jpeg/webp) a un
  * JPEG dibujandola en un canvas. jsPDF no soporta WEBP directamente, asi que
@@ -130,8 +108,6 @@ function getMembreteFooterImage() {
 
 window.VehiAmb.pdfExport = {
     createDocument,
-    loadAsDataUrl,
-    detectImageFormat,
     loadImageAsJpegDataUrl,
     getEmpresaBranding,
     getMembreteFooterImage,

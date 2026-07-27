@@ -688,19 +688,6 @@ window.VehiAmb.api = {
         );
     },
 
-    getConfigImportaciones(filters = {}) {
-        const params = new URLSearchParams();
-        if (filters.page) params.set("page", filters.page);
-        if (filters.limit) params.set("limit", filters.limit);
-        const query = params.toString();
-
-        return requestJson(
-            `${window.VehiAmb.API_URL}/config-import/vehiculos-repuestos${query ? `?${query}` : ""}`,
-            undefined,
-            "No se pudieron cargar las importaciones de configuracion"
-        );
-    },
-
     getSimitEstadoFlota(filters = {}) {
         const params = new URLSearchParams();
         if (filters.estado_cartera) params.set("estado_cartera", filters.estado_cartera);
@@ -788,14 +775,6 @@ window.VehiAmb.api = {
 
         return requestJson(
             `${window.VehiAmb.API_URL}/conductores${query ? `?${query}` : ""}`,
-            undefined,
-            "No se pudieron cargar los conductores"
-        );
-    },
-
-    getConductoresActivos() {
-        return requestJson(
-            `${window.VehiAmb.API_URL}/conductores/activos`,
             undefined,
             "No se pudieron cargar los conductores"
         );
