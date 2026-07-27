@@ -259,8 +259,6 @@ async function listarFacturas(placa, query, empresaId) {
 }
 
 module.exports = {
-  normalizarRango,
-  periodoAnterior,
   listarVehiculos,
   kpisVehiculo,
   graficasVehiculo,

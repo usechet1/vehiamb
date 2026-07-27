@@ -167,8 +167,5 @@ module.exports = {
   previsualizarCodigoInterno,
   getRepuesto,
   createRepuesto,
-  updateRepuesto,
-  CATEGORIAS_VALIDAS,
-  ESTADOS_VALIDOS,
-  UNIDADES_MEDIDA_VALIDAS
+  updateRepuesto
 };

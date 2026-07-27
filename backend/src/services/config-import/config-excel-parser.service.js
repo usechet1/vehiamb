@@ -140,4 +140,4 @@ function parseVehiculosConEquivalencias(rows) {
   return { sugeridos, equivalencias, incidencias };
 }
 
-module.exports = { parseKitsPorVehiculo, parseVehiculosConEquivalencias, extraerPlacas };
+module.exports = { parseKitsPorVehiculo, parseVehiculosConEquivalencias };

@@ -5,11 +5,6 @@ exports.getConductores = async (req, res) => {
   res.json(resultado);
 };
 
-exports.getConductoresActivos = async (req, res) => {
-  const conductores = await conductoresService.listConductoresActivos(req.empresaId);
-  res.json(conductores);
-};
-
 exports.getConductorById = async (req, res) => {
   const conductor = await conductoresService.getConductor(req.params.id, req.empresaId);
   res.json(conductor);
