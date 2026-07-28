@@ -9,6 +9,9 @@ const DOCUMENTO_FIELDS = [
   "archivo_url",
   "archivo_nombre",
   "archivo_mime",
+  "propietario_tipo_identificacion",
+  "propietario_numero_identificacion",
+  "propietario_nombre",
   "empresa_id"
 ];
 

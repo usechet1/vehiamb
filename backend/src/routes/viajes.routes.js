@@ -6,6 +6,8 @@ const asyncHandler = require("../middlewares/async-handler");
 const requirePermission = require("../middlewares/require-permission");
 
 router.get("/", requirePermission("trips.view"), asyncHandler(viajesController.listarRecientes));
+router.get("/ultimo-control", requirePermission("trips.view"), asyncHandler(viajesController.obtenerUltimoControl));
+router.get("/vehiculo/:vehiculoId", requirePermission("trips.view"), asyncHandler(viajesController.getPorVehiculo));
 router.post("/", requirePermission("trips.create"), asyncHandler(viajesController.crear));
 
 module.exports = router;

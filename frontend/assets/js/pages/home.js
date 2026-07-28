@@ -11,8 +11,8 @@ const tiposMantenimiento = {
 const tiposDocumento = {
     soat: "SOAT",
     tecnomecanica: "RTM",
-    seguro: "Seguro",
-    tarjeta_operacion: "Tarjeta de operación",
+    seguro: "Póliza Seguro",
+    licencia_transito: "Licencia de tránsito",
     otro: "Otro"
 };
 

@@ -2,8 +2,14 @@ const documentoForm = document.getElementById("documentoForm");
 const documentoFormTitle = document.getElementById("documentoFormTitle");
 const documentoId = document.getElementById("documentoId");
 const documentoTipo = document.getElementById("documentoTipo");
+const documentoNumero = document.getElementById("documentoNumero");
+const documentoNumeroLabel = document.getElementById("documentoNumeroLabel");
 const documentoFechaExpedicion = document.getElementById("documentoFechaExpedicion");
 const documentoFechaVencimiento = document.getElementById("documentoFechaVencimiento");
+const documentoVencimientoGroup = document.getElementById("documentoVencimientoGroup");
+const documentoPropietarioGroup = document.getElementById("documentoPropietarioGroup");
+const documentoPropietario = document.getElementById("documentoPropietario");
+const documentoSeguroAyuda = document.getElementById("documentoSeguroAyuda");
 const documentoArchivoActual = document.getElementById("documentoArchivoActual");
 const documentoSubmitButton = document.getElementById("documentoSubmitButton");
 const documentoCancelEditButton = document.getElementById("documentoCancelEditButton");
@@ -32,6 +38,40 @@ let vencimientoEditadoManualmente = false;
 // puede corregirlo (ej. polizas con vigencia distinta) sin que se le pise.
 const TIPOS_VENCIMIENTO_UN_ANIO = ["tecnomecanica", "soat"];
 
+// La licencia de transito no vence (solo tiene fecha de expedicion y numero),
+// a diferencia del resto de tipos que si necesitan vencimiento.
+const TIPOS_SIN_VENCIMIENTO = ["licencia_transito"];
+
+// Catalogo fijo de los dos titulares bajo los que puede quedar registrado un
+// vehiculo de la flota (mismo catalogo que valida el backend en
+// documentos.service.js -- si llega a agregarse un tercero hay que actualizar
+// ambos lados).
+const PROPIETARIOS_CATALOGO = [
+    { numero_identificacion: "830514610", label: "NIT 830514610 · AMBIENTES CERAMICOS LTDA" },
+    { numero_identificacion: "79539118", label: "C.C. 79539118 · RENE OSWALDO USECHE CAMACHO" }
+];
+
+documentoPropietario.innerHTML = '<option value="">Selecciona...</option>' + PROPIETARIOS_CATALOGO.map((propietario) => `
+    <option value="${propietario.numero_identificacion}">${escapeHtml(propietario.label)}</option>
+`).join("");
+
+function actualizarCamposPorTipo() {
+    const sinVencimiento = TIPOS_SIN_VENCIMIENTO.includes(documentoTipo.value);
+
+    documentoVencimientoGroup.classList.toggle("hidden", sinVencimiento);
+    documentoFechaVencimiento.required = !sinVencimiento;
+    if (sinVencimiento) documentoFechaVencimiento.value = "";
+
+    documentoNumero.required = sinVencimiento;
+    documentoNumeroLabel.textContent = sinVencimiento ? "Número *" : "Número";
+
+    documentoPropietarioGroup.classList.toggle("hidden", !sinVencimiento);
+    documentoPropietario.required = sinVencimiento;
+    if (!sinVencimiento) documentoPropietario.value = "";
+
+    documentoSeguroAyuda.classList.toggle("hidden", documentoTipo.value !== "seguro");
+}
+
 function calcularVencimientoUnAnio(fechaExpedicion) {
     const expedicion = new Date(`${fechaExpedicion}T00:00:00`);
     if (Number.isNaN(expedicion.getTime())) return "";
@@ -57,13 +97,14 @@ function resetForm() {
     documentoCancelEditButton.classList.add("hidden");
     documentoArchivoActual.classList.add("hidden");
     documentoArchivoActual.innerHTML = "";
+    actualizarCamposPorTipo();
 }
 
 const tiposDocumento = {
     tecnomecanica: "RTM",
     soat: "SOAT",
-    seguro: "Seguro",
-    tarjeta_operacion: "Tarjeta de operación",
+    seguro: "Póliza Seguro",
+    licencia_transito: "Licencia de tránsito",
     otro: "Otro"
 };
 
@@ -183,14 +224,16 @@ function renderDocumentos(documentos) {
             <article class="record-item">
                 <div class="record-top">
                     <div>
-                        <span class="record-title">${escapeHtml(tiposDocumento[item.tipo] || item.tipo)}</span>
+                        <span class="record-title">${escapeHtml(tiposDocumento[item.tipo] || item.tipo)}${item.tipo === "seguro" ? ' <span class="field-help field-help-danger">· Llama al #324 para atención de siniestros viales.</span>' : ""}</span>
                         <span class="record-sub">${escapeHtml(item.placa) || "Sin placa"} - ${escapeHtml(item.numero_documento) || "Sin número"}</span>
                     </div>
                     <span class="pill ${pillClass}">${statusText}</span>
                 </div>
                 <div class="record-meta">
                     <span class="pill">Expedición: ${formatDate(item.fecha_expedicion)}</span>
-                    <span class="pill">Vencimiento: ${formatDate(item.fecha_vencimiento)}</span>
+                    ${item.tipo === "licencia_transito"
+                        ? `<span class="pill">Propietario: ${escapeHtml(item.propietario_tipo_identificacion)} ${escapeHtml(item.propietario_numero_identificacion)} · ${escapeHtml(item.propietario_nombre)}</span>`
+                        : `<span class="pill">Vencimiento: ${formatDate(item.fecha_vencimiento)}</span>`}
                     ${item.archivo_url ? '<span class="pill">Adjunto disponible</span>' : ""}
                 </div>
                 ${item.archivo_url ? `
@@ -293,7 +336,10 @@ function switchTab(tab) {
 tabDocumentosHistorialButton.addEventListener("click", () => switchTab("historial"));
 tabDocumentosRegistrarButton.addEventListener("click", () => switchTab("registrar"));
 
-documentoTipo.addEventListener("change", autocompletarVencimiento);
+documentoTipo.addEventListener("change", () => {
+    actualizarCamposPorTipo();
+    autocompletarVencimiento();
+});
 documentoFechaExpedicion.addEventListener("change", autocompletarVencimiento);
 documentoFechaVencimiento.addEventListener("input", () => {
     vencimientoEditadoManualmente = true;
@@ -309,9 +355,11 @@ documentosList.addEventListener("click", (event) => {
     documentoId.value = item.id;
     documentoSelect.value = item.vehiculo_id;
     documentoTipo.value = item.tipo;
+    actualizarCamposPorTipo();
     documentoForm.querySelector('[name="numero_documento"]').value = item.numero_documento || "";
     documentoFechaExpedicion.value = String(item.fecha_expedicion || "").slice(0, 10);
     documentoFechaVencimiento.value = String(item.fecha_vencimiento || "").slice(0, 10);
+    documentoPropietario.value = item.propietario_numero_identificacion || "";
     vencimientoEditadoManualmente = true;
 
     if (item.archivo_url) {

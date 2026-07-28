@@ -7,7 +7,7 @@
 // esos <div> contenedores y nunca toca el "hidden" de las secciones
 // individuales -- asi no hay condicion de carrera con sus cargas asincronas.
 const WIZARD_STEPS = [
-    { label: "Vehículo", sections: ["vehicleDatosSection"] },
+    { label: "Vehículo", sections: ["vehicleDatosSection", "vehicleImagenSection", "vehicleViajesSection"] },
     { label: "Vencimientos", sections: ["vehicleVencimientosSection"] },
     { label: "Inspección", sections: ["vehicleInspeccionSection"] },
     { label: "Preoperacional", sections: ["wizardStepPreoperacional"] }
@@ -25,9 +25,6 @@ async function initConductorWizard() {
     if (!nav || !actions || !anteriorBtn || !siguienteBtn) return;
 
     document.getElementById("vehicleMantenimientosSection")?.classList.add("hidden");
-    // El conductor ya vio la foto del vehiculo al elegirlo en Inicio, asi
-    // que no hace falta repetirla aqui.
-    document.getElementById("vehicleImagenSection")?.classList.add("hidden");
     // El conductor no gestiona la flota: el encabezado superior (volver,
     // titulo, acciones) es redundante con el vehicle-hero de abajo, que ya
     // muestra placa, codigo, estado y km. Solo se deja la fecha.

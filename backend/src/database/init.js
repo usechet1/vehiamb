@@ -97,6 +97,14 @@ async function migrarEntregasConductorAUsuario() {
   await db.run("ALTER TABLE entregas_recibidas DROP COLUMN conductor_recibe_id");
 }
 
+// "Tarjeta de operacion" se fusiono con "Seguro" (ahora mostrado como "Poliza
+// Seguro" en el frontend): ya no es un tipo valido en documentos.service.js,
+// asi que cualquier documento que lo tuviera se reclasifica como "seguro"
+// para no perder el registro ni su fecha de vencimiento.
+async function migrarTarjetaOperacionASeguro() {
+  await db.run("UPDATE documentos SET tipo = 'seguro' WHERE tipo = 'tarjeta_operacion'");
+}
+
 const PERMISSIONS = [
   ["dashboard.view", "Inicio", "Ver panel principal"],
   ["vehicles.view", "Vehiculos", "Ver vehiculos"],
@@ -507,6 +515,9 @@ async function ensurePostgresTables() {
       archivo_url TEXT,
       archivo_nombre TEXT,
       archivo_mime TEXT,
+      propietario_tipo_identificacion TEXT,
+      propietario_numero_identificacion TEXT,
+      propietario_nombre TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
@@ -1447,6 +1458,9 @@ if (env.dbClient === "sqlite") {
       ensureColumn("vehiculos", "imagen_url", "TEXT"),
       ensureColumn("documentos", "archivo_nombre", "TEXT"),
       ensureColumn("documentos", "archivo_mime", "TEXT"),
+      ensureColumn("documentos", "propietario_tipo_identificacion", "TEXT"),
+      ensureColumn("documentos", "propietario_numero_identificacion", "TEXT"),
+      ensureColumn("documentos", "propietario_nombre", "TEXT"),
       ensureColumn("notificaciones", "categoria", "TEXT NOT NULL DEFAULT 'sistema'"),
       ensureColumn("notificaciones", "titulo", "TEXT"),
       ensureColumn("notificaciones", "vehiculo_id", "BIGINT REFERENCES vehiculos(id) ON DELETE SET NULL"),
@@ -1471,6 +1485,7 @@ if (env.dbClient === "sqlite") {
     ]))
     .then(migrarConductoresNombreSplit)
     .then(migrarEntregasConductorAUsuario)
+    .then(migrarTarjetaOperacionASeguro)
     .then(ensureEmpresaIdColumns)
     .then(() => Promise.all([
       ensureNumericColumn("vehiculos", "kilometraje_actual"),

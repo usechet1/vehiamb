@@ -846,6 +846,22 @@ window.VehiAmb.api = {
         );
     },
 
+    getViajesByVehicle(vehiculoId) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/viajes/vehiculo/${vehiculoId}`,
+            undefined,
+            "No se pudo cargar el historial de viajes"
+        );
+    },
+
+    getUltimoViajeControl() {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/viajes/ultimo-control`,
+            undefined,
+            "No se pudo cargar tu último viaje"
+        );
+    },
+
     crearViaje(payload) {
         return requestJson(
             `${window.VehiAmb.API_URL}/viajes`,

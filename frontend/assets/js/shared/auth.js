@@ -18,7 +18,8 @@ const PAGE_PERMISSIONS = {
     "stock-importaciones.html": "inventory.import",
     "empresa.html": "empresa.manage",
     "conductores.html": "conductores.view",
-    "entrega-recibida.html": "delivery.view"
+    "entrega-recibida.html": "delivery.view",
+    "mi-viaje.html": "trips.view"
 };
 
 function getStoredSession() {
