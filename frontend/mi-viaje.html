@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi último viaje - VehiAmb</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar"></aside>
+
+        <main class="content">
+            <div class="page-header">
+                <div>
+                    <h1>Mi último viaje</h1>
+                    <p class="page-kicker">Consulta rápida de solo lectura con los documentos del vehículo, para mostrar en un control de tránsito.</p>
+                </div>
+            </div>
+
+            <div id="controlViajeEmpty" class="section-card hidden">
+                <p class="dash-empty">Todavía no has registrado ningún viaje. Inicia uno desde Inicio para poder consultarlo aquí.</p>
+            </div>
+
+            <div id="controlViajeContent" class="stack hidden">
+                <section class="section-card">
+                    <div class="section-card-body">
+                        <div class="control-viaje-hero">
+                            <div>
+                                <span class="control-viaje-placa" id="controlPlaca">---</span>
+                                <h2 id="controlVehiculoNombre">Vehículo</h2>
+                                <dl class="detail-list">
+                                    <div>
+                                        <dt>Destino del último viaje</dt>
+                                        <dd id="controlDestino">--</dd>
+                                    </div>
+                                    <div>
+                                        <dt>Fecha</dt>
+                                        <dd id="controlFecha">--</dd>
+                                    </div>
+                                </dl>
+                            </div>
+                            <div class="control-viaje-imagen">
+                                <img id="controlVehiculoImagen" class="hidden" src="" alt="Imagen del vehículo">
+                                <div id="controlVehiculoImagenPlaceholder" class="vehicle-image-placeholder">Sin imagen disponible</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="section-card" id="controlConductorSection">
+                    <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
+                            <h2>Conductor</h2>
+                            <p>Datos de quien está manejando este vehículo.</p>
+                        </summary>
+                        <div class="section-card-body">
+                            <dl class="detail-list">
+                                <div>
+                                    <dt>Nombre</dt>
+                                    <dd id="controlConductorNombre">--</dd>
+                                </div>
+                                <div>
+                                    <dt>Cédula</dt>
+                                    <dd id="controlConductorCedula">--</dd>
+                                </div>
+                                <div>
+                                    <dt>Categoría de licencia</dt>
+                                    <dd id="controlConductorLicencia">--</dd>
+                                </div>
+                            </dl>
+                            <p id="controlConductorArchivo" class="field-help hidden"></p>
+                        </div>
+                    </details>
+                </section>
+
+                <section class="section-card">
+                    <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
+                            <h2>Documentos del vehículo</h2>
+                            <p>SOAT, RTM, póliza de seguro y licencia de tránsito.</p>
+                        </summary>
+                        <div class="section-card-body">
+                            <div id="controlDocumentosGrid" class="control-doc-grid">
+                                <p class="dash-empty">Cargando...</p>
+                            </div>
+                        </div>
+                    </details>
+                </section>
+            </div>
+
+            <div id="loader" class="loader hidden">
+                <video src="img/loader.mp4" autoplay loop muted playsinline></video>
+            </div>
+            <div id="mensaje" class="mensaje hidden"></div>
+        </main>
+    </div>
+
+    <script src="assets/js/shared/auth.js"></script>
+    <script src="assets/js/shared/api.js"></script>
+    <script src="assets/js/shared/ui.js"></script>
+    <script src="assets/js/shared/notificaciones-config.js"></script>
+    <script src="assets/js/shared/sidebar.js"></script>
+    <script src="assets/js/pages/mi-viaje.js"></script>
+</body>
+</html>

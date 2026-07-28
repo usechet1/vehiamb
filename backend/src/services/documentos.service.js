@@ -20,9 +20,27 @@ const TIPOS_VALIDOS = new Set([
   "tecnomecanica",
   "soat",
   "seguro",
-  "tarjeta_operacion",
+  "licencia_transito",
   "otro"
 ]);
+
+// La licencia de transito (documento de propiedad del vehiculo en Colombia)
+// no tiene fecha de vencimiento -- solo fecha de expedicion y numero -- a
+// diferencia de RTM/SOAT/seguro/tarjeta de operacion que si vencen.
+const TIPOS_SIN_VENCIMIENTO = new Set(["licencia_transito"]);
+
+// Catalogo fijo de propietarios validos para la licencia de transito (los dos
+// unicos titulares bajo los que puede quedar registrado un vehiculo de la
+// flota). Se resuelve en el servidor a partir del numero recibido para que el
+// nombre/tipo de identificacion nunca dependa de lo que mande el cliente.
+const PROPIETARIOS_CATALOGO = [
+  { tipo_identificacion: "NIT", numero_identificacion: "830514610", nombre: "AMBIENTES CERAMICOS LTDA" },
+  { tipo_identificacion: "CC", numero_identificacion: "79539118", nombre: "RENE OSWALDO USECHE CAMACHO" }
+];
+
+function resolverPropietario(numeroIdentificacion) {
+  return PROPIETARIOS_CATALOGO.find((propietario) => propietario.numero_identificacion === numeroIdentificacion) || null;
+}
 
 function toNumberOrNull(value) {
   if (value === undefined || value === null || value === "") return null;
@@ -37,20 +55,38 @@ function normalizePayload(payload) {
     tipo: String(payload.tipo || "").trim(),
     numero_documento: payload.numero_documento ? String(payload.numero_documento).trim() : null,
     fecha_expedicion: payload.fecha_expedicion ? String(payload.fecha_expedicion).trim() : null,
-    fecha_vencimiento: String(payload.fecha_vencimiento || "").trim(),
+    fecha_vencimiento: payload.fecha_vencimiento ? String(payload.fecha_vencimiento).trim() : null,
     archivo_url: payload.archivo_url ? String(payload.archivo_url).trim() : null,
     archivo_nombre: payload.archivo_nombre ? String(payload.archivo_nombre).trim() : null,
-    archivo_mime: payload.archivo_mime ? String(payload.archivo_mime).trim() : null
+    archivo_mime: payload.archivo_mime ? String(payload.archivo_mime).trim() : null,
+    propietario_numero_identificacion: payload.propietario_numero_identificacion ? String(payload.propietario_numero_identificacion).trim() : null
   };
 }
 
 async function validateDocumento(documento, empresaId) {
-  if (!documento.vehiculo_id || !documento.tipo || !documento.fecha_vencimiento) {
-    throw new HttpError(400, "Vehículo, tipo y fecha de vencimiento son obligatorios");
+  if (!documento.vehiculo_id || !documento.tipo) {
+    throw new HttpError(400, "Vehículo y tipo son obligatorios");
   }
 
   if (!TIPOS_VALIDOS.has(documento.tipo)) {
     throw new HttpError(400, "Tipo de documento no valido");
+  }
+
+  if (TIPOS_SIN_VENCIMIENTO.has(documento.tipo)) {
+    if (!documento.numero_documento) {
+      throw new HttpError(400, "El número de la licencia de tránsito es obligatorio");
+    }
+
+    const propietario = resolverPropietario(documento.propietario_numero_identificacion);
+    if (!propietario) {
+      throw new HttpError(400, "Debes seleccionar un propietario válido para la licencia de tránsito");
+    }
+
+    documento.propietario_tipo_identificacion = propietario.tipo_identificacion;
+    documento.propietario_numero_identificacion = propietario.numero_identificacion;
+    documento.propietario_nombre = propietario.nombre;
+  } else if (!documento.fecha_vencimiento) {
+    throw new HttpError(400, "La fecha de vencimiento es obligatoria para este tipo de documento");
   }
 
   const vehiculo = await vehiculosRepository.findById(documento.vehiculo_id, empresaId);

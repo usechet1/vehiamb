@@ -61,6 +61,13 @@ async function findById(id, empresaId) {
   return db.get("SELECT * FROM conductores WHERE id = ? AND empresa_id = ?", [id, empresaId]);
 }
 
+// Ficha del conductor vinculada a la cuenta de usuario que inicio sesion
+// (usado por "Mi ultimo viaje" para mostrar su propia licencia sin pedirle
+// que la busque en el catalogo).
+async function findByUsuarioId(usuarioId, empresaId) {
+  return db.get("SELECT * FROM conductores WHERE usuario_id = ? AND empresa_id = ?", [usuarioId, empresaId]);
+}
+
 async function create(conductor) {
   const placeholders = FIELDS.map(() => "?").join(", ");
   const values = FIELDS.map((field) => conductor[field] ?? null);
@@ -81,6 +88,7 @@ async function update(id, conductor, empresaId) {
 module.exports = {
   findAll,
   findById,
+  findByUsuarioId,
   create,
   update
 };

@@ -17,8 +17,8 @@
     const tiposDocumento = {
         tecnomecanica: "RTM",
         soat: "SOAT",
-        seguro: "Seguro",
-        tarjeta_operacion: "Tarjeta de operación",
+        seguro: "Póliza Seguro",
+        licencia_transito: "Licencia de tránsito",
         otro: "Otro"
     };
 

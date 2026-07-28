@@ -33,4 +33,23 @@ async function findRecientesPorUsuario(usuarioId, { limit = 10 } = {}) {
   );
 }
 
-module.exports = { create, findById, findRecientesPorUsuario };
+// Historial de viajes de un vehiculo especifico (de cualquier conductor que
+// lo haya usado), para la seccion "Ultimos viajes" en la hoja de vida del
+// vehiculo. Ya acotado a la empresa via el propio vehiculo.
+async function findRecientesPorVehiculo(vehiculoId, empresaId, { limit = 10 } = {}) {
+  return db.all(
+    `
+      SELECT
+        v.*,
+        u.nombre AS usuario_nombre
+      FROM viajes v
+      LEFT JOIN usuarios u ON u.id = v.usuario_id
+      WHERE v.vehiculo_id = ? AND v.empresa_id = ?
+      ORDER BY v.creado_en DESC
+      LIMIT ?
+    `,
+    [vehiculoId, empresaId, limit]
+  );
+}
+
+module.exports = { create, findById, findRecientesPorUsuario, findRecientesPorVehiculo };

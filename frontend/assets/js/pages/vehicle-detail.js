@@ -12,6 +12,8 @@ const vehicleKm = document.getElementById("vehicleKm");
 const vehicleFacts = document.getElementById("vehicleFacts");
 const maintenanceList = document.getElementById("vehicleMaintenanceList");
 const documentList = document.getElementById("vehicleDocumentList");
+const vehicleViajesSection = document.getElementById("vehicleViajesSection");
+const vehicleViajesList = document.getElementById("vehicleViajesList");
 const vehicleSimitSection = document.getElementById("vehicleSimitSection");
 const vehicleSimitBody = document.getElementById("vehicleSimitBody");
 const consultarSimitButton = document.getElementById("consultarSimitButton");
@@ -41,8 +43,8 @@ const tiposMantenimiento = {
 const tiposDocumento = {
     tecnomecanica: "RTM",
     soat: "SOAT",
-    seguro: "Seguro",
-    tarjeta_operacion: "Tarjeta de operación",
+    seguro: "Póliza Seguro",
+    licencia_transito: "Licencia de tránsito",
     otro: "Otro"
 };
 
@@ -256,7 +258,7 @@ function renderDocumentos(documentos) {
             <article class="record-item">
                 <div class="record-top">
                     <div>
-                        <span class="record-title">${escapeHtml(tiposDocumento[item.tipo] || item.tipo)}</span>
+                        <span class="record-title">${escapeHtml(tiposDocumento[item.tipo] || item.tipo)}${item.tipo === "seguro" ? ' <span class="field-help field-help-danger">· Llama al #324 para atención de siniestros viales.</span>' : ""}</span>
                         <span class="record-sub">${escapeHtml(item.numero_documento) || "Sin número de documento"}</span>
                     </div>
                     <span class="pill ${pillClass}">${statusText}</span>
@@ -274,6 +276,25 @@ function renderDocumentos(documentos) {
             </article>
         `;
     }).join("");
+}
+
+function renderViajes(viajes) {
+    if (!viajes.length) {
+        vehicleViajesList.innerHTML = '<p class="dash-empty">Este vehículo aún no tiene viajes registrados</p>';
+        return;
+    }
+
+    vehicleViajesList.innerHTML = viajes.map((viaje) => `
+        <article class="record-item">
+            <div class="record-top">
+                <div>
+                    <span class="record-title">${escapeHtml(viaje.destino) || "Sin destino"}</span>
+                    <span class="record-sub">${escapeHtml(viaje.usuario_nombre) || "Conductor no registrado"}</span>
+                </div>
+                <span class="pill">${formatDateTime(viaje.creado_en)}</span>
+            </div>
+        </article>
+    `).join("");
 }
 
 function deriveEstadoSimit(ultima) {
@@ -494,6 +515,11 @@ async function cargarDetalle() {
         vehicleSimitSection.classList.remove("hidden");
     }
 
+    const puedeVerViajes = window.VehiAmb.auth?.hasPermission?.("trips.view");
+    if (vehicleViajesSection && puedeVerViajes) {
+        vehicleViajesSection.classList.remove("hidden");
+    }
+
     try {
         window.VehiAmb.ui.show(loader);
 
@@ -515,6 +541,15 @@ async function cargarDetalle() {
         }
         if (puedeVerSimit) {
             await cargarSimitEstado(vehicleId);
+        }
+        if (puedeVerViajes) {
+            try {
+                const viajes = await window.VehiAmb.api.getViajesByVehicle(vehicleId);
+                renderViajes(viajes);
+            } catch (error) {
+                console.error(error);
+                vehicleViajesList.innerHTML = '<p class="dash-empty">No fue posible cargar el historial de viajes</p>';
+            }
         }
 
         window.VehiAmb.ui.show(vehicleHero);

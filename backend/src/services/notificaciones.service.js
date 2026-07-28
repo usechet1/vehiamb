@@ -119,7 +119,11 @@ async function evaluarNotificacionInspeccion({ inspeccion, vehiculo, currentUser
 
   const partes = [];
   if (totalItemsFaltantes > 0) partes.push(`${totalItemsFaltantes} ítem${totalItemsFaltantes === 1 ? "" : "s"} sin revisar`);
-  if (totalItemsMal > 0) partes.push(`${totalItemsMal} ítem${totalItemsMal === 1 ? "" : "s"} en mal estado`);
+  if (totalItemsMal > 0) {
+    const etiquetasMal = (itemsMal || []).map((item) => item.item_label).filter(Boolean);
+    const desglose = etiquetasMal.length ? ` (${etiquetasMal.join(", ")})` : "";
+    partes.push(`${totalItemsMal} ítem${totalItemsMal === 1 ? "" : "s"} en mal estado${desglose}`);
+  }
 
   // El payload de la accion "ver_vehiculo" viaja como el resto (para el CTA
   // y el enlace de la app), pero aqui se aprovecha para cargar tambien el
