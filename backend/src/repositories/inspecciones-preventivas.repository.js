@@ -54,4 +54,22 @@ async function findByVehiculo(vehiculoId, empresaId, { limit = 50 } = {}) {
   );
 }
 
-module.exports = { create, findById, findByVehiculo };
+// Inspeccion ligada a un viaje puntual (la que el conductor llena en el paso
+// 3 del wizard al iniciarlo) -- usada por el resumen de "Viajes recientes"
+// para Administrador/Operador (ver viajes.service.js -> obtenerResumen).
+async function findByViajeId(viajeId, empresaId) {
+  return db.get(
+    `
+      SELECT ip.*, u.nombre AS usuario_nombre, v.destino AS viaje_destino
+      FROM inspecciones_preventivas ip
+      LEFT JOIN usuarios u ON u.id = ip.usuario_id
+      LEFT JOIN viajes v ON v.id = ip.viaje_id
+      WHERE ip.viaje_id = ? AND ip.empresa_id = ?
+      ORDER BY ip.id DESC
+      LIMIT 1
+    `,
+    [viajeId, empresaId]
+  );
+}
+
+module.exports = { create, findById, findByVehiculo, findByViajeId };

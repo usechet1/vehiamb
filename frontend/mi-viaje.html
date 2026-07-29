@@ -13,8 +13,16 @@
         <main class="content">
             <div class="page-header">
                 <div>
-                    <h1>Mi último viaje</h1>
-                    <p class="page-kicker">Consulta rápida de solo lectura con los documentos del vehículo, para mostrar en un control de tránsito.</p>
+                    <h1 id="pageTitulo">Mi último viaje</h1>
+                    <p class="page-kicker" id="pageDescripcion">Consulta rápida de solo lectura con los documentos del vehículo, para mostrar en un control de tránsito.</p>
+                </div>
+            </div>
+
+            <div id="viajesEmpresaSection" class="section-card hidden">
+                <div class="section-card-body">
+                    <div id="viajesEmpresaList" class="records-list">
+                        <p class="dash-empty">Cargando...</p>
+                    </div>
                 </div>
             </div>
 
@@ -93,6 +101,21 @@
                 <video src="img/loader.mp4" autoplay loop muted playsinline></video>
             </div>
             <div id="mensaje" class="mensaje hidden"></div>
+
+            <div id="viajeDrawerBackdrop" class="drawer-backdrop hidden"></div>
+            <aside id="viajeDrawer" class="detail-drawer hidden" aria-hidden="true" aria-labelledby="viajeDrawerTitle">
+                <div class="detail-drawer-head">
+                    <div>
+                        <span class="form-step">Resumen del viaje</span>
+                        <h2 id="viajeDrawerTitle">Viaje</h2>
+                        <p id="viajeDrawerSubtitle">Vehículo y conductor</p>
+                    </div>
+                    <div class="detail-drawer-actions">
+                        <button type="button" id="closeViajeDrawer" class="drawer-close" aria-label="Cerrar detalle">×</button>
+                    </div>
+                </div>
+                <div id="viajeDrawerBody" class="detail-drawer-body"></div>
+            </aside>
         </main>
     </div>
 
