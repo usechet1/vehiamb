@@ -19,3 +19,13 @@ exports.getPorVehiculo = async (req, res) => {
   const viajes = await viajesService.listarPorVehiculo(req.params.vehiculoId, req.empresaId);
   res.json(viajes);
 };
+
+exports.getRecientesEmpresa = async (req, res) => {
+  const viajes = await viajesService.listarRecientesEmpresa(req.empresaId);
+  res.json(viajes);
+};
+
+exports.getResumen = async (req, res) => {
+  const resumen = await viajesService.obtenerResumen(req.params.viajeId, req.empresaId);
+  res.json(resumen);
+};

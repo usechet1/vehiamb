@@ -3,6 +3,8 @@ const vehiculosRepository = require("../repositories/vehiculos.repository");
 const viajesRepository = require("../repositories/viajes.repository");
 const documentosRepository = require("../repositories/documentos.repository");
 const conductoresRepository = require("../repositories/conductores.repository");
+const inspeccionesRepository = require("../repositories/inspecciones-preventivas.repository");
+const itemsRepository = require("../repositories/inspeccion-items.repository");
 
 // Documentos relevantes para un control de transito en carretera. "otro" se
 // deja afuera a proposito -- ahi cae de todo (misceláneo) y no es lo primero
@@ -131,4 +133,82 @@ async function obtenerUltimoViajeControl(currentUser) {
   };
 }
 
-module.exports = { crear, listarRecientes, listarPorVehiculo, obtenerUltimoViajeControl };
+// Viajes recientes de toda la empresa (todos los conductores), para el rol
+// que no es Conductor dentro de "Mi ultimo viaje" -- ver mi-viaje.js.
+async function listarRecientesEmpresa(empresaId) {
+  const viajes = await viajesRepository.findRecientesPorEmpresa(empresaId);
+  return viajes.map(toSafeViaje);
+}
+
+// Resumen de un viaje puntual para el drawer de "Viajes recientes"
+// (Administrador/Operador): vehiculo, conductor, documentos vigentes e
+// inspeccion preventiva (si el conductor la lleno al iniciar el viaje). Todo
+// en una sola consulta para no forzar al usuario a salir a la hoja de vida
+// del vehiculo solo para ver este detalle.
+async function obtenerResumen(viajeId, empresaId) {
+  const viaje = await viajesRepository.findById(viajeId, empresaId);
+  if (!viaje) {
+    throw new HttpError(404, "Viaje no encontrado");
+  }
+
+  const [vehiculo, documentos, conductor, inspeccion] = await Promise.all([
+    vehiculosRepository.findById(viaje.vehiculo_id, empresaId),
+    documentosRepository.findByVehicle(viaje.vehiculo_id, empresaId),
+    conductoresRepository.findByUsuarioId(viaje.usuario_id, empresaId),
+    inspeccionesRepository.findByViajeId(viajeId, empresaId)
+  ]);
+
+  const itemsInspeccion = inspeccion ? await itemsRepository.findByInspeccion(inspeccion.id, empresaId) : [];
+
+  return {
+    viaje: toSafeViaje({
+      ...viaje,
+      vehiculo_placa: vehiculo?.placa,
+      vehiculo_marca: vehiculo?.marca,
+      vehiculo_modelo: vehiculo?.modelo
+    }),
+    vehiculo: vehiculo
+      ? {
+          id: vehiculo.id,
+          placa: vehiculo.placa,
+          marca: vehiculo.marca,
+          modelo: vehiculo.modelo,
+          imagen_url: vehiculo.imagen_url
+        }
+      : null,
+    documentos: documentos
+      .filter((documento) => TIPOS_DOCUMENTO_CONTROL.includes(documento.tipo))
+      .map(toSafeDocumentoControl),
+    conductor: conductor
+      ? {
+          nombres: conductor.nombres,
+          apellidos: conductor.apellidos,
+          cedula: conductor.cedula,
+          licencia_categoria: conductor.licencia_categoria
+        }
+      : null,
+    inspeccion: inspeccion
+      ? {
+          id: inspeccion.id,
+          fecha: inspeccion.fecha,
+          total_items: itemsInspeccion.length,
+          total_items_mal: itemsInspeccion.filter((item) => item.estado === "mal").length,
+          items: itemsInspeccion.map((item) => ({
+            item_label: item.item_label,
+            estado: item.estado,
+            comentario: item.comentario,
+            foto_url: item.foto_url
+          }))
+        }
+      : null
+  };
+}
+
+module.exports = {
+  crear,
+  listarRecientes,
+  listarPorVehiculo,
+  listarRecientesEmpresa,
+  obtenerUltimoViajeControl,
+  obtenerResumen
+};

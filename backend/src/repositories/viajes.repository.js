@@ -52,4 +52,27 @@ async function findRecientesPorVehiculo(vehiculoId, empresaId, { limit = 10 } = 
   );
 }
 
-module.exports = { create, findById, findRecientesPorUsuario, findRecientesPorVehiculo };
+// Ultimos viajes de toda la empresa, sin importar el conductor ni el
+// vehiculo -- para que Administrador/Operador vean de un vistazo la
+// actividad reciente de todos los conductores desde "Mi ultimo viaje".
+async function findRecientesPorEmpresa(empresaId, { limit = 20 } = {}) {
+  return db.all(
+    `
+      SELECT
+        v.*,
+        u.nombre AS usuario_nombre,
+        veh.placa AS vehiculo_placa,
+        veh.marca AS vehiculo_marca,
+        veh.modelo AS vehiculo_modelo
+      FROM viajes v
+      LEFT JOIN usuarios u ON u.id = v.usuario_id
+      LEFT JOIN vehiculos veh ON veh.id = v.vehiculo_id
+      WHERE v.empresa_id = ?
+      ORDER BY v.creado_en DESC
+      LIMIT ?
+    `,
+    [empresaId, limit]
+  );
+}
+
+module.exports = { create, findById, findRecientesPorUsuario, findRecientesPorVehiculo, findRecientesPorEmpresa };

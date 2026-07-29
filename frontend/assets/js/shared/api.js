@@ -862,6 +862,22 @@ window.VehiAmb.api = {
         );
     },
 
+    getViajesRecientesEmpresa() {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/viajes/recientes-empresa`,
+            undefined,
+            "No se pudo cargar el historial de viajes"
+        );
+    },
+
+    getResumenViaje(viajeId) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/viajes/${viajeId}/resumen`,
+            undefined,
+            "No se pudo cargar el resumen del viaje"
+        );
+    },
+
     crearViaje(payload) {
         return requestJson(
             `${window.VehiAmb.API_URL}/viajes`,

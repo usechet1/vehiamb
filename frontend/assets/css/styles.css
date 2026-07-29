@@ -3358,6 +3358,14 @@ label[for="loginPassword"] {
     text-decoration: underline;
 }
 
+button.record-link {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font: inherit;
+}
+
 .clickable-record {
     cursor: pointer;
     transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);

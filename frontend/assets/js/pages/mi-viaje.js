@@ -1,3 +1,7 @@
+const pageTitulo = document.getElementById("pageTitulo");
+const pageDescripcion = document.getElementById("pageDescripcion");
+const viajesEmpresaSection = document.getElementById("viajesEmpresaSection");
+const viajesEmpresaList = document.getElementById("viajesEmpresaList");
 const controlViajeEmpty = document.getElementById("controlViajeEmpty");
 const controlViajeContent = document.getElementById("controlViajeContent");
 const controlPlaca = document.getElementById("controlPlaca");
@@ -14,6 +18,14 @@ const controlConductorArchivo = document.getElementById("controlConductorArchivo
 const controlDocumentosGrid = document.getElementById("controlDocumentosGrid");
 const loader = document.getElementById("loader");
 const mensaje = document.getElementById("mensaje");
+
+const viajeDrawer = document.getElementById("viajeDrawer");
+const viajeDrawerBackdrop = document.getElementById("viajeDrawerBackdrop");
+const viajeDrawerTitle = document.getElementById("viajeDrawerTitle");
+const viajeDrawerSubtitle = document.getElementById("viajeDrawerSubtitle");
+const viajeDrawerBody = document.getElementById("viajeDrawerBody");
+const closeViajeDrawer = document.getElementById("closeViajeDrawer");
+const resumenViajeCache = new Map();
 
 const TIPOS_DOCUMENTO_LABEL = {
     soat: "SOAT",
@@ -109,13 +121,15 @@ function renderDocumentoCard(documento) {
     `;
 }
 
-function renderDocumentos(documentos) {
+function renderDocumentosHtml(documentos) {
     if (!documentos.length) {
-        controlDocumentosGrid.innerHTML = '<p class="dash-empty">Este vehículo no tiene documentos registrados.</p>';
-        return;
+        return '<p class="dash-empty">Este vehículo no tiene documentos registrados.</p>';
     }
+    return documentos.map(renderDocumentoCard).join("");
+}
 
-    controlDocumentosGrid.innerHTML = documentos.map(renderDocumentoCard).join("");
+function renderDocumentos(documentos) {
+    controlDocumentosGrid.innerHTML = renderDocumentosHtml(documentos);
 }
 
 function renderVehiculoImagen(vehiculo) {
@@ -159,6 +173,142 @@ function renderConductor(conductor) {
     }
 }
 
+function renderViajesEmpresa(viajes) {
+    if (!viajes.length) {
+        viajesEmpresaList.innerHTML = '<p class="dash-empty">Todavía no hay viajes registrados por los conductores.</p>';
+        return;
+    }
+
+    viajesEmpresaList.innerHTML = viajes.map((viaje) => `
+        <article class="record-item">
+            <div class="record-top">
+                <div>
+                    <span class="record-title">${escapeHtml(viaje.vehiculo_placa) || "Sin placa"} · ${escapeHtml(viaje.vehiculo_marca)} ${escapeHtml(viaje.vehiculo_modelo)}</span>
+                    <span class="record-sub">${escapeHtml(viaje.usuario_nombre) || "Conductor no registrado"} · ${escapeHtml(viaje.destino) || "Sin destino"}</span>
+                </div>
+                <span class="pill">${formatFechaHora(viaje.creado_en)}</span>
+            </div>
+            <button type="button" class="record-link btn-ver-resumen" data-viaje-id="${escapeHtml(viaje.id)}">Ver resumen</button>
+        </article>
+    `).join("");
+
+    viajesEmpresaList.querySelectorAll(".btn-ver-resumen").forEach((btn) => {
+        btn.addEventListener("click", () => openViajeResumen(btn.dataset.viajeId));
+    });
+}
+
+function renderInspeccionHtml(inspeccion) {
+    if (!inspeccion) {
+        return '<p class="dash-empty">El conductor no registró una inspección preventiva para este viaje.</p>';
+    }
+
+    const items = (inspeccion.items || []).map((item) => `
+        <div class="inspeccion-detalle-item">
+            <span class="pill ${item.estado === "mal" ? "pill-danger" : "pill-success"}">${escapeHtml(item.item_label)}</span>
+            ${item.comentario ? `<p class="field-help">${escapeHtml(item.comentario)}</p>` : ""}
+            ${item.foto_url ? `<a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(item.foto_url))}" target="_blank" rel="noreferrer">Ver foto</a>` : ""}
+        </div>
+    `).join("");
+
+    return `
+        <p class="field-help">${inspeccion.total_items_mal} de ${inspeccion.total_items} ítems quedaron en mal estado · ${formatFechaHora(inspeccion.fecha)}</p>
+        ${items}
+    `;
+}
+
+function renderViajeDrawerBody(resumen) {
+    const { vehiculo, viaje, conductor, documentos, inspeccion } = resumen;
+    return `
+        <section class="drawer-section">
+            <h3>Vehículo</h3>
+            <dl class="detail-list drawer-detail-list">
+                <div><dt>Placa</dt><dd>${escapeHtml(vehiculo?.placa) || "--"}</dd></div>
+                <div><dt>Marca / modelo</dt><dd>${escapeHtml(vehiculo?.marca)} ${escapeHtml(vehiculo?.modelo)}</dd></div>
+                <div><dt>Destino</dt><dd>${escapeHtml(viaje.destino) || "--"}</dd></div>
+                <div><dt>Fecha del viaje</dt><dd>${formatFechaHora(viaje.creado_en)}</dd></div>
+            </dl>
+        </section>
+
+        <section class="drawer-section">
+            <h3>Conductor</h3>
+            ${conductor ? `
+                <dl class="detail-list drawer-detail-list">
+                    <div><dt>Nombre</dt><dd>${escapeHtml(conductor.nombres)} ${escapeHtml(conductor.apellidos)}</dd></div>
+                    <div><dt>Cédula</dt><dd>${escapeHtml(conductor.cedula) || "--"}</dd></div>
+                    <div><dt>Categoría de licencia</dt><dd>${escapeHtml(conductor.licencia_categoria) || "--"}</dd></div>
+                </dl>
+            ` : '<p class="dash-empty">Este conductor no tiene ficha registrada.</p>'}
+        </section>
+
+        <section class="drawer-section">
+            <h3>Inspección preventiva</h3>
+            ${renderInspeccionHtml(inspeccion)}
+        </section>
+
+        <section class="drawer-section">
+            <h3>Documentos del vehículo</h3>
+            <div class="control-doc-grid">${renderDocumentosHtml(documentos || [])}</div>
+        </section>
+    `;
+}
+
+async function obtenerResumenViaje(viajeId) {
+    if (!resumenViajeCache.has(viajeId)) {
+        const resumen = await window.VehiAmb.api.getResumenViaje(viajeId);
+        resumenViajeCache.set(viajeId, resumen);
+    }
+    return resumenViajeCache.get(viajeId);
+}
+
+function closeViajeResumen() {
+    window.VehiAmb.ui.hide(viajeDrawerBackdrop);
+    window.VehiAmb.ui.hide(viajeDrawer);
+    viajeDrawer.setAttribute("aria-hidden", "true");
+}
+
+async function openViajeResumen(viajeId) {
+    viajeDrawerTitle.textContent = "Resumen del viaje";
+    viajeDrawerSubtitle.textContent = "Cargando...";
+    viajeDrawerBody.innerHTML = '<p class="dash-empty">Cargando...</p>';
+
+    window.VehiAmb.ui.show(viajeDrawerBackdrop);
+    window.VehiAmb.ui.show(viajeDrawer);
+    viajeDrawer.setAttribute("aria-hidden", "false");
+    closeViajeDrawer.focus();
+
+    try {
+        const resumen = await obtenerResumenViaje(viajeId);
+        viajeDrawerTitle.textContent = `${resumen.vehiculo?.placa || resumen.viaje.vehiculo_placa || "Vehículo"}`;
+        viajeDrawerSubtitle.textContent = `${resumen.viaje.usuario_nombre || "Conductor no registrado"} · ${formatFechaHora(resumen.viaje.creado_en)}`;
+        viajeDrawerBody.innerHTML = renderViajeDrawerBody(resumen);
+    } catch (error) {
+        console.error(error);
+        viajeDrawerBody.innerHTML = '<p class="dash-empty">No se pudo cargar el resumen del viaje</p>';
+    }
+}
+
+closeViajeDrawer.addEventListener("click", closeViajeResumen);
+viajeDrawerBackdrop.addEventListener("click", closeViajeResumen);
+document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !viajeDrawer.classList.contains("hidden")) {
+        closeViajeResumen();
+    }
+});
+
+async function cargarViajesEmpresa() {
+    try {
+        window.VehiAmb.ui.show(loader);
+        const viajes = await window.VehiAmb.api.getViajesRecientesEmpresa();
+        viajesEmpresaSection.classList.remove("hidden");
+        renderViajesEmpresa(viajes || []);
+    } catch (error) {
+        console.error(error);
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo cargar el historial de viajes", "error");
+    } finally {
+        window.VehiAmb.ui.hide(loader);
+    }
+}
+
 async function cargarUltimoViaje() {
     try {
         window.VehiAmb.ui.show(loader);
@@ -192,6 +342,14 @@ async function cargarUltimoViaje() {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-    await window.VehiAmb.auth.fetchCurrentUser();
-    cargarUltimoViaje();
+    const currentUser = await window.VehiAmb.auth.fetchCurrentUser();
+
+    if (currentUser?.rol === "Conductor") {
+        cargarUltimoViaje();
+        return;
+    }
+
+    pageTitulo.textContent = "Viajes recientes";
+    pageDescripcion.textContent = "Últimos viajes registrados por los conductores de la empresa.";
+    cargarViajesEmpresa();
 });
