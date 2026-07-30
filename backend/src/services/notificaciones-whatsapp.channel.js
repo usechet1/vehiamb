@@ -19,6 +19,33 @@ function normalizarCelular(celular) {
   return digitos;
 }
 
+// Para "inspeccion_con_hallazgos" se le agrega al mensaje el listado de
+// items en mal estado (igual que ya hace notificaciones-email.channel.js en
+// HTML) -- la plantilla de WhatsApp solo tiene una variable de texto libre
+// para el cuerpo, asi que aqui se arma con saltos de linea planos ("\n"),
+// que WhatsApp si respeta al renderizar el mensaje.
+function construirMensajeWhatsapp(notificacion) {
+  if (notificacion.tipo !== "inspeccion_con_hallazgos") return notificacion.mensaje;
+
+  let payload = null;
+  if (notificacion.accion_payload) {
+    try {
+      payload = JSON.parse(notificacion.accion_payload);
+    } catch (error) {
+      payload = null;
+    }
+  }
+
+  const itemsMal = payload?.detalle_inspeccion?.items_mal || [];
+  if (!itemsMal.length) return notificacion.mensaje;
+
+  const listado = itemsMal
+    .map((item) => `- ${item.label}${item.comentario ? `: ${item.comentario}` : ""}`)
+    .join("\n");
+
+  return `${notificacion.mensaje}\n\nÍtems en mal estado:\n${listado}`;
+}
+
 /**
  * Canal de WhatsApp. Se registra en CHANNELS (notificaciones.service.js) y se
  * dispara para toda notificacion creada. Queda inactivo por completo si no
@@ -42,6 +69,7 @@ async function whatsappChannel(notificacion) {
 
     const defaults = notifConfig.tipoConfig(notificacion.tipo);
     const titulo = notificacion.titulo || defaults.titulo;
+    const mensaje = construirMensajeWhatsapp(notificacion);
 
     const url = `https://graph.facebook.com/${env.whatsappApiVersion}/${env.whatsappPhoneNumberId}/messages`;
 
@@ -64,7 +92,7 @@ async function whatsappChannel(notificacion) {
               parameters: [
                 { type: "text", text: usuario?.nombre || "" },
                 { type: "text", text: titulo },
-                { type: "text", text: notificacion.mensaje }
+                { type: "text", text: mensaje }
               ]
             }
           ]
