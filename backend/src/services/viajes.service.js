@@ -5,6 +5,8 @@ const documentosRepository = require("../repositories/documentos.repository");
 const conductoresRepository = require("../repositories/conductores.repository");
 const inspeccionesRepository = require("../repositories/inspecciones-preventivas.repository");
 const itemsRepository = require("../repositories/inspeccion-items.repository");
+const preoperacionalesRepository = require("../repositories/preoperacionales.repository");
+const preoperacionalItemsRepository = require("../repositories/preoperacional-items.repository");
 
 // Documentos relevantes para un control de transito en carretera. "otro" se
 // deja afuera a proposito -- ahi cae de todo (misceláneo) y no es lo primero
@@ -151,14 +153,18 @@ async function obtenerResumen(viajeId, empresaId) {
     throw new HttpError(404, "Viaje no encontrado");
   }
 
-  const [vehiculo, documentos, conductor, inspeccion] = await Promise.all([
+  const [vehiculo, documentos, conductor, inspeccion, preoperacional] = await Promise.all([
     vehiculosRepository.findById(viaje.vehiculo_id, empresaId),
     documentosRepository.findByVehicle(viaje.vehiculo_id, empresaId),
     conductoresRepository.findByUsuarioId(viaje.usuario_id, empresaId),
-    inspeccionesRepository.findByViajeId(viajeId, empresaId)
+    inspeccionesRepository.findByViajeId(viajeId, empresaId),
+    preoperacionalesRepository.findByViajeId(viajeId, empresaId)
   ]);
 
   const itemsInspeccion = inspeccion ? await itemsRepository.findByInspeccion(inspeccion.id, empresaId) : [];
+  const itemsPreoperacional = preoperacional
+    ? await preoperacionalItemsRepository.findByPreoperacional(preoperacional.id, empresaId)
+    : [];
 
   return {
     viaje: toSafeViaje({
@@ -198,6 +204,19 @@ async function obtenerResumen(viajeId, empresaId) {
             estado: item.estado,
             comentario: item.comentario,
             foto_url: item.foto_url
+          }))
+        }
+      : null,
+    preoperacional: preoperacional
+      ? {
+          id: preoperacional.id,
+          fecha: preoperacional.fecha,
+          total_items: itemsPreoperacional.length,
+          total_items_no: itemsPreoperacional.filter((item) => item.respuesta === "no").length,
+          items: itemsPreoperacional.map((item) => ({
+            item_label: item.item_label,
+            respuesta: item.respuesta,
+            observacion: item.observacion
           }))
         }
       : null
