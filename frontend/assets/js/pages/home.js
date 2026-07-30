@@ -651,6 +651,9 @@ async function inicializarDashboard() {
         return;
     }
 
+    const primerNombre = String(user?.nombre || "").trim().split(" ")[0];
+    document.getElementById("dashboardSaludoNombre").textContent = primerNombre;
+
     const [vehiculosResult, mantenimientosResult, documentosResult] = await Promise.allSettled([
         window.VehiAmb.api.getVehiculosCatalogo(),
         window.VehiAmb.api.getMantenimientos(),
