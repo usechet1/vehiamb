@@ -1,6 +1,7 @@
 // Convierte la ficha del vehiculo en un paso a paso solo para el rol
-// Conductor: Vehiculo -> Vencimientos -> Inspeccion -> Preoperacional. Para
-// el resto de roles este script no hace nada y la pagina se ve como siempre.
+// Conductor: Vehiculo -> Vencimientos -> Inspeccion -> Preoperacional ->
+// Finalizar. Para el resto de roles este script no hace nada y la pagina se
+// ve como siempre.
 //
 // Controla la visibilidad a nivel de cada <section> individual (no de los
 // <div> grid que las agrupan), porque vehicle-detail.js solo muestra/oculta
@@ -10,7 +11,8 @@ const WIZARD_STEPS = [
     { label: "Vehículo", sections: ["vehicleDatosSection", "vehicleImagenSection", "vehicleViajesSection"] },
     { label: "Vencimientos", sections: ["vehicleVencimientosSection"] },
     { label: "Inspección", sections: ["vehicleInspeccionSection"] },
-    { label: "Preoperacional", sections: ["wizardStepPreoperacional"] }
+    { label: "Preoperacional", sections: ["wizardStepPreoperacional"] },
+    { label: "Finalizar", sections: ["wizardStepFinalizar"] }
 ];
 
 async function initConductorWizard() {
@@ -31,14 +33,9 @@ async function initConductorWizard() {
     document.getElementById("vehicleHeaderLeft")?.classList.add("hidden");
     document.getElementById("vehicleDetailActions")?.classList.add("hidden");
 
-    const preopLink = document.getElementById("abrirPreoperacionalLink");
-    const preopContainer = document.querySelector("#wizardStepPreoperacional .conductor-wizard-final");
-    if (preopLink && preopContainer) {
-        preopContainer.prepend(preopLink);
-    }
-
     let currentStep = 0;
     let inspeccionGuardada = false;
+    let preoperacionalGuardado = false;
 
     function render() {
         WIZARD_STEPS.forEach((step) => {
@@ -55,14 +52,18 @@ async function initConductorWizard() {
         anteriorBtn.disabled = currentStep === 0;
 
         const esPasoInspeccion = currentStep === 2;
+        const esPasoPreoperacional = currentStep === 3;
         const esUltimoPaso = currentStep === WIZARD_STEPS.length - 1;
 
         siguienteBtn.classList.toggle("hidden", esUltimoPaso);
-        siguienteBtn.disabled = esPasoInspeccion && !inspeccionGuardada;
+        siguienteBtn.disabled = (esPasoInspeccion && !inspeccionGuardada) || (esPasoPreoperacional && !preoperacionalGuardado);
 
-        hint.classList.toggle("hidden", !(esPasoInspeccion && !inspeccionGuardada));
+        const bloqueado = (esPasoInspeccion && !inspeccionGuardada) || (esPasoPreoperacional && !preoperacionalGuardado);
+        hint.classList.toggle("hidden", !bloqueado);
         if (esPasoInspeccion && !inspeccionGuardada) {
             hint.textContent = "Guarda la inspección para continuar al siguiente paso.";
+        } else if (esPasoPreoperacional && !preoperacionalGuardado) {
+            hint.textContent = "Guarda el preoperacional para continuar al siguiente paso.";
         }
 
         document.getElementById("vehicleHero")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -87,10 +88,16 @@ async function initConductorWizard() {
         render();
     });
 
-    // El preoperacional es opcional: "Finalizar e iniciar viaje" cierra el
-    // flujo sin exigir que se haya abierto el link, mostrando la misma
-    // animacion de cortina que el saludo de bienvenida al iniciar sesion,
-    // pero en verde y de despedida, antes de volver a Inicio.
+    document.addEventListener("preoperacional:guardado", () => {
+        preoperacionalGuardado = true;
+        render();
+    });
+
+    // "Finalizar e iniciar viaje" solo es alcanzable en el ultimo paso, que ya
+    // exigio guardar la inspeccion y el preoperacional para llegar hasta
+    // aqui. Muestra la misma animacion de cortina que el saludo de
+    // bienvenida al iniciar sesion, pero en verde y de despedida, antes de
+    // volver a Inicio.
     document.getElementById("finalizarViajeBtn")?.addEventListener("click", () => {
         const overlay = document.getElementById("viajeIniciadoCurtain");
         if (!overlay) {

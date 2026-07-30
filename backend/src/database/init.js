@@ -128,6 +128,8 @@ const PERMISSIONS = [
   ["inventory.import", "Inventario", "Ver y ejecutar la sincronizacion de stock y configuracion de vehiculos (automatica por cron)"],
   ["inspections.view", "Inspecciones", "Ver el checklist de inspecciones preventivas"],
   ["inspections.create", "Inspecciones", "Registrar inspecciones preventivas"],
+  ["preoperacional.view", "Preoperacional", "Ver el checklist preoperacional"],
+  ["preoperacional.create", "Preoperacional", "Registrar el checklist preoperacional"],
   ["trips.view", "Viajes", "Ver el historial de viajes"],
   ["trips.create", "Viajes", "Registrar el viaje e iniciar recorrido"],
   ["empresa.manage", "Empresa", "Editar el nombre y el logo de la empresa"],
@@ -162,6 +164,8 @@ const ROLE_PERMISSIONS = {
     "inventory.manage",
     "inspections.view",
     "inspections.create",
+    "preoperacional.view",
+    "preoperacional.create",
     "trips.view",
     "conductores.view",
     "conductores.manage",
@@ -177,6 +181,7 @@ const ROLE_PERMISSIONS = {
     "costs.view",
     "inventory.view",
     "inspections.view",
+    "preoperacional.view",
     "trips.view",
     "conductores.view",
     "delivery.view"
@@ -192,6 +197,8 @@ const ROLE_PERMISSIONS = {
     "documents.view",
     "inspections.view",
     "inspections.create",
+    "preoperacional.view",
+    "preoperacional.create",
     "trips.view",
     "trips.create",
     "conductores.view",
@@ -266,6 +273,8 @@ const PERMISOS_NUEVOS_POR_ROL = {
   "inventory.import": ["Administrador"],
   "inspections.view": ["Administrador", "Operador", "Consulta"],
   "inspections.create": ["Administrador", "Operador"],
+  "preoperacional.view": ["Administrador", "Operador", "Consulta", "Conductor"],
+  "preoperacional.create": ["Administrador", "Operador", "Conductor"],
   "trips.view": ["Administrador", "Conductor"],
   "trips.create": ["Administrador", "Conductor"],
   "empresa.manage": ["Administrador"],
@@ -860,6 +869,36 @@ async function ensurePostgresTables() {
     )
   `);
 
+  // ── Modulo de Preoperacional (checklist si/no del conductor + documentos,
+  // ultimo paso del wizard del Conductor antes de "Finalizar e iniciar
+  // viaje", reemplazando el link externo a un Google Form). Mismo patron
+  // cabecera + items que inspecciones_preventivas/inspeccion_items, pero sin
+  // foto (no aplica evidencia fotografica a preguntas si/no) y con
+  // "respuesta" en vez de "estado".
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS preoperacionales (
+      id BIGSERIAL PRIMARY KEY,
+      vehiculo_id BIGINT NOT NULL REFERENCES vehiculos(id) ON DELETE CASCADE,
+      usuario_id BIGINT REFERENCES usuarios(id),
+      viaje_id BIGINT REFERENCES viajes(id) ON DELETE SET NULL,
+      fecha TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS preoperacional_items (
+      id BIGSERIAL PRIMARY KEY,
+      preoperacional_id BIGINT NOT NULL REFERENCES preoperacionales(id) ON DELETE CASCADE,
+      vehiculo_id BIGINT NOT NULL REFERENCES vehiculos(id) ON DELETE CASCADE,
+      item_codigo TEXT NOT NULL,
+      item_label TEXT NOT NULL,
+      respuesta TEXT NOT NULL DEFAULT 'si',
+      observacion TEXT,
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
   // ── Modulo de Entrega y Recibida de Vehiculo (checklist de daños + firma) ──
   await db.run(`
     CREATE TABLE IF NOT EXISTS conductores (
@@ -948,6 +987,8 @@ async function ensurePostgresTables() {
   await db.run("CREATE INDEX IF NOT EXISTS idx_simit_comparendos_vehiculo_numero ON simit_comparendos (vehiculo_id, numero_comparendo)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_inspecciones_preventivas_vehiculo_id ON inspecciones_preventivas (vehiculo_id, fecha DESC)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_inspeccion_items_inspeccion_id ON inspeccion_items (inspeccion_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_preoperacionales_vehiculo_id ON preoperacionales (vehiculo_id, fecha DESC)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_preoperacional_items_preoperacional_id ON preoperacional_items (preoperacional_id)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_viajes_usuario_id ON viajes (usuario_id, creado_en DESC)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_conductores_estado ON conductores (estado)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_entregas_recibidas_vehiculo_id ON entregas_recibidas (vehiculo_id, fecha DESC)");
@@ -1003,6 +1044,8 @@ const TABLAS_CON_EMPRESA_ID = [
   "simit_comparendos",
   "inspecciones_preventivas",
   "inspeccion_items",
+  "preoperacionales",
+  "preoperacional_items",
   "viajes",
   "conductores",
   "entregas_recibidas",

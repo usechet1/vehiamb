@@ -4346,6 +4346,34 @@ button.record-link {
     color: #fff;
 }
 
+/* Checklist si/no del paso Preoperacional -- a diferencia de
+   .inspeccion-checklist-row (fila compacta de altura fija), cada pregunta
+   puede expandirse con un campo de observacion cuando la respuesta es "No",
+   asi que usa una tarjeta de alto variable en vez de una fila fija. */
+.preop-checklist {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.preop-item {
+    padding: 12px 14px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: #fff;
+}
+
+.preop-item-label {
+    margin-bottom: 8px;
+    color: var(--color-ink);
+    font-weight: 700;
+}
+
+.preop-item-observacion {
+    margin-top: 10px;
+}
+
 .inspeccion-side {
     flex: 0 0 260px;
     display: flex;
