@@ -3667,6 +3667,15 @@ button.record-link {
         width: auto;
     }
 
+    /* La fecha/empresa de escritorio (dentro de .page-header-right) ahora
+       se duplica con la de la topbar movil de abajo -- se ocultan solo esos
+       dos textos (no todo .page-header-right, que en varias paginas tambien
+       trae botones/enlaces de accion que si deben seguir viendose). */
+    .page-header-right .dash-fecha,
+    .page-header-right .page-header-empresa {
+        display: none;
+    }
+
     /* Aprovecha el espacio vacio a la derecha de la topbar movil (antes solo
        tenia el menu hamburguesa y el logo a la izquierda) mostrando la fecha
        y la empresa activa, igual que ya se ve en el encabezado de escritorio
