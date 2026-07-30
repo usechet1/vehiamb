@@ -1,5 +1,5 @@
 (function () {
-    const APP_NAME = "VehiAmb";
+    const APP_NAME = "Vehiamb";
     const MARGIN_X = 40;
     const ROW_HEIGHT = 18;
     const ROW_LINE_HEIGHT = 12;

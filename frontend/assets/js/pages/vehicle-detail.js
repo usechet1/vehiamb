@@ -386,7 +386,7 @@ exportHojaVidaButton?.addEventListener("click", async () => {
 function renderVehiculo(vehiculo) {
     const title = `${vehiculo.marca || "Vehículo"} ${vehiculo.modelo || ""}`.trim();
 
-    document.title = `${vehiculo.placa || "Vehículo"} - VehiAmb`;
+    document.title = `${vehiculo.placa || "Vehículo"} - Vehiamb`;
     vehicleTitle.textContent = title;
     vehicleSubtitle.textContent = `Ficha operativa de ${vehiculo.placa || "la unidad"}`;
     vehiclePlate.textContent = vehiculo.placa || "SIN PLACA";

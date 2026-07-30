@@ -1,5 +1,5 @@
 (function () {
-    const APP_NAME = "VehiAmb";
+    const APP_NAME = "Vehiamb";
     const MARGIN_X = 40;
     const PAGE_BOTTOM_LIMIT = 720;
     const FOOTER_TEXT = (nombreEmpresa) => (nombreEmpresa ? `Generado por ${APP_NAME} para ${nombreEmpresa}` : `Generado por ${APP_NAME}`);

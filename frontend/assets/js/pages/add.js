@@ -95,7 +95,7 @@ if (inputAnio) {
 }
 
 async function cargarVehiculoParaEditar() {
-    document.title = "Editar Vehículo - VehiAmb";
+    document.title = "Editar Vehículo - Vehiamb";
     pageTitle.textContent = "Editar vehículo";
     pageSubtitle.textContent = "Actualiza la ficha técnica del vehículo";
     formStep.textContent = "Editar ficha técnica";
