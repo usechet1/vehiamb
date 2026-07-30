@@ -142,35 +142,57 @@ curl http://localhost:3001/api/health
 ```
 Si responde `{"status":"ok",...}`, va bien. Detén con `Ctrl+C`.
 
-## Fase 6 — Dejarlo corriendo siempre (servicio de Windows con NSSM)
+## Fase 6 — Dejarlo corriendo siempre
 
-Windows no tiene un equivalente directo a `systemd`; la forma estándar es
-[NSSM](https://nssm.cc/) (Non-Sucking Service Manager), que envuelve cualquier
-`.exe` como servicio de Windows con reinicio automático.
+⚠️ **Decisión real tomada en este servidor:** se intentó primero un servicio de
+Windows con [NSSM](https://nssm.cc/) (`nssm install VehiAmbBackend`, con
+"Log on" apuntando a una cuenta con permiso sobre `\\192.168.9.21\...`). No
+funcionó: un servicio de Windows corre en una sesión aislada sin credenciales
+de red, aunque la misma cuenta sí tenga acceso interactivo por RDP/Explorador
+(Windows autentica la red por sesión, no por cuenta). Sincronizar la
+contraseña de una cuenta local (`Administrador`) entre este servidor y
+`192.168.9.21` para que el servicio pudiera loguearse fue engorroso y frágil.
 
+**Se optó por Task Scheduler en modo "solo si el usuario ha iniciado sesión"**
+— igual que la máquina de producción vieja — porque así el proceso hereda el
+acceso de red de la sesión RDP ya autenticada, sin sincronizar contraseñas.
+Contrapartida: el proceso se detiene si la sesión RDP se cierra del todo (no
+si solo se minimiza/desconecta visualmente).
+
+Crea el script que arranca el backend:
 ```powershell
-winget install NSSM.NSSM
+notepad C:\vehiamb\backend\run_backend.bat
 ```
-(o descarga el zip desde nssm.cc y copia `nssm.exe` a una carpeta del `PATH`).
+```bat
+@echo off
+cd /d C:\vehiamb\backend
+node server.js
+```
 
+Crea la tarea programada (ajusta `user2` a tu usuario real de RDP):
 ```powershell
-nssm install VehiAmbBackend
+schtasks /create /tn "VehiAmbBackend" /tr "C:\vehiamb\backend\run_backend.bat" /sc onlogon /ru user2 /it /rl highest
+schtasks /run /tn "VehiAmbBackend"
 ```
-Se abre una ventana gráfica:
-- **Path**: `C:\Program Files\nodejs\node.exe`
-- **Startup directory**: `C:\vehiamb\backend`
-- **Arguments**: `server.js`
-- Pestaña **Environment**: no hace falta si usas `dotenv` (el backend ya carga
-  `backend\.env` automáticamente vía `dotenv`).
-- Pestaña **Log on**: si el proceso necesita leer el recurso de red
-  `\\192.168.9.21\...`, configura aquí una cuenta de dominio/usuario que tenga
-  permiso sobre ese share (no "Local System", que no tiene credenciales de red).
+`/it` es la clave — hace que la tarea use el token interactivo de la sesión
+(hereda su red) en vez de credenciales guardadas.
 
-Guardar, y luego:
+Verifica:
 ```powershell
-nssm start VehiAmbBackend
-sc query VehiAmbBackend    # debe decir RUNNING
+Get-Process node -ErrorAction SilentlyContinue
+curl http://localhost:3001/api/health
 ```
+
+Para reiniciar tras un cambio de código (reemplaza al `nssm restart` de antes):
+```powershell
+schtasks /end /tn "VehiAmbBackend"
+schtasks /run /tn "VehiAmbBackend"
+```
+
+Si en el futuro se resuelve el acceso de red con una cuenta dedicada de bajo
+privilegio (en vez de depender de la sesión RDP), se puede volver a NSSM sin
+problema — el service ya quedó creado, solo deshabilitado
+(`sc.exe config VehiAmbBackend start= disabled`).
 
 ## Fase 7 — nginx para Windows sirviendo el frontend
 
@@ -335,7 +357,8 @@ cd C:\vehiamb
 git pull
 cd backend
 npm.cmd ci --omit=dev   # SOLO si cambiaron package.json/package-lock.json
-nssm restart VehiAmbBackend
+schtasks /end /tn "VehiAmbBackend"
+schtasks /run /tn "VehiAmbBackend"
 ```
 
 - Cambios solo en `frontend\` (html/js/css): no hace falta reiniciar nada —
@@ -343,8 +366,7 @@ nssm restart VehiAmbBackend
   no-cache` puesto, así que un simple refresh del navegador basta.
 - Cambios de esquema de base de datos: tampoco hay paso manual —
   `backend/src/database/init.js` revisa y agrega columnas/tablas nuevas cada
-  vez que el proceso arranca, así que el `nssm restart VehiAmbBackend` ya lo
-  cubre.
+  vez que el proceso arranca, así que el reinicio de la tarea ya lo cubre.
 - Verificar después de cada despliegue:
   ```powershell
   curl https://vehiamb.ambientesceramicos.com/api/health
@@ -357,8 +379,11 @@ nssm restart VehiAmbBackend
   Fase 2, se dejó pausado a propósito.
 - Backups periódicos de Postgres (`pg_dump`) y de `backend\uploads\`.
 - Guardar el `.env` en un lugar seguro fuera del repo.
-- Confirmar que el usuario con el que corre el servicio `VehiAmbBackend` (Fase
-  6, pestaña "Log on") tiene permiso de lectura sobre
-  `\\192.168.9.21\DESPACHOS` y `\\192.168.9.21\automotores`.
+- El backend depende de que la sesión RDP de `user2` se mantenga iniciada
+  (Fase 6, Task Scheduler) para conservar el acceso a
+  `\\192.168.9.21\DESPACHOS` y `\\192.168.9.21\automotores`. Si se cierra esa
+  sesión por completo, el backend se detiene — considerar en el futuro una
+  cuenta de servicio dedicada de bajo privilegio para volver a un servicio
+  NSSM real (más robusto para un servidor 24/7).
 - Borrar el registro `A` manual viejo (`vehiamb` → IP directa) en el panel de
   SNHC — ya no aplica, el DNS real vive en Cloudflare como `CNAME` del túnel.
