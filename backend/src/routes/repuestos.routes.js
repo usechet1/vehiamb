@@ -7,6 +7,11 @@ const requirePermission = require("../middlewares/require-permission");
 const uploadRepuesto = require("../middlewares/upload-repuesto");
 const compressImage = require("../middlewares/compress-image");
 const validateUpload = require("../middlewares/validate-upload");
+const { renameUpload, fechaCorta } = require("../middlewares/rename-upload");
+
+function construirNombreRepuesto(req) {
+  return [req.body.nombre, "FOTO", fechaCorta()];
+}
 
 // GET listado paginado con busqueda/filtros
 router.get("/", requirePermission("inventory.view"), asyncHandler(repuestosController.getRepuestos));
@@ -26,6 +31,7 @@ router.post(
   requirePermission("inventory.manage"),
   uploadRepuesto.single("foto"),
   asyncHandler(validateUpload),
+  asyncHandler(renameUpload(construirNombreRepuesto)),
   asyncHandler(compressImage),
   asyncHandler(repuestosController.createRepuesto)
 );
@@ -36,6 +42,7 @@ router.put(
   requirePermission("inventory.manage"),
   uploadRepuesto.single("foto"),
   asyncHandler(validateUpload),
+  asyncHandler(renameUpload(construirNombreRepuesto)),
   asyncHandler(compressImage),
   asyncHandler(repuestosController.updateRepuesto)
 );

@@ -6,6 +6,11 @@ const asyncHandler = require("../middlewares/async-handler");
 const requirePermission = require("../middlewares/require-permission");
 const uploadConductor = require("../middlewares/upload-conductor");
 const validateUpload = require("../middlewares/validate-upload");
+const { renameUpload, fechaCorta } = require("../middlewares/rename-upload");
+
+function construirNombreConductor(req) {
+  return [req.body.cedula, "LICENCIA", fechaCorta()];
+}
 
 router.get("/", requirePermission("conductores.view"), asyncHandler(conductoresController.getConductores));
 router.get("/:id", requirePermission("conductores.view"), asyncHandler(conductoresController.getConductorById));
@@ -14,6 +19,7 @@ router.post(
   requirePermission("conductores.manage"),
   uploadConductor.single("licencia_archivo"),
   asyncHandler(validateUpload),
+  asyncHandler(renameUpload(construirNombreConductor)),
   asyncHandler(conductoresController.createConductor)
 );
 router.put(
@@ -21,6 +27,7 @@ router.put(
   requirePermission("conductores.manage"),
   uploadConductor.single("licencia_archivo"),
   asyncHandler(validateUpload),
+  asyncHandler(renameUpload(construirNombreConductor)),
   asyncHandler(conductoresController.updateConductor)
 );
 
