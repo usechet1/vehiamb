@@ -7,6 +7,11 @@ const requirePermission = require("../middlewares/require-permission");
 const uploadVehiculo = require("../middlewares/upload-vehiculo");
 const compressImage = require("../middlewares/compress-image");
 const validateUpload = require("../middlewares/validate-upload");
+const { renameUpload, fechaCorta } = require("../middlewares/rename-upload");
+
+function construirNombreVehiculo(req) {
+  return [req.body.placa, "FOTO", fechaCorta()];
+}
 
 // GET todos los vehículos (con busqueda, filtros, orden y paginacion)
 router.get("/", requirePermission("vehicles.view"), asyncHandler(vehiculosController.getVehiculos));
@@ -26,6 +31,7 @@ router.post(
   requirePermission("vehicles.create"),
   uploadVehiculo.single("imagen"),
   asyncHandler(validateUpload),
+  asyncHandler(renameUpload(construirNombreVehiculo)),
   asyncHandler(compressImage),
   asyncHandler(vehiculosController.createVehiculo)
 );
@@ -36,6 +42,7 @@ router.put(
   requirePermission("vehicles.edit"),
   uploadVehiculo.single("imagen"),
   asyncHandler(validateUpload),
+  asyncHandler(renameUpload(construirNombreVehiculo)),
   asyncHandler(compressImage),
   asyncHandler(vehiculosController.updateVehiculo)
 );
