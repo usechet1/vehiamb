@@ -444,3 +444,27 @@ CREATE TABLE IF NOT EXISTS inspeccion_items (
 
 CREATE INDEX IF NOT EXISTS idx_inspecciones_preventivas_vehiculo_id ON inspecciones_preventivas (vehiculo_id, fecha DESC);
 CREATE INDEX IF NOT EXISTS idx_inspeccion_items_inspeccion_id ON inspeccion_items (inspeccion_id);
+
+-- ── Modulo de Preoperacional (checklist si/no del conductor + documentos) ──
+CREATE TABLE IF NOT EXISTS preoperacionales (
+  id BIGSERIAL PRIMARY KEY,
+  vehiculo_id BIGINT NOT NULL REFERENCES vehiculos(id) ON DELETE CASCADE,
+  usuario_id BIGINT REFERENCES usuarios(id),
+  viaje_id BIGINT REFERENCES viajes(id) ON DELETE SET NULL,
+  fecha TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS preoperacional_items (
+  id BIGSERIAL PRIMARY KEY,
+  preoperacional_id BIGINT NOT NULL REFERENCES preoperacionales(id) ON DELETE CASCADE,
+  vehiculo_id BIGINT NOT NULL REFERENCES vehiculos(id) ON DELETE CASCADE,
+  item_codigo TEXT NOT NULL,
+  item_label TEXT NOT NULL,
+  respuesta TEXT NOT NULL DEFAULT 'si',
+  observacion TEXT,
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_preoperacionales_vehiculo_id ON preoperacionales (vehiculo_id, fecha DESC);
+CREATE INDEX IF NOT EXISTS idx_preoperacional_items_preoperacional_id ON preoperacional_items (preoperacional_id);

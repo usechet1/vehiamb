@@ -186,6 +186,7 @@
                 <li class="wizard-step" data-step="2"><span class="wizard-step-num">2</span> Vencimientos</li>
                 <li class="wizard-step" data-step="3"><span class="wizard-step-num">3</span> Inspección</li>
                 <li class="wizard-step" data-step="4"><span class="wizard-step-num">4</span> Preoperacional</li>
+                <li class="wizard-step" data-step="5"><span class="wizard-step-num">5</span> Finalizar</li>
             </ol>
 
             <div id="vehicleDetail" class="vehicle-detail-grid hidden">
@@ -382,8 +383,6 @@
                                         <div class="form-actions">
                                             <button type="button" id="guardarInspeccionButton" class="btn-primary hidden" disabled>Guardar inspección</button>
                                             <button type="button" id="limpiarInspeccionButton" class="btn-secondary">Limpiar</button>
-                                            <!-- TODO: reemplazar href con el link real del formulario de preoperacional (Google Forms) -->
-                                            <a class="btn-secondary" id="abrirPreoperacionalLink" href="#" target="_blank" rel="noreferrer">Abrir preoperacional</a>
                                         </div>
                                     </div>
                                 </div>
@@ -404,7 +403,27 @@
             <section class="section-card hidden" id="wizardStepPreoperacional">
                 <div class="section-card-head">
                     <h2>Preoperacional</h2>
-                    <p>Este paso es opcional: diligencia el formulario preoperacional del vehículo si tu operación lo requiere.</p>
+                    <p>Responde antes de salir. Si marcas "No" en alguna pregunta, cuéntanos por qué.</p>
+                </div>
+                <div class="section-card-body">
+                    <div class="preop-checklist" id="preopChecklist"></div>
+                    <div class="form-actions">
+                        <button type="button" id="guardarPreoperacionalButton" class="btn-primary" disabled>Guardar preoperacional</button>
+                    </div>
+
+                    <details class="inspeccion-historial">
+                        <summary><h3>Historial de preoperacionales</h3></summary>
+                        <div id="preopHistorialList" class="records-list">
+                            <p class="dash-empty">Cargando...</p>
+                        </div>
+                    </details>
+                </div>
+            </section>
+
+            <section class="section-card hidden" id="wizardStepFinalizar">
+                <div class="section-card-head">
+                    <h2>Finalizar</h2>
+                    <p>Ya completaste la inspección y el preoperacional. Confirma para iniciar el viaje.</p>
                 </div>
                 <div class="section-card-body">
                     <div class="conductor-wizard-final">
@@ -433,6 +452,7 @@
     <script src="assets/js/shared/pdf-export.js"></script>
     <script src="assets/js/pages/vehiculo-export.js"></script>
     <script src="assets/js/pages/vehicle-inspeccion.js"></script>
+    <script src="assets/js/pages/vehicle-preoperacional.js"></script>
     <script>
         (function () {
             const statusSelect = document.getElementById("vehicleStatusSelect");

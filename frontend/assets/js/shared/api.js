@@ -765,6 +765,42 @@ window.VehiAmb.api = {
         );
     },
 
+    getPreoperacionalCatalogo() {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/preoperacionales/catalogo`,
+            undefined,
+            "No se pudo cargar el catálogo del preoperacional"
+        );
+    },
+
+    getPreoperacionalesByVehicle(vehiculoId) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/preoperacionales/vehiculo/${vehiculoId}`,
+            undefined,
+            "No se pudo cargar el historial de preoperacionales"
+        );
+    },
+
+    getPreoperacionalDetalle(preoperacionalId) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/preoperacionales/${preoperacionalId}`,
+            undefined,
+            "No se pudo cargar el detalle del preoperacional"
+        );
+    },
+
+    crearPreoperacional(vehiculoId, payload) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/preoperacionales/vehiculo/${vehiculoId}`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            },
+            "No se pudo guardar el preoperacional"
+        );
+    },
+
     getConductores(filters = {}) {
         const params = new URLSearchParams();
         if (filters.estado) params.set("estado", filters.estado);
