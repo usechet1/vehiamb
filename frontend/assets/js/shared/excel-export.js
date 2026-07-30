@@ -12,7 +12,7 @@ const CELL_BORDER = { top: THIN_BORDER, left: THIN_BORDER, bottom: THIN_BORDER, 
 
 function createWorkbook() {
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = "VehiAmb";
+    workbook.creator = "Vehiamb";
     workbook.created = new Date();
     return workbook;
 }

@@ -1,5 +1,5 @@
 (function () {
-    const APP_NAME = "VehiAmb";
+    const APP_NAME = "Vehiamb";
     const MARGIN_X = 40;
     const PAGE_BOTTOM_LIMIT = 720;
     const ROW_LINE_HEIGHT = 12;

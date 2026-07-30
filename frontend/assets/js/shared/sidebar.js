@@ -279,7 +279,7 @@ function setupMobileNav(aside) {
         <button type="button" class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Abrir menú" aria-expanded="false">
             <span class="mobile-menu-icon"></span>
         </button>
-        <img src="img/vehiamb_white.png" alt="VehiAmb" class="mobile-topbar-logo">
+        <img src="img/vehiamb_white.png" alt="Vehiamb" class="mobile-topbar-logo">
     `;
     layout.insertBefore(topbar, layout.firstChild);
 
