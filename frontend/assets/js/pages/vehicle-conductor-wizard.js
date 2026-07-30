@@ -88,8 +88,13 @@ async function initConductorWizard() {
         render();
     });
 
+    // A diferencia de la inspeccion (que deja al conductor revisar el
+    // resumen antes de avanzar), aqui se salta directo a "Finalizar" -- es
+    // el ultimo paso del checklist, no tiene sentido pedirle un click extra
+    // en "Siguiente" para llegar a algo que ya sabe que sigue.
     document.addEventListener("preoperacional:guardado", () => {
         preoperacionalGuardado = true;
+        currentStep = WIZARD_STEPS.length - 1;
         render();
     });
 

@@ -216,8 +216,26 @@ function renderInspeccionHtml(inspeccion) {
     `;
 }
 
+function renderPreoperacionalHtml(preoperacional) {
+    if (!preoperacional) {
+        return '<p class="dash-empty">El conductor no registró un preoperacional para este viaje.</p>';
+    }
+
+    const items = (preoperacional.items || []).map((item) => `
+        <div class="inspeccion-detalle-item">
+            <span class="pill ${item.respuesta === "no" ? "pill-danger" : "pill-success"}">${escapeHtml(item.item_label)}</span>
+            ${item.observacion ? `<p class="field-help">${escapeHtml(item.observacion)}</p>` : ""}
+        </div>
+    `).join("");
+
+    return `
+        <p class="field-help">${preoperacional.total_items_no} de ${preoperacional.total_items} preguntas en "No" · ${formatFechaHora(preoperacional.fecha)}</p>
+        ${items}
+    `;
+}
+
 function renderViajeDrawerBody(resumen) {
-    const { vehiculo, viaje, conductor, documentos, inspeccion } = resumen;
+    const { vehiculo, viaje, conductor, documentos, inspeccion, preoperacional } = resumen;
     return `
         <section class="drawer-section">
             <h3>Vehículo</h3>
@@ -243,6 +261,11 @@ function renderViajeDrawerBody(resumen) {
         <section class="drawer-section">
             <h3>Inspección preventiva</h3>
             ${renderInspeccionHtml(inspeccion)}
+        </section>
+
+        <section class="drawer-section">
+            <h3>Preoperacional</h3>
+            ${renderPreoperacionalHtml(preoperacional)}
         </section>
 
         <section class="drawer-section">
