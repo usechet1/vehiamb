@@ -253,6 +253,12 @@ form.addEventListener("submit", async (event) => {
     try {
         window.VehiAmb.ui.show(loader);
 
+        const imagenOriginal = imageInput?.files?.[0];
+        if (imagenOriginal) {
+            const imagenComprimida = await window.VehiAmb.ui.comprimirImagen(imagenOriginal);
+            formData.set("imagen", imagenComprimida, imagenComprimida.name);
+        }
+
         if (isEditMode) {
             await window.VehiAmb.api.updateVehiculo(vehicleId, formData);
             window.VehiAmb.ui.showMessage(mensaje, "Vehículo actualizado correctamente");
