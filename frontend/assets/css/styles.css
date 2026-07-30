@@ -3887,8 +3887,18 @@ button.record-link {
     }
 
     .vehicle-detail-actions {
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: wrap;
         width: 100%;
+    }
+
+    .vehicle-detail-actions .btn-secondary,
+    .vehicle-detail-actions .header-action {
+        flex: 1 1 0;
+        width: auto;
+        justify-content: center;
+        text-align: center;
+        white-space: normal;
     }
 
     .header-action,
