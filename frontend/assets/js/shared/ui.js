@@ -147,6 +147,36 @@ window.VehiAmb.ui = {
         return window.VehiAmb.ui.parseFormattedNumber(sinSigno) || "0";
     },
 
+    // Las fotos de camara de celular pueden pesar varios MB -- si se suben
+    // tal cual, en una conexion movil el envio se siente "colgado" durante
+    // mucho tiempo. Se reescala/recomprime en el navegador ANTES de armar el
+    // FormData, para que lo que viaje por la red ya sea liviano (el backend
+    // igual vuelve a comprimir por si acaso, ver compress-image.js).
+    async comprimirImagen(file, { maxDimension = 1600, calidad = 0.8 } = {}) {
+        if (!file || !file.type.startsWith("image/") || file.type === "image/svg+xml") return file;
+
+        try {
+            const bitmap = await createImageBitmap(file);
+            const escala = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+            const width = Math.round(bitmap.width * escala);
+            const height = Math.round(bitmap.height * escala);
+
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            canvas.getContext("2d").drawImage(bitmap, 0, 0, width, height);
+
+            const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", calidad));
+            if (!blob || blob.size >= file.size) return file;
+
+            const nombre = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+            return new File([blob], nombre, { type: "image/jpeg" });
+        } catch (error) {
+            console.error("No se pudo comprimir la imagen en el navegador, se sube el original:", error);
+            return file;
+        }
+    },
+
     // Reemplaza window.confirm() nativo (dialogo del sistema operativo, sin
     // estilo posible) por un modal propio con la misma identidad visual del
     // resto de la app. Devuelve una Promise<boolean>, igual que el patron de

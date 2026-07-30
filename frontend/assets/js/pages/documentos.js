@@ -429,7 +429,7 @@ documentoForm.addEventListener("submit", async (event) => {
         switchTab("historial");
     } catch (error) {
         console.error(error);
-        window.VehiAmb.ui.showMessage(mensaje, "Error al guardar el documento", "error");
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "Error al guardar el documento", "error");
     } finally {
         window.VehiAmb.ui.hide(loader);
     }
