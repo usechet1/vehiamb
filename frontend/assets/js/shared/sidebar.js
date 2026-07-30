@@ -38,6 +38,16 @@ function formatearFechaHoy() {
     });
 }
 
+// Version corta para la topbar movil, que tiene mucho menos espacio
+// horizontal que el encabezado de escritorio (.page-header-right).
+function formatearFechaCorta() {
+    return new Date().toLocaleDateString("es-CO", {
+        day: "numeric",
+        month: "short",
+        year: "numeric"
+    });
+}
+
 // Coloca (o actualiza) el nombre de la empresa justo debajo de un elemento de
 // fecha ya existente -- se usa tanto para el encabezado generico
 // (.page-header-right) como para los dos layouts especiales de index.html
@@ -280,6 +290,10 @@ function setupMobileNav(aside) {
             <span class="mobile-menu-icon"></span>
         </button>
         <img src="img/vehiamb_white.png" alt="Vehiamb" class="mobile-topbar-logo">
+        <div class="mobile-topbar-right">
+            <p class="mobile-topbar-empresa" id="mobileTopbarEmpresa"></p>
+            <p class="mobile-topbar-fecha" id="mobileTopbarFecha">${formatearFechaCorta()}</p>
+        </div>
     `;
     layout.insertBefore(topbar, layout.firstChild);
 
@@ -413,6 +427,8 @@ async function cargarSidebar() {
         if (nameEl) nameEl.textContent = user.nombre;
         if (roleEl) roleEl.textContent = user.rol || "Usuario";
         if (empresaEl) empresaEl.textContent = user.empresa_nombre || "";
+        const mobileTopbarEmpresaEl = document.getElementById("mobileTopbarEmpresa");
+        if (mobileTopbarEmpresaEl) mobileTopbarEmpresaEl.textContent = user.empresa_nombre || "";
         if (avatarEl) {
             avatarEl.innerHTML = user.foto_url
                 ? `<img src="${window.VehiAmb.api.getAssetUrl(user.foto_url)}" alt="">`
