@@ -266,14 +266,14 @@ function renderSummary(rows, valorHistorico, infractorTop) {
         ${peorVehiculo ? `
             <div class="kpi-card clickable-record" style="--kpi-accent: var(--color-primary)" data-vehiculo-id="${peorVehiculo.vehiculo_id}" tabindex="0" role="button" aria-label="Ver detalle SIMIT de ${escapeHtml(peorVehiculo.placa || "")}">
                 <div class="kpi-label">Más comparendos</div>
-                <div class="kpi-value">${escapeHtml(peorVehiculo.placa || "Sin placa")} (${peorVehiculo.total_comparendos})</div>
+                <div class="kpi-value kpi-value-compact">${escapeHtml(peorVehiculo.placa || "Sin placa")} (${peorVehiculo.total_comparendos})</div>
                 ${conComparendos > 1 ? `<button type="button" class="kpi-mini-link" data-accion="ranking-comparendos">Ver ranking completo (${conComparendos})</button>` : ""}
             </div>
         ` : ""}
         ${infractorTop ? `
             <div class="kpi-card" style="--kpi-accent: var(--color-primary)">
                 <div class="kpi-label">Conductor con más comparendos</div>
-                <div class="kpi-value">${escapeHtml(infractorTop.nombre_infractor || "Nombre no disponible")} (${infractorTop.total_comparendos})</div>
+                <div class="kpi-value kpi-value-compact">${escapeHtml(infractorTop.nombre_infractor || "Nombre no disponible")} (${infractorTop.total_comparendos})</div>
                 <div class="kpi-sub">${escapeHtml(infractorTop.cedula_infractor || "")}</div>
             </div>
         ` : ""}
