@@ -25,7 +25,7 @@ async function main() {
 
   if (!row) {
     console.error(id ? `No existe la notificacion ${id}.` : "No hay notificaciones de SIMIT registradas.");
-    process.exit(1);
+    return;
   }
 
   console.log(`Reenviando notificacion #${row.id} (${row.tipo}):`, row.mensaje);
@@ -33,9 +33,10 @@ async function main() {
   console.log("Listo -- revisa el WhatsApp del usuario destino.");
 }
 
+// Cerrar el pool de Postgres explicitamente antes de terminar -- un
+// process.exit() a secas mientras el pool sigue con conexiones abiertas
+// hace que Node crashee en Windows con "Assertion failed:
+// !(handle->flags & UV_HANDLE_CLOSING)" al cerrar esos handles a la fuerza.
 main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error("Error:", error.message);
-    process.exit(1);
-  });
+  .catch((error) => console.error("Error:", error.message))
+  .finally(() => db.close());
