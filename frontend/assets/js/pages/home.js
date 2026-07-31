@@ -188,7 +188,7 @@ function pintarUrgenciaDocumentos(vencimientosCercanos) {
     }
 }
 
-function pintarResumen(vehiculos, mantenimientos = [], documentos = [], costosCombustibleMes = [], costosCombustibleMesAnterior = []) {
+function pintarResumen(vehiculos, mantenimientos = [], documentos = [], costosOperativosMes = [], costosOperativosMesAnterior = []) {
     const vencimientosCercanos = documentos.filter((documento) => {
         const days = daysUntil(documento.fecha_vencimiento);
         return days !== null && days <= 30;
@@ -201,17 +201,18 @@ function pintarResumen(vehiculos, mantenimientos = [], documentos = [], costosCo
     const mantenimientosMesAnterior = mantenimientos.filter((item) => perteneceAMes(item.fecha, mesAnteriorDate.getMonth(), mesAnteriorDate.getFullYear()));
 
     // "Gasto del mes" combina mantenimientos (mano de obra + repuestos) con
-    // el combustible/facturas importadas del modulo de Costos -- antes solo
-    // sumaba mantenimientos, dejando afuera el gasto que suele ser el mas
-    // grande de la flota.
+    // los gastos operativos (combustible, peajes, parqueaderos, almuerzos)
+    // de las facturas importadas del modulo de Costos -- antes solo sumaba
+    // mantenimientos, dejando afuera el gasto que suele ser el mas grande
+    // de la flota.
     const costoMantenimientoMes = mantenimientosDelMes.reduce((sum, item) => sum + Number(item.valor || 0), 0);
     const costoMantenimientoMesAnterior = mantenimientosMesAnterior.reduce((sum, item) => sum + Number(item.valor || 0), 0);
 
-    const costoCombustibleMes = costosCombustibleMes.reduce((sum, item) => sum + Number(item.totalGastado || 0), 0);
-    const costoCombustibleMesAnterior = costosCombustibleMesAnterior.reduce((sum, item) => sum + Number(item.totalGastado || 0), 0);
+    const costoOperativoMes = costosOperativosMes.reduce((sum, item) => sum + Number(item.totalGastado || 0), 0);
+    const costoOperativoMesAnterior = costosOperativosMesAnterior.reduce((sum, item) => sum + Number(item.totalGastado || 0), 0);
 
-    const costoMes = costoMantenimientoMes + costoCombustibleMes;
-    const costoMesAnterior = costoMantenimientoMesAnterior + costoCombustibleMesAnterior;
+    const costoMes = costoMantenimientoMes + costoOperativoMes;
+    const costoMesAnterior = costoMantenimientoMesAnterior + costoOperativoMesAnterior;
     const delta = calcularDeltaCompacto(costoMes, costoMesAnterior);
 
     document.getElementById("total-vehiculos").textContent = vehiculos.length;
@@ -279,9 +280,11 @@ function pintarFlotaEstado(vehiculos) {
 
 // El total y el delta vs. el mes anterior ya se muestran en la tarjeta KPI
 // de arriba -- este panel es puramente el detalle: gasto por tipo de
-// mantenimiento del mes en curso, mas el combustible (facturas importadas
-// del modulo de Costos), usando todo el recuadro.
-function pintarCostosMes(mantenimientos, costosCombustibleMes = []) {
+// mantenimiento del mes en curso, mas los gastos operativos (facturas
+// importadas del modulo de Costos: combustible, peajes, parqueaderos,
+// almuerzos -- ver costos.repository.js aggregarPorVehiculo, que los suma
+// todos juntos por factura, no solo combustible), usando todo el recuadro.
+function pintarCostosMes(mantenimientos, costosOperativosMes = []) {
     const container = document.getElementById("costosMes");
     const delMesActual = mantenimientos.filter((item) => esDelMesActual(item.fecha));
 
@@ -291,9 +294,9 @@ function pintarCostosMes(mantenimientos, costosCombustibleMes = []) {
         porTipo.set(tipo, (porTipo.get(tipo) || 0) + Number(item.valor || 0));
     });
 
-    const totalCombustible = costosCombustibleMes.reduce((sum, item) => sum + Number(item.totalGastado || 0), 0);
-    if (totalCombustible > 0) {
-        porTipo.set("Combustible", totalCombustible);
+    const totalOperativo = costosOperativosMes.reduce((sum, item) => sum + Number(item.totalGastado || 0), 0);
+    if (totalOperativo > 0) {
+        porTipo.set("Gastos operativos (combustible, peajes, etc.)", totalOperativo);
     }
 
     const filas = [...porTipo.entries()]
@@ -809,8 +812,8 @@ async function inicializarDashboard() {
     // Si el rol no tiene permiso sobre Costos (costs.view), esta llamada
     // simplemente falla en silencio y el KPI queda solo con mantenimientos --
     // igual que se comportaba antes de este cambio.
-    const costosCombustibleMes = costosMesResult.status === "fulfilled" ? costosMesResult.value.items : [];
-    const costosCombustibleMesAnterior = costosMesAnteriorResult.status === "fulfilled" ? costosMesAnteriorResult.value.items : [];
+    const costosOperativosMes = costosMesResult.status === "fulfilled" ? costosMesResult.value.items : [];
+    const costosOperativosMesAnterior = costosMesAnteriorResult.status === "fulfilled" ? costosMesAnteriorResult.value.items : [];
     const totalConductores = conductoresResult.status === "fulfilled" ? conductoresResult.value.total : null;
     const estadoFlotaSimit = simitResult.status === "fulfilled" ? simitResult.value : [];
 
@@ -827,7 +830,7 @@ async function inicializarDashboard() {
         document.getElementById("costosMes").innerHTML =
             '<p class="dash-empty">No fue posible cargar los gastos</p>';
     } else {
-        pintarCostosMes(mantenimientos, costosCombustibleMes);
+        pintarCostosMes(mantenimientos, costosOperativosMes);
     }
 
     if (documentosResult.status === "rejected") {
@@ -841,7 +844,7 @@ async function inicializarDashboard() {
         pintarCalendario(mantenimientos, documentos);
     }
 
-    pintarResumen(vehiculos, mantenimientos, documentos, costosCombustibleMes, costosCombustibleMesAnterior);
+    pintarResumen(vehiculos, mantenimientos, documentos, costosOperativosMes, costosOperativosMesAnterior);
 
     document.getElementById("total-conductores").textContent = totalConductores ?? "--";
     pintarComparendos(estadoFlotaSimit);

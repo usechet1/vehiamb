@@ -1383,7 +1383,7 @@ label[for="loginPassword"] {
     background: var(--card-accent, var(--color-primary));
 }
 
-.dash-card-fleet { --card-accent: var(--color-sidebar); }
+.dash-card-fleet { --card-accent: #2f80c9; }
 .dash-card-drivers { --card-accent: #305f8f; }
 .dash-card-docs { --card-accent: #305f8f; }
 .dash-card-service { --card-accent: #0e7c86; }
