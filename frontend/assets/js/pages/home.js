@@ -57,6 +57,23 @@ function perteneceAMes(fecha, mes, anio) {
     return !Number.isNaN(date.getTime()) && date.getMonth() === mes && date.getFullYear() === anio;
 }
 
+function pad2(value) {
+    return String(value).padStart(2, "0");
+}
+
+function isoDate(date) {
+    return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
+// Rango del mes anterior completo (dia 1 al ultimo dia), para el delta del
+// KPI "Gasto del mes" -- ver getCostosVehiculos() en inicializarDashboard().
+function rangoMesAnterior() {
+    const ahora = new Date();
+    const desde = new Date(ahora.getFullYear(), ahora.getMonth() - 1, 1);
+    const hasta = new Date(ahora.getFullYear(), ahora.getMonth(), 0);
+    return { desde: isoDate(desde), hasta: isoDate(hasta) };
+}
+
 function esDelMesActual(fecha) {
     const ahora = new Date();
     return perteneceAMes(fecha, ahora.getMonth(), ahora.getFullYear());
@@ -77,7 +94,7 @@ function calcularDeltaCompacto(totalActual, totalAnterior) {
     return { className: "is-flat", texto: "Sin datos" };
 }
 
-function pintarResumen(vehiculos, mantenimientos = [], documentos = []) {
+function pintarResumen(vehiculos, mantenimientos = [], documentos = [], costosCombustibleMes = [], costosCombustibleMesAnterior = []) {
     const vencimientosCercanos = documentos.filter((documento) => {
         const days = daysUntil(documento.fecha_vencimiento);
         return days !== null && days <= 30;
@@ -89,8 +106,18 @@ function pintarResumen(vehiculos, mantenimientos = [], documentos = []) {
     const mantenimientosDelMes = mantenimientos.filter((item) => esDelMesActual(item.fecha));
     const mantenimientosMesAnterior = mantenimientos.filter((item) => perteneceAMes(item.fecha, mesAnteriorDate.getMonth(), mesAnteriorDate.getFullYear()));
 
-    const costoMes = mantenimientosDelMes.reduce((sum, item) => sum + Number(item.valor || 0), 0);
-    const costoMesAnterior = mantenimientosMesAnterior.reduce((sum, item) => sum + Number(item.valor || 0), 0);
+    // "Gasto del mes" combina mantenimientos (mano de obra + repuestos) con
+    // el combustible/facturas importadas del modulo de Costos -- antes solo
+    // sumaba mantenimientos, dejando afuera el gasto que suele ser el mas
+    // grande de la flota.
+    const costoMantenimientoMes = mantenimientosDelMes.reduce((sum, item) => sum + Number(item.valor || 0), 0);
+    const costoMantenimientoMesAnterior = mantenimientosMesAnterior.reduce((sum, item) => sum + Number(item.valor || 0), 0);
+
+    const costoCombustibleMes = costosCombustibleMes.reduce((sum, item) => sum + Number(item.totalGastado || 0), 0);
+    const costoCombustibleMesAnterior = costosCombustibleMesAnterior.reduce((sum, item) => sum + Number(item.totalGastado || 0), 0);
+
+    const costoMes = costoMantenimientoMes + costoCombustibleMes;
+    const costoMesAnterior = costoMantenimientoMesAnterior + costoCombustibleMesAnterior;
     const delta = calcularDeltaCompacto(costoMes, costoMesAnterior);
 
     document.getElementById("total-vehiculos").textContent = vehiculos.length;
@@ -654,15 +681,22 @@ async function inicializarDashboard() {
     const primerNombre = String(user?.nombre || "").trim().split(" ")[0];
     document.getElementById("dashboardSaludoNombre").textContent = primerNombre;
 
-    const [vehiculosResult, mantenimientosResult, documentosResult] = await Promise.allSettled([
+    const [vehiculosResult, mantenimientosResult, documentosResult, costosMesResult, costosMesAnteriorResult] = await Promise.allSettled([
         window.VehiAmb.api.getVehiculosCatalogo(),
         window.VehiAmb.api.getMantenimientos(),
-        window.VehiAmb.api.getDocumentos()
+        window.VehiAmb.api.getDocumentos(),
+        window.VehiAmb.api.getCostosVehiculos(),
+        window.VehiAmb.api.getCostosVehiculos(rangoMesAnterior())
     ]);
 
     const vehiculos = vehiculosResult.status === "fulfilled" ? vehiculosResult.value : [];
     const mantenimientos = mantenimientosResult.status === "fulfilled" ? mantenimientosResult.value : [];
     const documentos = documentosResult.status === "fulfilled" ? documentosResult.value : [];
+    // Si el rol no tiene permiso sobre Costos (costs.view), esta llamada
+    // simplemente falla en silencio y el KPI queda solo con mantenimientos --
+    // igual que se comportaba antes de este cambio.
+    const costosCombustibleMes = costosMesResult.status === "fulfilled" ? costosMesResult.value.items : [];
+    const costosCombustibleMesAnterior = costosMesAnteriorResult.status === "fulfilled" ? costosMesAnteriorResult.value.items : [];
 
     if (vehiculosResult.status === "rejected") {
         console.error(vehiculosResult.reason);
@@ -691,7 +725,7 @@ async function inicializarDashboard() {
         pintarCalendario(mantenimientos, documentos);
     }
 
-    pintarResumen(vehiculos, mantenimientos, documentos);
+    pintarResumen(vehiculos, mantenimientos, documentos, costosCombustibleMes, costosCombustibleMesAnterior);
 }
 
 document.addEventListener("DOMContentLoaded", inicializarDashboard);
