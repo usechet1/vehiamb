@@ -3985,6 +3985,14 @@ button.record-link {
         font-size: 1.1rem;
     }
 
+    .dash-card-sub {
+        font-size: 0.66rem;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        line-height: 1.25;
+    }
+
     .simple-list-entry {
         grid-template-columns: 1fr;
     }
