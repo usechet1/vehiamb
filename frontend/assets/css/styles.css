@@ -3907,13 +3907,39 @@ button.record-link {
         justify-content: center;
     }
 
-    .dash-cards,
     .form-grid,
     .form-grid-3,
     .form-grid-4,
     .vehicle-meta,
     .detail-list {
         grid-template-columns: 1fr;
+    }
+
+    /* Los 4 KPI del dashboard aprovechan mejor el ancho en 2x2 que
+       apilados uno debajo del otro a todo el ancho. */
+    .dash-cards {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    .dash-card {
+        padding: 10px 12px;
+        gap: 10px;
+        min-height: 70px;
+    }
+
+    .dash-card-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 0.85rem;
+    }
+
+    .dash-card-label {
+        font-size: 0.68rem;
+    }
+
+    .dash-card-value {
+        font-size: 1.35rem;
     }
 
     .simple-list-entry {
