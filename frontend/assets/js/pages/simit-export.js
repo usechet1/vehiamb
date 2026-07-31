@@ -1,7 +1,6 @@
 (function () {
     const APP_NAME = "Vehiamb";
     const MARGIN_X = 40;
-    const PAGE_BOTTOM_LIMIT = 720;
     const ROW_LINE_HEIGHT = 12;
     const FOOTER_TEXT = (nombreEmpresa) => (nombreEmpresa ? `Generado por ${APP_NAME} para ${nombreEmpresa}` : `Generado por ${APP_NAME}`);
 
@@ -18,10 +17,11 @@
 
     function makeLayout(doc) {
         const pageWidth = doc.internal.pageSize.getWidth();
+        const bottomLimit = doc.internal.pageSize.getHeight() - 130;
         let y = 40;
 
         function ensureSpace(next) {
-            if (y + next > PAGE_BOTTOM_LIMIT) {
+            if (y + next > bottomLimit) {
                 doc.addPage();
                 y = 40;
             }
@@ -107,7 +107,7 @@
             return;
         }
 
-        const colX = [MARGIN_X, MARGIN_X + 65, MARGIN_X + 115, MARGIN_X + 225, MARGIN_X + 280, MARGIN_X + 335, MARGIN_X + 400];
+        const colX = [MARGIN_X, MARGIN_X + 70, MARGIN_X + 135, MARGIN_X + 340, MARGIN_X + 410, MARGIN_X + 480, MARGIN_X + 580];
 
         doc.setFont(undefined, "bold");
         doc.setFontSize(8);
@@ -124,9 +124,9 @@
         doc.setFont(undefined, "normal");
 
         comparendos.forEach((item) => {
-            const numeroLines = doc.splitTextToSize(safe(item.numero_comparendo), 60);
-            const descripcionLines = doc.splitTextToSize(safe(item.descripcion, "Sin descripción"), 105);
-            const nombreLines = doc.splitTextToSize(safe(item.nombre_infractor, "—"), 110);
+            const numeroLines = doc.splitTextToSize(safe(item.numero_comparendo), 65);
+            const descripcionLines = doc.splitTextToSize(safe(item.descripcion, "Sin descripción"), 195);
+            const nombreLines = doc.splitTextToSize(safe(item.nombre_infractor, "—"), 175);
             const maxLines = Math.max(1, numeroLines.length, descripcionLines.length, nombreLines.length);
             const rowHeight = maxLines * ROW_LINE_HEIGHT + 4;
 
@@ -172,7 +172,7 @@
             throw new Error("No hay un vehículo seleccionado para exportar");
         }
 
-        const doc = window.VehiAmb.pdfExport.createDocument();
+        const doc = window.VehiAmb.pdfExport.createDocument({ orientation: "landscape" });
         const layout = makeLayout(doc);
         const branding = await window.VehiAmb.pdfExport.getEmpresaBranding();
         const vehicleName = `${row.marca || ""} ${row.modelo || ""}`.trim();
