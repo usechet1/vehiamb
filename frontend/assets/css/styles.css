@@ -1335,7 +1335,7 @@ label[for="loginPassword"] {
 
 .dash-cards {
     display: grid;
-    grid-template-columns: repeat(4, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 14px;
     margin-bottom: 14px;
 }
@@ -1388,6 +1388,8 @@ label[for="loginPassword"] {
 .dash-card-docs { --card-accent: #305f8f; }
 .dash-card-service { --card-accent: #0e7c86; }
 .dash-card-routes { --card-accent: #147a45; }
+.dash-card-conductores { --card-accent: #4b3f8f; }
+.dash-card-simit { --card-accent: #305f8f; }
 
 .dash-card-icon {
     position: relative;

@@ -94,6 +94,38 @@ function calcularDeltaCompacto(totalActual, totalAnterior) {
     return { className: "is-flat", texto: "Sin datos" };
 }
 
+// KPI "Comparendos": suma el total_comparendos de la ultima consulta SIMIT
+// de cada vehiculo (ver simit-consultas.repository.js findUltimoEstadoPorFlota)
+// y colorea la tarjeta segun la gravedad mas alta encontrada en la flota --
+// "cobro_coactivo" es lo mas urgente (ya paso a cartera de cobro), "con_multas"
+// es una alerta mas leve (comparendos activos pero sin cobro coactivo aun).
+function pintarComparendos(estadoFlotaSimit) {
+    const card = document.getElementById("dashCardSimit");
+    const sub = document.getElementById("comparendosSub");
+    const valorEl = document.getElementById("total-comparendos");
+    if (!card || !sub || !valorEl) return;
+
+    const totalComparendos = estadoFlotaSimit.reduce((sum, item) => sum + Number(item.total_comparendos || 0), 0);
+    valorEl.textContent = totalComparendos;
+
+    const enCobroCoactivo = estadoFlotaSimit.filter((item) => item.estado_cartera === "cobro_coactivo");
+    const conMultas = estadoFlotaSimit.filter((item) => item.estado_cartera === "con_multas");
+
+    if (enCobroCoactivo.length) {
+        sub.textContent = `${enCobroCoactivo.length} en cobro coactivo`;
+        sub.className = "dash-card-sub is-danger";
+        card.style.setProperty("--card-accent", "var(--color-primary)");
+    } else if (conMultas.length) {
+        sub.textContent = `Afecta a ${conMultas.length} vehículo${conMultas.length === 1 ? "" : "s"}`;
+        sub.className = "dash-card-sub is-warning";
+        card.style.setProperty("--card-accent", "var(--color-warning)");
+    } else {
+        sub.textContent = totalComparendos ? "" : "Sin comparendos";
+        sub.className = "dash-card-sub";
+        card.style.removeProperty("--card-accent");
+    }
+}
+
 function formatDateCorta(value) {
     if (!value) return "";
     return new Date(`${String(value).slice(0, 10)}T00:00:00`).toLocaleDateString("es-CO", {
@@ -735,12 +767,14 @@ async function inicializarDashboard() {
         }
     });
 
-    const [vehiculosResult, mantenimientosResult, documentosResult, costosMesResult, costosMesAnteriorResult] = await Promise.allSettled([
+    const [vehiculosResult, mantenimientosResult, documentosResult, costosMesResult, costosMesAnteriorResult, conductoresResult, simitResult] = await Promise.allSettled([
         window.VehiAmb.api.getVehiculosCatalogo(),
         window.VehiAmb.api.getMantenimientos(),
         window.VehiAmb.api.getDocumentos(),
         window.VehiAmb.api.getCostosVehiculos(),
-        window.VehiAmb.api.getCostosVehiculos(rangoMesAnterior())
+        window.VehiAmb.api.getCostosVehiculos(rangoMesAnterior()),
+        window.VehiAmb.api.getConductores({ limit: 1 }),
+        window.VehiAmb.api.getSimitEstadoFlota()
     ]);
 
     const vehiculos = vehiculosResult.status === "fulfilled" ? vehiculosResult.value : [];
@@ -751,6 +785,8 @@ async function inicializarDashboard() {
     // igual que se comportaba antes de este cambio.
     const costosCombustibleMes = costosMesResult.status === "fulfilled" ? costosMesResult.value.items : [];
     const costosCombustibleMesAnterior = costosMesAnteriorResult.status === "fulfilled" ? costosMesAnteriorResult.value.items : [];
+    const totalConductores = conductoresResult.status === "fulfilled" ? conductoresResult.value.total : null;
+    const estadoFlotaSimit = simitResult.status === "fulfilled" ? simitResult.value : [];
 
     if (vehiculosResult.status === "rejected") {
         console.error(vehiculosResult.reason);
@@ -780,6 +816,9 @@ async function inicializarDashboard() {
     }
 
     pintarResumen(vehiculos, mantenimientos, documentos, costosCombustibleMes, costosCombustibleMesAnterior);
+
+    document.getElementById("total-conductores").textContent = totalConductores ?? "--";
+    pintarComparendos(estadoFlotaSimit);
 }
 
 document.addEventListener("DOMContentLoaded", inicializarDashboard);
