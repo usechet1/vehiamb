@@ -2987,11 +2987,20 @@ label[for="loginPassword"] {
 }
 
 .vehicles-toolbar {
+    margin-bottom: 10px;
+}
+
+.vehicles-toolbar-search-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.vehicles-toolbar-panel {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 10px;
-    margin-bottom: 10px;
 }
 
 .vehicles-toolbar-search {
@@ -3011,8 +3020,42 @@ label[for="loginPassword"] {
     font-size: 0.88rem;
 }
 
+/* El boton "Filtros" solo existe para mobile (ver media query mas abajo) --
+   en desktop el panel de filtros siempre esta visible junto al buscador,
+   como antes. */
+.vehicles-toolbar-toggle {
+    display: none;
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
 .vehicles-toolbar-summary {
     margin: 0 0 22px;
+}
+
+/* En mobile los filtros (buscador + 5 selects + boton "limpiar") apilados
+   ocupaban toda la pantalla antes de mostrar el primer vehiculo. Se deja
+   solo el buscador visible + un boton "Filtros" que despliega el resto. */
+@media (max-width: 760px) {
+    .vehicles-toolbar-toggle {
+        display: inline-flex;
+    }
+
+    .vehicles-toolbar-panel {
+        display: none;
+        flex-direction: column;
+        align-items: stretch;
+        margin-top: 10px;
+    }
+
+    .vehicles-toolbar-panel.is-open {
+        display: flex;
+    }
+
+    .vehicles-toolbar-panel select,
+    .vehicles-toolbar-panel button {
+        width: 100%;
+    }
 }
 
 .filter-form {

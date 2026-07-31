@@ -17,6 +17,18 @@ const pageSizeSelect = document.getElementById("pageSizeSelect");
 const clearFiltersButton = document.getElementById("clearFiltersButton");
 const emptyStateClearButton = document.getElementById("emptyStateClearButton");
 
+// En mobile el panel de filtros (todo menos el buscador) arranca oculto
+// detras de este boton -- ver el media query de .vehicles-toolbar-panel en
+// styles.css. En desktop el boton esta oculto y el panel siempre visible,
+// asi que este listener no le cambia nada a esa vista.
+const toggleFiltersButton = document.getElementById("toggleFiltersButton");
+const vehiclesToolbarPanel = document.getElementById("vehiclesToolbarPanel");
+toggleFiltersButton?.addEventListener("click", () => {
+    const abierto = vehiclesToolbarPanel.classList.toggle("is-open");
+    toggleFiltersButton.setAttribute("aria-expanded", String(abierto));
+    toggleFiltersButton.textContent = abierto ? "Filtros ▲" : "Filtros ▾";
+});
+
 const paginationFirst = document.getElementById("paginationFirst");
 const paginationPrev = document.getElementById("paginationPrev");
 const paginationNext = document.getElementById("paginationNext");
@@ -310,7 +322,11 @@ container.addEventListener("change", async (event) => {
 });
 
 document.addEventListener("DOMContentLoaded", async () => {
-    await window.VehiAmb.auth.fetchCurrentUser();
+    const user = await window.VehiAmb.auth.fetchCurrentUser();
+    const primerNombre = String(user?.nombre || "").trim().split(" ")[0];
+    const saludoEl = document.getElementById("vehiculosSaludoNombre");
+    if (saludoEl) saludoEl.textContent = primerNombre;
+
     applyFiltersToForm();
     loadMarcas();
     cargarVehiculos();
