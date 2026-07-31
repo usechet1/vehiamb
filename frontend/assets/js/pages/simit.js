@@ -44,6 +44,19 @@ const ESTADO_LABELS = {
     desconocido: "Desconocido / error"
 };
 
+// Solo para los KPIs de resumen: cada conteo es de VEHICULOS en ese estado
+// (uno por placa, segun su ultima consulta), no de multas individuales -- un
+// vehiculo puede tener varios comparendos y solo cuenta una vez aqui. Se usa
+// una etiqueta distinta a ESTADO_LABELS (la de los pills del listado) para
+// dejarlo explicito y evitar la ambiguedad de "Con multas: 5".
+const ESTADO_KPI_LABEL = {
+    nunca_consultado: "Nunca consultados",
+    con_multas: "Vehículos con multas",
+    cobro_coactivo: "Vehículos en cobro coactivo",
+    acuerdo_pago: "Vehículos en acuerdo de pago",
+    desconocido: "Consulta con error"
+};
+
 const ESTADO_PILL_CLASS = {
     nunca_consultado: "pill",
     sin_multas: "pill-success",
@@ -205,11 +218,6 @@ function renderSummary(rows, valorHistorico) {
     const conComparendos = rows.filter((row) => Number(row.total_comparendos) > 0).length;
 
     kpisGrid.innerHTML = `
-        <div class="kpi-card" style="--kpi-accent: var(--color-ink-soft)">
-            <div class="kpi-label">Total flota</div>
-            <div class="kpi-value">${rows.length}</div>
-            ${desactualizados ? `<div class="kpi-sub">${desactualizados} sin consultar hace +30 días</div>` : ""}
-        </div>
         <div class="kpi-card" style="--kpi-accent: var(--color-primary)">
             <div class="kpi-label">Valor total comparendos</div>
             <div class="kpi-value">${formatCurrency(valorRiesgo)}</div>
@@ -218,13 +226,13 @@ function renderSummary(rows, valorHistorico) {
         <div class="kpi-card" style="--kpi-accent: var(--color-success)">
             <div class="kpi-label">Flota al día</div>
             <div class="kpi-value">${alDia.alDia}/${alDia.total}</div>
-            <div class="kpi-sub">${alDia.porcentaje}% sin multas</div>
+            <div class="kpi-sub">${alDia.porcentaje}% sin multas${desactualizados ? ` · ${desactualizados} sin consultar hace +30 días` : ""}</div>
         </div>
         ${orden
             .filter((estado) => conteos[estado])
             .map((estado) => `
                 <div class="kpi-card clickable-record${estado === "cobro_coactivo" ? " kpi-card--critical" : ""}" style="--kpi-accent: ${ESTADO_KPI_ACCENT[estado]}" data-filter-estado="${estado}" tabindex="0" role="button" aria-label="Ver vehículos en estado ${estadoLabel(estado)}">
-                    <div class="kpi-label">${estadoLabel(estado)}</div>
+                    <div class="kpi-label">${ESTADO_KPI_LABEL[estado] || estadoLabel(estado)}</div>
                     <div class="kpi-value">${conteos[estado]}</div>
                 </div>
             `)
