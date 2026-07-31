@@ -36,9 +36,9 @@
                     <form id="simitFilterForm" class="filter-form">
                         <div class="form-grid">
                             <div class="form-group">
-                                <label>Placa</label>
-                                <select id="filterSimitPlaca">
-                                    <option value="">Todas las placas</option>
+                                <label>Vehículo</label>
+                                <select id="filterSimitVehiculo">
+                                    <option value="">Todos los vehículos</option>
                                 </select>
                             </div>
 
@@ -53,6 +53,16 @@
                                     <option value="acuerdo_pago">Acuerdo de pago</option>
                                     <option value="desconocido">Desconocido / error</option>
                                 </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Última consulta desde</label>
+                                <input type="date" id="filterSimitFechaDesde">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Última consulta hasta</label>
+                                <input type="date" id="filterSimitFechaHasta">
                             </div>
                         </div>
 

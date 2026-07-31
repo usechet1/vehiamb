@@ -1,7 +1,9 @@
 const kpisGrid = document.getElementById("simitKpisGrid");
 const filterForm = document.getElementById("simitFilterForm");
-const filterPlaca = document.getElementById("filterSimitPlaca");
+const filterVehiculo = document.getElementById("filterSimitVehiculo");
 const filterEstado = document.getElementById("filterSimitEstado");
+const filterFechaDesde = document.getElementById("filterSimitFechaDesde");
+const filterFechaHasta = document.getElementById("filterSimitFechaHasta");
 const filterSummary = document.getElementById("simitFilterSummary");
 const clearFiltersButton = document.getElementById("clearSimitFiltersButton");
 const flotaList = document.getElementById("simitFlotaList");
@@ -124,6 +126,17 @@ function estadoPillClass(estado) {
     return ESTADO_PILL_CLASS[estado] || "pill";
 }
 
+// Vehiculo con mas comparendos vigentes, segun la ultima consulta de cada
+// uno (mismo dato ya cargado en flotaState, sin llamada adicional al backend).
+function vehiculoConMasComparendos(rows) {
+    const conComparendos = rows.filter((row) => Number(row.total_comparendos) > 0);
+    if (!conComparendos.length) return null;
+
+    return conComparendos.reduce((peor, row) =>
+        Number(row.total_comparendos) > Number(peor.total_comparendos) ? row : peor
+    );
+}
+
 function renderSummary(rows) {
     const conteos = rows.reduce((acc, row) => {
         const estado = deriveEstadoCartera(row);
@@ -132,6 +145,7 @@ function renderSummary(rows) {
     }, {});
 
     const orden = ["cobro_coactivo", "con_multas", "acuerdo_pago", "sin_multas", "nunca_consultado", "desconocido"];
+    const peorVehiculo = vehiculoConMasComparendos(rows);
 
     kpisGrid.innerHTML = `
         <div class="kpi-card" style="--kpi-accent: var(--color-ink-soft)">
@@ -147,34 +161,51 @@ function renderSummary(rows) {
                 </div>
             `)
             .join("")}
+        ${peorVehiculo ? `
+            <div class="kpi-card clickable-record" style="--kpi-accent: var(--color-primary)" data-vehiculo-id="${peorVehiculo.vehiculo_id}" tabindex="0" role="button" aria-label="Ver detalle SIMIT de ${escapeHtml(peorVehiculo.placa || "")}">
+                <div class="kpi-label">Más comparendos: ${escapeHtml(peorVehiculo.placa || "Sin placa")}</div>
+                <div class="kpi-value">${peorVehiculo.total_comparendos}</div>
+            </div>
+        ` : ""}
     `;
 }
 
-function fillPlacaFilterOptions(rows) {
-    const previousValue = filterPlaca.value;
-    const placas = [...new Set(rows.map((row) => row.placa).filter(Boolean))].sort();
+function fillVehiculoFilterOptions(rows) {
+    const previousValue = filterVehiculo.value;
+    const ordenadas = [...rows].sort((a, b) => (a.placa || "").localeCompare(b.placa || ""));
 
-    filterPlaca.innerHTML = '<option value="">Todas las placas</option>' +
-        placas.map((placa) => `<option value="${escapeHtml(placa)}">${escapeHtml(placa)}</option>`).join("");
+    filterVehiculo.innerHTML = '<option value="">Todos los vehículos</option>' +
+        ordenadas
+            .map((row) => `<option value="${row.vehiculo_id}">${escapeHtml(row.placa || "Sin placa")} - ${escapeHtml(row.marca || "")} ${escapeHtml(row.modelo || "")}</option>`)
+            .join("");
 
-    if (previousValue && placas.includes(previousValue)) {
-        filterPlaca.value = previousValue;
+    if (previousValue && rows.some((row) => String(row.vehiculo_id) === previousValue)) {
+        filterVehiculo.value = previousValue;
     }
 }
 
 function matchesFilters(row) {
-    const placa = filterPlaca.value;
+    const vehiculoId = filterVehiculo.value;
     const estado = filterEstado.value;
+    const fechaDesde = filterFechaDesde.value;
+    const fechaHasta = filterFechaHasta.value;
 
-    if (placa && row.placa !== placa) return false;
+    if (vehiculoId && String(row.vehiculo_id) !== vehiculoId) return false;
     if (estado && deriveEstadoCartera(row) !== estado) return false;
+
+    if (fechaDesde || fechaHasta) {
+        if (!row.fecha_consulta) return false;
+        const fechaConsulta = String(row.fecha_consulta).slice(0, 10);
+        if (fechaDesde && fechaConsulta < fechaDesde) return false;
+        if (fechaHasta && fechaConsulta > fechaHasta) return false;
+    }
 
     return true;
 }
 
 function updateFilterSummary(filteredCount) {
     const total = flotaState.length;
-    const hasFilters = Boolean(filterPlaca.value.trim() || filterEstado.value);
+    const hasFilters = Boolean(filterVehiculo.value || filterEstado.value || filterFechaDesde.value || filterFechaHasta.value);
 
     if (!total) {
         filterSummary.textContent = "Aún no hay vehículos registrados.";
@@ -236,7 +267,7 @@ async function cargarFlota() {
         window.VehiAmb.ui.show(loader);
         flotaState = await window.VehiAmb.api.getSimitEstadoFlota();
         renderSummary(flotaState);
-        fillPlacaFilterOptions(flotaState);
+        fillVehiculoFilterOptions(flotaState);
         applyFilters();
     } catch (error) {
         console.error(error);
@@ -440,7 +471,7 @@ filterForm.addEventListener("submit", (event) => {
     event.preventDefault();
 });
 
-[filterPlaca, filterEstado].forEach((input) => {
+[filterVehiculo, filterEstado, filterFechaDesde, filterFechaHasta].forEach((input) => {
     input.addEventListener("input", applyFilters);
     input.addEventListener("change", applyFilters);
 });
@@ -465,6 +496,21 @@ flotaList.addEventListener("click", (event) => {
 });
 
 flotaList.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+
+    const card = event.target.closest("[data-vehiculo-id]");
+    if (!card) return;
+
+    event.preventDefault();
+    openSimitDetail(card.dataset.vehiculoId);
+});
+
+kpisGrid.addEventListener("click", (event) => {
+    const card = event.target.closest("[data-vehiculo-id]");
+    if (card) openSimitDetail(card.dataset.vehiculoId);
+});
+
+kpisGrid.addEventListener("keydown", (event) => {
     if (event.key !== "Enter" && event.key !== " ") return;
 
     const card = event.target.closest("[data-vehiculo-id]");

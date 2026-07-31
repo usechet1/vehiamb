@@ -31,10 +31,13 @@ function formatFechaComparendo(value) {
 
 // Para "inspeccion_con_hallazgos" y "simit_multa_detectada"/"simit_estado_cambiado"
 // se le agrega al mensaje un listado de detalle (igual que ya hace
-// notificaciones-email.channel.js en HTML) -- la plantilla de WhatsApp solo
-// tiene una variable de texto libre para el cuerpo, asi que aqui se arma con
-// saltos de linea planos ("\n"), que WhatsApp si respeta al renderizar el
-// mensaje.
+// notificaciones-email.channel.js en HTML). La plantilla de WhatsApp solo
+// tiene una variable de texto libre para el cuerpo, y Meta rechaza (HTTP 400,
+// error 132018) cualquier "\n"/tab literal en esa variable -- probamos el
+// truco de reemplazarlo por U+2028 (line separator) para simular el salto,
+// pero WhatsApp lo renderiza como un caracter roto ("◊◊"), no como salto de
+// linea. Se arma entonces todo en una sola linea, separando cada dato con
+// " - " y cada comparendo/item con " | ".
 function construirMensajeWhatsapp(notificacion) {
   let payload = null;
   if (notificacion.accion_payload) {
@@ -50,10 +53,10 @@ function construirMensajeWhatsapp(notificacion) {
     if (!itemsMal.length) return notificacion.mensaje;
 
     const listado = itemsMal
-      .map((item) => `- ${item.label}${item.comentario ? `: ${item.comentario}` : ""}`)
-      .join("\n");
+      .map((item) => `${item.label}${item.comentario ? ` (${item.comentario})` : ""}`)
+      .join(" | ");
 
-    return `${notificacion.mensaje}\n\nÍtems en mal estado:\n${listado}`;
+    return `${notificacion.mensaje} Ítems en mal estado: ${listado}.`;
   }
 
   if (notificacion.tipo === "simit_multa_detectada" || notificacion.tipo === "simit_estado_cambiado") {
@@ -62,13 +65,13 @@ function construirMensajeWhatsapp(notificacion) {
 
     const bloques = comparendos.map((item) => {
       const fecha = formatFechaComparendo(item.fecha_infraccion);
-      const lineas = [`Comparendo ${item.numero_comparendo || "sin número"}`];
-      if (fecha) lineas.push(`Fecha: ${fecha}`);
-      if (item.descripcion) lineas.push(`\nDescripción\n${item.descripcion}`);
-      return lineas.join("\n");
+      const partes = [`Comparendo ${item.numero_comparendo || "sin número"}`];
+      if (fecha) partes.push(`Fecha: ${fecha}`);
+      if (item.descripcion) partes.push(`Descripción: ${item.descripcion}`);
+      return partes.join(" - ");
     });
 
-    return `${notificacion.mensaje}\n\n${bloques.join("\n\n")}`;
+    return `${notificacion.mensaje} Detalle: ${bloques.join(" | ")}`;
   }
 
   return notificacion.mensaje;
@@ -97,12 +100,11 @@ async function whatsappChannel(notificacion) {
 
     const defaults = notifConfig.tipoConfig(notificacion.tipo);
     const titulo = notificacion.titulo || defaults.titulo;
-    // La API de WhatsApp rechaza (HTTP 400, error 132018) cualquier parametro
-    // de plantilla con "\n"/tab literales o 4+ espacios seguidos. Se cambia
-    // el salto de linea por U+2028 (line separator): WhatsApp lo renderiza
-    // igual como salto visual, pero no es el caracter que el validador de
-    // Meta bloquea.
-    const mensaje = construirMensajeWhatsapp(notificacion).replace(/\n/g, " ");
+    // Salvaguarda: construirMensajeWhatsapp ya arma todo en una sola linea,
+    // pero por si algun "mensaje" base trae un salto real, se limpia aqui
+    // tambien -- Meta rechaza (HTTP 400, error 132018) cualquier "\n"/tab
+    // literal en el parametro de la plantilla.
+    const mensaje = construirMensajeWhatsapp(notificacion).replace(/[\n\t]+/g, " ");
 
     const url = `https://graph.facebook.com/${env.whatsappApiVersion}/${env.whatsappPhoneNumberId}/messages`;
 
