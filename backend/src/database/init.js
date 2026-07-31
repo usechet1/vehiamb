@@ -1500,6 +1500,7 @@ if (env.dbClient === "sqlite") {
     ensureColumn("inspecciones_preventivas", "ubicacion_precision", "REAL"),
     ensureColumn("simit_comparendos", "cedula_infractor", "TEXT"),
     ensureColumn("simit_comparendos", "nombre_infractor", "TEXT"),
+    ensureColumn("simit_comparendos", "conductor_id", "INTEGER"),
     ensureColumn("inspecciones_preventivas", "viaje_id", "INTEGER")
   ])
     .then(() => db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_vehiculos_numero_chasis ON vehiculos (numero_chasis) WHERE numero_chasis IS NOT NULL"))
@@ -1560,6 +1561,7 @@ if (env.dbClient === "sqlite") {
       ensureColumn("inspecciones_preventivas", "ubicacion_precision", "NUMERIC(10, 2)"),
       ensureColumn("simit_comparendos", "cedula_infractor", "TEXT"),
       ensureColumn("simit_comparendos", "nombre_infractor", "TEXT"),
+      ensureColumn("simit_comparendos", "conductor_id", "BIGINT REFERENCES conductores(id) ON DELETE SET NULL"),
       ensureColumn("inspecciones_preventivas", "viaje_id", "BIGINT REFERENCES viajes(id) ON DELETE SET NULL"),
       ensureColumn("conductores", "nombres", "TEXT"),
       ensureColumn("conductores", "apellidos", "TEXT"),

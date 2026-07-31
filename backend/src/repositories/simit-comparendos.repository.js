@@ -11,6 +11,7 @@ const FIELDS = [
   "detalle_json",
   "cedula_infractor",
   "nombre_infractor",
+  "conductor_id",
   "empresa_id"
 ];
 
@@ -30,6 +31,7 @@ async function bulkCreate(consultaId, vehiculoId, comparendos, empresaId, dbClie
       detalle_json: comparendo.detalle ? JSON.stringify(comparendo.detalle) : null,
       cedula_infractor: comparendo.cedula_infractor || null,
       nombre_infractor: comparendo.nombre_infractor || null,
+      conductor_id: comparendo.conductor_id || null,
       empresa_id: empresaId
     };
 
@@ -48,8 +50,33 @@ async function bulkCreate(consultaId, vehiculoId, comparendos, empresaId, dbClie
 
 async function findByConsulta(consultaId, empresaId) {
   return db.all(
-    "SELECT * FROM simit_comparendos WHERE consulta_id = ? AND empresa_id = ? ORDER BY fecha_infraccion DESC NULLS LAST, id ASC",
+    `
+      SELECT sc.*, c.nombres AS conductor_nombres, c.apellidos AS conductor_apellidos
+      FROM simit_comparendos sc
+      LEFT JOIN conductores c ON c.id = sc.conductor_id
+      WHERE sc.consulta_id = ? AND sc.empresa_id = ?
+      ORDER BY sc.fecha_infraccion DESC NULLS LAST, sc.id ASC
+    `,
     [consultaId, empresaId]
+  );
+}
+
+// Comparendos sin conductor vinculado todavia pero con datos suficientes
+// para intentarlo (usado por el backfill puntual, ver
+// scripts/matchear-comparendos.js) -- no se re-intenta en cada consulta de
+// aqui en adelante, solo al registrar comparendos nuevos (ver
+// simit.service.js consultarVehiculo).
+async function findSinConductorVinculado(empresaId) {
+  return db.all(
+    "SELECT * FROM simit_comparendos WHERE empresa_id = ? AND conductor_id IS NULL AND cedula_infractor IS NOT NULL",
+    [empresaId]
+  );
+}
+
+async function actualizarConductor(id, conductorId, empresaId) {
+  return db.run(
+    "UPDATE simit_comparendos SET conductor_id = ? WHERE id = ? AND empresa_id = ?",
+    [conductorId, id, empresaId]
   );
 }
 
@@ -75,5 +102,7 @@ async function findInfractorConMasComparendos(empresaId) {
 module.exports = {
   bulkCreate,
   findByConsulta,
-  findInfractorConMasComparendos
+  findInfractorConMasComparendos,
+  findSinConductorVinculado,
+  actualizarConductor
 };

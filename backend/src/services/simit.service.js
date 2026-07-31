@@ -3,7 +3,9 @@ const db = require("../database/query");
 const simitConsultasRepository = require("../repositories/simit-consultas.repository");
 const simitComparendosRepository = require("../repositories/simit-comparendos.repository");
 const vehiculosRepository = require("../repositories/vehiculos.repository");
+const conductoresRepository = require("../repositories/conductores.repository");
 const notificacionesService = require("../services/notificaciones.service");
+const comparendoMatcher = require("./comparendo-conductor-matcher");
 const simitScraper = require("../scrapers/simit/simit-scraper");
 const scraperConfig = require("../scrapers/simit/simit-scraper.config");
 
@@ -113,6 +115,17 @@ async function consultarVehiculo(vehiculoId, empresaId, { origen = "manual" } = 
 
   const resultado = await simitScraper.scrapePlaca(vehiculo.placa);
 
+  // Cruza cada comparendo nuevo contra el catalogo de conductores de la
+  // empresa (ver comparendo-conductor-matcher.js): solo se vincula
+  // automaticamente cuando cedula + nombre completo coinciden y el
+  // candidato es unico, para no atribuirle mal una infraccion legal a
+  // alguien por una coincidencia parcial.
+  const conductoresEmpresa = await conductoresRepository.findAllParaMatching(empresaId);
+  const comparendosConConductor = (resultado.comparendos || []).map((comparendo) => ({
+    ...comparendo,
+    conductor_id: comparendoMatcher.encontrarConductorCoincidente(comparendo, conductoresEmpresa)?.id || null
+  }));
+
   const { consulta, comparendos } = await db.withTransaction(async (dbTx) => {
     const consultaCreada = await simitConsultasRepository.create(
       {
@@ -133,7 +146,7 @@ async function consultarVehiculo(vehiculoId, empresaId, { origen = "manual" } = 
     const comparendosCreados = await simitComparendosRepository.bulkCreate(
       consultaCreada.id,
       vehiculo.id,
-      resultado.comparendos || [],
+      comparendosConConductor,
       empresaId,
       dbTx
     );

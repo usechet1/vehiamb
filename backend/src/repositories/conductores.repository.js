@@ -80,6 +80,13 @@ async function findByUsuarioId(usuarioId, empresaId) {
   return db.get("SELECT * FROM conductores WHERE usuario_id = ? AND empresa_id = ?", [usuarioId, empresaId]);
 }
 
+// Listado liviano (solo lo necesario para comparar identidad) usado por
+// comparendo-conductor-matcher.js al cruzar el nombre/cedula enmascarados de
+// un comparendo SIMIT contra todos los conductores de la empresa.
+async function findAllParaMatching(empresaId) {
+  return db.all("SELECT id, nombres, apellidos, cedula FROM conductores WHERE empresa_id = ?", [empresaId]);
+}
+
 async function create(conductor) {
   const placeholders = FIELDS.map(() => "?").join(", ");
   const values = FIELDS.map((field) => conductor[field] ?? null);
@@ -101,6 +108,7 @@ module.exports = {
   findAll,
   findById,
   findByUsuarioId,
+  findAllParaMatching,
   create,
   update
 };

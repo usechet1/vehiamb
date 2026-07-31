@@ -440,6 +440,7 @@ function renderComparendosTable(comparendos) {
                         <th>Estado</th>
                         <th>Cédula infractor</th>
                         <th>Nombre infractor</th>
+                        <th>Conductor identificado</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -452,6 +453,7 @@ function renderComparendosTable(comparendos) {
                             <td>${escapeHtml(item.estado)}</td>
                             <td>${escapeHtml(item.cedula_infractor || "No disponible")}</td>
                             <td>${escapeHtml(item.nombre_infractor || "No disponible")}</td>
+                            <td>${item.conductor_id ? `<span class="pill pill-success">${escapeHtml(`${item.conductor_nombres || ""} ${item.conductor_apellidos || ""}`.trim())}</span>` : '<span class="pill">No identificado</span>'}</td>
                         </tr>
                     `).join("")}
                 </tbody>
