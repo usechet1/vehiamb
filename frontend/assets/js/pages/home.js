@@ -107,33 +107,37 @@ function calcularDeltaCompacto(totalActual, totalAnterior) {
     return { className: "is-flat", texto: "Sin datos" };
 }
 
-// KPI "Comparendos": suma el total_comparendos de la ultima consulta SIMIT
-// de cada vehiculo (ver simit-consultas.repository.js findUltimoEstadoPorFlota)
-// y colorea la tarjeta segun la gravedad mas alta encontrada en la flota --
-// "cobro_coactivo" es lo mas urgente (ya paso a cartera de cobro), "con_multas"
-// es una alerta mas leve (comparendos activos pero sin cobro coactivo aun).
+// Dos KPI separados a partir del mismo dato (ultima consulta SIMIT de cada
+// vehiculo, ver simit-consultas.repository.js findUltimoEstadoPorFlota):
+// "Vehiculos con comparendo" (cuantos vehiculos estan afectados) y "Total
+// comparendos" (cuantas multas en total -- un vehiculo puede tener varias).
+// Antes era un solo KPI que sumaba total_comparendos, lo que confundia con
+// el conteo de vehiculos del resumen de simit.html.
 function pintarComparendos(estadoFlotaSimit) {
-    const card = document.getElementById("dashCardSimit");
-    const sub = document.getElementById("comparendosSub");
-    const valorEl = document.getElementById("total-comparendos");
-    if (!card || !sub || !valorEl) return;
+    const card = document.getElementById("dashCardVehiculosComparendo");
+    const sub = document.getElementById("vehiculosComparendoSub");
+    const valorVehiculosEl = document.getElementById("total-vehiculos-comparendo");
+    const valorTotalEl = document.getElementById("total-comparendos");
+    if (!card || !sub || !valorVehiculosEl || !valorTotalEl) return;
 
     const totalComparendos = estadoFlotaSimit.reduce((sum, item) => sum + Number(item.total_comparendos || 0), 0);
-    valorEl.textContent = totalComparendos;
+    valorTotalEl.textContent = totalComparendos;
 
     const enCobroCoactivo = estadoFlotaSimit.filter((item) => item.estado_cartera === "cobro_coactivo");
     const conMultas = estadoFlotaSimit.filter((item) => item.estado_cartera === "con_multas");
+    const vehiculosAfectados = enCobroCoactivo.length + conMultas.length;
+    valorVehiculosEl.textContent = vehiculosAfectados;
 
     if (enCobroCoactivo.length) {
         sub.textContent = `${enCobroCoactivo.length} en cobro coactivo`;
         sub.className = "dash-card-sub is-danger";
         card.style.setProperty("--card-accent", "var(--color-primary)");
     } else if (conMultas.length) {
-        sub.textContent = `Afecta a ${conMultas.length} vehículo${conMultas.length === 1 ? "" : "s"}`;
+        sub.textContent = `Con multas`;
         sub.className = "dash-card-sub is-warning";
         card.style.setProperty("--card-accent", "var(--color-warning)");
     } else {
-        sub.textContent = totalComparendos ? "" : "Sin comparendos";
+        sub.textContent = "Sin comparendos";
         sub.className = "dash-card-sub";
         card.style.removeProperty("--card-accent");
     }
@@ -166,18 +170,22 @@ function pintarUrgenciaDocumentos(vencimientosCercanos) {
 
     if (vencidos.length) {
         sub.textContent = `${vencidos.length} vencido${vencidos.length === 1 ? "" : "s"} (desde ${formatDateCorta(fechaMasProxima(vencidos))})`;
+        sub.title = sub.textContent;
         sub.className = "dash-card-sub is-danger";
         card.style.setProperty("--card-accent", "var(--color-primary)");
     } else if (estaSemana.length) {
         sub.textContent = `${estaSemana.length} vence${estaSemana.length === 1 ? "" : "n"} esta semana (${formatDateCorta(fechaMasProxima(estaSemana))})`;
+        sub.title = sub.textContent;
         sub.className = "dash-card-sub is-warning";
         card.style.setProperty("--card-accent", "var(--color-warning)");
     } else if (vencimientosCercanos.length) {
         sub.textContent = `Próximo: ${formatDateCorta(fechaMasProxima(vencimientosCercanos))}`;
+        sub.title = sub.textContent;
         sub.className = "dash-card-sub";
         card.style.removeProperty("--card-accent");
     } else {
         sub.textContent = "";
+        sub.title = "";
         sub.className = "dash-card-sub";
         card.style.removeProperty("--card-accent");
     }
@@ -274,8 +282,9 @@ function pintarFlotaEstado(vehiculos) {
 
 // El total y el delta vs. el mes anterior ya se muestran en la tarjeta KPI
 // de arriba -- este panel es puramente el detalle: gasto por tipo de
-// mantenimiento del mes en curso, usando todo el recuadro.
-function pintarCostosMes(mantenimientos) {
+// mantenimiento del mes en curso, mas el combustible (facturas importadas
+// del modulo de Costos), usando todo el recuadro.
+function pintarCostosMes(mantenimientos, costosCombustibleMes = []) {
     const container = document.getElementById("costosMes");
     const delMesActual = mantenimientos.filter((item) => esDelMesActual(item.fecha));
 
@@ -284,6 +293,11 @@ function pintarCostosMes(mantenimientos) {
         const tipo = tiposMantenimiento[item.tipo] || item.tipo || "Otro";
         porTipo.set(tipo, (porTipo.get(tipo) || 0) + Number(item.valor || 0));
     });
+
+    const totalCombustible = costosCombustibleMes.reduce((sum, item) => sum + Number(item.totalGastado || 0), 0);
+    if (totalCombustible > 0) {
+        porTipo.set("Combustible", totalCombustible);
+    }
 
     const filas = [...porTipo.entries()]
         .filter(([, valor]) => valor > 0)
@@ -811,12 +825,12 @@ async function inicializarDashboard() {
         pintarFlotaEstado(vehiculos);
     }
 
-    if (mantenimientosResult.status === "rejected") {
+    if (mantenimientosResult.status === "rejected" && costosMesResult.status === "rejected") {
         console.error(mantenimientosResult.reason);
         document.getElementById("costosMes").innerHTML =
-            '<p class="dash-empty">No fue posible cargar los mantenimientos</p>';
+            '<p class="dash-empty">No fue posible cargar los gastos</p>';
     } else {
-        pintarCostosMes(mantenimientos);
+        pintarCostosMes(mantenimientos, costosCombustibleMes);
     }
 
     if (documentosResult.status === "rejected") {
