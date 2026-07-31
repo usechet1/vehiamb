@@ -221,7 +221,7 @@ async function obtenerValorHistorico(empresaId, dias = 30) {
   return simitConsultasRepository.sumValorTotalHaceDias(dias, empresaId);
 }
 
-async function obtenerTopInfractores(empresaId, limite = 3) {
+async function obtenerTopInfractores(empresaId, limite = 5) {
   return simitComparendosRepository.findTopInfractores(empresaId, limite);
 }
 

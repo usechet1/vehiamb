@@ -143,7 +143,7 @@ function estadoPillClass(estado) {
 // Top N vehiculos con mas comparendos vigentes, segun la ultima consulta de
 // cada uno (mismo dato ya cargado en flotaState, sin llamada adicional al
 // backend).
-function topVehiculosPorComparendos(rows, top = 3) {
+function topVehiculosPorComparendos(rows, top = 5) {
     return rows
         .filter((row) => Number(row.total_comparendos) > 0)
         .sort((a, b) => Number(b.total_comparendos) - Number(a.total_comparendos))
@@ -229,7 +229,7 @@ function renderSummary(rows, valorHistorico, infractorTop) {
     // conteos de "con_multas"/"cobro_coactivo" por vehiculo tampoco se
     // repiten como tarjetas propias: quedan resumidos en "Total comparendos".
     const orden = ["acuerdo_pago", "nunca_consultado", "desconocido"];
-    const topVehiculos = topVehiculosPorComparendos(rows, 3);
+    const topVehiculos = topVehiculosPorComparendos(rows, 5);
     const valorRiesgo = valorTotalEnRiesgo(rows);
     const alDia = flotaAlDia(rows);
     const desactualizados = vehiculosDesactualizados(rows);
@@ -389,7 +389,7 @@ async function cargarFlota() {
         const [flota, valorHistorico, infractorTop] = await Promise.all([
             window.VehiAmb.api.getSimitEstadoFlota(),
             window.VehiAmb.api.getSimitValorHistorico(30).catch(() => null),
-            window.VehiAmb.api.getSimitInfractorTop().catch(() => null)
+            window.VehiAmb.api.getSimitInfractorTop(5).catch(() => null)
         ]);
         flotaState = flota;
         renderSummary(flotaState, valorHistorico, infractorTop);

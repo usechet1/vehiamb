@@ -85,7 +85,7 @@ async function actualizarConductor(id, conductorId, empresaId) {
 // reinserta su propia muestra de filas (ver bulkCreate) -- el mismo
 // comparendo puede quedar duplicado entre varias consultas del mismo
 // vehiculo si no cambio, y contar filas crudas lo sobrestimaria.
-async function findTopInfractores(empresaId, limite = 3) {
+async function findTopInfractores(empresaId, limite = 5) {
   return db.all(
     `
       SELECT cedula_infractor, nombre_infractor, COUNT(DISTINCT numero_comparendo) AS total_comparendos
