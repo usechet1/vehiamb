@@ -159,6 +159,21 @@ label[for="loginPassword"] {
     margin-bottom: 26px;
 }
 
+/* Un poco mas de aire arriba/abajo del saludo de "Vehiculos" que en el
+   resto de encabezados de la app -- sobre todo en pantallas grandes, donde
+   se ve mas apretado contra el buscador de abajo. */
+.vehicles-page-header {
+    margin-top: 6px;
+    margin-bottom: 34px;
+}
+
+@media (min-width: 901px) {
+    .vehicles-page-header {
+        margin-top: 14px;
+        margin-bottom: 42px;
+    }
+}
+
 .vehicle-detail-actions {
     display: flex;
     flex-wrap: wrap;
