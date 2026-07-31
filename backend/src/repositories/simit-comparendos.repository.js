@@ -12,6 +12,7 @@ const FIELDS = [
   "cedula_infractor",
   "nombre_infractor",
   "conductor_id",
+  "numero_infraccion",
   "empresa_id"
 ];
 
@@ -32,6 +33,7 @@ async function bulkCreate(consultaId, vehiculoId, comparendos, empresaId, dbClie
       cedula_infractor: comparendo.cedula_infractor || null,
       nombre_infractor: comparendo.nombre_infractor || null,
       conductor_id: comparendo.conductor_id || null,
+      numero_infraccion: comparendo.numero_infraccion || null,
       empresa_id: empresaId
     };
 
