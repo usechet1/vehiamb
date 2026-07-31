@@ -265,8 +265,8 @@ function renderSummary(rows, valorHistorico, infractorTop) {
             .join("")}
         ${peorVehiculo ? `
             <div class="kpi-card clickable-record" style="--kpi-accent: var(--color-primary)" data-vehiculo-id="${peorVehiculo.vehiculo_id}" tabindex="0" role="button" aria-label="Ver detalle SIMIT de ${escapeHtml(peorVehiculo.placa || "")}">
-                <div class="kpi-label">Más comparendos: ${escapeHtml(peorVehiculo.placa || "Sin placa")}</div>
-                <div class="kpi-value">${peorVehiculo.total_comparendos}</div>
+                <div class="kpi-label">Más comparendos</div>
+                <div class="kpi-value">${escapeHtml(peorVehiculo.placa || "Sin placa")} (${peorVehiculo.total_comparendos})</div>
                 ${conComparendos > 1 ? `<button type="button" class="kpi-mini-link" data-accion="ranking-comparendos">Ver ranking completo (${conComparendos})</button>` : ""}
             </div>
         ` : ""}
