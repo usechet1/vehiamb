@@ -11,11 +11,11 @@ exports.getConductorById = async (req, res) => {
 };
 
 exports.createConductor = async (req, res) => {
-  const conductor = await conductoresService.createConductor(req.body, req.file, req.empresaId);
+  const conductor = await conductoresService.createConductor(req.body, req.empresaId);
   res.status(201).json(conductor);
 };
 
 exports.updateConductor = async (req, res) => {
-  const conductor = await conductoresService.updateConductor(req.params.id, req.body, req.file, req.empresaId);
+  const conductor = await conductoresService.updateConductor(req.params.id, req.body, req.empresaId);
   res.json(conductor);
 };

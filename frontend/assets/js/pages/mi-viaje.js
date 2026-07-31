@@ -13,8 +13,7 @@ const controlVehiculoImagenPlaceholder = document.getElementById("controlVehicul
 const controlConductorSection = document.getElementById("controlConductorSection");
 const controlConductorNombre = document.getElementById("controlConductorNombre");
 const controlConductorCedula = document.getElementById("controlConductorCedula");
-const controlConductorLicencia = document.getElementById("controlConductorLicencia");
-const controlConductorArchivo = document.getElementById("controlConductorArchivo");
+const controlConductorLicencias = document.getElementById("controlConductorLicencias");
 const controlDocumentosGrid = document.getElementById("controlDocumentosGrid");
 const loader = document.getElementById("loader");
 const mensaje = document.getElementById("mensaje");
@@ -152,6 +151,31 @@ function renderVehiculoImagen(vehiculo) {
     controlVehiculoImagenPlaceholder.classList.add("hidden");
 }
 
+function renderLicenciaCard(licencia) {
+    const days = daysUntil(licencia.fecha_vencimiento);
+    const pillClass = days === null ? "" : days < 0 ? "pill-danger" : days <= 30 ? "pill-warning" : "pill-success";
+    const statusText = days === null ? "Sin fecha de vencimiento" : days < 0 ? `Vencida hace ${Math.abs(days)} días` : `Vence en ${days} días`;
+
+    return `
+        <article class="record-item control-doc-card ${days !== null && days < 0 ? "is-vencido" : ""}">
+            <div class="record-top">
+                <div>
+                    <span class="record-title">Licencia ${escapeHtml(licencia.categoria)}</span>
+                </div>
+                <span class="pill ${pillClass}">${statusText}</span>
+            </div>
+            <div class="record-meta">
+                <span class="pill">Vencimiento: ${formatFecha(licencia.fecha_vencimiento)}</span>
+            </div>
+            ${licencia.archivo_url ? `
+                <a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(licencia.archivo_url))}" target="_blank" rel="noreferrer">
+                    Ver foto/soporte de la licencia
+                </a>
+            ` : '<span class="field-help">Sin archivo adjunto</span>'}
+        </article>
+    `;
+}
+
 function renderConductor(conductor) {
     if (!conductor) {
         controlConductorSection.classList.add("hidden");
@@ -161,16 +185,11 @@ function renderConductor(conductor) {
     controlConductorSection.classList.remove("hidden");
     controlConductorNombre.textContent = `${conductor.nombres} ${conductor.apellidos}`.trim();
     controlConductorCedula.textContent = conductor.cedula || "--";
-    controlConductorLicencia.textContent = conductor.licencia_categoria || "--";
 
-    if (conductor.licencia_archivo_url) {
-        const archivoUrl = window.VehiAmb.api.getAssetUrl(conductor.licencia_archivo_url);
-        controlConductorArchivo.innerHTML = `<a class="record-link" href="${escapeHtml(archivoUrl)}" target="_blank" rel="noreferrer">Ver foto/soporte de la licencia</a>`;
-        controlConductorArchivo.classList.remove("hidden");
-    } else {
-        controlConductorArchivo.classList.add("hidden");
-        controlConductorArchivo.innerHTML = "";
-    }
+    const licencias = conductor.licencias || [];
+    controlConductorLicencias.innerHTML = licencias.length
+        ? licencias.map(renderLicenciaCard).join("")
+        : '<p class="dash-empty">Este conductor no tiene licencias registradas.</p>';
 }
 
 function renderViajesEmpresa(viajes) {
@@ -253,7 +272,7 @@ function renderViajeDrawerBody(resumen) {
                 <dl class="detail-list drawer-detail-list">
                     <div><dt>Nombre</dt><dd>${escapeHtml(conductor.nombres)} ${escapeHtml(conductor.apellidos)}</dd></div>
                     <div><dt>Cédula</dt><dd>${escapeHtml(conductor.cedula) || "--"}</dd></div>
-                    <div><dt>Categoría de licencia</dt><dd>${escapeHtml(conductor.licencia_categoria) || "--"}</dd></div>
+                    <div><dt>Licencias</dt><dd>${(conductor.licencias || []).map((licencia) => escapeHtml(licencia.categoria)).join(", ") || "--"}</dd></div>
                 </dl>
             ` : '<p class="dash-empty">Este conductor no tiene ficha registrada.</p>'}
         </section>

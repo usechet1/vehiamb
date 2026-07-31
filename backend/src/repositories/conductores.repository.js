@@ -5,10 +5,6 @@ const FIELDS = [
   "apellidos",
   "cedula",
   "telefono",
-  "licencia_categoria",
-  "licencia_archivo_url",
-  "licencia_archivo_nombre",
-  "licencia_archivo_mime",
   "email",
   "usuario_id",
   "estado",
@@ -18,6 +14,19 @@ const FIELDS = [
 const SEARCH_COLUMNS = ["nombres", "apellidos", "cedula", "telefono", "email"];
 
 const ORDER_BY = "apellidos ASC, nombres ASC";
+
+// Resumen de licencias (una fila por conductor, N licencias por conductor_licencias)
+// para no forzar al listado/detalle a hacer una consulta aparte por cada uno.
+const LICENCIAS_RESUMEN_SUBQUERY = `
+  (
+    SELECT STRING_AGG(
+      cl.categoria || COALESCE(' (vence ' || TO_CHAR(cl.fecha_vencimiento, 'DD/MM/YYYY') || ')', ''),
+      ', ' ORDER BY cl.categoria
+    )
+    FROM conductor_licencias cl
+    WHERE cl.conductor_id = conductores.id
+  ) AS licencias_resumen
+`;
 
 function buildWhereClause(filters, empresaId) {
   const conditions = ["empresa_id = ?"];
@@ -46,7 +55,7 @@ async function findAll(filters = {}, empresaId) {
   const offset = filters.offset || 0;
 
   const rowsPromise = db.all(
-    `SELECT * FROM conductores ${whereClause} ORDER BY ${ORDER_BY} LIMIT ? OFFSET ?`,
+    `SELECT conductores.*, ${LICENCIAS_RESUMEN_SUBQUERY} FROM conductores ${whereClause} ORDER BY ${ORDER_BY} LIMIT ? OFFSET ?`,
     [...values, limit, offset]
   );
 
@@ -58,7 +67,10 @@ async function findAll(filters = {}, empresaId) {
 }
 
 async function findById(id, empresaId) {
-  return db.get("SELECT * FROM conductores WHERE id = ? AND empresa_id = ?", [id, empresaId]);
+  return db.get(
+    `SELECT conductores.*, ${LICENCIAS_RESUMEN_SUBQUERY} FROM conductores WHERE id = ? AND empresa_id = ?`,
+    [id, empresaId]
+  );
 }
 
 // Ficha del conductor vinculada a la cuenta de usuario que inicio sesion

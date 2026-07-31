@@ -1,5 +1,3 @@
-const fs = require("fs/promises");
-const path = require("path");
 const HttpError = require("../errors/http-error");
 const conductoresRepository = require("../repositories/conductores.repository");
 const usuariosRepository = require("../repositories/usuarios.repository");
@@ -7,28 +5,13 @@ const rolesRepository = require("../repositories/roles.repository");
 const db = require("../database/query");
 const { hashPassword } = require("../utils/password");
 
-const UPLOADS_ROOT = path.resolve(__dirname, "..", "..", "uploads");
 const ROL_CONDUCTOR = "Conductor";
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-async function eliminarArchivoAnterior(archivoUrl) {
-  if (!archivoUrl) return;
-
-  try {
-    await fs.unlink(path.join(UPLOADS_ROOT, archivoUrl.replace(/^\/uploads[\\/]/, "")));
-  } catch (error) {
-    // Si el archivo ya no existe o no se puede borrar, no interrumpe el flujo principal.
-  }
-}
 
 const ESTADOS_VALIDOS = new Set(["activo", "inactivo"]);
 const PAGE_SIZE_OPTIONS = new Set([10, 20, 50, 100]);
 const DEFAULT_LIMIT = 20;
 
-// Categorias reales de licencia de conduccion en Colombia (Resolucion
-// 3245 de 2009 / Codigo Nacional de Transito): motos (A1/A2), particulares
-// (B1/B2/B3) y servicio publico/carga (C1/C2/C3).
-const LICENCIA_CATEGORIAS_VALIDAS = new Set(["A1", "A2", "B1", "B2", "B3", "C1", "C2", "C3"]);
 const CEDULA_REGEX = /^\d{6,10}$/;
 const TELEFONO_REGEX = /^\d{7,10}$/;
 const SOLO_TEXTO_REGEX = /^[A-ZÁÉÍÓÚÑÜ\s]+$/;
@@ -49,7 +32,6 @@ function normalizePayload(payload) {
     apellidos: String(payload.apellidos || "").trim().toUpperCase(),
     cedula: toTrimmedOrNull(payload.cedula),
     telefono: toTrimmedOrNull(payload.telefono),
-    licencia_categoria: toTrimmedOrNull(payload.licencia_categoria),
     email: String(payload.email || "").trim().toLowerCase(),
     estado: ESTADOS_VALIDOS.has(payload.estado) ? payload.estado : "activo"
   };
@@ -74,10 +56,6 @@ function validateConductor(conductor) {
 
   if (!conductor.telefono || !TELEFONO_REGEX.test(conductor.telefono)) {
     throw new HttpError(400, "El teléfono es obligatorio y debe tener solo números (7 a 10 dígitos)");
-  }
-
-  if (!LICENCIA_CATEGORIAS_VALIDAS.has(conductor.licencia_categoria)) {
-    throw new HttpError(400, "La categoría de licencia no es válida");
   }
 
   if (!conductor.email || !EMAIL_REGEX.test(conductor.email)) {
@@ -141,7 +119,7 @@ async function crearUsuarioConductor(conductor, password, empresaId) {
   });
 }
 
-async function createConductor(payload, file, empresaId) {
+async function createConductor(payload, empresaId) {
   const conductor = normalizePayload(payload);
   validateConductor(conductor);
 
@@ -150,9 +128,6 @@ async function createConductor(payload, file, empresaId) {
     throw new HttpError(400, "La contraseña debe tener al menos 6 caracteres");
   }
 
-  conductor.licencia_archivo_url = file ? `/uploads/conductores/${file.filename}` : null;
-  conductor.licencia_archivo_nombre = file?.originalname || null;
-  conductor.licencia_archivo_mime = file?.mimetype || null;
   conductor.empresa_id = empresaId;
 
   const usuario = await crearUsuarioConductor(conductor, password, empresaId);
@@ -168,7 +143,7 @@ async function createConductor(payload, file, empresaId) {
   }
 }
 
-async function updateConductor(id, payload, file, empresaId) {
+async function updateConductor(id, payload, empresaId) {
   const existing = await conductoresRepository.findById(id, empresaId);
   if (!existing) {
     throw new HttpError(404, "Conductor no encontrado");
@@ -176,9 +151,6 @@ async function updateConductor(id, payload, file, empresaId) {
 
   const conductor = normalizePayload(payload);
   validateConductor(conductor);
-  conductor.licencia_archivo_url = file ? `/uploads/conductores/${file.filename}` : existing.licencia_archivo_url;
-  conductor.licencia_archivo_nombre = file ? file.originalname : existing.licencia_archivo_nombre;
-  conductor.licencia_archivo_mime = file ? file.mimetype : existing.licencia_archivo_mime;
   conductor.empresa_id = empresaId;
 
   const password = String(payload.password || "");
@@ -222,13 +194,7 @@ async function updateConductor(id, payload, file, empresaId) {
     conductor.usuario_id = null;
   }
 
-  const actualizado = await conductoresRepository.update(id, conductor, empresaId);
-
-  if (file && existing.licencia_archivo_url) {
-    await eliminarArchivoAnterior(existing.licencia_archivo_url);
-  }
-
-  return actualizado;
+  return conductoresRepository.update(id, conductor, empresaId);
 }
 
 module.exports = {

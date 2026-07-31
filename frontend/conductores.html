@@ -57,35 +57,12 @@
                                     </div>
                                 </div>
 
-                                <div class="form-grid">
-                                    <div class="form-group">
-                                        <label>Categoría de licencia *</label>
-                                        <select id="conductorLicenciaCategoria" required>
-                                            <option value="">Selecciona...</option>
-                                            <option value="A1">A1 (Motos hasta 125 c.c.)</option>
-                                            <option value="A2">A2 (Motos más de 125 c.c.)</option>
-                                            <option value="B1">B1 (Automóvil, camioneta, campero particular)</option>
-                                            <option value="B2">B2 (Camión rígido particular)</option>
-                                            <option value="B3">B3 (Vehículo articulado particular)</option>
-                                            <option value="C1">C1 (Automóvil, camioneta, campero público)</option>
-                                            <option value="C2">C2 (Camión rígido público)</option>
-                                            <option value="C3">C3 (Vehículo articulado público)</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Estado</label>
-                                        <select id="conductorEstado">
-                                            <option value="activo" selected>Activo</option>
-                                            <option value="inactivo">Inactivo</option>
-                                        </select>
-                                    </div>
-                                </div>
-
                                 <div class="form-group">
-                                    <label>Foto o comprobante de la licencia</label>
-                                    <input type="file" id="conductorLicenciaArchivo" accept="image/png,image/jpeg,image/webp,application/pdf">
-                                    <span class="field-help">PDF o imagen (PNG, JPG, WEBP), máximo 5MB.</span>
-                                    <div id="conductorLicenciaArchivoActual" class="field-help hidden"></div>
+                                    <label>Estado</label>
+                                    <select id="conductorEstado">
+                                        <option value="activo" selected>Activo</option>
+                                        <option value="inactivo">Inactivo</option>
+                                    </select>
                                 </div>
 
                                 <div class="form-grid">
@@ -106,6 +83,66 @@
                                 <div class="filter-actions">
                                     <button type="button" id="conductorCancelEditButton" class="btn-secondary hidden">Cancelar edición</button>
                                     <button type="submit" class="btn-primary" id="conductorSubmitButton">Guardar conductor</button>
+                                </div>
+                            </form>
+                        </div>
+                        </details>
+                    </section>
+
+                    <section class="section-card hidden" id="conductorLicenciasSection">
+                        <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
+                            <h2>Licencias de <span id="conductorLicenciasNombre"></span></h2>
+                            <p>Un conductor puede tener varias categorías, cada una con su propia fecha de vencimiento y archivo.</p>
+                        </summary>
+                        <div class="section-card-body">
+                            <div class="table-scroll">
+                                <table class="import-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Categoría</th>
+                                            <th>Vence</th>
+                                            <th>Archivo</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="conductorLicenciasTableBody">
+                                        <tr><td colspan="4" class="dash-empty">Sin licencias registradas</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <form id="conductorLicenciaForm" class="compact-form">
+                                <input type="hidden" id="licenciaId">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Categoría *</label>
+                                        <select id="licenciaCategoria" required>
+                                            <option value="">Selecciona...</option>
+                                            <option value="A1">A1 (Motos hasta 125 c.c.)</option>
+                                            <option value="A2">A2 (Motos más de 125 c.c.)</option>
+                                            <option value="B1">B1 (Automóvil, camioneta, campero particular)</option>
+                                            <option value="B2">B2 (Camión rígido particular)</option>
+                                            <option value="B3">B3 (Vehículo articulado particular)</option>
+                                            <option value="C1">C1 (Automóvil, camioneta, campero público)</option>
+                                            <option value="C2">C2 (Camión rígido público)</option>
+                                            <option value="C3">C3 (Vehículo articulado público)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Fecha de vencimiento</label>
+                                        <input type="date" id="licenciaFechaVencimiento">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Foto o comprobante</label>
+                                    <input type="file" id="licenciaArchivo" accept="image/png,image/jpeg,image/webp,application/pdf">
+                                    <span class="field-help">PDF o imagen (PNG, JPG, WEBP), máximo 5MB.</span>
+                                    <div id="licenciaArchivoActual" class="field-help hidden"></div>
+                                </div>
+                                <div class="filter-actions">
+                                    <button type="button" id="licenciaCancelEditButton" class="btn-secondary hidden">Cancelar edición</button>
+                                    <button type="submit" class="btn-primary" id="licenciaSubmitButton">Agregar licencia</button>
                                 </div>
                             </form>
                         </div>
@@ -146,14 +183,13 @@
                                             <th>Cédula</th>
                                             <th>Teléfono</th>
                                             <th>Correo</th>
-                                            <th>Licencia</th>
-                                            <th>Archivo</th>
+                                            <th>Licencias</th>
                                             <th>Estado</th>
                                             <th></th>
                                         </tr>
                                     </thead>
                                     <tbody id="conductoresTableBody">
-                                        <tr><td colspan="8" class="dash-empty">Cargando...</td></tr>
+                                        <tr><td colspan="7" class="dash-empty">Cargando...</td></tr>
                                     </tbody>
                                 </table>
                             </div>

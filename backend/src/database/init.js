@@ -65,6 +65,30 @@ async function migrarConductoresNombreSplit() {
   await db.run("ALTER TABLE conductores DROP COLUMN nombre");
 }
 
+// conductores.licencia_categoria/licencia_archivo_* (una sola licencia, sin
+// fecha de vencimiento) se reemplazan por la tabla conductor_licencias (N
+// licencias por conductor, cada una con su propia fecha de vencimiento y
+// archivo). Si la instalacion ya tenia esas columnas con datos, se migra
+// cada conductor con licencia_categoria no nula a una fila nueva (sin fecha
+// de vencimiento, dato que no existia antes) y se eliminan las columnas
+// viejas. En una instalacion nueva la columna nunca tiene datos que migrar,
+// pero igual se elimina para no dejarla huerfana.
+async function migrarLicenciasConductorATablaPropia() {
+  if (!(await columnExists("conductores", "licencia_categoria"))) return;
+
+  await db.run(`
+    INSERT INTO conductor_licencias (conductor_id, categoria, archivo_url, archivo_nombre, archivo_mime, empresa_id)
+    SELECT id, licencia_categoria, licencia_archivo_url, licencia_archivo_nombre, licencia_archivo_mime, empresa_id
+    FROM conductores
+    WHERE licencia_categoria IS NOT NULL AND empresa_id IS NOT NULL
+  `);
+
+  await db.run("ALTER TABLE conductores DROP COLUMN licencia_categoria");
+  await db.run("ALTER TABLE conductores DROP COLUMN licencia_archivo_url");
+  await db.run("ALTER TABLE conductores DROP COLUMN licencia_archivo_nombre");
+  await db.run("ALTER TABLE conductores DROP COLUMN licencia_archivo_mime");
+}
+
 // "Quien entrega" / "quien recibe" el vehiculo dejo de limitarse al catalogo
 // de Conductores (cedula/licencia) y ahora puede ser cualquier usuario de la
 // empresa (un conductor le puede entregar el vehiculo a su jefe y viceversa).
@@ -918,6 +942,25 @@ async function ensurePostgresTables() {
     )
   `);
 
+  // Un conductor puede tener varias licencias (ej. B1 y C2), cada una con su
+  // propia fecha de vencimiento y su propio archivo adjunto -- reemplaza a
+  // las columnas licencia_categoria/licencia_archivo_* de "conductores"
+  // (una sola licencia, sin vencimiento), ver migrarLicenciasConductorATablaPropia.
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS conductor_licencias (
+      id BIGSERIAL PRIMARY KEY,
+      conductor_id BIGINT NOT NULL REFERENCES conductores(id) ON DELETE CASCADE,
+      categoria TEXT NOT NULL,
+      fecha_vencimiento DATE,
+      archivo_url TEXT,
+      archivo_nombre TEXT,
+      archivo_mime TEXT,
+      empresa_id BIGINT NOT NULL REFERENCES empresas(id),
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await db.run("CREATE INDEX IF NOT EXISTS idx_conductor_licencias_conductor_id ON conductor_licencias (conductor_id)");
+
   await db.run(`
     CREATE TABLE IF NOT EXISTS entregas_recibidas (
       id BIGSERIAL PRIMARY KEY,
@@ -1536,6 +1579,7 @@ if (env.dbClient === "sqlite") {
     ]))
     .then(backfillEmpresaId)
     .then(enforceEmpresaIdNotNull)
+    .then(migrarLicenciasConductorATablaPropia)
     .then(migrarConstraintsPorEmpresa)
     .then(seedBodegaYConfigDefault)
     .then(() => db.run("CREATE INDEX IF NOT EXISTS idx_vehiculos_estado ON vehiculos (estado)"))
