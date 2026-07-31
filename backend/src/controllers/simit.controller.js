@@ -27,3 +27,9 @@ exports.actualizarFlota = async (req, res) => {
   const resumen = await simitService.actualizarFlota(req.empresaId);
   res.status(202).json(resumen);
 };
+
+exports.getValorHistorico = async (req, res) => {
+  const dias = Number(req.query.dias) || 30;
+  const valorTotal = await simitService.obtenerValorHistorico(req.empresaId, dias);
+  res.json({ valor_total: valorTotal, dias });
+};

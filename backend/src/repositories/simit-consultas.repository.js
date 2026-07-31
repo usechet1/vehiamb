@@ -108,10 +108,40 @@ async function findUltimoEstadoPorFlota(filters = {}, empresaId) {
   );
 }
 
+// Suma, para toda la flota de la empresa, el valor_total de la consulta mas
+// reciente de cada vehiculo que sea de al menos "dias" de antiguedad (la
+// consulta previa mas cercana a ese punto en el tiempo, no exactamente esa
+// fecha). Sirve para comparar el valor total de hoy contra el de hace N dias
+// y mostrar una tendencia en el KPI. Vehiculos sin ninguna consulta tan
+// antigua simplemente no aportan al total (se tratan como 0, igual que
+// "nunca consultado" en el resto del modulo).
+async function sumValorTotalHaceDias(dias, empresaId) {
+  const row = await db.get(
+    `
+      SELECT COALESCE(SUM(anterior.valor_total), 0) AS valor_total
+      FROM vehiculos v
+      LEFT JOIN LATERAL (
+        SELECT sc.valor_total
+        FROM simit_consultas sc
+        WHERE sc.vehiculo_id = v.id
+          AND sc.estado_consulta = 'ok'
+          AND sc.fecha_consulta <= NOW() - (? || ' days')::interval
+        ORDER BY sc.fecha_consulta DESC
+        LIMIT 1
+      ) anterior ON true
+      WHERE v.empresa_id = ?
+    `,
+    [dias, empresaId]
+  );
+
+  return Number(row?.valor_total || 0);
+}
+
 module.exports = {
   create,
   findById,
   findByVehiculo,
   findAnteriorByVehiculo,
-  findUltimoEstadoPorFlota
+  findUltimoEstadoPorFlota,
+  sumValorTotalHaceDias
 };

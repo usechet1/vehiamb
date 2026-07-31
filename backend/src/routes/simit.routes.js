@@ -10,5 +10,6 @@ router.get("/vehiculo/:vehiculoId/historial", requirePermission("simit.view"), a
 router.get("/consultas/:consultaId", requirePermission("simit.view"), asyncHandler(simitController.getConsultaDetalle));
 router.post("/vehiculo/:vehiculoId/consultar", requirePermission("simit.view"), asyncHandler(simitController.consultarVehiculo));
 router.post("/actualizar-flota", requirePermission("simit.view"), asyncHandler(simitController.actualizarFlota));
+router.get("/valor-historico", requirePermission("simit.view"), asyncHandler(simitController.getValorHistorico));
 
 module.exports = router;

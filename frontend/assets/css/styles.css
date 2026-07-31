@@ -2026,6 +2026,35 @@ label[for="loginPassword"] {
     margin-top: 2px;
 }
 
+.kpi-sub-bad {
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+.kpi-sub-good {
+    color: var(--color-success);
+    font-weight: 600;
+}
+
+/* Cobro coactivo: mas severo que el resto de estados, se resalta con una
+   barra de acento mas gruesa. */
+.kpi-card--critical::before {
+    height: 5px;
+}
+
+.kpi-mini-link {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--color-primary);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
 @media (max-width: 760px) {
     .kpis-grid {
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
