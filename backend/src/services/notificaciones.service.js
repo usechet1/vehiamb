@@ -1,6 +1,7 @@
 const HttpError = require("../errors/http-error");
 const notificacionesRepository = require("../repositories/notificaciones.repository");
 const usuariosRepository = require("../repositories/usuarios.repository");
+const simitComparendosRepository = require("../repositories/simit-comparendos.repository");
 const mantenimientosRepository = require("../repositories/mantenimientos.repository");
 const notifConfig = require("../config/notificaciones.config");
 const emailChannel = require("./notificaciones-email.channel");
@@ -375,6 +376,45 @@ async function eliminarLeidas(usuarioId) {
   return notificacionesRepository.removeLeidas(usuarioId);
 }
 
+// Notificaciones de SIMIT creadas ANTES de que se agregara
+// "detalle_comparendos" al accion_payload (ver simit.service.js
+// notificarNovedades) no tienen ese detalle guardado -- al reenviarlas se
+// verian con el mensaje viejo, sin fecha/descripcion, aunque el codigo del
+// canal de WhatsApp ya sepa listarlo. Se completa el detalle al vuelo desde
+// simit_comparendos (usando referencia_id = id de la consulta) solo para
+// este reenvio, sin modificar la fila original en la base.
+async function conDetalleComparendosCompleto(notificacion) {
+  if (notificacion.tipo !== "simit_multa_detectada" && notificacion.tipo !== "simit_estado_cambiado") {
+    return notificacion;
+  }
+
+  let payload = null;
+  try {
+    payload = notificacion.accion_payload ? JSON.parse(notificacion.accion_payload) : null;
+  } catch (error) {
+    payload = null;
+  }
+
+  if (payload?.detalle_comparendos?.length || notificacion.referencia_tipo !== "simit_consulta") {
+    return notificacion;
+  }
+
+  const comparendos = await simitComparendosRepository.findByConsulta(notificacion.referencia_id, notificacion.empresa_id);
+  if (!comparendos.length) return notificacion;
+
+  const detalleComparendos = comparendos.map((item) => ({
+    numero_comparendo: item.numero_comparendo,
+    fecha_infraccion: item.fecha_infraccion,
+    descripcion: item.descripcion,
+    valor: item.valor
+  }));
+
+  return {
+    ...notificacion,
+    accion_payload: JSON.stringify({ ...payload, vehiculo_id: notificacion.vehiculo_id, detalle_comparendos: detalleComparendos })
+  };
+}
+
 // Reenvia por WhatsApp una notificacion ya existente (no crea una nueva fila
 // ni vuelve a disparar la logica que la origino, ej. una consulta real a
 // SIMIT) -- util cuando el mensaje no llego o el usuario lo borro sin
@@ -386,7 +426,7 @@ async function reenviarPorWhatsapp(id, currentUser) {
     throw new HttpError(404, "Notificación no encontrada");
   }
 
-  await whatsappChannel(notificacion);
+  await whatsappChannel(await conDetalleComparendosCompleto(notificacion));
 }
 
 async function resolverNotificacionAprobacion(notificacionId, currentUser, estadoDestino) {
