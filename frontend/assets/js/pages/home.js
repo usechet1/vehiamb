@@ -681,6 +681,15 @@ async function inicializarDashboard() {
     const primerNombre = String(user?.nombre || "").trim().split(" ")[0];
     document.getElementById("dashboardSaludoNombre").textContent = primerNombre;
 
+    // Los KPI ahora son accesos directos a su modulo (ver dash-cards en
+    // index.html) -- se ocultan los que el rol actual no puede abrir, igual
+    // que ya se hace con los botones del sidebar (sidebar.js).
+    document.querySelectorAll(".dash-card[data-permission]").forEach((card) => {
+        if (!window.VehiAmb.auth.hasPermission(card.dataset.permission)) {
+            card.remove();
+        }
+    });
+
     const [vehiculosResult, mantenimientosResult, documentosResult, costosMesResult, costosMesAnteriorResult] = await Promise.allSettled([
         window.VehiAmb.api.getVehiculosCatalogo(),
         window.VehiAmb.api.getMantenimientos(),

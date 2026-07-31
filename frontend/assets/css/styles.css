@@ -1361,6 +1361,16 @@ label[for="loginPassword"] {
     gap: 15px;
     min-height: 78px;
     padding: 12px 19px;
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dash-card:hover,
+.dash-card:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(24, 32, 43, 0.12);
 }
 
 .dash-card::before {
@@ -1407,10 +1417,18 @@ label[for="loginPassword"] {
     text-transform: uppercase;
 }
 
+.dash-card > div {
+    min-width: 0;
+}
+
 .dash-card-value {
+    display: block;
     color: var(--color-ink);
     font-size: 1.65rem;
     line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .dash-card-value-row {
@@ -1418,6 +1436,7 @@ label[for="loginPassword"] {
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
+    min-width: 0;
 }
 
 .dash-card-delta {
@@ -3663,7 +3682,7 @@ button.record-link {
     }
 
     .mobile-topbar-logo {
-        height: 30px;
+        height: 40px;
         width: auto;
     }
 
@@ -3939,7 +3958,7 @@ button.record-link {
     }
 
     .dash-card-value {
-        font-size: 1.35rem;
+        font-size: 1.1rem;
     }
 
     .simple-list-entry {
