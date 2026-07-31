@@ -97,7 +97,12 @@ async function whatsappChannel(notificacion) {
 
     const defaults = notifConfig.tipoConfig(notificacion.tipo);
     const titulo = notificacion.titulo || defaults.titulo;
-    const mensaje = construirMensajeWhatsapp(notificacion);
+    // La API de WhatsApp rechaza (HTTP 400, error 132018) cualquier parametro
+    // de plantilla con "\n"/tab literales o 4+ espacios seguidos. Se cambia
+    // el salto de linea por U+2028 (line separator): WhatsApp lo renderiza
+    // igual como salto visual, pero no es el caracter que el validador de
+    // Meta bloquea.
+    const mensaje = construirMensajeWhatsapp(notificacion).replace(/\n/g, " ");
 
     const url = `https://graph.facebook.com/${env.whatsappApiVersion}/${env.whatsappPhoneNumberId}/messages`;
 
