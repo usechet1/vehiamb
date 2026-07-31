@@ -144,48 +144,6 @@
         doc.setFontSize(10);
     }
 
-    function addHistorialTable(doc, layout, historial) {
-        layout.spacer(4);
-        layout.ensureSpace(20);
-        doc.setFontSize(10);
-        doc.setFont(undefined, "bold");
-        doc.text("Historial de consultas", MARGIN_X, layout.y);
-        layout.spacer(14);
-
-        if (!historial || !historial.length) {
-            doc.setFont(undefined, "normal");
-            doc.text("Este vehículo aún no tiene consultas SIMIT registradas.", MARGIN_X, layout.y);
-            layout.spacer(16);
-            return;
-        }
-
-        const colX = [MARGIN_X, MARGIN_X + 110, MARGIN_X + 190, MARGIN_X + 260, MARGIN_X + 360, MARGIN_X + 440];
-
-        doc.setFont(undefined, "bold");
-        doc.text("Fecha", colX[0], layout.y);
-        doc.text("Origen", colX[1], layout.y);
-        doc.text("Resultado", colX[2], layout.y);
-        doc.text("Estado cartera", colX[3], layout.y);
-        doc.text("Comparendos", colX[4], layout.y);
-        doc.text("Valor total", colX[5], layout.y);
-        layout.spacer(6);
-        doc.line(MARGIN_X, layout.y, layout.pageWidth - MARGIN_X, layout.y);
-        layout.spacer(14);
-        doc.setFont(undefined, "normal");
-
-        historial.forEach((item) => {
-            layout.ensureSpace(16);
-            const estadoConsultaOk = item.estado_consulta === "ok";
-            doc.text(formatDateTime(item.fecha_consulta), colX[0], layout.y);
-            doc.text(item.origen === "masivo" ? "Actualización flota" : "Manual", colX[1], layout.y);
-            doc.text(estadoConsultaOk ? "OK" : safe(item.estado_consulta), colX[2], layout.y);
-            doc.text(estadoLabel(estadoConsultaOk ? item.estado_cartera : "desconocido"), colX[3], layout.y);
-            doc.text(String(item.total_comparendos ?? 0), colX[4], layout.y);
-            doc.text(formatCurrency(item.valor_total), colX[5], layout.y);
-            layout.spacer(16);
-        });
-    }
-
     async function addFooter(doc, branding) {
         const pageCount = doc.internal.getNumberOfPages();
         const generadoEl = FOOTER_TEXT(branding?.nombreEmpresa);
@@ -209,7 +167,7 @@
         }
     }
 
-    async function exportComparendosPdf({ row, historial, detalle, estado }) {
+    async function exportComparendosPdf({ row, detalle, estado }) {
         if (!row) {
             throw new Error("No hay un vehículo seleccionado para exportar");
         }
@@ -233,9 +191,6 @@
         layout.spacer();
         addComparendosTable(doc, layout, detalle?.comparendos);
 
-        layout.spacer(4);
-        addHistorialTable(doc, layout, historial);
-
         await addFooter(doc, branding);
 
         doc.save(buildFileName(row, "pdf"));
@@ -243,7 +198,7 @@
 
     const EXCEL_COLUMN_COUNT = 7;
 
-    async function exportComparendosExcel({ row, historial, detalle, estado }) {
+    async function exportComparendosExcel({ row, detalle, estado }) {
         if (!row) {
             throw new Error("No hay un vehículo seleccionado para exportar");
         }
@@ -296,32 +251,6 @@
             });
         } else {
             excel.addTableDataRow(sheet, ["No hay comparendos registrados en esta consulta.", "", "", "", "", "", ""]);
-        }
-
-        sheet.addRow([]);
-        excel.addSectionHeader(sheet, "Historial de consultas", EXCEL_COLUMN_COUNT);
-        excel.addTableHeaderRow(sheet, ["Fecha", "Origen", "Resultado", "Estado cartera", "Comparendos", "Valor total", ""]);
-
-        if (historial && historial.length) {
-            historial.forEach((item, index) => {
-                const estadoConsultaOk = item.estado_consulta === "ok";
-                const dataRow = excel.addTableDataRow(
-                    sheet,
-                    [
-                        formatDateTime(item.fecha_consulta),
-                        item.origen === "masivo" ? "Actualización flota" : "Manual",
-                        estadoConsultaOk ? "OK" : safe(item.estado_consulta),
-                        estadoLabel(estadoConsultaOk ? item.estado_cartera : "desconocido"),
-                        Number(item.total_comparendos ?? 0),
-                        Number(item.valor_total || 0),
-                        ""
-                    ],
-                    { band: index % 2 === 1 }
-                );
-                dataRow.getCell(6).numFmt = "$#,##0";
-            });
-        } else {
-            excel.addTableDataRow(sheet, ["Este vehículo aún no tiene consultas SIMIT registradas.", "", "", "", "", "", ""]);
         }
 
         excel.addFooterRow(sheet, FOOTER_TEXT(branding?.nombreEmpresa), EXCEL_COLUMN_COUNT);
