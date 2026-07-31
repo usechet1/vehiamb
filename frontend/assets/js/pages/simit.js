@@ -174,7 +174,7 @@ function renderSummary(rows) {
             <div class="kpi-value">${rows.length}</div>
         </div>
         <div class="kpi-card" style="--kpi-accent: var(--color-primary)">
-            <div class="kpi-label">Valor total en riesgo</div>
+            <div class="kpi-label">Valor total comparendos</div>
             <div class="kpi-value">${formatCurrency(valorRiesgo)}</div>
         </div>
         <div class="kpi-card" style="--kpi-accent: var(--color-success)">
