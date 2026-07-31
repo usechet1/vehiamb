@@ -85,13 +85,21 @@ async function actualizarConductor(id, conductorId, empresaId) {
 // reinserta su propia muestra de filas (ver bulkCreate) -- el mismo
 // comparendo puede quedar duplicado entre varias consultas del mismo
 // vehiculo si no cambio, y contar filas crudas lo sobrestimaria.
+// Se agrupa solo por cedula_infractor (no tambien por nombre_infractor):
+// SIMIT no siempre enmascara el nombre con la misma cantidad de palabras
+// entre consultas del mismo infractor, y agrupar por ambos campos partia a
+// la misma persona en varias filas. De los nombres vistos para esa cedula se
+// usa el mas largo como representativo (mas palabras = version mas completa).
 async function findTopInfractores(empresaId, limite = 5) {
   return db.all(
     `
-      SELECT cedula_infractor, nombre_infractor, COUNT(DISTINCT numero_comparendo) AS total_comparendos
+      SELECT
+        cedula_infractor,
+        (ARRAY_AGG(nombre_infractor ORDER BY LENGTH(nombre_infractor) DESC))[1] AS nombre_infractor,
+        COUNT(DISTINCT numero_comparendo) AS total_comparendos
       FROM simit_comparendos
       WHERE empresa_id = ? AND cedula_infractor IS NOT NULL
-      GROUP BY cedula_infractor, nombre_infractor
+      GROUP BY cedula_infractor
       ORDER BY total_comparendos DESC
       LIMIT ?
     `,
