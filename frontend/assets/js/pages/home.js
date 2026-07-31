@@ -107,37 +107,34 @@ function calcularDeltaCompacto(totalActual, totalAnterior) {
     return { className: "is-flat", texto: "Sin datos" };
 }
 
-// Dos KPI separados a partir del mismo dato (ultima consulta SIMIT de cada
-// vehiculo, ver simit-consultas.repository.js findUltimoEstadoPorFlota):
-// "Vehiculos con comparendo" (cuantos vehiculos estan afectados) y "Total
-// comparendos" (cuantas multas en total -- un vehiculo puede tener varias).
-// Antes era un solo KPI que sumaba total_comparendos, lo que confundia con
-// el conteo de vehiculos del resumen de simit.html.
+// KPI "Total comparendos": suma total_comparendos de la ultima consulta
+// SIMIT de cada vehiculo (ver simit-consultas.repository.js
+// findUltimoEstadoPorFlota) y colorea la tarjeta segun la gravedad mas alta
+// encontrada en la flota. El desglose de "vehiculos con comparendo" por
+// estado de cartera (cobro coactivo / con multas / sin multas) ya vive en el
+// resumen de simit.html -- no se duplica aqui.
 function pintarComparendos(estadoFlotaSimit) {
-    const card = document.getElementById("dashCardVehiculosComparendo");
-    const sub = document.getElementById("vehiculosComparendoSub");
-    const valorVehiculosEl = document.getElementById("total-vehiculos-comparendo");
+    const card = document.getElementById("dashCardTotalComparendos");
+    const sub = document.getElementById("comparendosSub");
     const valorTotalEl = document.getElementById("total-comparendos");
-    if (!card || !sub || !valorVehiculosEl || !valorTotalEl) return;
+    if (!card || !sub || !valorTotalEl) return;
 
     const totalComparendos = estadoFlotaSimit.reduce((sum, item) => sum + Number(item.total_comparendos || 0), 0);
     valorTotalEl.textContent = totalComparendos;
 
     const enCobroCoactivo = estadoFlotaSimit.filter((item) => item.estado_cartera === "cobro_coactivo");
     const conMultas = estadoFlotaSimit.filter((item) => item.estado_cartera === "con_multas");
-    const vehiculosAfectados = enCobroCoactivo.length + conMultas.length;
-    valorVehiculosEl.textContent = vehiculosAfectados;
 
     if (enCobroCoactivo.length) {
         sub.textContent = `${enCobroCoactivo.length} en cobro coactivo`;
         sub.className = "dash-card-sub is-danger";
         card.style.setProperty("--card-accent", "var(--color-primary)");
     } else if (conMultas.length) {
-        sub.textContent = `Con multas`;
+        sub.textContent = `Afecta a ${conMultas.length} vehículo${conMultas.length === 1 ? "" : "s"}`;
         sub.className = "dash-card-sub is-warning";
         card.style.setProperty("--card-accent", "var(--color-warning)");
     } else {
-        sub.textContent = "Sin comparendos";
+        sub.textContent = totalComparendos ? "" : "Sin comparendos";
         sub.className = "dash-card-sub";
         card.style.removeProperty("--card-accent");
     }
