@@ -741,6 +741,14 @@ window.VehiAmb.api = {
         );
     },
 
+    getSimitValorHistorico(dias = 30) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/simit/valor-historico?dias=${dias}`,
+            undefined,
+            "No se pudo cargar el valor histórico SIMIT"
+        );
+    },
+
     getChecklistCatalogo() {
         return requestJson(
             `${window.VehiAmb.API_URL}/inspecciones/catalogo`,

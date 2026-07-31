@@ -204,6 +204,10 @@ async function listarEstadoFlota(filters = {}, empresaId) {
   return simitConsultasRepository.findUltimoEstadoPorFlota(filters, empresaId);
 }
 
+async function obtenerValorHistorico(empresaId, dias = 30) {
+  return simitConsultasRepository.sumValorTotalHaceDias(dias, empresaId);
+}
+
 async function listarHistorialVehiculo(vehiculoId, empresaId) {
   const vehiculo = await vehiculosRepository.findById(vehiculoId, empresaId);
   if (!vehiculo) {
@@ -228,5 +232,6 @@ module.exports = {
   actualizarFlota,
   listarEstadoFlota,
   listarHistorialVehiculo,
-  obtenerConsultaDetalle
+  obtenerConsultaDetalle,
+  obtenerValorHistorico
 };

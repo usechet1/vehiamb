@@ -63,8 +63,11 @@ const ESTADO_SEVERIDAD = {
     sin_multas: 5
 };
 
+// Cobro coactivo implica proceso de embargo/jurídico (lo más grave: hay que
+// distinguirlo visualmente de "con multas", que aun no llega a ese punto) --
+// mismo tono base que --color-primary pero mas oscuro/intenso.
 const ESTADO_KPI_ACCENT = {
-    cobro_coactivo: "var(--color-primary)",
+    cobro_coactivo: "#7a1420",
     con_multas: "var(--color-primary)",
     acuerdo_pago: "var(--color-warning)",
     sin_multas: "var(--color-success)",
@@ -156,7 +159,36 @@ function flotaAlDia(rows) {
     return { alDia, total, porcentaje };
 }
 
-function renderSummary(rows) {
+// Vehiculos cuya ultima consulta ya tiene mas de "dias" de antiguedad --
+// los "nunca consultados" (fecha_consulta null) no cuentan aqui, ya tienen
+// su propio KPI aparte.
+function vehiculosDesactualizados(rows, dias = 30) {
+    const limite = Date.now() - dias * 24 * 60 * 60 * 1000;
+    return rows.filter((row) => row.fecha_consulta && new Date(row.fecha_consulta).getTime() < limite).length;
+}
+
+// Compara el valor total actual contra el de hace N dias (obtenido del
+// backend, ver getSimitValorHistorico) y arma un texto de tendencia. Un
+// aumento de deuda es una mala noticia (rojo); una disminucion es buena
+// (verde).
+function formatTendencia(actual, anterior, dias) {
+    if (anterior === null || anterior === undefined) return null;
+
+    const diferencia = actual - anterior;
+    if (diferencia === 0) return { texto: `Sin cambio vs. hace ${dias} días`, clase: "" };
+
+    const flecha = diferencia > 0 ? "▲" : "▼";
+    const magnitud = anterior > 0
+        ? `${Math.round((Math.abs(diferencia) / anterior) * 100)}%`
+        : formatCurrency(Math.abs(diferencia));
+
+    return {
+        texto: `${flecha} ${magnitud} vs. hace ${dias} días`,
+        clase: diferencia > 0 ? "kpi-sub-bad" : "kpi-sub-good"
+    };
+}
+
+function renderSummary(rows, valorHistorico) {
     const conteos = rows.reduce((acc, row) => {
         const estado = deriveEstadoCartera(row);
         acc[estado] = (acc[estado] || 0) + 1;
@@ -168,15 +200,20 @@ function renderSummary(rows) {
     const peorVehiculo = vehiculoConMasComparendos(rows);
     const valorRiesgo = valorTotalEnRiesgo(rows);
     const alDia = flotaAlDia(rows);
+    const desactualizados = vehiculosDesactualizados(rows);
+    const tendencia = valorHistorico ? formatTendencia(valorRiesgo, valorHistorico.valor_total, valorHistorico.dias) : null;
+    const conComparendos = rows.filter((row) => Number(row.total_comparendos) > 0).length;
 
     kpisGrid.innerHTML = `
         <div class="kpi-card" style="--kpi-accent: var(--color-ink-soft)">
             <div class="kpi-label">Total flota</div>
             <div class="kpi-value">${rows.length}</div>
+            ${desactualizados ? `<div class="kpi-sub">${desactualizados} sin consultar hace +30 días</div>` : ""}
         </div>
         <div class="kpi-card" style="--kpi-accent: var(--color-primary)">
             <div class="kpi-label">Valor total comparendos</div>
             <div class="kpi-value">${formatCurrency(valorRiesgo)}</div>
+            ${tendencia ? `<div class="kpi-sub ${tendencia.clase}">${tendencia.texto}</div>` : ""}
         </div>
         <div class="kpi-card" style="--kpi-accent: var(--color-success)">
             <div class="kpi-label">Flota al día</div>
@@ -186,7 +223,7 @@ function renderSummary(rows) {
         ${orden
             .filter((estado) => conteos[estado])
             .map((estado) => `
-                <div class="kpi-card" style="--kpi-accent: ${ESTADO_KPI_ACCENT[estado]}">
+                <div class="kpi-card clickable-record${estado === "cobro_coactivo" ? " kpi-card--critical" : ""}" style="--kpi-accent: ${ESTADO_KPI_ACCENT[estado]}" data-filter-estado="${estado}" tabindex="0" role="button" aria-label="Ver vehículos en estado ${estadoLabel(estado)}">
                     <div class="kpi-label">${estadoLabel(estado)}</div>
                     <div class="kpi-value">${conteos[estado]}</div>
                 </div>
@@ -196,6 +233,7 @@ function renderSummary(rows) {
             <div class="kpi-card clickable-record" style="--kpi-accent: var(--color-primary)" data-vehiculo-id="${peorVehiculo.vehiculo_id}" tabindex="0" role="button" aria-label="Ver detalle SIMIT de ${escapeHtml(peorVehiculo.placa || "")}">
                 <div class="kpi-label">Más comparendos: ${escapeHtml(peorVehiculo.placa || "Sin placa")}</div>
                 <div class="kpi-value">${peorVehiculo.total_comparendos}</div>
+                ${conComparendos > 1 ? `<button type="button" class="kpi-mini-link" data-accion="ranking-comparendos">Ver ranking completo (${conComparendos})</button>` : ""}
             </div>
         ` : ""}
     `;
@@ -256,13 +294,15 @@ function ordenarPorSeveridad(rows) {
     });
 }
 
-function renderFlotaList(rows) {
+function renderFlotaList(rows, { ordenar = true } = {}) {
     if (!rows.length) {
         flotaList.innerHTML = '<p class="dash-empty">No hay vehículos para los filtros seleccionados</p>';
         return;
     }
 
-    flotaList.innerHTML = ordenarPorSeveridad(rows).map((row) => {
+    const filas = ordenar ? ordenarPorSeveridad(rows) : rows;
+
+    flotaList.innerHTML = filas.map((row) => {
         const estado = deriveEstadoCartera(row);
 
         return `
@@ -296,8 +336,12 @@ function applyFilters() {
 async function cargarFlota() {
     try {
         window.VehiAmb.ui.show(loader);
-        flotaState = await window.VehiAmb.api.getSimitEstadoFlota();
-        renderSummary(flotaState);
+        const [flota, valorHistorico] = await Promise.all([
+            window.VehiAmb.api.getSimitEstadoFlota(),
+            window.VehiAmb.api.getSimitValorHistorico(30).catch(() => null)
+        ]);
+        flotaState = flota;
+        renderSummary(flotaState, valorHistorico);
         fillVehiculoFilterOptions(flotaState);
         applyFilters();
     } catch (error) {
@@ -307,6 +351,28 @@ async function cargarFlota() {
     } finally {
         window.VehiAmb.ui.hide(loader);
     }
+}
+
+// Filtra el listado de abajo por un estado de cartera especifico (desde un
+// KPI de "Con multas"/"Cobro coactivo"/etc.) y hace scroll hasta el.
+function filtrarPorEstadoYScroll(estado) {
+    filterEstado.value = estado;
+    applyFilters();
+    flotaList.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// Vista temporal: ordena el listado por total_comparendos descendente en
+// vez de por severidad de estado, para ver de un vistazo cuales vehiculos
+// concentran mas comparendos. Se pierde al tocar cualquier filtro (vuelve
+// al orden normal via applyFilters).
+function mostrarRankingComparendos() {
+    const conComparendos = flotaState
+        .filter((row) => Number(row.total_comparendos) > 0)
+        .sort((a, b) => Number(b.total_comparendos) - Number(a.total_comparendos));
+
+    renderFlotaList(conComparendos, { ordenar: false });
+    filterSummary.textContent = `Ranking por comparendos: ${conComparendos.length} vehículos con comparendos vigentes.`;
+    flotaList.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 // Cedula/nombre del infractor se obtienen del propio portal SIMIT: al hacer
@@ -537,12 +603,32 @@ flotaList.addEventListener("keydown", (event) => {
 });
 
 kpisGrid.addEventListener("click", (event) => {
+    const rankingButton = event.target.closest('[data-accion="ranking-comparendos"]');
+    if (rankingButton) {
+        event.stopPropagation();
+        mostrarRankingComparendos();
+        return;
+    }
+
+    const filtroEstado = event.target.closest("[data-filter-estado]");
+    if (filtroEstado) {
+        filtrarPorEstadoYScroll(filtroEstado.dataset.filterEstado);
+        return;
+    }
+
     const card = event.target.closest("[data-vehiculo-id]");
     if (card) openSimitDetail(card.dataset.vehiculoId);
 });
 
 kpisGrid.addEventListener("keydown", (event) => {
     if (event.key !== "Enter" && event.key !== " ") return;
+
+    const filtroEstado = event.target.closest("[data-filter-estado]");
+    if (filtroEstado) {
+        event.preventDefault();
+        filtrarPorEstadoYScroll(filtroEstado.dataset.filterEstado);
+        return;
+    }
 
     const card = event.target.closest("[data-vehiculo-id]");
     if (!card) return;
