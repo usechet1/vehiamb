@@ -1986,6 +1986,10 @@ label[for="loginPassword"] {
     margin-bottom: 20px;
 }
 
+.kpi-card-wide {
+    grid-column: span 2;
+}
+
 .kpi-card {
     position: relative;
     background: var(--color-surface);

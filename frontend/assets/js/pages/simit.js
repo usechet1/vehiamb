@@ -277,7 +277,7 @@ function renderSummary(rows, valorHistorico, infractorTop) {
             </div>
         ` : ""}
         ${topInfractores.length ? `
-            <div class="kpi-card" style="--kpi-accent: var(--color-primary)">
+            <div class="kpi-card kpi-card-wide" style="--kpi-accent: var(--color-primary)">
                 <div class="kpi-label">Top conductores</div>
                 <div class="kpi-top-list">
                     ${topInfractores.map((infractor, indice) => `
