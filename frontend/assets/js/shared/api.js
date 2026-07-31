@@ -836,25 +836,59 @@ window.VehiAmb.api = {
         return requestJson(`${window.VehiAmb.API_URL}/conductores/${id}`, undefined, "No se pudo cargar el conductor");
     },
 
-    createConductor(formData) {
+    createConductor(payload) {
         return requestJson(
             `${window.VehiAmb.API_URL}/conductores`,
             {
                 method: "POST",
-                body: formData
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
             },
             "No se pudo guardar el conductor"
         );
     },
 
-    updateConductor(id, formData) {
+    updateConductor(id, payload) {
         return requestJson(
             `${window.VehiAmb.API_URL}/conductores/${id}`,
             {
                 method: "PUT",
-                body: formData
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
             },
             "No se pudo actualizar el conductor"
+        );
+    },
+
+    getConductorLicencias(conductorId) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/conductores/${conductorId}/licencias`,
+            undefined,
+            "No se pudieron cargar las licencias del conductor"
+        );
+    },
+
+    createConductorLicencia(conductorId, formData) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/conductores/${conductorId}/licencias`,
+            { method: "POST", body: formData },
+            "No se pudo agregar la licencia"
+        );
+    },
+
+    updateConductorLicencia(id, formData) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/conductores/licencias/${id}`,
+            { method: "PUT", body: formData },
+            "No se pudo actualizar la licencia"
+        );
+    },
+
+    deleteConductorLicencia(id) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/conductores/licencias/${id}`,
+            { method: "DELETE" },
+            "No se pudo eliminar la licencia"
         );
     },
 

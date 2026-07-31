@@ -3,6 +3,7 @@ const vehiculosRepository = require("../repositories/vehiculos.repository");
 const viajesRepository = require("../repositories/viajes.repository");
 const documentosRepository = require("../repositories/documentos.repository");
 const conductoresRepository = require("../repositories/conductores.repository");
+const conductorLicenciasRepository = require("../repositories/conductor-licencias.repository");
 const inspeccionesRepository = require("../repositories/inspecciones-preventivas.repository");
 const itemsRepository = require("../repositories/inspeccion-items.repository");
 const preoperacionalesRepository = require("../repositories/preoperacionales.repository");
@@ -102,6 +103,10 @@ async function obtenerUltimoViajeControl(currentUser) {
     conductoresRepository.findByUsuarioId(currentUser.id, empresaId)
   ]);
 
+  const licencias = conductor
+    ? await conductorLicenciasRepository.findByConductor(conductor.id, empresaId)
+    : [];
+
   return {
     viaje: toSafeViaje({
       ...ultimoViaje,
@@ -127,9 +132,12 @@ async function obtenerUltimoViajeControl(currentUser) {
           nombres: conductor.nombres,
           apellidos: conductor.apellidos,
           cedula: conductor.cedula,
-          licencia_categoria: conductor.licencia_categoria,
-          licencia_archivo_url: conductor.licencia_archivo_url,
-          licencia_archivo_nombre: conductor.licencia_archivo_nombre
+          licencias: licencias.map((licencia) => ({
+            categoria: licencia.categoria,
+            fecha_vencimiento: licencia.fecha_vencimiento,
+            archivo_url: licencia.archivo_url,
+            archivo_nombre: licencia.archivo_nombre
+          }))
         }
       : null
   };
@@ -165,6 +173,9 @@ async function obtenerResumen(viajeId, empresaId) {
   const itemsPreoperacional = preoperacional
     ? await preoperacionalItemsRepository.findByPreoperacional(preoperacional.id, empresaId)
     : [];
+  const licencias = conductor
+    ? await conductorLicenciasRepository.findByConductor(conductor.id, empresaId)
+    : [];
 
   return {
     viaje: toSafeViaje({
@@ -190,7 +201,10 @@ async function obtenerResumen(viajeId, empresaId) {
           nombres: conductor.nombres,
           apellidos: conductor.apellidos,
           cedula: conductor.cedula,
-          licencia_categoria: conductor.licencia_categoria
+          licencias: licencias.map((licencia) => ({
+            categoria: licencia.categoria,
+            fecha_vencimiento: licencia.fecha_vencimiento
+          }))
         }
       : null,
     inspeccion: inspeccion
