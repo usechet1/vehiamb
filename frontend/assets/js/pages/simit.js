@@ -272,9 +272,9 @@ function renderSummary(rows, valorHistorico, infractorTop) {
         ` : ""}
         ${infractorTop ? `
             <div class="kpi-card" style="--kpi-accent: var(--color-primary)">
-                <div class="kpi-label">Persona con más comparendos</div>
-                <div class="kpi-value">${infractorTop.total_comparendos}</div>
-                <div class="kpi-sub">${escapeHtml(infractorTop.nombre_infractor || "Nombre no disponible")} · ${escapeHtml(infractorTop.cedula_infractor || "")}</div>
+                <div class="kpi-label">Conductor con más comparendos</div>
+                <div class="kpi-value">${escapeHtml(infractorTop.nombre_infractor || "Nombre no disponible")} (${infractorTop.total_comparendos})</div>
+                <div class="kpi-sub">${escapeHtml(infractorTop.cedula_infractor || "")}</div>
             </div>
         ` : ""}
     `;
