@@ -387,10 +387,28 @@ async function extraerMuestraComparendos(page) {
         valorAPagar = clon.textContent.trim();
       }
 
+      // La celda "Infracción" arrastra el mismo problema (confirmado con un
+      // volcado real): junto al codigo corto (ej. "C38") trae tambien, en el
+      // mismo textContent, el acordeon oculto "Proyeccion pago" (numero de
+      // identificacion, fecha de resolucion, valores, "Cobro coactivo"...).
+      // Se limpia igual que "Valor a pagar" y, como respaldo, se toma solo el
+      // primer token tipo codigo (letra + digitos) por si el acordeon no
+      // vive en un div/p removible.
+      const celdaInfraccion = row.querySelector('[data-label="Infracción"]');
+      let infraccionResumen = "";
+      if (celdaInfraccion) {
+        const clon = celdaInfraccion.cloneNode(true);
+        clon.querySelectorAll("div, p, button, a").forEach((nodo) => nodo.remove());
+        const textoLimpio = clon.textContent.trim();
+        const primeraLinea = textoLimpio.split("\n")[0].trim();
+        const match = primeraLinea.match(/^[A-Za-z]{1,3}\d{1,4}/);
+        infraccionResumen = match ? match[0] : primeraLinea;
+      }
+
       return {
         tipo: leerCelda("Tipo"),
         placa: leerCelda("Placa"),
-        infraccionResumen: leerCelda("Infracción"),
+        infraccionResumen,
         infraccionDetalle: infraccionPopover ? infraccionPopover.getAttribute("data-content") : null,
         estado: leerCelda("Estado"),
         valorAPagar
