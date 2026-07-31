@@ -375,6 +375,20 @@ async function eliminarLeidas(usuarioId) {
   return notificacionesRepository.removeLeidas(usuarioId);
 }
 
+// Reenvia por WhatsApp una notificacion ya existente (no crea una nueva fila
+// ni vuelve a disparar la logica que la origino, ej. una consulta real a
+// SIMIT) -- util cuando el mensaje no llego o el usuario lo borro sin
+// querer. Se restringe al propio destinatario de la notificacion, igual que
+// marcarLeida/archivar/eliminar.
+async function reenviarPorWhatsapp(id, currentUser) {
+  const notificacion = await notificacionesRepository.findById(id, currentUser.empresa_id);
+  if (!notificacion || String(notificacion.usuario_id) !== String(currentUser.id)) {
+    throw new HttpError(404, "Notificación no encontrada");
+  }
+
+  await whatsappChannel(notificacion);
+}
+
 async function resolverNotificacionAprobacion(notificacionId, currentUser, estadoDestino) {
   const notificacion = await notificacionesRepository.findById(notificacionId, currentUser.empresa_id);
   if (!notificacion) {
@@ -437,6 +451,7 @@ module.exports = {
   archivarNotificacion,
   eliminarNotificacion,
   eliminarLeidas,
+  reenviarPorWhatsapp,
   aprobarNotificacion,
   rechazarNotificacion,
   existsRecentByReferencia: notificacionesRepository.existsRecentByReferencia

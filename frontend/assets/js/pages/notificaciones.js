@@ -73,6 +73,7 @@ function renderNotifCard(notificacion, { dentroDeGrupo = false } = {}) {
     if (!archivada) {
         botones.push(`<button type="button" class="btn-secondary" data-notif-action="archivar" data-notif-id="${notificacion.id}">Posponer / Archivar</button>`);
     }
+    botones.push(`<button type="button" class="btn-secondary" data-notif-action="reenviar_whatsapp" data-notif-id="${notificacion.id}">Reenviar por WhatsApp</button>`);
     botones.push(`<button type="button" class="btn-secondary" data-notif-action="eliminar" data-notif-id="${notificacion.id}">Eliminar</button>`);
 
     const vehiculoLabel = notificacion.vehiculo
@@ -206,6 +207,9 @@ notifCenterList.addEventListener("click", async (event) => {
             await window.VehiAmb.api.archivarNotificacion(notifId);
         } else if (notifAction === "eliminar") {
             await window.VehiAmb.api.eliminarNotificacion(notifId);
+        } else if (notifAction === "reenviar_whatsapp") {
+            await window.VehiAmb.api.reenviarNotificacionWhatsapp(notifId);
+            window.VehiAmb.ui.showMessage(mensaje, "Notificación reenviada por WhatsApp");
         } else if (notifAction === "aprobar") {
             await window.VehiAmb.api.aprobarNotificacion(notifId);
         } else if (notifAction === "rechazar") {

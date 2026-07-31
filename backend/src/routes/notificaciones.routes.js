@@ -19,5 +19,6 @@ router.delete("/:id", asyncHandler(notificacionesController.eliminar));
 
 router.post("/:id/aprobar", requirePermission("maintenance.approve"), asyncHandler(notificacionesController.aprobar));
 router.post("/:id/rechazar", requirePermission("maintenance.approve"), asyncHandler(notificacionesController.rechazar));
+router.post("/:id/reenviar-whatsapp", asyncHandler(notificacionesController.reenviarWhatsapp));
 
 module.exports = router;
