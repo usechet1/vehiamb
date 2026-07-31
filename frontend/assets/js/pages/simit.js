@@ -140,15 +140,14 @@ function estadoPillClass(estado) {
     return ESTADO_PILL_CLASS[estado] || "pill";
 }
 
-// Vehiculo con mas comparendos vigentes, segun la ultima consulta de cada
-// uno (mismo dato ya cargado en flotaState, sin llamada adicional al backend).
-function vehiculoConMasComparendos(rows) {
-    const conComparendos = rows.filter((row) => Number(row.total_comparendos) > 0);
-    if (!conComparendos.length) return null;
-
-    return conComparendos.reduce((peor, row) =>
-        Number(row.total_comparendos) > Number(peor.total_comparendos) ? row : peor
-    );
+// Top N vehiculos con mas comparendos vigentes, segun la ultima consulta de
+// cada uno (mismo dato ya cargado en flotaState, sin llamada adicional al
+// backend).
+function topVehiculosPorComparendos(rows, top = 3) {
+    return rows
+        .filter((row) => Number(row.total_comparendos) > 0)
+        .sort((a, b) => Number(b.total_comparendos) - Number(a.total_comparendos))
+        .slice(0, top);
 }
 
 // Suma del valor_total (deuda vigente segun la ultima consulta) de todos
@@ -230,13 +229,14 @@ function renderSummary(rows, valorHistorico, infractorTop) {
     // conteos de "con_multas"/"cobro_coactivo" por vehiculo tampoco se
     // repiten como tarjetas propias: quedan resumidos en "Total comparendos".
     const orden = ["acuerdo_pago", "nunca_consultado", "desconocido"];
-    const peorVehiculo = vehiculoConMasComparendos(rows);
+    const topVehiculos = topVehiculosPorComparendos(rows, 3);
     const valorRiesgo = valorTotalEnRiesgo(rows);
     const alDia = flotaAlDia(rows);
     const desactualizados = vehiculosDesactualizados(rows);
     const tendencia = valorHistorico ? formatTendencia(valorRiesgo, valorHistorico.valor_total, valorHistorico.dias) : null;
     const conComparendos = rows.filter((row) => Number(row.total_comparendos) > 0).length;
     const totalComparendos = totalComparendosInfo(rows, conteos);
+    const topInfractores = infractorTop || [];
 
     kpisGrid.innerHTML = `
         <div class="kpi-card clickable-record" style="--kpi-accent: ${totalComparendos.accent}" data-accion="ranking-comparendos" tabindex="0" role="button" aria-label="Ver vehículos con comparendos">
@@ -263,18 +263,27 @@ function renderSummary(rows, valorHistorico, infractorTop) {
                 </div>
             `)
             .join("")}
-        ${peorVehiculo ? `
-            <div class="kpi-card clickable-record" style="--kpi-accent: var(--color-primary)" data-vehiculo-id="${peorVehiculo.vehiculo_id}" tabindex="0" role="button" aria-label="Ver detalle SIMIT de ${escapeHtml(peorVehiculo.placa || "")}">
-                <div class="kpi-label">Más comparendos</div>
-                <div class="kpi-value kpi-value-compact">${escapeHtml(peorVehiculo.placa || "Sin placa")} (${peorVehiculo.total_comparendos})</div>
-                ${conComparendos > 1 ? `<button type="button" class="kpi-mini-link" data-accion="ranking-comparendos">Ver ranking completo (${conComparendos})</button>` : ""}
+        ${topVehiculos.length ? `
+            <div class="kpi-card" style="--kpi-accent: var(--color-primary)">
+                <div class="kpi-label">Top vehículos</div>
+                <div class="kpi-top-list">
+                    ${topVehiculos.map((vehiculo, indice) => `
+                        <div class="kpi-top-item clickable-record" data-vehiculo-id="${vehiculo.vehiculo_id}" tabindex="0" role="button" aria-label="Ver detalle SIMIT de ${escapeHtml(vehiculo.placa || "")}">
+                            ${indice + 1}. ${escapeHtml(vehiculo.placa || "Sin placa")} (${vehiculo.total_comparendos})
+                        </div>
+                    `).join("")}
+                </div>
+                ${conComparendos > topVehiculos.length ? `<button type="button" class="kpi-mini-link" data-accion="ranking-comparendos">Ver ranking completo (${conComparendos})</button>` : ""}
             </div>
         ` : ""}
-        ${infractorTop ? `
+        ${topInfractores.length ? `
             <div class="kpi-card" style="--kpi-accent: var(--color-primary)">
-                <div class="kpi-label">Conductor con más comparendos</div>
-                <div class="kpi-value kpi-value-compact">${escapeHtml(infractorTop.nombre_infractor || "Nombre no disponible")} (${infractorTop.total_comparendos})</div>
-                <div class="kpi-sub">${escapeHtml(infractorTop.cedula_infractor || "")}</div>
+                <div class="kpi-label">Top conductores</div>
+                <div class="kpi-top-list">
+                    ${topInfractores.map((infractor, indice) => `
+                        <div class="kpi-top-item">${indice + 1}. ${escapeHtml(infractor.nombre_infractor || "Nombre no disponible")} (${infractor.total_comparendos})</div>
+                    `).join("")}
+                </div>
             </div>
         ` : ""}
     `;

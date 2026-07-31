@@ -80,29 +80,29 @@ async function actualizarConductor(id, conductorId, empresaId) {
   );
 }
 
-// Persona (por cedula_infractor) con mas comparendos distintos en toda la
+// Personas (por cedula_infractor) con mas comparendos distintos en toda la
 // flota. Se cuenta DISTINCT numero_comparendo porque cada consulta SIMIT
 // reinserta su propia muestra de filas (ver bulkCreate) -- el mismo
 // comparendo puede quedar duplicado entre varias consultas del mismo
 // vehiculo si no cambio, y contar filas crudas lo sobrestimaria.
-async function findInfractorConMasComparendos(empresaId) {
-  return db.get(
+async function findTopInfractores(empresaId, limite = 3) {
+  return db.all(
     `
       SELECT cedula_infractor, nombre_infractor, COUNT(DISTINCT numero_comparendo) AS total_comparendos
       FROM simit_comparendos
       WHERE empresa_id = ? AND cedula_infractor IS NOT NULL
       GROUP BY cedula_infractor, nombre_infractor
       ORDER BY total_comparendos DESC
-      LIMIT 1
+      LIMIT ?
     `,
-    [empresaId]
+    [empresaId, limite]
   );
 }
 
 module.exports = {
   bulkCreate,
   findByConsulta,
-  findInfractorConMasComparendos,
+  findTopInfractores,
   findSinConductorVinculado,
   actualizarConductor
 };
