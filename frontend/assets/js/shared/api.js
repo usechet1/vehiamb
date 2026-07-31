@@ -341,6 +341,14 @@ window.VehiAmb.api = {
         );
     },
 
+    reenviarNotificacionWhatsapp(id) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/notificaciones/${id}/reenviar-whatsapp`,
+            { method: "POST" },
+            "No se pudo reenviar la notificacion por WhatsApp"
+        );
+    },
+
     eliminarNotificacionesLeidas() {
         return requestJson(
             `${window.VehiAmb.API_URL}/notificaciones/leidas`,
