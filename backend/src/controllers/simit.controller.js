@@ -35,6 +35,7 @@ exports.getValorHistorico = async (req, res) => {
 };
 
 exports.getInfractorTop = async (req, res) => {
-  const infractor = await simitService.obtenerInfractorConMasComparendos(req.empresaId);
-  res.json(infractor || null);
+  const limite = Number(req.query.limite) || 3;
+  const infractores = await simitService.obtenerTopInfractores(req.empresaId, limite);
+  res.json(infractores);
 };

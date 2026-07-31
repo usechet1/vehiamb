@@ -2020,8 +2020,29 @@ label[for="loginPassword"] {
     color: var(--color-ink);
 }
 
-.kpi-value-compact {
-    font-size: 1.05rem;
+.kpi-top-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 2px;
+}
+
+.kpi-top-item {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--color-ink);
+}
+
+.kpi-top-item.clickable-record {
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 1px 4px;
+    margin: 0 -4px;
+}
+
+.kpi-top-item.clickable-record:hover,
+.kpi-top-item.clickable-record:focus-visible {
+    background: var(--color-surface-2);
 }
 
 .kpi-sub {

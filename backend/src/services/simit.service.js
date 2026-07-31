@@ -221,8 +221,8 @@ async function obtenerValorHistorico(empresaId, dias = 30) {
   return simitConsultasRepository.sumValorTotalHaceDias(dias, empresaId);
 }
 
-async function obtenerInfractorConMasComparendos(empresaId) {
-  return simitComparendosRepository.findInfractorConMasComparendos(empresaId);
+async function obtenerTopInfractores(empresaId, limite = 3) {
+  return simitComparendosRepository.findTopInfractores(empresaId, limite);
 }
 
 async function listarHistorialVehiculo(vehiculoId, empresaId) {
@@ -251,5 +251,5 @@ module.exports = {
   listarHistorialVehiculo,
   obtenerConsultaDetalle,
   obtenerValorHistorico,
-  obtenerInfractorConMasComparendos
+  obtenerTopInfractores
 };
