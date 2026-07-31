@@ -118,8 +118,8 @@ function renderRow(item) {
         <tr>
             <td>${escapeHtml(nombreCompleto(item))}</td>
             <td>${escapeHtml(item.cedula || "--")}</td>
-            <td>${escapeHtml(item.telefono || "--")}</td>
-            <td>${escapeHtml(item.email || "--")}</td>
+            <td class="conductores-col-telefono">${escapeHtml(item.telefono || "--")}</td>
+            <td class="conductores-col-correo">${escapeHtml(item.email || "--")}</td>
             <td>${escapeHtml(item.licencias_resumen || "Sin licencias")}</td>
             <td><span class="badge ${item.estado === "activo" ? "badge-verde" : "badge-rojo"}">${item.estado === "activo" ? "Activo" : "Inactivo"}</span></td>
             <td><button type="button" class="btn-secondary" data-editar-conductor="${item.id}">Editar</button></td>
@@ -134,7 +134,7 @@ async function cargarConductores() {
             search: conductoresSearch.value || undefined,
             estado: conductoresFiltroEstado.value || undefined,
             page: currentPage,
-            limit: 20
+            limit: 3
         });
 
         totalPages = resultado.totalPages;

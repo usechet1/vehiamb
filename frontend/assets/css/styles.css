@@ -4025,6 +4025,20 @@ button.record-link {
         flex-direction: column;
     }
 
+    /* Tabla de conductores: en pantallas angostas se ocultan telefono/correo
+       (ya visibles al editar el conductor) para que el resto de columnas
+       quepa sin depender tanto del scroll horizontal de .table-scroll. */
+    #conductoresTable .conductores-col-telefono,
+    #conductoresTable .conductores-col-correo {
+        display: none;
+    }
+
+    #conductorLicenciasTableBody td:last-child {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
     .vehicle-detail-actions {
         flex-direction: row;
         flex-wrap: wrap;
