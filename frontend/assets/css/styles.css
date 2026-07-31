@@ -2020,6 +2020,10 @@ label[for="loginPassword"] {
     color: var(--color-ink);
 }
 
+.kpi-value-compact {
+    font-size: 1.05rem;
+}
+
 .kpi-sub {
     color: var(--color-muted);
     font-size: 0.78rem;
