@@ -5,7 +5,11 @@
 //   node scripts/resend-notificacion.js            (toma la mas reciente de SIMIT)
 require("dotenv").config();
 const db = require("../src/database/query");
-const whatsappChannel = require("../src/services/notificaciones-whatsapp.channel");
+// Pasa por el service (no llama directo al canal) para reusar el mismo
+// completado de detalle_comparendos que ya tiene el boton "Reenviar por
+// WhatsApp" de la app -- asi las notificaciones de SIMIT viejas (creadas
+// antes de guardar ese detalle) tambien salen con fecha/descripcion.
+const notificacionesService = require("../src/services/notificaciones.service");
 
 async function main() {
   const id = process.argv[2];
@@ -25,7 +29,7 @@ async function main() {
   }
 
   console.log(`Reenviando notificacion #${row.id} (${row.tipo}):`, row.mensaje);
-  await whatsappChannel(row);
+  await notificacionesService.reenviarPorWhatsapp(row.id, { id: row.usuario_id, empresa_id: row.empresa_id });
   console.log("Listo -- revisa el WhatsApp del usuario destino.");
 }
 
