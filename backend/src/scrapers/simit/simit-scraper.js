@@ -190,7 +190,14 @@ async function leerDatosConductor(page) {
       const candidatos = Array.from(root.querySelectorAll("*")).filter((el) => textoPropio(el) === "Datos conductor");
       if (!candidatos.length) return null;
       const titulo = candidatos[candidatos.length - 1];
-      return titulo.closest("div") || titulo.parentElement;
+      // El contenido real vive en el <div> inmediatamente siguiente al <h6>
+      // "Datos conductor" (fila "row bg-light no-gutters p-3"), NO en su
+      // ancestro comun con el resto de "Informacion comparendo" -- ese
+      // ancestro (via closest("div")) ya tiene contenido poblado desde el
+      // primer instante (No. comparendo, Placa, etc.), lo que hacia que la
+      // espera de "campos poblados" (mas abajo) diera falso positivo antes
+      // de que Angular terminara de poblar esta seccion en particular.
+      return titulo.nextElementSibling || titulo.parentElement;
     }
 
     function leerCampo(seccion, etiqueta) {
@@ -297,10 +304,15 @@ async function leerInfractor(page, fila, indice) {
           }
           const candidatos = Array.from(document.querySelectorAll("*")).filter((el) => textoPropio(el) === "Datos conductor");
           if (!candidatos.length) return false;
-          const seccion = candidatos[candidatos.length - 1].closest("div") || candidatos[candidatos.length - 1].parentElement;
+          const titulo = candidatos[candidatos.length - 1];
+          // Mismo scoping que buscarSeccion() en leerDatosConductor: la fila
+          // real de "Datos conductor" es el siguiente hermano del <h6>, no su
+          // ancestro comun con el resto de la tarjeta (que ya viene poblado
+          // de entrada y causaba un falso positivo aqui).
+          const seccion = titulo.nextElementSibling || titulo.parentElement;
           if (!seccion) return false;
           return Array.from(seccion.children).some((child) => child.nodeType === 1 && child.textContent.trim().length > 0);
-        }, { timeout: 4000 })
+        }, { timeout: 6000 })
         .then(() => true)
         .catch(() => false);
     }
