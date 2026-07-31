@@ -419,6 +419,10 @@ async function extraerMuestraComparendos(page) {
     resultados.push({
       numero_comparendo: numeroMatch ? numeroMatch[0] : celdas.tipo.split("\n")[0].trim(),
       fecha_infraccion: fechaMatch ? toIsoDate(fechaMatch[0]) : null,
+      // Código corto de la columna "Infracción" (ej. "D04", "C31"), distinto
+      // de la descripción larga del popover -- antes se descartaba cuando
+      // habia popover, ahora se guarda aparte como numero_infraccion.
+      numero_infraccion: celdas.infraccionResumen || null,
       descripcion: (celdas.infraccionDetalle || celdas.infraccionResumen || null),
       valor: parseValor(celdas.valorAPagar),
       estado: detectarEstado(celdas.estado),

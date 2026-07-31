@@ -9,6 +9,17 @@
         return String(value);
     }
 
+    // Si el comparendo ya quedo vinculado a un conductor registrado (match
+    // automatico fuerte), se exporta su nombre real sin mascara en vez del
+    // dato crudo y enmascarado de SIMIT (mismo criterio que simit.js
+    // nombreInfractorReal()).
+    function nombreInfractorReal(item) {
+        if (item.conductor_id) {
+            return `${item.conductor_nombres || ""} ${item.conductor_apellidos || ""}`.trim() || item.nombre_infractor;
+        }
+        return item.nombre_infractor;
+    }
+
     function buildFileName(row, extension) {
         const placa = String(row.placa || "SINPLACA").replace(/\s+/g, "").toUpperCase();
         const fecha = new Date().toISOString().slice(0, 10);
@@ -107,17 +118,18 @@
             return;
         }
 
-        const colX = [MARGIN_X, MARGIN_X + 70, MARGIN_X + 135, MARGIN_X + 340, MARGIN_X + 410, MARGIN_X + 480, MARGIN_X + 580];
+        const colX = [MARGIN_X, MARGIN_X + 70, MARGIN_X + 140, MARGIN_X + 200, MARGIN_X + 400, MARGIN_X + 460, MARGIN_X + 520, MARGIN_X + 600];
 
         doc.setFont(undefined, "bold");
         doc.setFontSize(8);
         doc.text("Número", colX[0], layout.y);
-        doc.text("Fecha", colX[1], layout.y);
-        doc.text("Descripción", colX[2], layout.y);
-        doc.text("Valor", colX[3], layout.y);
-        doc.text("Estado", colX[4], layout.y);
-        doc.text("Cédula infractor", colX[5], layout.y);
-        doc.text("Nombre infractor", colX[6], layout.y);
+        doc.text("Núm. infracción", colX[1], layout.y);
+        doc.text("Fecha", colX[2], layout.y);
+        doc.text("Descripción", colX[3], layout.y);
+        doc.text("Valor", colX[4], layout.y);
+        doc.text("Estado", colX[5], layout.y);
+        doc.text("Cédula infractor", colX[6], layout.y);
+        doc.text("Nombre infractor", colX[7], layout.y);
         layout.spacer(6);
         doc.line(MARGIN_X, layout.y, layout.pageWidth - MARGIN_X, layout.y);
         layout.spacer(14);
@@ -125,19 +137,21 @@
 
         comparendos.forEach((item) => {
             const numeroLines = doc.splitTextToSize(safe(item.numero_comparendo), 65);
-            const descripcionLines = doc.splitTextToSize(safe(item.descripcion, "Sin descripción"), 195);
-            const nombreLines = doc.splitTextToSize(safe(item.nombre_infractor, "—"), 175);
-            const maxLines = Math.max(1, numeroLines.length, descripcionLines.length, nombreLines.length);
+            const numeroInfraccionLines = doc.splitTextToSize(safe(item.numero_infraccion), 55);
+            const descripcionLines = doc.splitTextToSize(safe(item.descripcion, "Sin descripción"), 190);
+            const nombreLines = doc.splitTextToSize(safe(nombreInfractorReal(item), "—"), 155);
+            const maxLines = Math.max(1, numeroLines.length, numeroInfraccionLines.length, descripcionLines.length, nombreLines.length);
             const rowHeight = maxLines * ROW_LINE_HEIGHT + 4;
 
             layout.ensureSpace(rowHeight);
             doc.text(numeroLines, colX[0], layout.y);
-            doc.text(item.fecha_infraccion ? window.VehiAmb.pdfExport.formatDateForPdf(item.fecha_infraccion) : "Sin fecha", colX[1], layout.y);
-            doc.text(descripcionLines, colX[2], layout.y);
-            doc.text(formatCurrency(item.valor), colX[3], layout.y);
-            doc.text(safe(item.estado), colX[4], layout.y);
-            doc.text(safe(item.cedula_infractor, "—"), colX[5], layout.y);
-            doc.text(nombreLines, colX[6], layout.y);
+            doc.text(numeroInfraccionLines, colX[1], layout.y);
+            doc.text(item.fecha_infraccion ? window.VehiAmb.pdfExport.formatDateForPdf(item.fecha_infraccion) : "Sin fecha", colX[2], layout.y);
+            doc.text(descripcionLines, colX[3], layout.y);
+            doc.text(formatCurrency(item.valor), colX[4], layout.y);
+            doc.text(safe(item.estado), colX[5], layout.y);
+            doc.text(safe(item.cedula_infractor, "—"), colX[6], layout.y);
+            doc.text(nombreLines, colX[7], layout.y);
             layout.spacer(rowHeight);
         });
 
@@ -196,7 +210,7 @@
         doc.save(buildFileName(row, "pdf"));
     }
 
-    const EXCEL_COLUMN_COUNT = 7;
+    const EXCEL_COLUMN_COUNT = 8;
 
     async function exportComparendosExcel({ row, detalle, estado }) {
         if (!row) {
@@ -210,7 +224,7 @@
 
         const workbook = excel.createWorkbook();
         const sheet = workbook.addWorksheet("Comparendos SIMIT");
-        excel.setColumnWidths(sheet, [22, 14, 32, 14, 14, 18, 24]);
+        excel.setColumnWidths(sheet, [22, 16, 14, 32, 14, 14, 18, 24]);
 
         excel.addTitleBar(sheet, {
             title: "Reporte de comparendos SIMIT",
@@ -230,7 +244,7 @@
         sheet.addRow([]);
 
         excel.addSectionHeader(sheet, "Comparendos de la última consulta", EXCEL_COLUMN_COUNT);
-        excel.addTableHeaderRow(sheet, ["Número", "Fecha", "Descripción", "Valor", "Estado", "Cédula infractor", "Nombre infractor"]);
+        excel.addTableHeaderRow(sheet, ["Número", "Núm. infracción", "Fecha", "Descripción", "Valor", "Estado", "Cédula infractor", "Nombre infractor"]);
 
         if (comparendos.length) {
             comparendos.forEach((item, index) => {
@@ -238,19 +252,20 @@
                     sheet,
                     [
                         safe(item.numero_comparendo),
+                        safe(item.numero_infraccion),
                         item.fecha_infraccion ? excel.formatDateForExcel(item.fecha_infraccion) : "Sin fecha",
                         safe(item.descripcion, "Sin descripción"),
                         Number(item.valor || 0),
                         safe(item.estado),
                         safe(item.cedula_infractor, "—"),
-                        safe(item.nombre_infractor, "—")
+                        safe(nombreInfractorReal(item), "—")
                     ],
                     { band: index % 2 === 1 }
                 );
-                dataRow.getCell(4).numFmt = "$#,##0";
+                dataRow.getCell(5).numFmt = "$#,##0";
             });
         } else {
-            excel.addTableDataRow(sheet, ["No hay comparendos registrados en esta consulta.", "", "", "", "", "", ""]);
+            excel.addTableDataRow(sheet, ["No hay comparendos registrados en esta consulta.", "", "", "", "", "", "", ""]);
         }
 
         excel.addFooterRow(sheet, FOOTER_TEXT(branding?.nombreEmpresa), EXCEL_COLUMN_COUNT);
