@@ -118,12 +118,12 @@
             return;
         }
 
-        const colX = [MARGIN_X, MARGIN_X + 70, MARGIN_X + 140, MARGIN_X + 200, MARGIN_X + 400, MARGIN_X + 460, MARGIN_X + 520, MARGIN_X + 600];
+        const colX = [MARGIN_X, MARGIN_X + 100, MARGIN_X + 150, MARGIN_X + 210, MARGIN_X + 400, MARGIN_X + 460, MARGIN_X + 520, MARGIN_X + 600];
 
         doc.setFont(undefined, "bold");
         doc.setFontSize(8);
         doc.text("Número", colX[0], layout.y);
-        doc.text("Núm. infracción", colX[1], layout.y);
+        doc.text("No.", colX[1], layout.y);
         doc.text("Fecha", colX[2], layout.y);
         doc.text("Descripción", colX[3], layout.y);
         doc.text("Valor", colX[4], layout.y);
@@ -136,8 +136,8 @@
         doc.setFont(undefined, "normal");
 
         comparendos.forEach((item) => {
-            const numeroLines = doc.splitTextToSize(safe(item.numero_comparendo), 65);
-            const numeroInfraccionLines = doc.splitTextToSize(safe(item.numero_infraccion), 55);
+            const numeroLines = doc.splitTextToSize(safe(item.numero_comparendo), 95);
+            const numeroInfraccionLines = doc.splitTextToSize(safe(item.numero_infraccion), 45);
             const descripcionLines = doc.splitTextToSize(safe(item.descripcion, "Sin descripción"), 190);
             const nombreLines = doc.splitTextToSize(safe(nombreInfractorReal(item), "—"), 155);
             const maxLines = Math.max(1, numeroLines.length, numeroInfraccionLines.length, descripcionLines.length, nombreLines.length);
@@ -224,7 +224,7 @@
 
         const workbook = excel.createWorkbook();
         const sheet = workbook.addWorksheet("Comparendos SIMIT");
-        excel.setColumnWidths(sheet, [22, 16, 14, 32, 14, 14, 18, 24]);
+        excel.setColumnWidths(sheet, [26, 10, 14, 32, 14, 14, 18, 24]);
 
         excel.addTitleBar(sheet, {
             title: "Reporte de comparendos SIMIT",
@@ -244,7 +244,7 @@
         sheet.addRow([]);
 
         excel.addSectionHeader(sheet, "Comparendos de la última consulta", EXCEL_COLUMN_COUNT);
-        excel.addTableHeaderRow(sheet, ["Número", "Núm. infracción", "Fecha", "Descripción", "Valor", "Estado", "Cédula infractor", "Nombre infractor"]);
+        excel.addTableHeaderRow(sheet, ["Número", "No.", "Fecha", "Descripción", "Valor", "Estado", "Cédula infractor", "Nombre infractor"]);
 
         if (comparendos.length) {
             comparendos.forEach((item, index) => {

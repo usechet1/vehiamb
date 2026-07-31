@@ -480,7 +480,7 @@ function renderComparendosTable(comparendos) {
                 <thead>
                     <tr>
                         <th>Número</th>
-                        <th>Número infracción</th>
+                        <th>No.</th>
                         <th>Fecha</th>
                         <th>Descripción</th>
                         <th>Valor</th>
