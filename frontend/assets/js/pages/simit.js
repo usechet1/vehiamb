@@ -2,6 +2,7 @@ const kpisGrid = document.getElementById("simitKpisGrid");
 const filterForm = document.getElementById("simitFilterForm");
 const filterVehiculo = document.getElementById("filterSimitVehiculo");
 const filterEstado = document.getElementById("filterSimitEstado");
+const filterConductor = document.getElementById("filterSimitConductor");
 const filterFechaDesde = document.getElementById("filterSimitFechaDesde");
 const filterFechaHasta = document.getElementById("filterSimitFechaHasta");
 const filterSummary = document.getElementById("simitFilterSummary");
@@ -302,14 +303,39 @@ function fillVehiculoFilterOptions(rows) {
     }
 }
 
+// Opciones del filtro por conductor: solo conductores que aparecen como
+// infractores identificados en la ultima consulta de algun vehiculo (ver
+// comparendo-conductor-matcher.js), no el catalogo completo de conductores.
+function fillConductorFilterOptions(rows) {
+    const previousValue = filterConductor.value;
+    const conductores = new Map();
+
+    rows.forEach((row) => {
+        (row.conductores || []).forEach((conductor) => {
+            if (conductor.id) conductores.set(conductor.id, conductor.nombre);
+        });
+    });
+
+    const ordenados = [...conductores.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+
+    filterConductor.innerHTML = '<option value="">Todos los conductores</option>' +
+        ordenados.map(([id, nombre]) => `<option value="${id}">${escapeHtml(nombre)}</option>`).join("");
+
+    if (previousValue && conductores.has(Number(previousValue))) {
+        filterConductor.value = previousValue;
+    }
+}
+
 function matchesFilters(row) {
     const vehiculoId = filterVehiculo.value;
     const estado = filterEstado.value;
+    const conductorId = filterConductor.value;
     const fechaDesde = filterFechaDesde.value;
     const fechaHasta = filterFechaHasta.value;
 
     if (vehiculoId && String(row.vehiculo_id) !== vehiculoId) return false;
     if (estado && deriveEstadoCartera(row) !== estado) return false;
+    if (conductorId && !(row.conductores || []).some((conductor) => String(conductor.id) === conductorId)) return false;
 
     if (fechaDesde || fechaHasta) {
         if (!row.fecha_consulta) return false;
@@ -323,7 +349,7 @@ function matchesFilters(row) {
 
 function updateFilterSummary(filteredCount) {
     const total = flotaState.length;
-    const hasFilters = Boolean(filterVehiculo.value || filterEstado.value || filterFechaDesde.value || filterFechaHasta.value);
+    const hasFilters = Boolean(filterVehiculo.value || filterEstado.value || filterConductor.value || filterFechaDesde.value || filterFechaHasta.value);
 
     if (!total) {
         filterSummary.textContent = "Aún no hay vehículos registrados.";
@@ -393,6 +419,7 @@ async function cargarFlota() {
         flotaState = flota;
         renderSummary(flotaState, valorHistorico, infractorTop);
         fillVehiculoFilterOptions(flotaState);
+        fillConductorFilterOptions(flotaState);
         applyFilters();
     } catch (error) {
         console.error(error);
@@ -620,7 +647,7 @@ filterForm.addEventListener("submit", (event) => {
     event.preventDefault();
 });
 
-[filterVehiculo, filterEstado, filterFechaDesde, filterFechaHasta].forEach((input) => {
+[filterVehiculo, filterEstado, filterConductor, filterFechaDesde, filterFechaHasta].forEach((input) => {
     input.addEventListener("input", applyFilters);
     input.addEventListener("change", applyFilters);
 });

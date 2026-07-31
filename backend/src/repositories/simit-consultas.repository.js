@@ -94,13 +94,20 @@ async function findUltimoEstadoPorFlota(filters = {}, empresaId) {
         ultimas.estado_cartera,
         ultimas.total_comparendos,
         ultimas.valor_total,
-        ultimas.mensaje_error
+        ultimas.mensaje_error,
+        COALESCE(conductores_ultima.conductores, '[]'::jsonb) AS conductores
       FROM vehiculos v
       LEFT JOIN (
         SELECT DISTINCT ON (sc.vehiculo_id) sc.*
         FROM simit_consultas sc
         ORDER BY sc.vehiculo_id, sc.fecha_consulta DESC, sc.id DESC
       ) ultimas ON ultimas.vehiculo_id = v.id
+      LEFT JOIN LATERAL (
+        SELECT JSONB_AGG(DISTINCT JSONB_BUILD_OBJECT('id', comp.conductor_id, 'nombre', c.nombres || ' ' || c.apellidos)) AS conductores
+        FROM simit_comparendos comp
+        LEFT JOIN conductores c ON c.id = comp.conductor_id
+        WHERE comp.consulta_id = ultimas.id AND comp.conductor_id IS NOT NULL
+      ) conductores_ultima ON true
       ${whereClause}
       ORDER BY ultimas.fecha_consulta DESC NULLS LAST, v.placa ASC
     `,
