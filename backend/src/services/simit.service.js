@@ -221,8 +221,53 @@ async function obtenerValorHistorico(empresaId, dias = 30) {
   return simitConsultasRepository.sumValorTotalHaceDias(dias, empresaId);
 }
 
+// Junta, dentro de una misma cedula_infractor, las filas cuyo nombre es una
+// variante compatible entre si (ver nombresCompatibles) -- ej. SIMIT
+// devolviendo "MAI*** ES*** MART****" en una consulta y "MAI*** ES***
+// MART**** QUI****" en otra para la misma persona. Filas con nombres
+// incompatibles bajo la misma cedula (indicio de que dos personas reales
+// distintas comparten el mismo prefijo de cedula enmascarado) quedan como
+// grupos separados, cada una con su propio total.
+function agruparInfractoresPorIdentidad(conteos) {
+  const porCedula = new Map();
+  conteos.forEach((fila) => {
+    const lista = porCedula.get(fila.cedula_infractor) || [];
+    lista.push(fila);
+    porCedula.set(fila.cedula_infractor, lista);
+  });
+
+  const grupos = [];
+  porCedula.forEach((filas) => {
+    const pendientes = [...filas];
+
+    while (pendientes.length) {
+      const base = pendientes.shift();
+      const compatibles = [base];
+
+      for (let i = pendientes.length - 1; i >= 0; i -= 1) {
+        if (comparendoMatcher.nombresCompatibles(base.nombre_infractor, pendientes[i].nombre_infractor)) {
+          compatibles.push(...pendientes.splice(i, 1));
+        }
+      }
+
+      const nombreRepresentativo = compatibles.reduce((mejor, actual) =>
+        String(actual.nombre_infractor).length > String(mejor.nombre_infractor).length ? actual : mejor
+      );
+
+      grupos.push({
+        cedula_infractor: base.cedula_infractor,
+        nombre_infractor: nombreRepresentativo.nombre_infractor,
+        total_comparendos: compatibles.reduce((suma, fila) => suma + Number(fila.total_comparendos), 0)
+      });
+    }
+  });
+
+  return grupos.sort((a, b) => b.total_comparendos - a.total_comparendos);
+}
+
 async function obtenerTopInfractores(empresaId, limite = 5) {
-  return simitComparendosRepository.findTopInfractores(empresaId, limite);
+  const conteos = await simitComparendosRepository.findConteosInfractores(empresaId);
+  return agruparInfractoresPorIdentidad(conteos).slice(0, limite);
 }
 
 async function listarHistorialVehiculo(vehiculoId, empresaId) {

@@ -37,6 +37,46 @@ function coincideCedula(cedulaEnmascarada, cedulaReal) {
   return coincideConMascara(String(cedulaEnmascarada).trim(), String(cedulaReal).trim());
 }
 
+// Version simetrica de coincideConMascara para comparar DOS valores
+// enmascarados entre si (ej. dos nombre_infractor de distintas consultas
+// SIMIT), donde cualquiera de los dos puede tener "*" en una posicion dada.
+function coincideMascaraSimetrica(a, b) {
+  if (!a || !b || a.length !== b.length) return false;
+
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] === "*" || b[i] === "*") continue;
+    if (a[i] !== b[i]) return false;
+  }
+
+  return true;
+}
+
+// Dos nombres enmascarados de SIMIT (mismo cedula_infractor) se consideran la
+// misma persona si el conjunto de palabras del mas corto calza, palabra por
+// palabra (sin reutilizar, sin importar el orden), dentro del conjunto de
+// palabras del mas largo -- SIMIT no siempre revela el mismo numero de
+// apellidos/nombres entre una consulta y otra. Si alguna palabra no tiene
+// coincidencia compatible, se asume que son personas distintas que
+// comparten el mismo prefijo de cedula visible (SIMIT enmascara siempre la
+// misma cantidad de digitos finales, asi que colisiones de prefijo entre
+// personas reales distintas son posibles).
+function nombresCompatibles(nombreA, nombreB) {
+  const tokensA = normalizarTexto(nombreA).split(/\s+/).filter(Boolean);
+  const tokensB = normalizarTexto(nombreB).split(/\s+/).filter(Boolean);
+  if (!tokensA.length || !tokensB.length) return false;
+
+  const [cortas, largas] = tokensA.length <= tokensB.length ? [tokensA, tokensB] : [tokensB, tokensA];
+  const disponibles = [...largas];
+
+  for (const token of cortas) {
+    const indice = disponibles.findIndex((palabra) => coincideMascaraSimetrica(token, palabra));
+    if (indice === -1) return false;
+    disponibles.splice(indice, 1);
+  }
+
+  return true;
+}
+
 // El nombre completo enmascarado llega en un orden que no necesariamente
 // coincide con como esta guardado "nombres"/"apellidos" en el conductor (SIMIT
 // usa el orden "Apellidos Nombres" del documento de identidad). Se compara
@@ -75,5 +115,6 @@ function encontrarConductorCoincidente(comparendo, conductores) {
 module.exports = {
   coincideCedula,
   coincideNombreCompleto,
+  nombresCompatibles,
   encontrarConductorCoincidente
 };
