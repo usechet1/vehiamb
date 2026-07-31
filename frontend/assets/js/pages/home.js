@@ -51,6 +51,19 @@ function formatCurrency(value) {
     return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(Number(value || 0));
 }
 
+// Version corta ("$12,3 M") solo para el valor del KPI "Gasto del mes" -- la
+// tarjeta es angosta y el monto completo ("$ 12.345.678") no cabe sin
+// achicar la letra hasta ilegible o cortarla con "...". El monto completo
+// sigue disponible en el atributo title (tooltip al pasar el mouse).
+function formatCurrencyCompacta(value) {
+    return new Intl.NumberFormat("es-CO", {
+        style: "currency",
+        currency: "COP",
+        notation: "compact",
+        maximumFractionDigits: 1
+    }).format(Number(value || 0));
+}
+
 function perteneceAMes(fecha, mes, anio) {
     if (!fecha) return false;
     const date = new Date(`${String(fecha).slice(0, 10)}T00:00:00`);
@@ -200,7 +213,9 @@ function pintarResumen(vehiculos, mantenimientos = [], documentos = [], costosCo
     document.getElementById("total-por-vencer").textContent = vencimientosCercanos.length;
     pintarUrgenciaDocumentos(vencimientosCercanos);
     document.getElementById("total-mantenimientos").textContent = mantenimientosDelMes.length;
-    document.getElementById("total-costo-mes").textContent = formatCurrency(costoMes);
+    const valorCostoMesEl = document.getElementById("total-costo-mes");
+    valorCostoMesEl.textContent = formatCurrencyCompacta(costoMes);
+    valorCostoMesEl.title = formatCurrency(costoMes);
 
     const deltaEl = document.getElementById("costoMesDelta");
     deltaEl.textContent = delta.texto;
