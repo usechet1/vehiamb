@@ -749,6 +749,14 @@ window.VehiAmb.api = {
         );
     },
 
+    getSimitInfractorTop() {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/simit/infractor-top`,
+            undefined,
+            "No se pudo cargar el infractor con más comparendos"
+        );
+    },
+
     getChecklistCatalogo() {
         return requestJson(
             `${window.VehiAmb.API_URL}/inspecciones/catalogo`,

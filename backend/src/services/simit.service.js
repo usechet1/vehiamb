@@ -208,6 +208,10 @@ async function obtenerValorHistorico(empresaId, dias = 30) {
   return simitConsultasRepository.sumValorTotalHaceDias(dias, empresaId);
 }
 
+async function obtenerInfractorConMasComparendos(empresaId) {
+  return simitComparendosRepository.findInfractorConMasComparendos(empresaId);
+}
+
 async function listarHistorialVehiculo(vehiculoId, empresaId) {
   const vehiculo = await vehiculosRepository.findById(vehiculoId, empresaId);
   if (!vehiculo) {
@@ -233,5 +237,6 @@ module.exports = {
   listarEstadoFlota,
   listarHistorialVehiculo,
   obtenerConsultaDetalle,
-  obtenerValorHistorico
+  obtenerValorHistorico,
+  obtenerInfractorConMasComparendos
 };
