@@ -80,37 +80,33 @@ async function actualizarConductor(id, conductorId, empresaId) {
   );
 }
 
-// Personas (por cedula_infractor) con mas comparendos distintos en toda la
-// flota. Se cuenta DISTINCT numero_comparendo porque cada consulta SIMIT
-// reinserta su propia muestra de filas (ver bulkCreate) -- el mismo
-// comparendo puede quedar duplicado entre varias consultas del mismo
-// vehiculo si no cambio, y contar filas crudas lo sobrestimaria.
-// Se agrupa solo por cedula_infractor (no tambien por nombre_infractor):
-// SIMIT no siempre enmascara el nombre con la misma cantidad de palabras
-// entre consultas del mismo infractor, y agrupar por ambos campos partia a
-// la misma persona en varias filas. De los nombres vistos para esa cedula se
-// usa el mas largo como representativo (mas palabras = version mas completa).
-async function findTopInfractores(empresaId, limite = 5) {
+// Conteos crudos por cedula_infractor + nombre_infractor exactos, SIN
+// colapsar por cedula sola: SIMIT enmascara siempre la misma cantidad de
+// digitos finales de la cedula, asi que personas reales distintas pueden
+// compartir el mismo cedula_infractor visible (mismo prefijo) -- agrupar
+// solo por cedula mezclaria infracciones de gente distinta bajo un mismo
+// nombre. El agrupamiento tolerante a variantes de nombre (para el mismo
+// cedula_infractor) se hace en el service, comparando los nombres entre si
+// con coincidencia de mascara (ver comparendo-conductor-matcher.js
+// nombresCompatibles) antes de decidir si dos filas son la misma persona.
+// Se cuenta DISTINCT numero_comparendo porque cada consulta SIMIT reinserta
+// su propia muestra de filas (ver bulkCreate).
+async function findConteosInfractores(empresaId) {
   return db.all(
     `
-      SELECT
-        cedula_infractor,
-        (ARRAY_AGG(nombre_infractor ORDER BY LENGTH(nombre_infractor) DESC))[1] AS nombre_infractor,
-        COUNT(DISTINCT numero_comparendo) AS total_comparendos
+      SELECT cedula_infractor, nombre_infractor, COUNT(DISTINCT numero_comparendo) AS total_comparendos
       FROM simit_comparendos
       WHERE empresa_id = ? AND cedula_infractor IS NOT NULL
-      GROUP BY cedula_infractor
-      ORDER BY total_comparendos DESC
-      LIMIT ?
+      GROUP BY cedula_infractor, nombre_infractor
     `,
-    [empresaId, limite]
+    [empresaId]
   );
 }
 
 module.exports = {
   bulkCreate,
   findByConsulta,
-  findTopInfractores,
+  findConteosInfractores,
   findSinConductorVinculado,
   actualizarConductor
 };
