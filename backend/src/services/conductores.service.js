@@ -9,8 +9,8 @@ const ROL_CONDUCTOR = "Conductor";
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const ESTADOS_VALIDOS = new Set(["activo", "inactivo"]);
-const PAGE_SIZE_OPTIONS = new Set([10, 20, 50, 100]);
-const DEFAULT_LIMIT = 20;
+const PAGE_SIZE_OPTIONS = new Set([3, 10, 20, 50, 100]);
+const DEFAULT_LIMIT = 3;
 
 const CEDULA_REGEX = /^\d{6,10}$/;
 const TELEFONO_REGEX = /^\d{7,10}$/;
