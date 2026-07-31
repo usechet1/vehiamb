@@ -163,7 +163,8 @@ function renderSummary(rows) {
         return acc;
     }, {});
 
-    const orden = ["cobro_coactivo", "con_multas", "acuerdo_pago", "sin_multas", "nunca_consultado", "desconocido"];
+    // "sin_multas" no se repite aqui: ya lo cubre el KPI "Flota al dia".
+    const orden = ["cobro_coactivo", "con_multas", "acuerdo_pago", "nunca_consultado", "desconocido"];
     const peorVehiculo = vehiculoConMasComparendos(rows);
     const valorRiesgo = valorTotalEnRiesgo(rows);
     const alDia = flotaAlDia(rows);
