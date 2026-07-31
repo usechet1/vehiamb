@@ -279,11 +279,12 @@ function renderSummary(rows, valorHistorico, infractorTop) {
         ${topInfractores.length ? `
             <div class="kpi-card kpi-card-wide" style="--kpi-accent: var(--color-primary)">
                 <div class="kpi-label">Top conductores</div>
-                <div class="kpi-top-list">
+                <div class="kpi-top-list kpi-top-list--collapsed" id="topConductoresList">
                     ${topInfractores.map((infractor, indice) => `
                         <div class="kpi-top-item">${indice + 1}. ${escapeHtml(infractor.nombre_infractor || "Nombre no disponible")} (${infractor.total_comparendos})</div>
                     `).join("")}
                 </div>
+                ${topInfractores.length > 5 ? `<button type="button" class="kpi-mini-link" data-accion="toggle-top-conductores">Ver todos (${topInfractores.length})</button>` : ""}
             </div>
         ` : ""}
     `;
