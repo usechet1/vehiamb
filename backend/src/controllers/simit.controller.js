@@ -33,3 +33,8 @@ exports.getValorHistorico = async (req, res) => {
   const valorTotal = await simitService.obtenerValorHistorico(req.empresaId, dias);
   res.json({ valor_total: valorTotal, dias });
 };
+
+exports.getInfractorTop = async (req, res) => {
+  const infractor = await simitService.obtenerInfractorConMasComparendos(req.empresaId);
+  res.json(infractor || null);
+};

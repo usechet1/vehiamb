@@ -51,8 +51,6 @@ const ESTADO_LABELS = {
 // dejarlo explicito y evitar la ambiguedad de "Con multas: 5".
 const ESTADO_KPI_LABEL = {
     nunca_consultado: "Nunca consultados",
-    con_multas: "Vehículos con multas",
-    cobro_coactivo: "Vehículos en cobro coactivo",
     acuerdo_pago: "Vehículos en acuerdo de pago",
     desconocido: "Consulta con error"
 };
@@ -201,23 +199,51 @@ function formatTendencia(actual, anterior, dias) {
     };
 }
 
-function renderSummary(rows, valorHistorico) {
+// Mismo criterio que home.js pintarComparendos(): total de comparendos de
+// la flota (suma de la ultima consulta de cada vehiculo) con un sub-texto
+// que prioriza la novedad mas grave (cobro coactivo > con multas).
+function totalComparendosInfo(rows, conteos) {
+    const total = rows.reduce((sum, row) => sum + Number(row.total_comparendos || 0), 0);
+
+    if (conteos.cobro_coactivo) {
+        return { total, texto: `${conteos.cobro_coactivo} en cobro coactivo`, clase: "kpi-sub-bad", accent: ESTADO_KPI_ACCENT.cobro_coactivo };
+    }
+    if (conteos.con_multas) {
+        return {
+            total,
+            texto: `Afecta a ${conteos.con_multas} vehículo${conteos.con_multas === 1 ? "" : "s"}`,
+            clase: "",
+            accent: ESTADO_KPI_ACCENT.acuerdo_pago
+        };
+    }
+    return { total, texto: total ? "" : "Sin comparendos", clase: "", accent: "var(--color-ink-soft)" };
+}
+
+function renderSummary(rows, valorHistorico, infractorTop) {
     const conteos = rows.reduce((acc, row) => {
         const estado = deriveEstadoCartera(row);
         acc[estado] = (acc[estado] || 0) + 1;
         return acc;
     }, {});
 
-    // "sin_multas" no se repite aqui: ya lo cubre el KPI "Flota al dia".
-    const orden = ["cobro_coactivo", "con_multas", "acuerdo_pago", "nunca_consultado", "desconocido"];
+    // "sin_multas" no se repite aqui: ya lo cubre el KPI "Flota al dia". Los
+    // conteos de "con_multas"/"cobro_coactivo" por vehiculo tampoco se
+    // repiten como tarjetas propias: quedan resumidos en "Total comparendos".
+    const orden = ["acuerdo_pago", "nunca_consultado", "desconocido"];
     const peorVehiculo = vehiculoConMasComparendos(rows);
     const valorRiesgo = valorTotalEnRiesgo(rows);
     const alDia = flotaAlDia(rows);
     const desactualizados = vehiculosDesactualizados(rows);
     const tendencia = valorHistorico ? formatTendencia(valorRiesgo, valorHistorico.valor_total, valorHistorico.dias) : null;
     const conComparendos = rows.filter((row) => Number(row.total_comparendos) > 0).length;
+    const totalComparendos = totalComparendosInfo(rows, conteos);
 
     kpisGrid.innerHTML = `
+        <div class="kpi-card clickable-record" style="--kpi-accent: ${totalComparendos.accent}" data-accion="ranking-comparendos" tabindex="0" role="button" aria-label="Ver vehículos con comparendos">
+            <div class="kpi-label">Total comparendos</div>
+            <div class="kpi-value">${totalComparendos.total}</div>
+            ${totalComparendos.texto ? `<div class="kpi-sub ${totalComparendos.clase}">${totalComparendos.texto}</div>` : ""}
+        </div>
         <div class="kpi-card" style="--kpi-accent: var(--color-primary)">
             <div class="kpi-label">Valor total comparendos</div>
             <div class="kpi-value">${formatCurrency(valorRiesgo)}</div>
@@ -231,7 +257,7 @@ function renderSummary(rows, valorHistorico) {
         ${orden
             .filter((estado) => conteos[estado])
             .map((estado) => `
-                <div class="kpi-card clickable-record${estado === "cobro_coactivo" ? " kpi-card--critical" : ""}" style="--kpi-accent: ${ESTADO_KPI_ACCENT[estado]}" data-filter-estado="${estado}" tabindex="0" role="button" aria-label="Ver vehículos en estado ${estadoLabel(estado)}">
+                <div class="kpi-card clickable-record" style="--kpi-accent: ${ESTADO_KPI_ACCENT[estado]}" data-filter-estado="${estado}" tabindex="0" role="button" aria-label="Ver vehículos en estado ${estadoLabel(estado)}">
                     <div class="kpi-label">${ESTADO_KPI_LABEL[estado] || estadoLabel(estado)}</div>
                     <div class="kpi-value">${conteos[estado]}</div>
                 </div>
@@ -242,6 +268,13 @@ function renderSummary(rows, valorHistorico) {
                 <div class="kpi-label">Más comparendos: ${escapeHtml(peorVehiculo.placa || "Sin placa")}</div>
                 <div class="kpi-value">${peorVehiculo.total_comparendos}</div>
                 ${conComparendos > 1 ? `<button type="button" class="kpi-mini-link" data-accion="ranking-comparendos">Ver ranking completo (${conComparendos})</button>` : ""}
+            </div>
+        ` : ""}
+        ${infractorTop ? `
+            <div class="kpi-card" style="--kpi-accent: var(--color-primary)">
+                <div class="kpi-label">Persona con más comparendos</div>
+                <div class="kpi-value">${infractorTop.total_comparendos}</div>
+                <div class="kpi-sub">${escapeHtml(infractorTop.nombre_infractor || "Nombre no disponible")} · ${escapeHtml(infractorTop.cedula_infractor || "")}</div>
             </div>
         ` : ""}
     `;
@@ -344,12 +377,13 @@ function applyFilters() {
 async function cargarFlota() {
     try {
         window.VehiAmb.ui.show(loader);
-        const [flota, valorHistorico] = await Promise.all([
+        const [flota, valorHistorico, infractorTop] = await Promise.all([
             window.VehiAmb.api.getSimitEstadoFlota(),
-            window.VehiAmb.api.getSimitValorHistorico(30).catch(() => null)
+            window.VehiAmb.api.getSimitValorHistorico(30).catch(() => null),
+            window.VehiAmb.api.getSimitInfractorTop().catch(() => null)
         ]);
         flotaState = flota;
-        renderSummary(flotaState, valorHistorico);
+        renderSummary(flotaState, valorHistorico, infractorTop);
         fillVehiculoFilterOptions(flotaState);
         applyFilters();
     } catch (error) {
@@ -630,6 +664,13 @@ kpisGrid.addEventListener("click", (event) => {
 
 kpisGrid.addEventListener("keydown", (event) => {
     if (event.key !== "Enter" && event.key !== " ") return;
+
+    const rankingButton = event.target.closest('[data-accion="ranking-comparendos"]');
+    if (rankingButton) {
+        event.preventDefault();
+        mostrarRankingComparendos();
+        return;
+    }
 
     const filtroEstado = event.target.closest("[data-filter-estado]");
     if (filtroEstado) {
