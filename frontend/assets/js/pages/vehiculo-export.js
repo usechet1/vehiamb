@@ -393,7 +393,7 @@
         layout.row("Color", vehiculo.color);
         layout.row("Combustible", vehiculo.combustible);
         layout.row("Cilindraje", vehiculo.cilindraje);
-        layout.row("Capacidad de carga", vehiculo.capacidad_carga);
+        layout.row("Capacidad de carga (kg)", vehiculo.capacidad_carga);
         layout.row("Número de chasis (VIN)", vehiculo.numero_chasis);
         layout.row("Número de motor", vehiculo.numero_motor);
         layout.row("Kilometraje actual", formatKm(vehiculo.kilometraje_actual));

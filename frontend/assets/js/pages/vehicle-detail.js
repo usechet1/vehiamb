@@ -189,7 +189,7 @@ function renderFacts(vehiculo) {
         ["Color", vehiculo.color],
         ["Combustible", vehiculo.combustible],
         ["Cilindraje", vehiculo.cilindraje],
-        ["Capacidad de carga", vehiculo.capacidad_carga],
+        ["Capacidad de carga (kg)", vehiculo.capacidad_carga],
         ["Número de chasis (VIN)", vehiculo.numero_chasis],
         ["Número de motor", vehiculo.numero_motor],
         ["Creado", formatDate(vehiculo.created_at?.slice(0, 10))]

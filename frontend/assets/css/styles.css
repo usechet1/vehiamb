@@ -2754,6 +2754,7 @@ label[for="loginPassword"] {
 
 .vehicle-hero {
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-start;
     justify-content: space-between;
     gap: 24px;
@@ -2794,7 +2795,9 @@ label[for="loginPassword"] {
     display: flex;
     flex-wrap: wrap;
     justify-content: flex-end;
+    align-items: center;
     gap: 8px;
+    margin-left: auto;
 }
 
 .vehicle-detail-grid,
@@ -4101,11 +4104,14 @@ button.record-link {
     }
 
     .vehicle-hero {
-        flex-direction: column;
+        padding: 16px 18px;
+        gap: 12px;
     }
 
-    .vehicle-hero-status {
-        justify-content: flex-start;
+    .vehicle-hero-plate {
+        min-height: 36px;
+        padding: 6px 12px;
+        font-size: 1.3rem;
     }
 
     .filter-actions {
