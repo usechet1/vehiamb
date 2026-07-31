@@ -19,14 +19,23 @@ function normalizarCelular(celular) {
   return digitos;
 }
 
-// Para "inspeccion_con_hallazgos" se le agrega al mensaje el listado de
-// items en mal estado (igual que ya hace notificaciones-email.channel.js en
-// HTML) -- la plantilla de WhatsApp solo tiene una variable de texto libre
-// para el cuerpo, asi que aqui se arma con saltos de linea planos ("\n"),
-// que WhatsApp si respeta al renderizar el mensaje.
-function construirMensajeWhatsapp(notificacion) {
-  if (notificacion.tipo !== "inspeccion_con_hallazgos") return notificacion.mensaje;
+// fecha_infraccion llega desde accion_payload ya como string ISO (paso por
+// JSON.stringify/parse en notificaciones.service.js, que serializa los Date
+// de Postgres a ISO), asi que se recorta directo sin pasar por Date/zona
+// horaria.
+function formatFechaComparendo(value) {
+  if (!value) return "";
+  const [anio, mes, dia] = String(value).slice(0, 10).split("-");
+  return anio && mes && dia ? `${dia}/${mes}/${anio}` : "";
+}
 
+// Para "inspeccion_con_hallazgos" y "simit_multa_detectada"/"simit_estado_cambiado"
+// se le agrega al mensaje un listado de detalle (igual que ya hace
+// notificaciones-email.channel.js en HTML) -- la plantilla de WhatsApp solo
+// tiene una variable de texto libre para el cuerpo, asi que aqui se arma con
+// saltos de linea planos ("\n"), que WhatsApp si respeta al renderizar el
+// mensaje.
+function construirMensajeWhatsapp(notificacion) {
   let payload = null;
   if (notificacion.accion_payload) {
     try {
@@ -36,14 +45,33 @@ function construirMensajeWhatsapp(notificacion) {
     }
   }
 
-  const itemsMal = payload?.detalle_inspeccion?.items_mal || [];
-  if (!itemsMal.length) return notificacion.mensaje;
+  if (notificacion.tipo === "inspeccion_con_hallazgos") {
+    const itemsMal = payload?.detalle_inspeccion?.items_mal || [];
+    if (!itemsMal.length) return notificacion.mensaje;
 
-  const listado = itemsMal
-    .map((item) => `- ${item.label}${item.comentario ? `: ${item.comentario}` : ""}`)
-    .join("\n");
+    const listado = itemsMal
+      .map((item) => `- ${item.label}${item.comentario ? `: ${item.comentario}` : ""}`)
+      .join("\n");
 
-  return `${notificacion.mensaje}\n\nÍtems en mal estado:\n${listado}`;
+    return `${notificacion.mensaje}\n\nÍtems en mal estado:\n${listado}`;
+  }
+
+  if (notificacion.tipo === "simit_multa_detectada" || notificacion.tipo === "simit_estado_cambiado") {
+    const comparendos = payload?.detalle_comparendos || [];
+    if (!comparendos.length) return notificacion.mensaje;
+
+    const listado = comparendos
+      .map((item) => {
+        const fecha = formatFechaComparendo(item.fecha_infraccion);
+        const encabezado = `${item.numero_comparendo || "Sin número"}${fecha ? ` (${fecha})` : ""}`;
+        return `- ${encabezado}${item.descripcion ? `\n  ${item.descripcion}` : ""}`;
+      })
+      .join("\n");
+
+    return `${notificacion.mensaje}\n\nDetalle de comparendos:\n${listado}`;
+  }
+
+  return notificacion.mensaje;
 }
 
 /**

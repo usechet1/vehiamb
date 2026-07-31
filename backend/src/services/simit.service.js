@@ -54,13 +54,23 @@ async function notificarNovedades({ vehiculo, consulta, nuevos, cambiosEstado, e
     partes.push(`${cambiosEstado.length} comparendo(s) cambiaron de estado`);
   }
 
+  // Detalle de cada comparendo afectado (numero + fecha + descripcion +
+  // valor) para que el canal de WhatsApp pueda listarlos en el mensaje --
+  // ver notificaciones-whatsapp.channel.js construirMensajeWhatsapp().
+  const detalleComparendos = [...nuevos, ...cambiosEstado].map((item) => ({
+    numero_comparendo: item.numero_comparendo,
+    fecha_infraccion: item.fecha_infraccion,
+    descripcion: item.descripcion,
+    valor: item.valor
+  }));
+
   await notificacionesService.notificarUsuariosConPermiso(DESTINATARIO_PERMISSION, {
     tipo: nuevos.length ? "simit_multa_detectada" : "simit_estado_cambiado",
     mensaje: `SIMIT: el vehiculo ${vehiculoLabel} tiene novedades - ${partes.join(", ")}.`,
     vehiculo_id: vehiculo.id,
     referencia_tipo: "simit_consulta",
     referencia_id: consulta.id,
-    accion: { tipo: "ver_simit", payload: { vehiculo_id: vehiculo.id } }
+    accion: { tipo: "ver_simit", payload: { vehiculo_id: vehiculo.id, detalle_comparendos: detalleComparendos } }
   }, empresaId);
 }
 

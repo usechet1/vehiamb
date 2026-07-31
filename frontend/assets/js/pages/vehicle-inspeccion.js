@@ -453,17 +453,33 @@ async function initInspeccion() {
         return;
     }
 
-    inspeccionPuedeCrear = Boolean(window.VehiAmb.auth?.hasPermission?.("inspections.create"));
+    // "inspections.create" tambien la tienen Administrador/Operador (pueden
+    // registrar inspecciones manualmente si hiciera falta), pero el diagrama
+    // interactivo (el "carrito") es parte del wizard del Conductor -- en la
+    // ficha normal del vehiculo el resto de roles solo debe ver el
+    // historial, no el checklist para marcar.
+    const user = await window.VehiAmb.auth.fetchCurrentUser();
+    const esConductor = user?.rol === "Conductor";
+
+    inspeccionPuedeCrear = esConductor && Boolean(window.VehiAmb.auth?.hasPermission?.("inspections.create"));
     inspeccionVehiculoId = new URLSearchParams(window.location.search).get("id") || "";
     inspeccionViajeId = new URLSearchParams(window.location.search).get("viaje") || "";
     if (!inspeccionVehiculoId) return;
 
-    if (!inspeccionPuedeCrear) {
+    if (!esConductor) {
         document.querySelector(".inspeccion-diagram-wrap")?.classList.add("hidden");
+        document.querySelector(".inspeccion-diagram-legend")?.classList.add("hidden");
         inspeccionPanelEl.classList.add("hidden");
         inspeccionResumenEl.classList.add("hidden");
         guardarInspeccionButton.classList.add("hidden");
         limpiarInspeccionButton.classList.add("hidden");
+
+        const descripcionEl = document.getElementById("inspeccionSectionDescripcion");
+        if (descripcionEl) descripcionEl.textContent = "Historial de inspecciones preventivas registradas para este vehículo.";
+
+        // Sin el diagrama, el historial es el unico contenido de la seccion --
+        // que se vea desplegado de una vez, sin un clic extra para abrirlo.
+        document.querySelector(".inspeccion-historial")?.setAttribute("open", "");
     }
 
     guardarInspeccionButton.addEventListener("click", guardarInspeccion);
