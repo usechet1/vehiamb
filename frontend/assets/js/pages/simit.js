@@ -273,8 +273,7 @@ function renderSummary(rows, valorHistorico, infractorTop) {
                         </div>
                     `).join("")}
                 </div>
-                ${conComparendos > topVehiculos.length ? `<button type="button" class="kpi-mini-link" data-accion="ranking-comparendos">Ver ranking completo (${conComparendos})</button>` : ""}
-            </div>
+                </div>
         ` : ""}
         ${topInfractores.length ? `
             <div class="kpi-card kpi-card-wide" style="--kpi-accent: var(--color-primary)">
