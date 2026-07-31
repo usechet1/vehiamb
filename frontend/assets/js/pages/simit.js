@@ -137,6 +137,25 @@ function vehiculoConMasComparendos(rows) {
     );
 }
 
+// Suma del valor_total (deuda vigente segun la ultima consulta) de todos
+// los vehiculos de la flota, sin importar el estado de cartera -- los que
+// estan "sin multas"/"nunca consultado" ya aportan 0, asi que no hace falta
+// filtrarlos aparte.
+function valorTotalEnRiesgo(rows) {
+    return rows.reduce((total, row) => total + Number(row.valor_total || 0), 0);
+}
+
+// "Al dia" = sin multas vigentes segun la ultima consulta registrada. Los
+// vehiculos "nunca consultados" no cuentan ni a favor ni en contra (no hay
+// forma de saber su estado real), pero si se incluyen en el denominador
+// para que el porcentaje refleje la flota completa.
+function flotaAlDia(rows) {
+    const total = rows.length;
+    const alDia = rows.filter((row) => deriveEstadoCartera(row) === "sin_multas").length;
+    const porcentaje = total ? Math.round((alDia / total) * 100) : 0;
+    return { alDia, total, porcentaje };
+}
+
 function renderSummary(rows) {
     const conteos = rows.reduce((acc, row) => {
         const estado = deriveEstadoCartera(row);
@@ -146,11 +165,22 @@ function renderSummary(rows) {
 
     const orden = ["cobro_coactivo", "con_multas", "acuerdo_pago", "sin_multas", "nunca_consultado", "desconocido"];
     const peorVehiculo = vehiculoConMasComparendos(rows);
+    const valorRiesgo = valorTotalEnRiesgo(rows);
+    const alDia = flotaAlDia(rows);
 
     kpisGrid.innerHTML = `
         <div class="kpi-card" style="--kpi-accent: var(--color-ink-soft)">
             <div class="kpi-label">Total flota</div>
             <div class="kpi-value">${rows.length}</div>
+        </div>
+        <div class="kpi-card" style="--kpi-accent: var(--color-primary)">
+            <div class="kpi-label">Valor total en riesgo</div>
+            <div class="kpi-value">${formatCurrency(valorRiesgo)}</div>
+        </div>
+        <div class="kpi-card" style="--kpi-accent: var(--color-success)">
+            <div class="kpi-label">Flota al día</div>
+            <div class="kpi-value">${alDia.alDia}/${alDia.total}</div>
+            <div class="kpi-sub">${alDia.porcentaje}% sin multas</div>
         </div>
         ${orden
             .filter((estado) => conteos[estado])

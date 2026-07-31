@@ -2020,6 +2020,12 @@ label[for="loginPassword"] {
     color: var(--color-ink);
 }
 
+.kpi-sub {
+    color: var(--color-muted);
+    font-size: 0.78rem;
+    margin-top: 2px;
+}
+
 @media (max-width: 760px) {
     .kpis-grid {
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
