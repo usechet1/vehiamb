@@ -1439,6 +1439,28 @@ label[for="loginPassword"] {
     min-width: 0;
 }
 
+/* Sub-indicador de urgencia (ej. "2 vencen esta semana"), debajo del valor
+   principal -- el color lo pone home.js segun que tan cerca este el
+   vencimiento mas urgente (rojo = ya vencido, naranja = esta semana). */
+.dash-card-sub {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--color-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dash-card-sub.is-danger {
+    color: var(--color-primary);
+}
+
+.dash-card-sub.is-warning {
+    color: var(--color-warning);
+}
+
 .dash-card-delta {
     display: inline-flex;
     align-items: center;

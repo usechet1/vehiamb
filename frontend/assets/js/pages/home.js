@@ -94,6 +94,50 @@ function calcularDeltaCompacto(totalActual, totalAnterior) {
     return { className: "is-flat", texto: "Sin datos" };
 }
 
+function formatDateCorta(value) {
+    if (!value) return "";
+    return new Date(`${String(value).slice(0, 10)}T00:00:00`).toLocaleDateString("es-CO", {
+        day: "2-digit",
+        month: "short"
+    });
+}
+
+// Sub-indicador de urgencia bajo el KPI "Documentos por vencer" -- el numero
+// solo (ej. "6") no dice si son 6 vencimientos dentro de un mes o 6 de hoy,
+// asi que se desglosa por severidad y se colorea la tarjeta acorde (rojo si
+// ya hay vencidos, naranja si vencen esta semana, neutro si es mas lejano).
+function pintarUrgenciaDocumentos(vencimientosCercanos) {
+    const card = document.getElementById("dashCardDocs");
+    const sub = document.getElementById("docsPorVencerSub");
+    if (!card || !sub) return;
+
+    const fechaMasProxima = (lista) => lista.map((doc) => doc.fecha_vencimiento).sort()[0];
+
+    const vencidos = vencimientosCercanos.filter((doc) => daysUntil(doc.fecha_vencimiento) < 0);
+    const estaSemana = vencimientosCercanos.filter((doc) => {
+        const days = daysUntil(doc.fecha_vencimiento);
+        return days >= 0 && days <= 7;
+    });
+
+    if (vencidos.length) {
+        sub.textContent = `${vencidos.length} vencido${vencidos.length === 1 ? "" : "s"} (desde ${formatDateCorta(fechaMasProxima(vencidos))})`;
+        sub.className = "dash-card-sub is-danger";
+        card.style.setProperty("--card-accent", "var(--color-primary)");
+    } else if (estaSemana.length) {
+        sub.textContent = `${estaSemana.length} vence${estaSemana.length === 1 ? "" : "n"} esta semana (${formatDateCorta(fechaMasProxima(estaSemana))})`;
+        sub.className = "dash-card-sub is-warning";
+        card.style.setProperty("--card-accent", "var(--color-warning)");
+    } else if (vencimientosCercanos.length) {
+        sub.textContent = `Próximo: ${formatDateCorta(fechaMasProxima(vencimientosCercanos))}`;
+        sub.className = "dash-card-sub";
+        card.style.removeProperty("--card-accent");
+    } else {
+        sub.textContent = "";
+        sub.className = "dash-card-sub";
+        card.style.removeProperty("--card-accent");
+    }
+}
+
 function pintarResumen(vehiculos, mantenimientos = [], documentos = [], costosCombustibleMes = [], costosCombustibleMesAnterior = []) {
     const vencimientosCercanos = documentos.filter((documento) => {
         const days = daysUntil(documento.fecha_vencimiento);
@@ -122,6 +166,7 @@ function pintarResumen(vehiculos, mantenimientos = [], documentos = [], costosCo
 
     document.getElementById("total-vehiculos").textContent = vehiculos.length;
     document.getElementById("total-por-vencer").textContent = vencimientosCercanos.length;
+    pintarUrgenciaDocumentos(vencimientosCercanos);
     document.getElementById("total-mantenimientos").textContent = mantenimientosDelMes.length;
     document.getElementById("total-costo-mes").textContent = formatCurrency(costoMes);
 
