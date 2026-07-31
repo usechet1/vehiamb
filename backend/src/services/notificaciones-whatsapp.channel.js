@@ -60,15 +60,15 @@ function construirMensajeWhatsapp(notificacion) {
     const comparendos = payload?.detalle_comparendos || [];
     if (!comparendos.length) return notificacion.mensaje;
 
-    const listado = comparendos
-      .map((item) => {
-        const fecha = formatFechaComparendo(item.fecha_infraccion);
-        const encabezado = `${item.numero_comparendo || "Sin número"}${fecha ? ` (${fecha})` : ""}`;
-        return `- ${encabezado}${item.descripcion ? `\n  ${item.descripcion}` : ""}`;
-      })
-      .join("\n");
+    const bloques = comparendos.map((item) => {
+      const fecha = formatFechaComparendo(item.fecha_infraccion);
+      const lineas = [`Comparendo ${item.numero_comparendo || "sin número"}`];
+      if (fecha) lineas.push(`Fecha: ${fecha}`);
+      if (item.descripcion) lineas.push(`\nDescripción\n${item.descripcion}`);
+      return lineas.join("\n");
+    });
 
-    return `${notificacion.mensaje}\n\nDetalle de comparendos:\n${listado}`;
+    return `${notificacion.mensaje}\n\n${bloques.join("\n\n")}`;
   }
 
   return notificacion.mensaje;
