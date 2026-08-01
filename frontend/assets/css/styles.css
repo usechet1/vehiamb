@@ -4406,6 +4406,17 @@ button.record-link {
     line-height: 1;
 }
 
+/* El punto visual se queda en 22px (no encimarse con los vecinos en un
+   diagrama de 160-220px de ancho), pero el area realmente tocable crece a
+   44px via un pseudo-elemento invisible -- por debajo de eso un dedo en
+   movil facilmente toca el punto vecino equivocado (min. recomendado por
+   Apple HIG / WCAG). */
+.inspeccion-hotspot::before {
+    content: "";
+    position: absolute;
+    inset: -11px;
+}
+
 .inspeccion-hotspot:hover {
     transform: translate(-50%, -50%) scale(1.15);
 }
