@@ -1,6 +1,9 @@
+const crypto = require("crypto");
 const HttpError = require("../errors/http-error");
 const vehiculosRepository = require("../repositories/vehiculos.repository");
 const usuariosRepository = require("../repositories/usuarios.repository");
+const conductoresRepository = require("../repositories/conductores.repository");
+const conductoresService = require("./conductores.service");
 const entregasRepository = require("../repositories/entregas-recibidas.repository");
 const itemsRepository = require("../repositories/entrega-items.repository");
 const notificacionesService = require("./notificaciones.service");
@@ -106,6 +109,38 @@ function toSafeEntrega(entrega) {
   };
 }
 
+// Los selects de "quien entrega/recibe" (ver listUsuariosDisponibles) ahora
+// incluyen tambien conductores sin cuenta de usuario, distinguibles por un
+// prefijo en el value ("conductor:12" / "usuario:5" -- sin prefijo se trata
+// como usuario, por compatibilidad). El acta siempre referencia un
+// usuarios.id (asi esta la llave foranea de entregas_recibidas, ver
+// database/init.js), asi que si se elige un conductor sin cuenta se le
+// aprovisiona una automaticamente aqui, con una contrasena aleatoria que el
+// administrador puede reemplazar despues desde su ficha si ese conductor
+// llega a necesitar loguearse.
+async function resolverParticipante(valor, empresaId) {
+  if (!valor) return null;
+
+  const separador = String(valor).indexOf(":");
+  const tipo = separador === -1 ? "usuario" : String(valor).slice(0, separador);
+  const id = separador === -1 ? valor : String(valor).slice(separador + 1);
+
+  if (tipo !== "conductor") {
+    return usuariosRepository.findById(id, empresaId);
+  }
+
+  const conductor = await conductoresRepository.findById(id, empresaId);
+  if (!conductor) return null;
+  if (conductor.usuario_id) {
+    return usuariosRepository.findById(conductor.usuario_id, empresaId);
+  }
+
+  const passwordTemporal = crypto.randomBytes(9).toString("base64");
+  const usuario = await conductoresService.crearUsuarioConductor(conductor, passwordTemporal, empresaId);
+  await conductoresRepository.vincularUsuario(conductor.id, usuario.id, empresaId);
+  return usuario;
+}
+
 async function crear(vehiculoId, payload, archivos, currentUser) {
   const empresaId = currentUser.empresa_id;
   const vehiculo = await vehiculosRepository.findById(vehiculoId, empresaId);
@@ -127,8 +162,8 @@ async function crear(vehiculoId, payload, archivos, currentUser) {
   }
 
   const [usuarioEntrega, usuarioRecibe] = await Promise.all([
-    usuariosRepository.findById(usuarioEntregaId, empresaId),
-    usuariosRepository.findById(usuarioRecibeId, empresaId)
+    resolverParticipante(usuarioEntregaId, empresaId),
+    resolverParticipante(usuarioRecibeId, empresaId)
   ]);
 
   if (!usuarioEntrega) {
@@ -268,7 +303,22 @@ async function obtenerDetalle(entregaId, empresaId) {
 }
 
 async function listUsuariosDisponibles(empresaId) {
-  return usuariosRepository.findAllActivosSimplificado(empresaId);
+  const [usuarios, conductoresSinCuenta] = await Promise.all([
+    usuariosRepository.findAllActivosSimplificado(empresaId),
+    conductoresRepository.findActivosSinUsuario(empresaId)
+  ]);
+
+  const opciones = [
+    ...usuarios.map((usuario) => ({ id: usuario.id, nombre: usuario.nombre, email: usuario.email, tipo: "usuario" })),
+    ...conductoresSinCuenta.map((conductor) => ({
+      id: conductor.id,
+      nombre: `${conductor.nombres} ${conductor.apellidos}`.trim(),
+      email: null,
+      tipo: "conductor"
+    }))
+  ];
+
+  return opciones.sort((a, b) => a.nombre.localeCompare(b.nombre));
 }
 
 module.exports = {

@@ -637,10 +637,14 @@ async function cargarHistorial() {
     }
 }
 
-function renderConductorOptions(select, usuarios) {
+// El value de cada option lleva el prefijo "usuario:"/"conductor:" (ver
+// entregas-recibidas.service.js resolverParticipante en el backend), para
+// poder incluir conductores que todavia no tienen cuenta de usuario sin
+// perder de donde salio cada opcion.
+function renderConductorOptions(select, personas) {
     const seleccionActual = select.value;
-    select.innerHTML = '<option value="">Selecciona...</option>' + usuarios.map((usuario) => `
-        <option value="${usuario.id}">${escapeHtml(usuario.nombre)}${usuario.email ? ` (${escapeHtml(usuario.email)})` : ""}</option>
+    select.innerHTML = '<option value="">Selecciona...</option>' + personas.map((persona) => `
+        <option value="${persona.tipo}:${persona.id}">${escapeHtml(persona.nombre)}${persona.email ? ` (${escapeHtml(persona.email)})` : ""}</option>
     `).join("");
     select.value = seleccionActual;
 }

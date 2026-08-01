@@ -201,5 +201,6 @@ module.exports = {
   listConductores,
   getConductor,
   createConductor,
-  updateConductor
+  updateConductor,
+  crearUsuarioConductor
 };
