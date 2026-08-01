@@ -87,6 +87,24 @@ async function findAllParaMatching(empresaId) {
   return db.all("SELECT id, nombres, apellidos, cedula FROM conductores WHERE empresa_id = ?", [empresaId]);
 }
 
+// Conductores activos sin cuenta de usuario vinculada -- candidatos para
+// aparecer en selects como "quien entrega/recibe" de un acta (ver
+// entregas-recibidas.service.js) sin obligarlos a tener login. Los que ya
+// tienen usuario_id no se listan aqui porque ya aparecen via la tabla
+// usuarios, y listarlos dos veces duplicaria la opcion en el select.
+async function findActivosSinUsuario(empresaId) {
+  return db.all(
+    "SELECT id, nombres, apellidos FROM conductores WHERE empresa_id = ? AND usuario_id IS NULL AND estado = 'activo'",
+    [empresaId]
+  );
+}
+
+// Vincula retroactivamente un conductor a una cuenta de usuario creada
+// "sobre la marcha" (ver entregas-recibidas.service.js resolverParticipante).
+async function vincularUsuario(id, usuarioId, empresaId) {
+  return db.run("UPDATE conductores SET usuario_id = ? WHERE id = ? AND empresa_id = ?", [usuarioId, id, empresaId]);
+}
+
 async function create(conductor) {
   const placeholders = FIELDS.map(() => "?").join(", ");
   const values = FIELDS.map((field) => conductor[field] ?? null);
@@ -109,6 +127,8 @@ module.exports = {
   findById,
   findByUsuarioId,
   findAllParaMatching,
+  findActivosSinUsuario,
+  vincularUsuario,
   create,
   update
 };
