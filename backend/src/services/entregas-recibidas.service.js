@@ -86,6 +86,21 @@ function toSafeItem(item) {
   };
 }
 
+// Fotos generales del vehiculo (no ligadas a un punto especifico del
+// diagrama, ver crear()): se guardan como un array JSON en una sola columna
+// en vez de una tabla propia, mismo criterio que detalle_json en
+// simit_comparendos -- es una lista corta y siempre se lee entera junto con
+// el resto del acta, no necesita consultarse por separado.
+function parseFotosGenerales(json) {
+  if (!json) return [];
+  try {
+    const fotos = JSON.parse(json);
+    return Array.isArray(fotos) ? fotos : [];
+  } catch (error) {
+    return [];
+  }
+}
+
 function toSafeEntrega(entrega) {
   return {
     id: entrega.id,
@@ -103,6 +118,7 @@ function toSafeEntrega(entrega) {
     observaciones: entrega.observaciones,
     firma_entrega_url: entrega.firma_entrega_url,
     firma_recibe_url: entrega.firma_recibe_url,
+    fotos_generales: parseFotosGenerales(entrega.fotos_generales_json),
     fecha: entrega.fecha,
     total_items: Number(entrega.total_items || 0),
     total_items_mal: Number(entrega.total_items_mal || 0)
@@ -210,6 +226,15 @@ async function crear(vehiculoId, payload, archivos, currentUser) {
     };
   });
 
+  // Fotos generales del vehiculo (ej. una vista de conjunto, el kilometraje
+  // en el tablero, algo que no corresponde a un punto puntual del diagrama)
+  // -- llegan como campos "foto_general_0", "foto_general_1", etc. (ver
+  // entrega-recibida.js), a diferencia de las fotos por item que van una
+  // sola por campo "foto_<codigo>".
+  const fotosGenerales = (archivos || [])
+    .filter((file) => file.fieldname.startsWith("foto_general_"))
+    .map((file) => ({ url: `/uploads/entregas/${file.filename}`, nombre: file.originalname }));
+
   const kilometraje = payload.kilometraje !== undefined && payload.kilometraje !== "" ? Number(payload.kilometraje) : null;
   if (kilometraje !== null && (!Number.isFinite(kilometraje) || kilometraje < 0)) {
     throw new HttpError(400, "El kilometraje no es válido");
@@ -240,6 +265,7 @@ async function crear(vehiculoId, payload, archivos, currentUser) {
     firma_entrega_nombre: firmaEntrega.originalname,
     firma_recibe_url: `/uploads/entregas/${firmaRecibe.filename}`,
     firma_recibe_nombre: firmaRecibe.originalname,
+    fotos_generales_json: fotosGenerales.length ? JSON.stringify(fotosGenerales) : null,
     empresa_id: empresaId
   });
 
