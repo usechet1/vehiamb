@@ -185,6 +185,40 @@
         }
     }
 
+    // Reutiliza addFirmaImage (misma carga/escala de imagen) para las fotos
+    // generales del vehiculo, en una grilla de 2 columnas -- a diferencia de
+    // las firmas (siempre 2, posiciones fijas), aqui puede haber 0 a N fotos,
+    // asi que hay que ir calculando fila por fila y pidiendo espacio nuevo.
+    async function addFotosGeneralesSection(doc, layout, fotos) {
+        if (!fotos || !fotos.length) return;
+
+        layout.sectionTitle("Fotos generales del vehículo");
+
+        const colWidth = (layout.pageWidth - MARGIN_X * 2 - 20) / 2;
+        const fotoMaxHeight = 140;
+
+        for (let i = 0; i < fotos.length; i += 2) {
+            layout.ensureSpace(fotoMaxHeight + 20);
+            const startY = layout.y;
+            const par = fotos.slice(i, i + 2);
+
+            const alturas = await Promise.all(
+                par.map((foto, indice) =>
+                    addFirmaImage(doc, foto.url, {
+                        x: MARGIN_X + indice * (colWidth + 20),
+                        y: startY,
+                        maxWidth: colWidth,
+                        maxHeight: fotoMaxHeight
+                    })
+                )
+            );
+
+            layout.y = startY + Math.max(...alturas, 40) + 16;
+        }
+
+        layout.spacer(8);
+    }
+
     async function addFirmasSection(doc, layout, entrega) {
         layout.sectionTitle("Firmas");
         layout.ensureSpace(140);
@@ -267,6 +301,7 @@
         layout.spacer();
 
         addChecklistTable(doc, layout, entrega.items);
+        await addFotosGeneralesSection(doc, layout, entrega.fotos_generales);
         await addFirmasSection(doc, layout, entrega);
 
         await addFooter(doc, branding);

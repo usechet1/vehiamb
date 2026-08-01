@@ -12,6 +12,7 @@ const CREATE_FIELDS = [
   "firma_entrega_nombre",
   "firma_recibe_url",
   "firma_recibe_nombre",
+  "fotos_generales_json",
   "empresa_id"
 ];
 

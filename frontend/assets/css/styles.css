@@ -4764,6 +4764,41 @@ button.record-link {
     }
 }
 
+/* ── Entrega y recibida: fotos generales del vehiculo ────────────── */
+.entrega-fotos-generales-lista {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.entrega-fotos-generales-lista .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pill-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: inherit;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.7;
+}
+
+.pill-remove:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.08);
+}
+
 /* ── Entrega y recibida: firma digital (canvas) ──────────────────── */
 .entrega-firmas-grid {
     display: grid;

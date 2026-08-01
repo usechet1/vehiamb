@@ -11,6 +11,8 @@ const entregaKilometrajeHelp = document.getElementById("entregaKilometrajeHelp")
 const entregaConductorEntregaSelect = document.getElementById("entregaConductorEntrega");
 const entregaConductorRecibeSelect = document.getElementById("entregaConductorRecibe");
 const entregaObservacionesInput = document.getElementById("entregaObservaciones");
+const entregaFotosGeneralesInput = document.getElementById("entregaFotosGeneralesInput");
+const entregaFotosGeneralesLista = document.getElementById("entregaFotosGeneralesLista");
 const guardarEntregaButton = document.getElementById("guardarEntregaButton");
 const limpiarEntregaButton = document.getElementById("limpiarEntregaButton");
 const entregaHistorialList = document.getElementById("entregaHistorialList");
@@ -31,6 +33,7 @@ let entregaMarcados = new Map();
 let entregaActivo = null;
 let entregaPuedeCrear = false;
 let entregaDetalleCache = new Map();
+let entregaFotosGenerales = [];
 
 const MOTIVO_LABEL = {
     cambio_conductor: "Cambio de conductor",
@@ -390,12 +393,41 @@ async function resetEntrega({ confirmar = false } = {}) {
     entregaConductorEntregaSelect.value = "";
     entregaConductorRecibeSelect.value = "";
     entregaObservacionesInput.value = "";
+    entregaFotosGenerales = [];
+    renderFotosGeneralesLista();
     firmaEntregaPad?.limpiar();
     firmaRecibePad?.limpiar();
     renderHotspots();
     renderPanel();
     renderResumen();
 }
+
+// Fotos generales del vehiculo (no ligadas a un punto puntual del diagrama,
+// ver el input "multiple" en entrega-recibida.html): se acumulan en
+// entregaFotosGenerales y se agregan al formData al guardar como
+// "foto_general_0", "foto_general_1", etc. (ver entregas-recibidas.service.js).
+function renderFotosGeneralesLista() {
+    entregaFotosGeneralesLista.innerHTML = entregaFotosGenerales.map((file, indice) => `
+        <span class="pill">
+            ${escapeHtml(file.name)}
+            <button type="button" class="pill-remove" data-quitar-foto-general="${indice}" aria-label="Quitar ${escapeHtml(file.name)}">×</button>
+        </span>
+    `).join("");
+}
+
+entregaFotosGeneralesInput?.addEventListener("change", () => {
+    entregaFotosGenerales = [...entregaFotosGenerales, ...Array.from(entregaFotosGeneralesInput.files || [])];
+    entregaFotosGeneralesInput.value = "";
+    renderFotosGeneralesLista();
+});
+
+entregaFotosGeneralesLista?.addEventListener("click", (event) => {
+    const boton = event.target.closest("[data-quitar-foto-general]");
+    if (!boton) return;
+    const indice = Number(boton.dataset.quitarFotoGeneral);
+    entregaFotosGenerales = entregaFotosGenerales.filter((_, i) => i !== indice);
+    renderFotosGeneralesLista();
+});
 
 async function confirmarAdvertenciaEntrega() {
     const totalMal = [...entregaMarcados.values()].filter((item) => item.estado === "mal").length;
@@ -453,6 +485,7 @@ async function guardarEntrega() {
     const kilometrajeValue = window.VehiAmb.ui.parseFormattedNumber(entregaKilometrajeInput.value);
     if (kilometrajeValue !== "") formData.append("kilometraje", kilometrajeValue);
     formData.append("observaciones", entregaObservacionesInput.value.trim());
+    entregaFotosGenerales.forEach((file, indice) => formData.append(`foto_general_${indice}`, file));
 
     try {
         guardarEntregaButton.disabled = true;
@@ -506,6 +539,17 @@ function renderEntregaDrawerBody(detalle) {
             <section class="drawer-section">
                 <h3>Observaciones</h3>
                 <p>${escapeHtml(detalle.observaciones)}</p>
+            </section>
+        ` : ""}
+
+        ${detalle.fotos_generales?.length ? `
+            <section class="drawer-section">
+                <h3>Fotos generales del vehículo</h3>
+                <p>
+                    ${detalle.fotos_generales.map((foto, indice) => `
+                        <a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(foto.url))}" target="_blank" rel="noreferrer">${escapeHtml(foto.nombre || `Foto ${indice + 1}`)}</a>
+                    `).join(" · ")}
+                </p>
             </section>
         ` : ""}
 
