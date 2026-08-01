@@ -3,12 +3,12 @@ const env = require("../config/env");
 const importService = require("../services/import/import.service");
 
 /**
- * Corre cada 4 horas (GASTOS_SYNC_SCHEDULE, default cada 4 horas en punto) y
- * sincroniza el periodo de "hoy" -- para que las filas nuevas o editadas el
- * mismo dia en el Excel de cargues (unidad de red T:) se reflejen en Gastos
- * sin esperar al job diario. No reemplaza a import-scheduler.job.js: ese
- * sigue corriendo de madrugada y finaliza "ayer" como red de seguridad. Si
- * el archivo no cambio desde la ultima corrida de este mismo periodo,
+ * Corre una vez al dia (GASTOS_SYNC_SCHEDULE, default 6am) y sincroniza el
+ * periodo de "hoy" -- para que las filas nuevas o editadas el mismo dia en
+ * el Excel de cargues (unidad de red T:) se reflejen en Gastos sin esperar
+ * al job diario. No reemplaza a import-scheduler.job.js: ese sigue
+ * corriendo de madrugada y finaliza "ayer" como red de seguridad. Si el
+ * archivo no cambio desde la ultima corrida de este mismo periodo,
  * ImportService detecta el hash repetido y no reprocesa nada (estado
  * "sin_cambios").
  */
