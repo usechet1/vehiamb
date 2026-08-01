@@ -26,6 +26,7 @@ const USER_SELECT = `
 // plataforma (una cuenta = una empresa), y el login todavia no sabe a que
 // empresa pertenece el usuario hasta despues de encontrarlo por email.
 async function findByEmail(email) {
+  if (!email) return null;
   return db.get(`${USER_SELECT} WHERE LOWER(u.email) = ?`, [email.toLowerCase()]);
 }
 

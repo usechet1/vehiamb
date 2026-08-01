@@ -97,6 +97,10 @@ async function getConductor(id, empresaId) {
 // contrasena la escribe el administrador en el mismo formulario, igual que ya
 // se hace al crear un usuario desde admin-usuarios.html.
 async function crearUsuarioConductor(conductor, password, empresaId) {
+  if (!conductor.email) {
+    throw new HttpError(400, `El conductor "${nombreCompleto(conductor)}" no tiene correo registrado; agrégale uno desde su ficha antes de poder usarlo aquí`);
+  }
+
   const existeEmail = await usuariosRepository.findByEmail(conductor.email);
   if (existeEmail) {
     throw new HttpError(409, "Ya existe un usuario con ese correo");
