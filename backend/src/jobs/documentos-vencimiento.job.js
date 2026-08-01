@@ -40,7 +40,11 @@ async function evaluarDocumento(row) {
 
   const diasRestantes = calcularDiasRestantes(row.fecha_vencimiento);
   const vencido = diasRestantes < 0;
-  const proximoAVencer = diasRestantes >= 0 && RECORDATORIO_UMBRALES_DIAS.some((umbral) => diasRestantes <= umbral);
+  // Solo en los dias exactos de la lista (30, 15, 7, 3, 1), no en toda la
+  // ventana de 30 dias -- antes usaba "<=" y notificaba TODOS los dias desde
+  // los 30 hasta el vencimiento, haciendo que los umbrales intermedios no
+  // tuvieran ningun efecto real.
+  const proximoAVencer = RECORDATORIO_UMBRALES_DIAS.includes(diasRestantes);
 
   if (!vencido && !proximoAVencer) return;
 
