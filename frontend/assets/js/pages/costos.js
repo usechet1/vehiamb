@@ -7,6 +7,10 @@ const costosSync = document.getElementById("costosSync");
 const costosSyncButton = document.getElementById("costosSyncButton");
 const costosSyncEstado = document.getElementById("costosSyncEstado");
 
+const costosTabs = document.getElementById("costosTabs");
+const costosBloqueVehiculo = document.getElementById("costosBloqueVehiculo");
+const costosBloqueConductor = document.getElementById("costosBloqueConductor");
+
 const costosListaView = document.getElementById("costosListaView");
 const costosListaGrid = document.getElementById("costosListaGrid");
 const costosListaBuscar = document.getElementById("costosListaBuscar");
@@ -21,6 +25,21 @@ const costosFacturasSummary = document.getElementById("costosFacturasSummary");
 const costosFacturasPrev = document.getElementById("costosFacturasPrev");
 const costosFacturasNext = document.getElementById("costosFacturasNext");
 const costosFacturasTable = document.getElementById("costosFacturasTable");
+
+const costosConductoresListaView = document.getElementById("costosConductoresListaView");
+const costosConductoresListaGrid = document.getElementById("costosConductoresListaGrid");
+const costosConductoresListaBuscar = document.getElementById("costosConductoresListaBuscar");
+
+const costosConductorDetalleView = document.getElementById("costosConductorDetalleView");
+const costosConductorVolverButton = document.getElementById("costosConductorVolverButton");
+const costosConductorKpisGrid = document.getElementById("costosConductorKpisGrid");
+
+const costosConductorFacturasBuscar = document.getElementById("costosConductorFacturasBuscar");
+const costosConductorFacturasBody = document.getElementById("costosConductorFacturasBody");
+const costosConductorFacturasSummary = document.getElementById("costosConductorFacturasSummary");
+const costosConductorFacturasPrev = document.getElementById("costosConductorFacturasPrev");
+const costosConductorFacturasNext = document.getElementById("costosConductorFacturasNext");
+const costosConductorFacturasTable = document.getElementById("costosConductorFacturasTable");
 
 const GASTO_COLORS = {
     combustible_pesos: "#e55039",
@@ -39,7 +58,10 @@ const GASTO_LABELS = {
 };
 
 const KPIS_CONFIG = [
-    { key: "totalGastado", label: "Total gastado", format: "cop", accent: "var(--color-primary)" },
+    { key: "totalGastado", label: "Total gastado (operativo)", format: "cop", accent: "var(--color-primary)" },
+    { key: "totalFacturadoNeto", label: "Facturación neta (sin IVA)", format: "cop", accent: "var(--color-primary)" },
+    { key: "promedioFacturaNeto", label: "Promedio factura neta", format: "cop", accent: "var(--color-primary)" },
+    { key: "combustiblePctSobreFacturado", label: "Combustible % de facturación neta", format: "pct", accent: GASTO_COLORS.combustible_pesos },
     { key: "totalCombustible", label: "Combustible", format: "cop", accent: GASTO_COLORS.combustible_pesos },
     { key: "totalGalones", label: "Consumo (galones)", format: "galones", accent: GASTO_COLORS.combustible_pesos },
     { key: "costoPromedioPorCargue", label: "Promedio por cargue", format: "cop", accent: "var(--color-primary)" },
@@ -47,12 +69,15 @@ const KPIS_CONFIG = [
     { key: "totalPeajes", label: "Peajes", format: "cop", accent: GASTO_COLORS.peajes },
     { key: "totalParqueaderos", label: "Parqueaderos", format: "cop", accent: GASTO_COLORS.parqueaderos },
     { key: "numFacturas", label: "Numero de facturas", format: "int", accent: "var(--color-muted)" },
-    { key: "combustiblePct", label: "Combustible % del total", format: "pct", accent: GASTO_COLORS.combustible_pesos }
+    { key: "combustiblePct", label: "Combustible % del gasto operativo", format: "pct", accent: GASTO_COLORS.combustible_pesos }
 ];
 
 let chartInstances = {};
 let facturasState = { page: 1, limit: 20, search: "", orderBy: "fecha_envio", dir: "desc", totalPages: 1 };
+let facturasConductorState = { page: 1, limit: 20, search: "", orderBy: "fecha_envio", dir: "desc", totalPages: 1 };
 let vehiculosCache = [];
+let conductoresCache = [];
+let vistaActual = "vehiculo";
 
 function escapeHtml(value) {
     return String(value ?? "")
@@ -112,7 +137,9 @@ function leerEstadoUrl() {
     return {
         desde: params.get("desde") || "",
         hasta: params.get("hasta") || "",
-        placa: params.get("placa") || null
+        placa: params.get("placa") || null,
+        vista: params.get("vista") === "conductor" ? "conductor" : "vehiculo",
+        conductorKey: params.get("conductor") || null
     };
 }
 
@@ -120,7 +147,9 @@ function escribirEstadoUrl(estado, { replace = false } = {}) {
     const params = new URLSearchParams();
     if (estado.desde) params.set("desde", estado.desde);
     if (estado.hasta) params.set("hasta", estado.hasta);
+    if (estado.vista === "conductor") params.set("vista", "conductor");
     if (estado.placa) params.set("placa", estado.placa);
+    if (estado.conductorKey) params.set("conductor", estado.conductorKey);
 
     const url = `costos.html?${params.toString()}`;
     if (replace) {
@@ -151,6 +180,9 @@ function renderListaVehiculos() {
                         <span>${v.numFacturas} facturas</span>
                         <span>Max: ${formatCOP(v.gastoMasAlto)}</span>
                     </div>
+                    <div class="costos-vehiculo-meta">
+                        <span>Facturación neta: ${formatCOP(v.totalFacturadoNeto)}</span>
+                    </div>
                     ${renderDeltaBadge(v.deltaPct)}
                 </article>
             `
@@ -178,8 +210,8 @@ async function cargarListaVehiculos() {
 
 // ── Vista: detalle de vehiculo ───────────────────────────────────
 
-function renderKpis(data) {
-    costosKpisGrid.innerHTML = KPIS_CONFIG.map((kpi) => {
+function renderKpis(grid, data) {
+    grid.innerHTML = KPIS_CONFIG.map((kpi) => {
         const valor = data.actual[kpi.key];
         const deltaPct = data.deltas[kpi.key];
 
@@ -329,7 +361,7 @@ function renderFacturasHead() {
 
 function renderFacturas(resultado) {
     if (!resultado.items.length) {
-        costosFacturasBody.innerHTML = '<tr><td colspan="13" class="dash-empty">No hay facturas para los filtros seleccionados</td></tr>';
+        costosFacturasBody.innerHTML = '<tr><td colspan="14" class="dash-empty">No hay facturas para los filtros seleccionados</td></tr>';
     } else {
         costosFacturasBody.innerHTML = resultado.items
             .map(
@@ -339,6 +371,7 @@ function renderFacturas(resultado) {
                         <td>${formatFechaCorta(f.fechaFactura)}</td>
                         <td>${formatFechaCorta(f.fechaEnvio)}</td>
                         <td>${escapeHtml(f.sala || "--")}</td>
+                        <td>${escapeHtml(f.conductor || "Sin identificar")}</td>
                         <td>${Number(f.pesoKg || 0).toLocaleString("es-CO", { maximumFractionDigits: 3 })}</td>
                         <td>${formatCOP(f.valorFactura)}</td>
                         <td>${formatCOP(f.combustible)}</td>
@@ -362,7 +395,7 @@ function renderFacturas(resultado) {
 }
 
 async function cargarFacturas(placa) {
-    costosFacturasBody.innerHTML = '<tr><td colspan="13" class="dash-empty">Cargando...</td></tr>';
+    costosFacturasBody.innerHTML = '<tr><td colspan="14" class="dash-empty">Cargando...</td></tr>';
 
     try {
         const resultado = await window.VehiAmb.api.getCostosVehiculoFacturas(placa, {
@@ -377,7 +410,7 @@ async function cargarFacturas(placa) {
         renderFacturas(resultado);
     } catch (error) {
         console.error(error);
-        costosFacturasBody.innerHTML = '<tr><td colspan="13" class="dash-empty">No fue posible cargar las facturas</td></tr>';
+        costosFacturasBody.innerHTML = '<tr><td colspan="14" class="dash-empty">No fue posible cargar las facturas</td></tr>';
     }
 }
 
@@ -394,7 +427,7 @@ async function cargarDetalleVehiculo(placa) {
             window.VehiAmb.api.getCostosVehiculoGraficas(placa, filtros)
         ]);
 
-        renderKpis(kpis);
+        renderKpis(costosKpisGrid, kpis);
         renderGraficas(graficas);
         await cargarFacturas(placa);
     } catch (error) {
@@ -404,27 +437,305 @@ async function cargarDetalleVehiculo(placa) {
     }
 }
 
+// ── Vista: lista de conductores (espejo de lista de vehiculos) ───
+
+function renderListaConductores() {
+    const filtro = costosConductoresListaBuscar.value.trim().toUpperCase();
+    const items = filtro
+        ? conductoresCache.filter((c) => c.conductorLabel.toUpperCase().includes(filtro))
+        : conductoresCache;
+
+    if (!items.length) {
+        costosConductoresListaGrid.innerHTML = '<p class="dash-empty">No hay conductores para mostrar.</p>';
+        return;
+    }
+
+    costosConductoresListaGrid.innerHTML = items
+        .map(
+            (c) => `
+                <article class="costos-vehiculo-card" data-conductor-key="${escapeHtml(c.conductorKey)}">
+                    <span class="costos-vehiculo-placa${c.conductorKey === "SIN_IDENTIFICAR" ? " es-cliente" : ""}">${escapeHtml(c.conductorLabel)}</span>
+                    <span class="costos-vehiculo-total">${formatCOP(c.totalGastado)}</span>
+                    <div class="costos-vehiculo-meta">
+                        <span>${c.numFacturas} facturas</span>
+                        <span>Max: ${formatCOP(c.gastoMasAlto)}</span>
+                    </div>
+                    <div class="costos-vehiculo-meta">
+                        <span>Facturación neta: ${formatCOP(c.totalFacturadoNeto)}</span>
+                    </div>
+                    ${renderDeltaBadge(c.deltaPct)}
+                </article>
+            `
+        )
+        .join("");
+}
+
+async function cargarListaConductores() {
+    costosConductoresListaGrid.innerHTML = `
+        <div class="costos-skeleton-grid">
+            ${Array.from({ length: 6 }).map(() => '<div class="costos-skeleton-card"></div>').join("")}
+        </div>
+    `;
+
+    try {
+        const resultado = await window.VehiAmb.api.getCostosConductores({ desde: costosDesdeInput.value, hasta: costosHastaInput.value });
+        conductoresCache = resultado.items;
+        renderListaConductores();
+    } catch (error) {
+        console.error(error);
+        costosConductoresListaGrid.innerHTML = '<p class="dash-empty">No fue posible cargar los costos por conductor.</p>';
+        window.VehiAmb.ui.showMessage(costosMensaje, error.message || "Error al cargar los conductores", "error");
+    }
+}
+
+// ── Vista: detalle de conductor (espejo de detalle de vehiculo) ──
+
+function renderGraficasConductor(graficas) {
+    const cfg = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { labels: { boxWidth: 12, font: { size: 11 } } } }
+    };
+
+    destruirChart("conductorGastoDiario");
+    const hayGastoDiario = graficas.evolucionDiaria.fechas.length > 0;
+    toggleChartEmpty("chartConductorGastoDiario", !hayGastoDiario);
+    if (hayGastoDiario) {
+        chartInstances.conductorGastoDiario = new Chart(document.getElementById("chartConductorGastoDiario"), {
+            type: "bar",
+            data: {
+                labels: graficas.evolucionDiaria.fechas.map(formatFechaCorta),
+                datasets: [{ label: "Gasto total", data: graficas.evolucionDiaria.gastoTotal, backgroundColor: "#b21f2d" }]
+            },
+            options: { ...cfg, plugins: { ...cfg.plugins, legend: { display: false } } }
+        });
+    }
+
+    destruirChart("conductorGalonesDiario");
+    toggleChartEmpty("chartConductorGalonesDiario", !hayGastoDiario);
+    if (hayGastoDiario) {
+        chartInstances.conductorGalonesDiario = new Chart(document.getElementById("chartConductorGalonesDiario"), {
+            type: "line",
+            data: {
+                labels: graficas.evolucionDiaria.fechas.map(formatFechaCorta),
+                datasets: [{
+                    label: "Galones",
+                    data: graficas.evolucionDiaria.galones,
+                    borderColor: GASTO_COLORS.combustible_pesos,
+                    backgroundColor: "rgba(229, 80, 57, 0.12)",
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: { ...cfg, plugins: { ...cfg.plugins, legend: { display: false } } }
+        });
+    }
+
+    destruirChart("conductorProporcion");
+    const tiposProporcion = Object.entries(graficas.proporcionPorTipo);
+    const hayProporcion = tiposProporcion.some(([, valor]) => valor > 0);
+    toggleChartEmpty("chartConductorProporcion", !hayProporcion);
+    if (hayProporcion) {
+        chartInstances.conductorProporcion = new Chart(document.getElementById("chartConductorProporcion"), {
+            type: "doughnut",
+            data: {
+                labels: tiposProporcion.map(([tipo]) => GASTO_LABELS[tipo] || tipo),
+                datasets: [{ data: tiposProporcion.map(([, valor]) => valor), backgroundColor: tiposProporcion.map(([tipo]) => GASTO_COLORS[tipo]) }]
+            },
+            options: cfg
+        });
+    }
+
+    destruirChart("conductorDesgloseDiario");
+    const hayDesglose = graficas.desglosePorTipoDiario.fechas.length > 0;
+    toggleChartEmpty("chartConductorDesgloseDiario", !hayDesglose);
+    if (hayDesglose) {
+        chartInstances.conductorDesgloseDiario = new Chart(document.getElementById("chartConductorDesgloseDiario"), {
+            type: "bar",
+            data: {
+                labels: graficas.desglosePorTipoDiario.fechas.map(formatFechaCorta),
+                datasets: Object.entries(graficas.desglosePorTipoDiario.series)
+                    .filter(([tipo]) => tipo !== "otros" || graficas.desglosePorTipoDiario.series.otros.some((v) => v > 0))
+                    .map(([tipo, valores]) => ({
+                        label: GASTO_LABELS[tipo] || tipo,
+                        data: valores,
+                        backgroundColor: GASTO_COLORS[tipo]
+                    }))
+            },
+            options: {
+                ...cfg,
+                scales: { x: { stacked: true }, y: { stacked: true } }
+            }
+        });
+    }
+
+    destruirChart("conductorTopVehiculos");
+    const hayVehiculos = graficas.topVehiculos.length > 0;
+    toggleChartEmpty("chartConductorTopVehiculos", !hayVehiculos);
+    if (hayVehiculos) {
+        chartInstances.conductorTopVehiculos = new Chart(document.getElementById("chartConductorTopVehiculos"), {
+            type: "bar",
+            data: {
+                labels: graficas.topVehiculos.map((v) => v.placa),
+                datasets: [{ label: "Gasto total", data: graficas.topVehiculos.map((v) => v.total), backgroundColor: "#b21f2d" }]
+            },
+            options: { ...cfg, indexAxis: "y", plugins: { ...cfg.plugins, legend: { display: false } } }
+        });
+    }
+}
+
+function renderFacturasConductorHead() {
+    costosConductorFacturasTable.querySelectorAll("th[data-order]").forEach((th) => {
+        th.classList.remove("sorted-asc", "sorted-desc");
+        if (th.dataset.order === facturasConductorState.orderBy) {
+            th.classList.add(facturasConductorState.dir === "asc" ? "sorted-asc" : "sorted-desc");
+        }
+    });
+}
+
+function renderFacturasConductor(resultado) {
+    if (!resultado.items.length) {
+        costosConductorFacturasBody.innerHTML = '<tr><td colspan="14" class="dash-empty">No hay facturas para los filtros seleccionados</td></tr>';
+    } else {
+        costosConductorFacturasBody.innerHTML = resultado.items
+            .map(
+                (f) => `
+                    <tr>
+                        <td>${escapeHtml(f.numeroFactura)}</td>
+                        <td>${formatFechaCorta(f.fechaFactura)}</td>
+                        <td>${formatFechaCorta(f.fechaEnvio)}</td>
+                        <td>${escapeHtml(f.placa || "--")}</td>
+                        <td>${escapeHtml(f.sala || "--")}</td>
+                        <td>${Number(f.pesoKg || 0).toLocaleString("es-CO", { maximumFractionDigits: 3 })}</td>
+                        <td>${formatCOP(f.valorFactura)}</td>
+                        <td>${formatCOP(f.combustible)}</td>
+                        <td>${Number(f.galones || 0).toLocaleString("es-CO", { minimumFractionDigits: 3, maximumFractionDigits: 3 })}</td>
+                        <td>${formatCOP(f.almuerzos)}</td>
+                        <td>${formatCOP(f.peajes)}</td>
+                        <td>${formatCOP(f.parqueaderos)}</td>
+                        <td><strong>${formatCOP(f.totalGasto)}</strong></td>
+                        <td>${escapeHtml(f.observaciones || "--")}</td>
+                    </tr>
+                `
+            )
+            .join("");
+    }
+
+    facturasConductorState.totalPages = resultado.totalPages;
+    costosConductorFacturasSummary.textContent = `Página ${resultado.page} de ${resultado.totalPages} · ${resultado.total} facturas`;
+    costosConductorFacturasPrev.disabled = facturasConductorState.page <= 1;
+    costosConductorFacturasNext.disabled = facturasConductorState.page >= resultado.totalPages;
+    renderFacturasConductorHead();
+}
+
+async function cargarFacturasConductor(conductorKey) {
+    costosConductorFacturasBody.innerHTML = '<tr><td colspan="14" class="dash-empty">Cargando...</td></tr>';
+
+    try {
+        const resultado = await window.VehiAmb.api.getCostosConductorFacturas(conductorKey, {
+            desde: costosDesdeInput.value,
+            hasta: costosHastaInput.value,
+            page: facturasConductorState.page,
+            limit: facturasConductorState.limit,
+            search: facturasConductorState.search,
+            orderBy: facturasConductorState.orderBy,
+            dir: facturasConductorState.dir
+        });
+        renderFacturasConductor(resultado);
+    } catch (error) {
+        console.error(error);
+        costosConductorFacturasBody.innerHTML = '<tr><td colspan="14" class="dash-empty">No fue posible cargar las facturas</td></tr>';
+    }
+}
+
+async function cargarDetalleConductor(conductorKey) {
+    facturasConductorState = { page: 1, limit: 20, search: "", orderBy: "fecha_factura", dir: "desc", totalPages: 1 };
+    costosConductorFacturasBuscar.value = "";
+    costosConductorKpisGrid.innerHTML = '<p class="dash-empty">Cargando indicadores...</p>';
+
+    const filtros = { desde: costosDesdeInput.value, hasta: costosHastaInput.value };
+
+    try {
+        const [kpis, graficas] = await Promise.all([
+            window.VehiAmb.api.getCostosConductorKpis(conductorKey, filtros),
+            window.VehiAmb.api.getCostosConductorGraficas(conductorKey, filtros)
+        ]);
+
+        renderKpis(costosConductorKpisGrid, kpis);
+        renderGraficasConductor(graficas);
+        await cargarFacturasConductor(conductorKey);
+    } catch (error) {
+        console.error(error);
+        costosConductorKpisGrid.innerHTML = '<p class="dash-empty">No fue posible cargar los indicadores del conductor</p>';
+        window.VehiAmb.ui.showMessage(costosMensaje, error.message || "Error al cargar el detalle del conductor", "error");
+    }
+}
+
 // ── Navegacion entre vistas ──────────────────────────────────────
 
+function actualizarTabsUI() {
+    costosTabs.querySelectorAll(".tab-button").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.tabVista === vistaActual);
+    });
+    costosBloqueVehiculo.classList.toggle("hidden", vistaActual !== "vehiculo");
+    costosBloqueConductor.classList.toggle("hidden", vistaActual !== "conductor");
+}
+
 function mostrarVistaLista() {
+    actualizarTabsUI();
     costosListaView.classList.remove("hidden");
     costosDetalleView.classList.add("hidden");
-    costosTitulo.textContent = "Gastos vehiculares";
+    costosTitulo.textContent = "Dashboard de gastos";
     costosSubtitulo.textContent = "Gasto operativo por vehículo a partir de las facturas importadas.";
 }
 
 function mostrarVistaDetalle(placa) {
+    actualizarTabsUI();
     costosListaView.classList.add("hidden");
     costosDetalleView.classList.remove("hidden");
     costosTitulo.textContent = placa === "CLIENTE" ? "CLIENTE" : `Vehiculo ${placa}`;
     costosSubtitulo.textContent = "Indicadores, gráficas y facturas del período seleccionado.";
 }
 
+function mostrarVistaListaConductores() {
+    actualizarTabsUI();
+    costosConductoresListaView.classList.remove("hidden");
+    costosConductorDetalleView.classList.add("hidden");
+    costosTitulo.textContent = "Dashboard de gastos";
+    costosSubtitulo.textContent = "Gasto operativo por conductor a partir de las facturas importadas.";
+}
+
+function mostrarVistaDetalleConductor(conductorLabel) {
+    actualizarTabsUI();
+    costosConductoresListaView.classList.add("hidden");
+    costosConductorDetalleView.classList.remove("hidden");
+    costosTitulo.textContent = conductorLabel || "Conductor";
+    costosSubtitulo.textContent = "Indicadores, gráficas y facturas del período seleccionado.";
+}
+
 async function renderVistaActual({ actualizarUrl = false, reemplazarUrl = false } = {}) {
-    const estado = { desde: costosDesdeInput.value, hasta: costosHastaInput.value, placa: window.__costosPlacaActual || null };
+    const estado = {
+        desde: costosDesdeInput.value,
+        hasta: costosHastaInput.value,
+        vista: vistaActual,
+        placa: vistaActual === "vehiculo" ? window.__costosPlacaActual || null : null,
+        conductorKey: vistaActual === "conductor" ? window.__costosConductorActual || null : null
+    };
 
     if (actualizarUrl) {
         escribirEstadoUrl(estado, { replace: reemplazarUrl });
+    }
+
+    if (vistaActual === "conductor") {
+        if (estado.conductorKey) {
+            const encontrado = conductoresCache.find((c) => c.conductorKey === estado.conductorKey);
+            mostrarVistaDetalleConductor(encontrado?.conductorLabel);
+            await cargarDetalleConductor(estado.conductorKey);
+        } else {
+            mostrarVistaListaConductores();
+            await cargarListaConductores();
+        }
+        return;
     }
 
     if (estado.placa) {
@@ -442,6 +753,16 @@ async function renderVistaActual({ actualizarUrl = false, reemplazarUrl = false 
     input.addEventListener("change", () => {
         renderVistaActual({ actualizarUrl: true });
     });
+});
+
+costosTabs.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-tab-vista]");
+    if (!btn || btn.dataset.tabVista === vistaActual) return;
+
+    vistaActual = btn.dataset.tabVista;
+    window.__costosPlacaActual = null;
+    window.__costosConductorActual = null;
+    renderVistaActual({ actualizarUrl: true });
 });
 
 costosListaBuscar.addEventListener("input", renderListaVehiculos);
@@ -496,11 +817,65 @@ costosFacturasNext.addEventListener("click", () => {
     cargarFacturas(window.__costosPlacaActual);
 });
 
+costosConductoresListaBuscar.addEventListener("input", renderListaConductores);
+
+costosConductoresListaGrid.addEventListener("click", (event) => {
+    const card = event.target.closest("[data-conductor-key]");
+    if (!card) return;
+
+    window.__costosConductorActual = card.dataset.conductorKey;
+    renderVistaActual({ actualizarUrl: true });
+});
+
+costosConductorVolverButton.addEventListener("click", () => {
+    window.__costosConductorActual = null;
+    renderVistaActual({ actualizarUrl: true });
+});
+
+let facturasConductorSearchDebounce;
+costosConductorFacturasBuscar.addEventListener("input", () => {
+    clearTimeout(facturasConductorSearchDebounce);
+    facturasConductorSearchDebounce = setTimeout(() => {
+        facturasConductorState.search = costosConductorFacturasBuscar.value.trim();
+        facturasConductorState.page = 1;
+        cargarFacturasConductor(window.__costosConductorActual);
+    }, 300);
+});
+
+costosConductorFacturasTable.addEventListener("click", (event) => {
+    const th = event.target.closest("th[data-order]");
+    if (!th) return;
+
+    const columna = th.dataset.order;
+    if (facturasConductorState.orderBy === columna) {
+        facturasConductorState.dir = facturasConductorState.dir === "asc" ? "desc" : "asc";
+    } else {
+        facturasConductorState.orderBy = columna;
+        facturasConductorState.dir = "desc";
+    }
+    facturasConductorState.page = 1;
+    cargarFacturasConductor(window.__costosConductorActual);
+});
+
+costosConductorFacturasPrev.addEventListener("click", () => {
+    if (facturasConductorState.page <= 1) return;
+    facturasConductorState.page -= 1;
+    cargarFacturasConductor(window.__costosConductorActual);
+});
+
+costosConductorFacturasNext.addEventListener("click", () => {
+    if (facturasConductorState.page >= facturasConductorState.totalPages) return;
+    facturasConductorState.page += 1;
+    cargarFacturasConductor(window.__costosConductorActual);
+});
+
 window.addEventListener("popstate", () => {
     const estado = leerEstadoUrl();
     costosDesdeInput.value = estado.desde;
     costosHastaInput.value = estado.hasta;
+    vistaActual = estado.vista;
     window.__costosPlacaActual = estado.placa;
+    window.__costosConductorActual = estado.conductorKey;
     renderVistaActual({ actualizarUrl: false });
 });
 
@@ -593,7 +968,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     costosDesdeInput.value = estadoInicial.desde || defaults.desde;
     costosHastaInput.value = estadoInicial.hasta || defaults.hasta;
+    vistaActual = estadoInicial.vista;
     window.__costosPlacaActual = estadoInicial.placa;
+    window.__costosConductorActual = estadoInicial.conductorKey;
 
     renderVistaActual({ actualizarUrl: true, reemplazarUrl: true });
 });

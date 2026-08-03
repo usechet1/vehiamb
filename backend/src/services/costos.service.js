@@ -1,6 +1,8 @@
 const HttpError = require("../errors/http-error");
 const costosRepository = require("../repositories/costos.repository");
 
+const { FACTOR_NETO_IVA } = costosRepository;
+
 const FECHA_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_LIMIT = 200;
 const DEFAULT_LIMIT = 50;
@@ -91,6 +93,17 @@ function tendencia(deltaPct) {
   return deltaPct > 0 ? "subio" : "bajo";
 }
 
+// Nombre a mostrar para el conductor de una factura: si esta vinculado a un
+// conductor real se usa su nombre del catalogo (mas confiable que el texto
+// del Excel), si no el texto libre tal cual vino, y si no hay ningun dato se
+// deja null (el frontend lo muestra como "Sin identificar").
+function resolverNombreConductor(row) {
+  if (row.conductor_apellidos || row.conductor_nombres) {
+    return `${row.conductor_apellidos || ""} ${row.conductor_nombres || ""}`.trim();
+  }
+  return row.conductor_nombre || null;
+}
+
 async function listarVehiculos(query, empresaId) {
   const { desde, hasta } = normalizarRango(query);
   const { desdeAnterior, hastaAnterior } = periodoAnterior(desde, hasta);
@@ -106,12 +119,15 @@ async function listarVehiculos(query, empresaId) {
     const previo = anteriorPorPlaca.get(row.placa);
     const totalAnterior = Number(previo?.total_gastado || 0);
     const deltaPct = delta(row.total_gastado, totalAnterior);
+    const totalFacturadoBruto = Number(row.total_facturado_bruto || 0);
 
     return {
       placa: row.placa,
       numFacturas: Number(row.num_facturas),
       totalGastado: Number(row.total_gastado),
       gastoMasAlto: Number(row.gasto_mas_alto),
+      totalFacturadoBruto,
+      totalFacturadoNeto: Math.round(totalFacturadoBruto * FACTOR_NETO_IVA * 100) / 100,
       totalGastadoAnterior: totalAnterior,
       deltaPct,
       tendencia: tendencia(deltaPct)
@@ -134,6 +150,8 @@ async function kpisVehiculo(placa, query, empresaId) {
     const numFacturas = Number(row?.num_facturas || 0);
     const totalGastado = Number(row?.total_gastado || 0);
     const totalCombustible = Number(row?.total_combustible || 0);
+    const totalFacturadoBruto = Number(row?.total_facturado_bruto || 0);
+    const totalFacturadoNeto = Math.round(totalFacturadoBruto * FACTOR_NETO_IVA * 100) / 100;
 
     return {
       numFacturas,
@@ -144,7 +162,11 @@ async function kpisVehiculo(placa, query, empresaId) {
       totalPeajes: Number(row?.total_peajes || 0),
       totalParqueaderos: Number(row?.total_parqueaderos || 0),
       costoPromedioPorCargue: numFacturas > 0 ? Math.round((totalGastado / numFacturas) * 100) / 100 : 0,
-      combustiblePct: totalGastado > 0 ? Math.round((totalCombustible / totalGastado) * 1000) / 10 : 0
+      combustiblePct: totalGastado > 0 ? Math.round((totalCombustible / totalGastado) * 1000) / 10 : 0,
+      totalFacturadoBruto,
+      totalFacturadoNeto,
+      promedioFacturaNeto: numFacturas > 0 ? Math.round((totalFacturadoNeto / numFacturas) * 100) / 100 : 0,
+      combustiblePctSobreFacturado: totalFacturadoNeto > 0 ? Math.round((totalCombustible / totalFacturadoNeto) * 1000) / 10 : 0
     };
   };
 
@@ -249,6 +271,185 @@ async function listarFacturas(placa, query, empresaId) {
       peajes: Number(row.peajes || 0),
       parqueaderos: Number(row.parqueaderos || 0),
       totalGasto: Number(row.total_gasto || 0),
+      observaciones: row.observaciones,
+      conductor: resolverNombreConductor(row)
+    })),
+    page,
+    limit,
+    total,
+    totalPages: Math.max(1, Math.ceil(total / limit))
+  };
+}
+
+// ── Gasto por conductor (espejo de las funciones de vehiculo) ────
+
+async function listarConductores(query, empresaId) {
+  const { desde, hasta } = normalizarRango(query);
+  const { desdeAnterior, hastaAnterior } = periodoAnterior(desde, hasta);
+
+  const [actual, anterior] = await Promise.all([
+    costosRepository.aggregarPorConductor(desde, hasta, empresaId),
+    costosRepository.aggregarPorConductor(desdeAnterior, hastaAnterior, empresaId)
+  ]);
+
+  const anteriorPorConductor = new Map(anterior.map((row) => [row.conductor_key, row]));
+
+  const items = actual.map((row) => {
+    const previo = anteriorPorConductor.get(row.conductor_key);
+    const totalAnterior = Number(previo?.total_gastado || 0);
+    const deltaPct = delta(row.total_gastado, totalAnterior);
+    const totalFacturadoBruto = Number(row.total_facturado_bruto || 0);
+
+    return {
+      conductorKey: row.conductor_key,
+      conductorLabel: row.conductor_label || "Sin identificar",
+      numFacturas: Number(row.num_facturas),
+      totalGastado: Number(row.total_gastado),
+      gastoMasAlto: Number(row.gasto_mas_alto),
+      totalFacturadoBruto,
+      totalFacturadoNeto: Math.round(totalFacturadoBruto * FACTOR_NETO_IVA * 100) / 100,
+      totalGastadoAnterior: totalAnterior,
+      deltaPct,
+      tendencia: tendencia(deltaPct)
+    };
+  });
+
+  return { desde, hasta, desdeAnterior, hastaAnterior, items };
+}
+
+async function kpisConductor(conductorKey, query, empresaId) {
+  const { desde, hasta } = normalizarRango(query);
+  const { desdeAnterior, hastaAnterior } = periodoAnterior(desde, hasta);
+
+  const [actual, anterior] = await Promise.all([
+    costosRepository.kpisConductor(conductorKey, desde, hasta, empresaId),
+    costosRepository.kpisConductor(conductorKey, desdeAnterior, hastaAnterior, empresaId)
+  ]);
+
+  const construir = (row) => {
+    const numFacturas = Number(row?.num_facturas || 0);
+    const totalGastado = Number(row?.total_gastado || 0);
+    const totalCombustible = Number(row?.total_combustible || 0);
+    const totalFacturadoBruto = Number(row?.total_facturado_bruto || 0);
+    const totalFacturadoNeto = Math.round(totalFacturadoBruto * FACTOR_NETO_IVA * 100) / 100;
+
+    return {
+      numFacturas,
+      totalGastado,
+      totalCombustible,
+      totalGalones: Number(row?.total_galones || 0),
+      totalAlmuerzos: Number(row?.total_almuerzos || 0),
+      totalPeajes: Number(row?.total_peajes || 0),
+      totalParqueaderos: Number(row?.total_parqueaderos || 0),
+      costoPromedioPorCargue: numFacturas > 0 ? Math.round((totalGastado / numFacturas) * 100) / 100 : 0,
+      combustiblePct: totalGastado > 0 ? Math.round((totalCombustible / totalGastado) * 1000) / 10 : 0,
+      totalFacturadoBruto,
+      totalFacturadoNeto,
+      promedioFacturaNeto: numFacturas > 0 ? Math.round((totalFacturadoNeto / numFacturas) * 100) / 100 : 0,
+      combustiblePctSobreFacturado: totalFacturadoNeto > 0 ? Math.round((totalCombustible / totalFacturadoNeto) * 1000) / 10 : 0
+    };
+  };
+
+  const kpisActual = construir(actual);
+  const kpisAnterior = construir(anterior);
+
+  const deltas = {};
+  for (const key of Object.keys(kpisActual)) {
+    deltas[key] = delta(kpisActual[key], kpisAnterior[key]);
+  }
+
+  return {
+    conductorKey,
+    desde,
+    hasta,
+    desdeAnterior,
+    hastaAnterior,
+    actual: kpisActual,
+    anterior: kpisAnterior,
+    deltas
+  };
+}
+
+async function graficasConductor(conductorKey, query, empresaId) {
+  const { desde, hasta } = normalizarRango(query);
+
+  const [evolucion, porTipo, porTipoDiario, vehiculos] = await Promise.all([
+    costosRepository.evolucionDiariaConductor(conductorKey, desde, hasta, empresaId),
+    costosRepository.desglosePorTipoConductor(conductorKey, desde, hasta, empresaId),
+    costosRepository.desglosePorTipoDiarioConductor(conductorKey, desde, hasta, empresaId),
+    costosRepository.topVehiculosConductor(conductorKey, desde, hasta, empresaId, 10)
+  ]);
+
+  const TIPOS = ["combustible_pesos", "almuerzos", "peajes", "parqueaderos", "otros"];
+  const totalesPorTipo = Object.fromEntries(TIPOS.map((tipo) => [tipo, 0]));
+  porTipo.forEach((row) => {
+    if (Object.prototype.hasOwnProperty.call(totalesPorTipo, row.tipo_gasto)) {
+      totalesPorTipo[row.tipo_gasto] = Number(row.total);
+    } else {
+      totalesPorTipo.otros += Number(row.total);
+    }
+  });
+
+  const fechasDiario = [...new Set(porTipoDiario.map((row) => fechaColumnaToIso(row.fecha)))].sort();
+  const porTipoDiarioMapa = {};
+  TIPOS.forEach((tipo) => {
+    porTipoDiarioMapa[tipo] = fechasDiario.map((fecha) => {
+      const encontrado = porTipoDiario.find(
+        (row) => fechaColumnaToIso(row.fecha) === fecha && row.tipo_gasto === tipo
+      );
+      return Number(encontrado?.total || 0);
+    });
+  });
+
+  return {
+    evolucionDiaria: {
+      fechas: evolucion.map((row) => fechaColumnaToIso(row.fecha)),
+      gastoTotal: evolucion.map((row) => Number(row.gasto_total)),
+      galones: evolucion.map((row) => Number(row.galones))
+    },
+    proporcionPorTipo: totalesPorTipo,
+    desglosePorTipoDiario: {
+      fechas: fechasDiario,
+      series: porTipoDiarioMapa
+    },
+    topVehiculos: vehiculos.map((row) => ({ placa: row.placa, total: Number(row.total) }))
+  };
+}
+
+async function listarFacturasConductor(conductorKey, query, empresaId) {
+  const { desde, hasta } = normalizarRango(query);
+  const page = Math.max(1, Number.parseInt(query.page, 10) || 1);
+  const limit = Math.min(MAX_LIMIT, Math.max(1, Number.parseInt(query.limit, 10) || DEFAULT_LIMIT));
+  const search = query.search ? String(query.search).trim() : "";
+  const orderBy = query.orderBy || "fecha_envio";
+  const dir = query.dir === "asc" ? "asc" : "desc";
+
+  const { rows, total } = await costosRepository.listarFacturasConductor(conductorKey, {
+    desde,
+    hasta,
+    page,
+    limit,
+    search,
+    orderBy,
+    dir
+  }, empresaId);
+
+  return {
+    items: rows.map((row) => ({
+      id: row.id,
+      numeroFactura: row.numero_factura,
+      fechaFactura: row.fecha_factura,
+      fechaEnvio: row.fecha_envio,
+      placa: row.placa,
+      sala: row.sala,
+      pesoKg: Number(row.peso_kg || 0),
+      valorFactura: Number(row.valor_factura || 0),
+      combustible: Number(row.combustible || 0),
+      galones: Number(row.galones || 0),
+      almuerzos: Number(row.almuerzos || 0),
+      peajes: Number(row.peajes || 0),
+      parqueaderos: Number(row.parqueaderos || 0),
+      totalGasto: Number(row.total_gasto || 0),
       observaciones: row.observaciones
     })),
     page,
@@ -262,5 +463,9 @@ module.exports = {
   listarVehiculos,
   kpisVehiculo,
   graficasVehiculo,
-  listarFacturas
+  listarFacturas,
+  listarConductores,
+  kpisConductor,
+  graficasConductor,
+  listarFacturasConductor
 };

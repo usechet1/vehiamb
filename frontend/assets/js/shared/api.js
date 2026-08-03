@@ -503,6 +503,63 @@ window.VehiAmb.api = {
         );
     },
 
+    getCostosConductores({ desde, hasta } = {}) {
+        const params = new URLSearchParams();
+        if (desde) params.set("desde", desde);
+        if (hasta) params.set("hasta", hasta);
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/costos/conductores${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudieron cargar los costos por conductor"
+        );
+    },
+
+    getCostosConductorKpis(conductorKey, { desde, hasta } = {}) {
+        const params = new URLSearchParams();
+        if (desde) params.set("desde", desde);
+        if (hasta) params.set("hasta", hasta);
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/costos/conductores/${encodeURIComponent(conductorKey)}${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudieron cargar los indicadores del conductor"
+        );
+    },
+
+    getCostosConductorGraficas(conductorKey, { desde, hasta } = {}) {
+        const params = new URLSearchParams();
+        if (desde) params.set("desde", desde);
+        if (hasta) params.set("hasta", hasta);
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/costos/conductores/${encodeURIComponent(conductorKey)}/graficas${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudieron cargar las graficas del conductor"
+        );
+    },
+
+    getCostosConductorFacturas(conductorKey, filters = {}) {
+        const params = new URLSearchParams();
+        if (filters.desde) params.set("desde", filters.desde);
+        if (filters.hasta) params.set("hasta", filters.hasta);
+        if (filters.page) params.set("page", filters.page);
+        if (filters.limit) params.set("limit", filters.limit);
+        if (filters.search) params.set("search", filters.search);
+        if (filters.orderBy) params.set("orderBy", filters.orderBy);
+        if (filters.dir) params.set("dir", filters.dir);
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/costos/conductores/${encodeURIComponent(conductorKey)}/facturas${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudieron cargar las facturas del conductor"
+        );
+    },
+
     getRepuestos(filters = {}) {
         const params = new URLSearchParams();
         if (filters.categoria) params.set("categoria", filters.categoria);

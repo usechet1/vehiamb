@@ -1,6 +1,7 @@
 const env = require("../config/env");
 const db = require("./query");
 const { hashPassword } = require("../utils/password");
+const gastoConductorMatcher = require("../services/gasto-conductor-matcher");
 
 async function columnExists(tableName, columnName) {
   if (db.client === "postgres") {
@@ -119,6 +120,42 @@ async function migrarEntregasConductorAUsuario() {
 
   await db.run("ALTER TABLE entregas_recibidas DROP COLUMN conductor_entrega_id");
   await db.run("ALTER TABLE entregas_recibidas DROP COLUMN conductor_recibe_id");
+}
+
+// facturas_vehiculares.conductor_nombre (texto libre del Excel de cargues) se
+// vinculo a conductores via conductor_id (ver gasto-conductor-matcher.js) para
+// poder agrupar el dashboard de gastos por conductor real. Las facturas
+// importadas antes de este cambio quedaron con conductor_id NULL; este
+// backfill corre el mismo matching sobre ellas, una sola vez por empresa (las
+// importaciones nuevas ya lo resuelven en sync-engine.service.js).
+async function backfillFacturasConductorId() {
+  const empresas = await db.all(`
+    SELECT DISTINCT empresa_id FROM facturas_vehiculares
+    WHERE conductor_id IS NULL AND conductor_nombre IS NOT NULL AND conductor_nombre <> '' AND empresa_id IS NOT NULL
+  `);
+
+  for (const { empresa_id: empresaId } of empresas) {
+    const conductores = await db.all("SELECT id, nombres, apellidos FROM conductores WHERE empresa_id = ?", [empresaId]);
+    if (!conductores.length) continue;
+
+    const nombres = await db.all(
+      `
+        SELECT DISTINCT conductor_nombre FROM facturas_vehiculares
+        WHERE conductor_id IS NULL AND conductor_nombre IS NOT NULL AND conductor_nombre <> '' AND empresa_id = ?
+      `,
+      [empresaId]
+    );
+
+    for (const { conductor_nombre: conductorNombre } of nombres) {
+      const match = gastoConductorMatcher.encontrarConductorPorNombre(conductorNombre, conductores);
+      if (!match) continue;
+
+      await db.run(
+        "UPDATE facturas_vehiculares SET conductor_id = ? WHERE conductor_nombre = ? AND empresa_id = ? AND conductor_id IS NULL",
+        [match.id, conductorNombre, empresaId]
+      );
+    }
+  }
 }
 
 // "Tarjeta de operacion" se fusiono con "Seguro" (ahora mostrado como "Poliza
@@ -1503,7 +1540,8 @@ if (env.dbClient === "sqlite") {
     ensureColumn("simit_comparendos", "conductor_id", "INTEGER"),
     ensureColumn("simit_comparendos", "numero_infraccion", "TEXT"),
     ensureColumn("inspecciones_preventivas", "viaje_id", "INTEGER"),
-    ensureColumn("entregas_recibidas", "fotos_generales_json", "TEXT")
+    ensureColumn("entregas_recibidas", "fotos_generales_json", "TEXT"),
+    ensureColumn("facturas_vehiculares", "conductor_id", "INTEGER")
   ])
     .then(() => db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_vehiculos_numero_chasis ON vehiculos (numero_chasis) WHERE numero_chasis IS NOT NULL"))
     .then(() => db.run("UPDATE notificaciones SET estado = 'leida' WHERE leido = 1 AND estado = 'no_leida'"))
@@ -1573,7 +1611,8 @@ if (env.dbClient === "sqlite") {
       ensureColumn("conductores", "licencia_archivo_nombre", "TEXT"),
       ensureColumn("conductores", "licencia_archivo_mime", "TEXT"),
       ensureColumn("conductores", "email", "TEXT"),
-      ensureColumn("conductores", "usuario_id", "BIGINT REFERENCES usuarios(id) ON DELETE SET NULL")
+      ensureColumn("conductores", "usuario_id", "BIGINT REFERENCES usuarios(id) ON DELETE SET NULL"),
+      ensureColumn("facturas_vehiculares", "conductor_id", "BIGINT REFERENCES conductores(id) ON DELETE SET NULL")
     ]))
     .then(migrarConductoresNombreSplit)
     .then(migrarEntregasConductorAUsuario)
@@ -1584,6 +1623,7 @@ if (env.dbClient === "sqlite") {
       ensureNumericColumn("vehiculos", "capacidad_carga")
     ]))
     .then(backfillEmpresaId)
+    .then(backfillFacturasConductorId)
     .then(enforceEmpresaIdNotNull)
     .then(migrarLicenciasConductorATablaPropia)
     .then(migrarConstraintsPorEmpresa)
