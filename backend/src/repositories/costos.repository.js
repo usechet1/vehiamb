@@ -1,10 +1,11 @@
 const db = require("../database/query");
 
-// Gasto vehicular "neto de IVA": el usuario pidio restar 19% al valor de
-// cada factura (valor_factura ya incluye IVA) antes de sacar metricas sobre
-// facturacion. Es una resta directa (bruto * 0.81), no una extraccion
-// contable de IVA (que seria bruto / 1.19) -- asi se pidio explicitamente.
-const FACTOR_NETO_IVA = 0.81;
+// Gasto vehicular "neto de IVA": valor_factura ya incluye el 19% de IVA, asi
+// que el neto es la extraccion contable real, bruto / 1.19 (no una resta
+// directa de 19%, que subestimaria el neto -- ver conversacion donde se
+// corrigio este criterio).
+const IVA_RATE = 0.19;
+const FACTOR_NETO_IVA = 1 + IVA_RATE;
 
 // "CLIENTE" es una entrada sintetica (no existe en la tabla vehiculos): agrupa
 // todas las facturas donde estado_vehiculo = 'cliente'. Para el resto, la

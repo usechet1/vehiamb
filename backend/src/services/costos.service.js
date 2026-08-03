@@ -130,7 +130,7 @@ async function listarVehiculos(query, empresaId) {
       totalPeajes: Number(row.total_peajes || 0),
       gastoMasAlto: Number(row.gasto_mas_alto),
       totalFacturadoBruto,
-      totalFacturadoNeto: Math.round(totalFacturadoBruto * FACTOR_NETO_IVA * 100) / 100,
+      totalFacturadoNeto: Math.round((totalFacturadoBruto / FACTOR_NETO_IVA) * 100) / 100,
       totalGastadoAnterior: totalAnterior,
       deltaPct,
       tendencia: tendencia(deltaPct)
@@ -154,7 +154,7 @@ async function kpisVehiculo(placa, query, empresaId) {
     const totalGastado = Number(row?.total_gastado || 0);
     const totalCombustible = Number(row?.total_combustible || 0);
     const totalFacturadoBruto = Number(row?.total_facturado_bruto || 0);
-    const totalFacturadoNeto = Math.round(totalFacturadoBruto * FACTOR_NETO_IVA * 100) / 100;
+    const totalFacturadoNeto = Math.round((totalFacturadoBruto / FACTOR_NETO_IVA) * 100) / 100;
 
     return {
       numFacturas,
@@ -313,7 +313,7 @@ async function listarConductores(query, empresaId) {
       totalPeajes: Number(row.total_peajes || 0),
       gastoMasAlto: Number(row.gasto_mas_alto),
       totalFacturadoBruto,
-      totalFacturadoNeto: Math.round(totalFacturadoBruto * FACTOR_NETO_IVA * 100) / 100,
+      totalFacturadoNeto: Math.round((totalFacturadoBruto / FACTOR_NETO_IVA) * 100) / 100,
       totalGastadoAnterior: totalAnterior,
       deltaPct,
       tendencia: tendencia(deltaPct)
@@ -337,7 +337,7 @@ async function kpisConductor(conductorKey, query, empresaId) {
     const totalGastado = Number(row?.total_gastado || 0);
     const totalCombustible = Number(row?.total_combustible || 0);
     const totalFacturadoBruto = Number(row?.total_facturado_bruto || 0);
-    const totalFacturadoNeto = Math.round(totalFacturadoBruto * FACTOR_NETO_IVA * 100) / 100;
+    const totalFacturadoNeto = Math.round((totalFacturadoBruto / FACTOR_NETO_IVA) * 100) / 100;
 
     return {
       numFacturas,
