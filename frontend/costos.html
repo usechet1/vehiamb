@@ -6,7 +6,7 @@
     <link rel="icon" type="image/png" href="img/car.png">
     <link rel="apple-touch-icon" href="img/vehiamb_icon.png">
     <link rel="manifest" href="manifest.json">
-    <title>Gastos vehiculares - Vehiamb</title>
+    <title>Dashboard de gastos - Vehiamb</title>
     <link rel="stylesheet" href="assets/css/styles.css">
     <link rel="stylesheet" href="assets/css/costos.css">
 </head>
@@ -17,7 +17,7 @@
         <main class="content">
             <div class="page-header">
                 <div>
-                    <h1 id="costosTitulo">Gastos vehiculares</h1>
+                    <h1 id="costosTitulo">Dashboard de gastos</h1>
                     <p class="page-kicker" id="costosSubtitulo">Gasto operativo por vehículo a partir de las facturas importadas.</p>
                 </div>
                 <div class="page-header-right">
@@ -38,92 +38,190 @@
                 </div>
             </div>
 
+            <div class="tabs" id="costosTabs">
+                <button type="button" class="tab-button active" data-tab-vista="vehiculo">Gasto vehicular</button>
+                <button type="button" class="tab-button" data-tab-vista="conductor">Gasto por conductor</button>
+            </div>
+
             <div id="costosMensaje" class="mensaje hidden"></div>
 
-            <!-- ── Vista: lista de vehículos ───────────────────────── -->
-            <section id="costosListaView" class="costos-view">
-                <div class="costos-search-row">
-                    <input type="text" id="costosListaBuscar" placeholder="Buscar placa...">
-                </div>
-                <div id="costosListaGrid" class="costos-vehiculos-grid">
-                    <div class="costos-skeleton-grid">
-                        <div class="costos-skeleton-card"></div>
-                        <div class="costos-skeleton-card"></div>
-                        <div class="costos-skeleton-card"></div>
-                        <div class="costos-skeleton-card"></div>
-                        <div class="costos-skeleton-card"></div>
-                        <div class="costos-skeleton-card"></div>
+            <!-- ═══════════════════ Gasto vehicular ═══════════════════ -->
+            <div id="costosBloqueVehiculo" class="costos-bloque">
+                <!-- ── Vista: lista de vehículos ───────────────────────── -->
+                <section id="costosListaView" class="costos-view">
+                    <div class="costos-search-row">
+                        <input type="text" id="costosListaBuscar" placeholder="Buscar placa...">
                     </div>
-                </div>
-            </section>
-
-            <!-- ── Vista: detalle de vehículo ──────────────────────── -->
-            <section id="costosDetalleView" class="costos-view hidden">
-                <button type="button" id="costosVolverButton" class="btn-secondary costos-volver">← Volver a vehículos</button>
-
-                <div id="costosKpisGrid" class="costos-kpis-grid"></div>
-
-                <div class="costos-graficas-grid">
-                    <div class="costos-card costos-card-chart">
-                        <h3>Gasto total por día</h3>
-                        <div class="costos-chart-wrap"><canvas id="chartGastoDiario"></canvas></div>
-                    </div>
-                    <div class="costos-card costos-card-chart">
-                        <h3>Consumo de galones por día</h3>
-                        <div class="costos-chart-wrap"><canvas id="chartGalonesDiario"></canvas></div>
-                    </div>
-                    <div class="costos-card costos-card-chart">
-                        <h3>Proporción por tipo de gasto</h3>
-                        <div class="costos-chart-wrap"><canvas id="chartProporcion"></canvas></div>
-                    </div>
-                    <div class="costos-card costos-card-chart">
-                        <h3>Desglose diario por tipo de gasto</h3>
-                        <div class="costos-chart-wrap"><canvas id="chartDesgloseDiario"></canvas></div>
-                    </div>
-                    <div class="costos-card costos-card-chart costos-card-wide">
-                        <h3>Top salas por gasto</h3>
-                        <div class="costos-chart-wrap"><canvas id="chartTopSalas"></canvas></div>
-                    </div>
-                </div>
-
-                <div class="costos-card costos-facturas-card">
-                    <div class="costos-facturas-head">
-                        <h3>Facturas del período</h3>
-                        <input type="text" id="costosFacturasBuscar" placeholder="Buscar por número de factura...">
-                    </div>
-                    <div class="table-scroll">
-                        <table class="import-table" id="costosFacturasTable">
-                            <thead>
-                                <tr>
-                                    <th data-order="numero_factura">Factura</th>
-                                    <th data-order="fecha_factura">Fecha factura</th>
-                                    <th data-order="fecha_envio">Fecha envío</th>
-                                    <th data-order="sala">Sala</th>
-                                    <th data-order="peso_kg">Peso (kg)</th>
-                                    <th data-order="valor_factura">Valor factura</th>
-                                    <th data-order="combustible">Combustible</th>
-                                    <th data-order="galones">Galones</th>
-                                    <th data-order="almuerzos">Almuerzos</th>
-                                    <th data-order="peajes">Peajes</th>
-                                    <th data-order="parqueaderos">Parqueaderos</th>
-                                    <th data-order="total_gasto">Total gasto</th>
-                                    <th>Observaciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="costosFacturasBody">
-                                <tr><td colspan="13" class="dash-empty">Cargando...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="filter-actions">
-                        <span id="costosFacturasSummary" class="field-help"></span>
-                        <div class="pagination-buttons">
-                            <button type="button" id="costosFacturasPrev" class="btn-secondary">Anterior</button>
-                            <button type="button" id="costosFacturasNext" class="btn-secondary">Siguiente</button>
+                    <div id="costosListaGrid" class="costos-vehiculos-grid">
+                        <div class="costos-skeleton-grid">
+                            <div class="costos-skeleton-card"></div>
+                            <div class="costos-skeleton-card"></div>
+                            <div class="costos-skeleton-card"></div>
+                            <div class="costos-skeleton-card"></div>
+                            <div class="costos-skeleton-card"></div>
+                            <div class="costos-skeleton-card"></div>
                         </div>
                     </div>
-                </div>
-            </section>
+                </section>
+
+                <!-- ── Vista: detalle de vehículo ──────────────────────── -->
+                <section id="costosDetalleView" class="costos-view hidden">
+                    <button type="button" id="costosVolverButton" class="btn-secondary costos-volver">← Volver a vehículos</button>
+
+                    <div id="costosKpisGrid" class="costos-kpis-grid"></div>
+
+                    <div class="costos-graficas-grid">
+                        <div class="costos-card costos-card-chart">
+                            <h3>Gasto total por día</h3>
+                            <div class="costos-chart-wrap"><canvas id="chartGastoDiario"></canvas></div>
+                        </div>
+                        <div class="costos-card costos-card-chart">
+                            <h3>Consumo de galones por día</h3>
+                            <div class="costos-chart-wrap"><canvas id="chartGalonesDiario"></canvas></div>
+                        </div>
+                        <div class="costos-card costos-card-chart">
+                            <h3>Proporción por tipo de gasto</h3>
+                            <div class="costos-chart-wrap"><canvas id="chartProporcion"></canvas></div>
+                        </div>
+                        <div class="costos-card costos-card-chart">
+                            <h3>Desglose diario por tipo de gasto</h3>
+                            <div class="costos-chart-wrap"><canvas id="chartDesgloseDiario"></canvas></div>
+                        </div>
+                        <div class="costos-card costos-card-chart costos-card-wide">
+                            <h3>Top salas por gasto</h3>
+                            <div class="costos-chart-wrap"><canvas id="chartTopSalas"></canvas></div>
+                        </div>
+                    </div>
+
+                    <div class="costos-card costos-facturas-card">
+                        <div class="costos-facturas-head">
+                            <h3>Facturas del período</h3>
+                            <input type="text" id="costosFacturasBuscar" placeholder="Buscar por número de factura...">
+                        </div>
+                        <div class="table-scroll">
+                            <table class="import-table" id="costosFacturasTable">
+                                <thead>
+                                    <tr>
+                                        <th data-order="numero_factura">Factura</th>
+                                        <th data-order="fecha_factura">Fecha factura</th>
+                                        <th data-order="fecha_envio">Fecha envío</th>
+                                        <th data-order="sala">Sala</th>
+                                        <th>Conductor</th>
+                                        <th data-order="peso_kg">Peso (kg)</th>
+                                        <th data-order="valor_factura">Valor factura</th>
+                                        <th data-order="combustible">Combustible</th>
+                                        <th data-order="galones">Galones</th>
+                                        <th data-order="almuerzos">Almuerzos</th>
+                                        <th data-order="peajes">Peajes</th>
+                                        <th data-order="parqueaderos">Parqueaderos</th>
+                                        <th data-order="total_gasto">Total gasto</th>
+                                        <th>Observaciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="costosFacturasBody">
+                                    <tr><td colspan="14" class="dash-empty">Cargando...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="filter-actions">
+                            <span id="costosFacturasSummary" class="field-help"></span>
+                            <div class="pagination-buttons">
+                                <button type="button" id="costosFacturasPrev" class="btn-secondary">Anterior</button>
+                                <button type="button" id="costosFacturasNext" class="btn-secondary">Siguiente</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- ═══════════════════ Gasto por conductor ═══════════════════ -->
+            <div id="costosBloqueConductor" class="costos-bloque hidden">
+                <!-- ── Vista: lista de conductores ─────────────────────── -->
+                <section id="costosConductoresListaView" class="costos-view">
+                    <div class="costos-search-row">
+                        <input type="text" id="costosConductoresListaBuscar" placeholder="Buscar conductor...">
+                    </div>
+                    <div id="costosConductoresListaGrid" class="costos-vehiculos-grid">
+                        <div class="costos-skeleton-grid">
+                            <div class="costos-skeleton-card"></div>
+                            <div class="costos-skeleton-card"></div>
+                            <div class="costos-skeleton-card"></div>
+                            <div class="costos-skeleton-card"></div>
+                            <div class="costos-skeleton-card"></div>
+                            <div class="costos-skeleton-card"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ── Vista: detalle de conductor ─────────────────────── -->
+                <section id="costosConductorDetalleView" class="costos-view hidden">
+                    <button type="button" id="costosConductorVolverButton" class="btn-secondary costos-volver">← Volver a conductores</button>
+
+                    <div id="costosConductorKpisGrid" class="costos-kpis-grid"></div>
+
+                    <div class="costos-graficas-grid">
+                        <div class="costos-card costos-card-chart">
+                            <h3>Gasto total por día</h3>
+                            <div class="costos-chart-wrap"><canvas id="chartConductorGastoDiario"></canvas></div>
+                        </div>
+                        <div class="costos-card costos-card-chart">
+                            <h3>Consumo de galones por día</h3>
+                            <div class="costos-chart-wrap"><canvas id="chartConductorGalonesDiario"></canvas></div>
+                        </div>
+                        <div class="costos-card costos-card-chart">
+                            <h3>Proporción por tipo de gasto</h3>
+                            <div class="costos-chart-wrap"><canvas id="chartConductorProporcion"></canvas></div>
+                        </div>
+                        <div class="costos-card costos-card-chart">
+                            <h3>Desglose diario por tipo de gasto</h3>
+                            <div class="costos-chart-wrap"><canvas id="chartConductorDesgloseDiario"></canvas></div>
+                        </div>
+                        <div class="costos-card costos-card-chart costos-card-wide">
+                            <h3>Top vehículos usados</h3>
+                            <div class="costos-chart-wrap"><canvas id="chartConductorTopVehiculos"></canvas></div>
+                        </div>
+                    </div>
+
+                    <div class="costos-card costos-facturas-card">
+                        <div class="costos-facturas-head">
+                            <h3>Facturas del período</h3>
+                            <input type="text" id="costosConductorFacturasBuscar" placeholder="Buscar por número de factura...">
+                        </div>
+                        <div class="table-scroll">
+                            <table class="import-table" id="costosConductorFacturasTable">
+                                <thead>
+                                    <tr>
+                                        <th data-order="numero_factura">Factura</th>
+                                        <th data-order="fecha_factura">Fecha factura</th>
+                                        <th data-order="fecha_envio">Fecha envío</th>
+                                        <th data-order="placa">Vehículo</th>
+                                        <th data-order="sala">Sala</th>
+                                        <th data-order="peso_kg">Peso (kg)</th>
+                                        <th data-order="valor_factura">Valor factura</th>
+                                        <th data-order="combustible">Combustible</th>
+                                        <th data-order="galones">Galones</th>
+                                        <th data-order="almuerzos">Almuerzos</th>
+                                        <th data-order="peajes">Peajes</th>
+                                        <th data-order="parqueaderos">Parqueaderos</th>
+                                        <th data-order="total_gasto">Total gasto</th>
+                                        <th>Observaciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="costosConductorFacturasBody">
+                                    <tr><td colspan="14" class="dash-empty">Cargando...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="filter-actions">
+                            <span id="costosConductorFacturasSummary" class="field-help"></span>
+                            <div class="pagination-buttons">
+                                <button type="button" id="costosConductorFacturasPrev" class="btn-secondary">Anterior</button>
+                                <button type="button" id="costosConductorFacturasNext" class="btn-secondary">Siguiente</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
         </main>
     </div>
 

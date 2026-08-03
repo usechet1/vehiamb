@@ -3,6 +3,8 @@ const vehicleResolver = require("./vehicle-resolver.service");
 const facturasRepository = require("../../repositories/facturas-vehiculares.repository");
 const incidenciasRepository = require("../../repositories/incidencias-importacion.repository");
 const detalleRepository = require("../../repositories/detalle-importacion.repository");
+const conductoresRepository = require("../../repositories/conductores.repository");
+const gastoConductorMatcher = require("../gasto-conductor-matcher");
 
 const BATCH_SIZE = 500;
 const CLIENTE_LABEL = "CLIENTE";
@@ -102,6 +104,7 @@ async function procesarLote(candidatesLote, importacionId, contexto, empresaId) 
     .map((c) => c.vehiculoRaw)
     .filter((v) => v !== CLIENTE_LABEL && v !== `${CLIENTE_LABEL}S`);
   const vehiculosResueltos = await vehicleResolver.resolverPorPlacas(placasParaResolver, empresaId);
+  const conductoresEmpresa = await conductoresRepository.findAllParaMatching(empresaId);
 
   const detalles = [];
   const incidencias = [];
@@ -138,6 +141,7 @@ async function procesarLote(candidatesLote, importacionId, contexto, empresaId) 
         vehiculo_id: vehiculoId,
         placa_original: candidate.vehiculoRaw,
         conductor_nombre: candidate.conductorNombre,
+        conductor_id: gastoConductorMatcher.encontrarConductorPorNombre(candidate.conductorNombre, conductoresEmpresa)?.id || null,
         fecha_envio: candidate.fechaEnvio,
         observaciones: candidate.observaciones,
         estado_vehiculo: estadoVehiculo,

@@ -9,6 +9,7 @@ const INSERT_FIELDS = [
   "vehiculo_id",
   "placa_original",
   "conductor_nombre",
+  "conductor_id",
   "fecha_envio",
   "observaciones",
   "estado_vehiculo",
