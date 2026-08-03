@@ -10,6 +10,7 @@ const conductorPassword = document.getElementById("conductorPassword");
 const conductorPasswordLabel = document.getElementById("conductorPasswordLabel");
 const conductorPasswordHelp = document.getElementById("conductorPasswordHelp");
 const conductorEstado = document.getElementById("conductorEstado");
+const conductorExcluirCostos = document.getElementById("conductorExcluirCostos");
 const conductorSubmitButton = document.getElementById("conductorSubmitButton");
 const conductorCancelEditButton = document.getElementById("conductorCancelEditButton");
 
@@ -93,6 +94,7 @@ function resetForm() {
     conductorForm.reset();
     conductorId.value = "";
     conductorEstado.value = "activo";
+    conductorExcluirCostos.checked = false;
     conductorFormTitle.textContent = "Registrar conductor";
     conductorSubmitButton.textContent = "Guardar conductor";
     conductorCancelEditButton.classList.add("hidden");
@@ -237,6 +239,7 @@ conductoresTableBody.addEventListener("click", async (event) => {
             ? "Deja este campo en blanco para no cambiar la contraseña."
             : "Este conductor todavía no tiene acceso: ponle una contraseña (mínimo 6 caracteres) para crearle su cuenta.";
         conductorEstado.value = conductor.estado;
+        conductorExcluirCostos.checked = Boolean(conductor.excluir_de_costos);
 
         conductorFormTitle.textContent = `Editar conductor: ${nombreCompleto(conductor)}`;
         conductorSubmitButton.textContent = "Guardar cambios";
@@ -260,7 +263,8 @@ conductorForm.addEventListener("submit", async (event) => {
         cedula: conductorCedula.value.trim(),
         telefono: conductorTelefono.value.trim(),
         email: conductorEmail.value.trim(),
-        estado: conductorEstado.value
+        estado: conductorEstado.value,
+        excluir_de_costos: conductorExcluirCostos.checked
     };
     if (conductorPassword.value) {
         payload.password = conductorPassword.value;

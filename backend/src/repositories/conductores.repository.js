@@ -8,6 +8,7 @@ const FIELDS = [
   "email",
   "usuario_id",
   "estado",
+  "excluir_de_costos",
   "empresa_id"
 ];
 

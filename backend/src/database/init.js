@@ -1541,7 +1541,8 @@ if (env.dbClient === "sqlite") {
     ensureColumn("simit_comparendos", "numero_infraccion", "TEXT"),
     ensureColumn("inspecciones_preventivas", "viaje_id", "INTEGER"),
     ensureColumn("entregas_recibidas", "fotos_generales_json", "TEXT"),
-    ensureColumn("facturas_vehiculares", "conductor_id", "INTEGER")
+    ensureColumn("facturas_vehiculares", "conductor_id", "INTEGER"),
+    ensureColumn("conductores", "excluir_de_costos", "INTEGER NOT NULL DEFAULT 0")
   ])
     .then(() => db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_vehiculos_numero_chasis ON vehiculos (numero_chasis) WHERE numero_chasis IS NOT NULL"))
     .then(() => db.run("UPDATE notificaciones SET estado = 'leida' WHERE leido = 1 AND estado = 'no_leida'"))
@@ -1612,7 +1613,8 @@ if (env.dbClient === "sqlite") {
       ensureColumn("conductores", "licencia_archivo_mime", "TEXT"),
       ensureColumn("conductores", "email", "TEXT"),
       ensureColumn("conductores", "usuario_id", "BIGINT REFERENCES usuarios(id) ON DELETE SET NULL"),
-      ensureColumn("facturas_vehiculares", "conductor_id", "BIGINT REFERENCES conductores(id) ON DELETE SET NULL")
+      ensureColumn("facturas_vehiculares", "conductor_id", "BIGINT REFERENCES conductores(id) ON DELETE SET NULL"),
+      ensureColumn("conductores", "excluir_de_costos", "BOOLEAN NOT NULL DEFAULT FALSE")
     ]))
     .then(migrarConductoresNombreSplit)
     .then(migrarEntregasConductorAUsuario)
