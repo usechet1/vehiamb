@@ -64,7 +64,7 @@ const KPIS_CONFIG = [
     { key: "totalFacturadoNeto", label: "Valor despachado (sin IVA)", format: "cop", accent: "var(--color-primary)" },
     { key: "promedioFacturaNeto", label: "Promedio despachado", format: "cop", accent: "var(--color-primary)" },
     { key: "combustiblePctSobreFacturado", label: "Combustible % del valor despachado", format: "pct", accent: GASTO_COLORS.combustible_pesos },
-    { key: "gastoPctSobreFacturado", label: "% de participación de despachos en valor despachado sin IVA", format: "pct", accent: "var(--color-primary)" },
+    { key: "gastoPctSobreFacturado", label: "Participación de gasto en valor despachado antes de IVA", format: "pct", accent: "var(--color-primary)" },
     { key: "totalCombustible", label: "Combustible", format: "cop", accent: GASTO_COLORS.combustible_pesos },
     { key: "totalGalones", label: "Consumo (galones)", format: "galones", accent: GASTO_COLORS.combustible_pesos },
     { key: "costoPromedioPorCargue", label: "Promedio por cargue", format: "cop", accent: "var(--color-primary)" },
@@ -188,7 +188,7 @@ function renderTotalesFlota(grid, items, unidadLabel) {
         { label: unidadLabel, valor: formatInt(items.length), accent: "var(--color-muted)" },
         { label: "Despachos antes de IVA", valor: formatCOP(totalFacturadoNeto), accent: "var(--color-primary)" },
         { label: "Total gasto (operativo)", valor: formatCOP(totalGastado), accent: "var(--color-primary)", delta: deltaPct },
-        { label: "% de participación de despachos en valor despachado sin IVA", valor: pctSobre(totalGastado, totalFacturadoNeto), accent: "var(--color-primary)" },
+        { label: "Participación de gasto en valor despachado antes de IVA", valor: pctSobre(totalGastado, totalFacturadoNeto), accent: "var(--color-primary)" },
         {
             label: "Total despachos",
             valor: formatInt(totalFacturas),
