@@ -100,9 +100,9 @@ function construirDetalleWhatsapp(notificacion) {
 
   detalle.comparendoNumero = `Varios (${comparendos.length})`;
   detalle.descripcion = comparendos
-    .map((item) => {
+    .map((item, indice) => {
       const fecha = formatFechaComparendo(item.fecha_infraccion);
-      const partes = [`Comparendo ${item.numero_comparendo || "sin número"}`];
+      const partes = [`${indice + 1}) Comparendo ${item.numero_comparendo || "sin número"}`];
       if (fecha) partes.push(`Fecha: ${fecha}`);
       if (item.descripcion) partes.push(`Descripción: ${item.descripcion}`);
       return partes.join(" - ");
