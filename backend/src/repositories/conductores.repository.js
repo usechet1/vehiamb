@@ -88,6 +88,17 @@ async function findAllParaMatching(empresaId) {
   return db.all("SELECT id, nombres, apellidos, cedula FROM conductores WHERE empresa_id = ?", [empresaId]);
 }
 
+// Listado completo (sin paginar) de conductores activos, para poblar selects
+// como el de asignacion de rutas -- findAll() sirve al listado paginado de
+// la pantalla de Conductores, con un limite maximo de 100 por pagina, que se
+// queda corto para un dropdown con toda la flota de conductores.
+async function findActivosCatalogo(empresaId) {
+  return db.all(
+    "SELECT id, nombres, apellidos, telefono FROM conductores WHERE empresa_id = ? AND estado = 'activo' ORDER BY apellidos ASC, nombres ASC",
+    [empresaId]
+  );
+}
+
 // Conductores activos sin cuenta de usuario vinculada -- candidatos para
 // aparecer en selects como "quien entrega/recibe" de un acta (ver
 // entregas-recibidas.service.js) sin obligarlos a tener login. Los que ya
@@ -128,6 +139,7 @@ module.exports = {
   findById,
   findByUsuarioId,
   findAllParaMatching,
+  findActivosCatalogo,
   findActivosSinUsuario,
   vincularUsuario,
   create,

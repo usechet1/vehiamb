@@ -35,13 +35,13 @@ function hoyISO() {
 }
 
 async function cargarCatalogos() {
-    const [conductoresResultado, vehiculos, rutas] = await Promise.all([
-        window.VehiAmb.api.getConductores({ estado: "activo", limit: 500 }),
+    const [conductores, vehiculos, rutas] = await Promise.all([
+        window.VehiAmb.api.getConductoresCatalogo(),
         window.VehiAmb.api.getVehiculosCatalogo(),
         window.VehiAmb.api.getRutasCatalogo()
     ]);
 
-    conductoresCatalogo = conductoresResultado.items || [];
+    conductoresCatalogo = conductores || [];
 
     asignacionConductor.innerHTML = '<option value="">Selecciona...</option>' + conductoresCatalogo
         .map((c) => `<option value="${c.id}">${escapeHtml(`${c.nombres} ${c.apellidos}`.trim())}</option>`)
