@@ -19,7 +19,8 @@ const PAGE_PERMISSIONS = {
     "empresa.html": "empresa.manage",
     "conductores.html": "conductores.view",
     "entrega-recibida.html": "delivery.view",
-    "mi-viaje.html": "trips.view"
+    "mi-viaje.html": "trips.view",
+    "asignaciones.html": "asignaciones.view"
 };
 
 function getStoredSession() {

@@ -26,6 +26,7 @@ const viajesRoutes = require("./routes/viajes.routes");
 const empresasRoutes = require("./routes/empresas.routes");
 const conductoresRoutes = require("./routes/conductores.routes");
 const entregasRecibidasRoutes = require("./routes/entregas-recibidas.routes");
+const asignacionesRoutes = require("./routes/asignaciones.routes");
 const { apiLimiter } = require("./middlewares/rate-limit");
 
 const app = express();
@@ -76,6 +77,7 @@ app.use("/api/viajes", requireAuth, viajesRoutes);
 app.use("/api/empresas", requireAuth, empresasRoutes);
 app.use("/api/conductores", requireAuth, conductoresRoutes);
 app.use("/api/entregas-recibidas", requireAuth, entregasRecibidasRoutes);
+app.use("/api/asignaciones", requireAuth, asignacionesRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

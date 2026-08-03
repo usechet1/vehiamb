@@ -1039,5 +1039,49 @@ window.VehiAmb.api = {
 
     getMisViajesRecientes() {
         return requestJson(`${window.VehiAmb.API_URL}/viajes`, undefined, "No se pudo cargar el historial de viajes");
+    },
+
+    getRutasCatalogo() {
+        return requestJson(`${window.VehiAmb.API_URL}/asignaciones/rutas`, undefined, "No se pudo cargar el catálogo de rutas");
+    },
+
+    getAsignacionesPorFecha(fecha) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/asignaciones?fecha=${encodeURIComponent(fecha)}`,
+            undefined,
+            "No se pudieron cargar las asignaciones"
+        );
+    },
+
+    crearAsignacion(payload) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/asignaciones`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            },
+            "No se pudo guardar la asignación"
+        );
+    },
+
+    actualizarAsignacion(id, payload) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/asignaciones/${id}`,
+            {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            },
+            "No se pudo actualizar la asignación"
+        );
+    },
+
+    eliminarAsignacion(id) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/asignaciones/${id}`,
+            { method: "DELETE" },
+            "No se pudo eliminar la asignación"
+        );
     }
 };

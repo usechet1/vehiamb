@@ -198,7 +198,9 @@ const PERMISSIONS = [
   ["conductores.view", "Conductores", "Ver el catalogo de conductores"],
   ["conductores.manage", "Conductores", "Crear y editar conductores del catalogo"],
   ["delivery.view", "Actas de vehiculo", "Ver las actas de vehiculo"],
-  ["delivery.create", "Actas de vehiculo", "Registrar actas de vehiculo"]
+  ["delivery.create", "Actas de vehiculo", "Registrar actas de vehiculo"],
+  ["asignaciones.view", "Asignaciones", "Ver el reporte diario de asignacion de rutas"],
+  ["asignaciones.create", "Asignaciones", "Crear, editar y eliminar asignaciones de ruta"]
 ];
 
 const ROLE_PERMISSIONS = {
@@ -231,7 +233,9 @@ const ROLE_PERMISSIONS = {
     "conductores.view",
     "conductores.manage",
     "delivery.view",
-    "delivery.create"
+    "delivery.create",
+    "asignaciones.view",
+    "asignaciones.create"
   ],
   Consulta: [
     "dashboard.view",
@@ -343,7 +347,9 @@ const PERMISOS_NUEVOS_POR_ROL = {
   "conductores.view": ["Administrador", "Operador", "Consulta", "Conductor"],
   "conductores.manage": ["Administrador", "Operador"],
   "delivery.view": ["Administrador", "Operador", "Consulta", "Conductor"],
-  "delivery.create": ["Administrador", "Operador", "Conductor"]
+  "delivery.create": ["Administrador", "Operador", "Conductor"],
+  "asignaciones.view": ["Administrador", "Operador"],
+  "asignaciones.create": ["Administrador", "Operador"]
 };
 
 async function grantPermisosNuevos() {
@@ -1032,6 +1038,35 @@ async function ensurePostgresTables() {
     )
   `);
 
+  // ── Modulo de Asignacion de rutas (reporte diario de que conductor/vehiculo
+  // sale a que ruta -- ver frontend/asignaciones.html). "rutas" es un
+  // catalogo simple por empresa (se completa sobre la marcha al crear una
+  // asignacion con un nombre nuevo, ver asignaciones.service.js). conductor_id/
+  // vehiculo_id/ruta_id quedan en SET NULL (no CASCADE) para no perder el
+  // historial del reporte si luego se elimina el conductor/vehiculo/ruta.
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS rutas (
+      id BIGSERIAL PRIMARY KEY,
+      nombre TEXT NOT NULL,
+      empresa_id BIGINT NOT NULL REFERENCES empresas(id),
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS asignaciones_ruta (
+      id BIGSERIAL PRIMARY KEY,
+      fecha DATE NOT NULL DEFAULT CURRENT_DATE,
+      conductor_id BIGINT REFERENCES conductores(id) ON DELETE SET NULL,
+      vehiculo_id BIGINT REFERENCES vehiculos(id) ON DELETE SET NULL,
+      ruta_id BIGINT REFERENCES rutas(id) ON DELETE SET NULL,
+      telefono TEXT,
+      usuario_id BIGINT REFERENCES usuarios(id),
+      empresa_id BIGINT NOT NULL REFERENCES empresas(id),
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
   await db.run("CREATE INDEX IF NOT EXISTS idx_vehiculos_placa ON vehiculos (placa)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios (email)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_mantenimientos_vehiculo_id ON mantenimientos (vehiculo_id)");
@@ -1073,6 +1108,8 @@ async function ensurePostgresTables() {
   await db.run("CREATE INDEX IF NOT EXISTS idx_conductores_estado ON conductores (estado)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_entregas_recibidas_vehiculo_id ON entregas_recibidas (vehiculo_id, fecha DESC)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_entrega_items_entrega_id ON entrega_items (entrega_id)");
+  await db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_rutas_empresa_nombre ON rutas (empresa_id, nombre)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_asignaciones_ruta_fecha ON asignaciones_ruta (empresa_id, fecha DESC)");
 
   // La bodega y configuracion por defecto ya NO se insertan aqui: bodegas.codigo
   // y configuracion_inventario.clave pasan a ser unicos POR EMPRESA (ver mas abajo
