@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="img/car.png">
+    <link rel="apple-touch-icon" href="img/vehiamb_icon.png">
+    <link rel="manifest" href="manifest.json">
+    <title>Asignación de rutas - Vehiamb</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar"></aside>
+
+        <main class="content">
+            <div class="page-header">
+                <div>
+                    <h1>Asignación de rutas</h1>
+                    <p class="page-kicker">Asigna conductor, vehículo y ruta para el reporte diario de despachos.</p>
+                </div>
+            </div>
+
+            <div class="module-grid">
+                <div class="stack">
+                    <section class="section-card">
+                        <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
+                            <h2 id="asignacionFormTitle">Nueva asignación</h2>
+                            <p>El teléfono se llena solo con el registrado del conductor; puedes cambiarlo si aplica.</p>
+                        </summary>
+                        <div class="section-card-body">
+                            <form id="asignacionForm" class="compact-form">
+                                <input type="hidden" id="asignacionId">
+
+                                <div class="form-group">
+                                    <label>Fecha *</label>
+                                    <input type="date" id="asignacionFecha" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Conductor *</label>
+                                    <select id="asignacionConductor" required>
+                                        <option value="">Selecciona...</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Vehículo *</label>
+                                    <select id="asignacionVehiculo" required>
+                                        <option value="">Selecciona...</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Ruta *</label>
+                                    <input type="text" id="asignacionRuta" list="rutasDatalist" placeholder="Ej: ZIPAQUIRA-TOCANCIPA-CAJICA-CHOCONTA" required>
+                                    <datalist id="rutasDatalist"></datalist>
+                                    <span class="field-help">Escoge una ruta ya usada o escribe una nueva.</span>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Teléfono *</label>
+                                    <input type="text" inputmode="numeric" id="asignacionTelefono" required>
+                                </div>
+
+                                <span class="field-help">* Campos obligatorios</span>
+
+                                <div class="filter-actions">
+                                    <button type="button" id="asignacionCancelEditButton" class="btn-secondary hidden">Cancelar edición</button>
+                                    <button type="submit" class="btn-primary" id="asignacionSubmitButton">Guardar asignación</button>
+                                </div>
+                            </form>
+                        </div>
+                        </details>
+                    </section>
+                </div>
+
+                <div class="stack">
+                    <section class="section-card">
+                        <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
+                            <h2>Reporte de vehículos</h2>
+                            <p>Asignaciones del día seleccionado.</p>
+                        </summary>
+                        <div class="section-card-body">
+                            <form id="asignacionesFilterForm" class="filter-form">
+                                <div class="form-group">
+                                    <label>Fecha del reporte</label>
+                                    <input type="date" id="asignacionesFiltroFecha">
+                                </div>
+                            </form>
+
+                            <div class="table-scroll">
+                                <table class="import-table" id="asignacionesTable">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Nombre</th>
+                                            <th>Ruta</th>
+                                            <th>Teléfono</th>
+                                            <th>Placa</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="asignacionesTableBody">
+                                        <tr><td colspan="6" class="dash-empty">Cargando...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        </details>
+                    </section>
+                </div>
+            </div>
+
+            <div id="loader" class="loader hidden">
+                <video src="img/loader.mp4" autoplay loop muted playsinline></video>
+            </div>
+            <div id="mensaje" class="mensaje hidden"></div>
+        </main>
+    </div>
+
+    <script src="assets/js/shared/auth.js"></script>
+    <script src="assets/js/shared/api.js"></script>
+    <script src="assets/js/shared/ui.js"></script>
+    <script src="assets/js/shared/notificaciones-config.js"></script>
+    <script src="assets/js/shared/sidebar.js"></script>
+    <script src="assets/js/pages/asignaciones.js"></script>
+</body>
+</html>
