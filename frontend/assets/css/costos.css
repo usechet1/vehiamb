@@ -107,6 +107,12 @@
 .costos-delta.bajo { color: #147a45; }
 .costos-delta.igual { color: var(--color-muted); }
 
+.costos-totales-titulo {
+    margin-bottom: 10px;
+    color: var(--color-ink);
+    font-size: 0.95rem;
+}
+
 /* ── KPIs ─────────────────────────────────────────────────────── */
 .costos-kpis-grid {
     display: grid;
