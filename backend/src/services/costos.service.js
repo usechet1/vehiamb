@@ -170,7 +170,8 @@ async function kpisVehiculo(placa, query, empresaId) {
       totalFacturadoBruto,
       totalFacturadoNeto,
       promedioFacturaNeto: numFacturas > 0 ? Math.round((totalFacturadoNeto / numFacturas) * 100) / 100 : 0,
-      combustiblePctSobreFacturado: totalFacturadoNeto > 0 ? Math.round((totalCombustible / totalFacturadoNeto) * 1000) / 10 : 0
+      combustiblePctSobreFacturado: totalFacturadoNeto > 0 ? Math.round((totalCombustible / totalFacturadoNeto) * 1000) / 10 : 0,
+      gastoPctSobreFacturado: totalFacturadoNeto > 0 ? Math.round((totalGastado / totalFacturadoNeto) * 1000) / 10 : 0
     };
   };
 
@@ -354,7 +355,8 @@ async function kpisConductor(conductorKey, query, empresaId) {
       totalFacturadoBruto,
       totalFacturadoNeto,
       promedioFacturaNeto: numFacturas > 0 ? Math.round((totalFacturadoNeto / numFacturas) * 100) / 100 : 0,
-      combustiblePctSobreFacturado: totalFacturadoNeto > 0 ? Math.round((totalCombustible / totalFacturadoNeto) * 1000) / 10 : 0
+      combustiblePctSobreFacturado: totalFacturadoNeto > 0 ? Math.round((totalCombustible / totalFacturadoNeto) * 1000) / 10 : 0,
+      gastoPctSobreFacturado: totalFacturadoNeto > 0 ? Math.round((totalGastado / totalFacturadoNeto) * 1000) / 10 : 0
     };
   };
 
