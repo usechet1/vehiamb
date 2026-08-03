@@ -41,7 +41,7 @@ function compararComparendos(anteriores, actuales) {
   return { nuevos, cambiosEstado };
 }
 
-async function notificarNovedades({ vehiculo, consulta, nuevos, cambiosEstado, empresaId }) {
+async function notificarNovedades({ vehiculo, consulta, nuevos, cambiosEstado, empresaId, conductoresEmpresa = [] }) {
   if (!nuevos.length && !cambiosEstado.length) return;
 
   const vehiculoLabel = `${vehiculo.marca} ${vehiculo.modelo} (${vehiculo.placa})`;
@@ -56,14 +56,20 @@ async function notificarNovedades({ vehiculo, consulta, nuevos, cambiosEstado, e
     partes.push(`${cambiosEstado.length} comparendo(s) cambiaron de estado`);
   }
 
+  const nombresPorConductor = new Map(
+    conductoresEmpresa.map((c) => [c.id, `${c.nombres || ""} ${c.apellidos || ""}`.trim()])
+  );
+
   // Detalle de cada comparendo afectado (numero + fecha + descripcion +
-  // valor) para que el canal de WhatsApp pueda listarlos en el mensaje --
-  // ver notificaciones-whatsapp.channel.js construirMensajeWhatsapp().
+  // valor + conductor vinculado) para que el canal de WhatsApp pueda
+  // mostrarlo en la plantilla -- ver
+  // notificaciones-whatsapp.channel.js construirDetalleWhatsapp().
   const detalleComparendos = [...nuevos, ...cambiosEstado].map((item) => ({
     numero_comparendo: item.numero_comparendo,
     fecha_infraccion: item.fecha_infraccion,
     descripcion: item.descripcion,
-    valor: item.valor
+    valor: item.valor,
+    conductor: item.conductor_id ? nombresPorConductor.get(item.conductor_id) || null : null
   }));
 
   await notificacionesService.notificarUsuariosConPermiso(DESTINATARIO_PERMISSION, {
@@ -72,7 +78,13 @@ async function notificarNovedades({ vehiculo, consulta, nuevos, cambiosEstado, e
     vehiculo_id: vehiculo.id,
     referencia_tipo: "simit_consulta",
     referencia_id: consulta.id,
-    accion: { tipo: "ver_simit", payload: { vehiculo_id: vehiculo.id, detalle_comparendos: detalleComparendos } }
+    // "resumen" (sin repetir el vehiculo, ya va aparte en {{2}}) para el
+    // cuerpo de la plantilla de WhatsApp -- ver
+    // notificaciones-whatsapp.channel.js.
+    accion: {
+      tipo: "ver_simit",
+      payload: { vehiculo_id: vehiculo.id, resumen: partes.join(", "), detalle_comparendos: detalleComparendos }
+    }
   }, empresaId);
 }
 
@@ -166,7 +178,7 @@ async function consultarVehiculo(vehiculoId, empresaId, { origen = "manual" } = 
   const comparendosAnteriores = anterior ? await simitComparendosRepository.findByConsulta(anterior.id, empresaId) : [];
   const { nuevos, cambiosEstado } = compararComparendos(comparendosAnteriores, comparendos);
 
-  await notificarNovedades({ vehiculo, consulta, nuevos, cambiosEstado, empresaId }).catch((error) => {
+  await notificarNovedades({ vehiculo, consulta, nuevos, cambiosEstado, empresaId, conductoresEmpresa }).catch((error) => {
     console.error("No fue posible notificar novedades de SIMIT:", error.message);
   });
 
