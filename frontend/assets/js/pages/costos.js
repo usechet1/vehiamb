@@ -60,7 +60,7 @@ const GASTO_LABELS = {
 };
 
 const KPIS_CONFIG = [
-    { key: "totalGastado", label: "Total gastado (operativo)", format: "cop", accent: "var(--color-primary)" },
+    { key: "totalGastado", label: "Total gasto (operativo)", format: "cop", accent: "var(--color-primary)" },
     { key: "totalFacturadoNeto", label: "Valor despachado neto (sin IVA)", format: "cop", accent: "var(--color-primary)" },
     { key: "promedioFacturaNeto", label: "Promedio despachado neto", format: "cop", accent: "var(--color-primary)" },
     { key: "combustiblePctSobreFacturado", label: "Combustible % del valor despachado neto", format: "pct", accent: GASTO_COLORS.combustible_pesos },
@@ -183,7 +183,7 @@ function renderTotalesFlota(grid, items, unidadLabel) {
     // que antes quedaban partidas entre filas del grid.
     const tarjetas = [
         { label: unidadLabel, valor: formatInt(items.length), accent: "var(--color-muted)" },
-        { label: "Total gastado (operativo)", valor: formatCOP(totalGastado), accent: "var(--color-primary)", delta: deltaPct },
+        { label: "Total gasto (operativo)", valor: formatCOP(totalGastado), accent: "var(--color-primary)", delta: deltaPct },
         { label: "Valor despachado neto total", valor: formatCOP(totalFacturadoNeto), accent: "var(--color-primary)" },
         { label: "Total de despachos", valor: formatInt(totalFacturas), accent: "var(--color-muted)" },
         {
