@@ -67,8 +67,8 @@ const env = {
   whatsappToken: process.env.WHATSAPP_ACCESS_TOKEN || "",
   whatsappPhoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || "",
   whatsappApiVersion: process.env.WHATSAPP_API_VERSION || "v21.0",
-  whatsappTemplateName: process.env.WHATSAPP_TEMPLATE_NAME || "notify",
-  whatsappTemplateLang: process.env.WHATSAPP_TEMPLATE_LANG || "es",
+  whatsappTemplateName: process.env.WHATSAPP_TEMPLATE_NAME || "simit_comparendo_v1",
+  whatsappTemplateLang: process.env.WHATSAPP_TEMPLATE_LANG || "en",
   whatsappAlertPrioridadMinima: process.env.WHATSAPP_ALERT_PRIORIDAD_MINIMA || "alta"
 };
 
