@@ -175,16 +175,19 @@ function renderTotalesFlota(grid, items, unidadLabel) {
     const totalAlmuerzos = items.reduce((sum, item) => sum + Number(item.totalAlmuerzos || 0), 0);
     const totalPeajes = items.reduce((sum, item) => sum + Number(item.totalPeajes || 0), 0);
     const deltaPct = totalGastadoAnterior > 0 ? Math.round(((totalGastado - totalGastadoAnterior) / totalGastadoAnterior) * 1000) / 10 : null;
-    const pctSobreGastado = (valor) => (totalGastado > 0 ? formatPct(Math.round((valor / totalGastado) * 1000) / 10) : formatPct(0));
+    const pctSobre = (valor, base) => (base > 0 ? formatPct(Math.round((valor / base) * 1000) / 10) : formatPct(0));
 
     const tarjetas = [
         { label: unidadLabel, valor: formatInt(items.length), accent: "var(--color-muted)" },
         { label: "Total gastado (operativo)", valor: formatCOP(totalGastado), accent: "var(--color-primary)", delta: deltaPct },
         { label: "Facturación neta total", valor: formatCOP(totalFacturadoNeto), accent: "var(--color-primary)" },
         { label: "Total de facturas", valor: formatInt(totalFacturas), accent: "var(--color-muted)" },
-        { label: "Combustible % del gasto", valor: pctSobreGastado(totalCombustible), accent: GASTO_COLORS.combustible_pesos },
-        { label: "Almuerzos % del gasto", valor: pctSobreGastado(totalAlmuerzos), accent: GASTO_COLORS.almuerzos },
-        { label: "Peajes % del gasto", valor: pctSobreGastado(totalPeajes), accent: GASTO_COLORS.peajes }
+        { label: "Combustible % del gasto", valor: pctSobre(totalCombustible, totalGastado), accent: GASTO_COLORS.combustible_pesos },
+        { label: "Combustible % de facturación neta", valor: pctSobre(totalCombustible, totalFacturadoNeto), accent: GASTO_COLORS.combustible_pesos },
+        { label: "Almuerzos % del gasto", valor: pctSobre(totalAlmuerzos, totalGastado), accent: GASTO_COLORS.almuerzos },
+        { label: "Almuerzos % de facturación neta", valor: pctSobre(totalAlmuerzos, totalFacturadoNeto), accent: GASTO_COLORS.almuerzos },
+        { label: "Peajes % del gasto", valor: pctSobre(totalPeajes, totalGastado), accent: GASTO_COLORS.peajes },
+        { label: "Peajes % de facturación neta", valor: pctSobre(totalPeajes, totalFacturadoNeto), accent: GASTO_COLORS.peajes }
     ];
 
     grid.innerHTML = tarjetas.map((tarjeta) => `
