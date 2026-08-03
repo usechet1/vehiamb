@@ -406,7 +406,8 @@ async function conDetalleComparendosCompleto(notificacion) {
     numero_comparendo: item.numero_comparendo,
     fecha_infraccion: item.fecha_infraccion,
     descripcion: item.descripcion,
-    valor: item.valor
+    valor: item.valor,
+    conductor: item.conductor_nombres ? `${item.conductor_nombres} ${item.conductor_apellidos || ""}`.trim() : null
   }));
 
   return {

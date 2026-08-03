@@ -1,6 +1,9 @@
 const env = require("../config/env");
 const usuariosRepository = require("../repositories/usuarios.repository");
+const vehiculosRepository = require("../repositories/vehiculos.repository");
 const notifConfig = require("../config/notificaciones.config");
+
+const SIN_DATO = "-";
 
 function debeEnviarPorPrioridad(prioridad) {
   const minimo = notifConfig.ordenPrioridad(env.whatsappAlertPrioridadMinima);
@@ -29,16 +32,28 @@ function formatFechaComparendo(value) {
   return anio && mes && dia ? `${dia}/${mes}/${anio}` : "";
 }
 
-// Para "inspeccion_con_hallazgos" y "simit_multa_detectada"/"simit_estado_cambiado"
-// se le agrega al mensaje un listado de detalle (igual que ya hace
-// notificaciones-email.channel.js en HTML). La plantilla de WhatsApp solo
-// tiene una variable de texto libre para el cuerpo, y Meta rechaza (HTTP 400,
-// error 132018) cualquier "\n"/tab literal en esa variable -- probamos el
-// truco de reemplazarlo por U+2028 (line separator) para simular el salto,
-// pero WhatsApp lo renderiza como un caracter roto ("◊◊"), no como salto de
-// linea. Se arma entonces todo en una sola linea, separando cada dato con
-// " - " y cada comparendo/item con " | ".
-function construirMensajeWhatsapp(notificacion) {
+// Tipos de notificacion soportados por la plantilla ("simit_comparendo_v1"):
+// su encabezado ("Nuevo comparendo detectado en SIMIT") es texto fijo del
+// disenio aprobado en Meta, no una variable -- por eso este canal solo se
+// dispara para alertas de SIMIT, no para el resto de tipos de notificacion.
+const TIPOS_SOPORTADOS = new Set(["simit_multa_detectada", "simit_estado_cambiado"]);
+
+// La plantilla tiene 7 variables de texto en el cuerpo: {{1}} nombre del
+// destinatario, {{2}} vehiculo, {{3}} resumen, {{4}} numero de comparendo,
+// {{5}} conductor, {{6}} fecha, {{7}} descripcion. Cuando un campo no aplica
+// (ej. mas de un comparendo nuevo a la vez) se manda SIN_DATO ("-") porque
+// Meta rechaza parametros vacios. Meta tambien rechaza (HTTP 400, error
+// 132018) cualquier "\n"/tab literal en una variable -- probamos el truco de
+// reemplazarlo por U+2028 (line separator) para simular el salto, pero
+// WhatsApp lo renderiza como un caracter roto ("◊◊"), no como salto de
+// linea, asi que todo texto libre va en una sola linea, separando cada dato
+// con " - " y cada comparendo con " | ".
+//
+// "resumen" viene de accion_payload.resumen (ver simit.service.js
+// notificarNovedades), sin repetir el vehiculo porque ya va aparte en {{2}}.
+// Notificaciones de SIMIT creadas antes de que se agregara ese campo caen al
+// mensaje completo (con algo de redundancia, pero sin quedar vacias).
+function construirDetalleWhatsapp(notificacion) {
   let payload = null;
   if (notificacion.accion_payload) {
     try {
@@ -48,49 +63,62 @@ function construirMensajeWhatsapp(notificacion) {
     }
   }
 
-  if (notificacion.tipo === "inspeccion_con_hallazgos") {
-    const itemsMal = payload?.detalle_inspeccion?.items_mal || [];
-    if (!itemsMal.length) return notificacion.mensaje;
+  const detalle = {
+    resumen: payload?.resumen || notificacion.mensaje,
+    comparendoNumero: SIN_DATO,
+    conductor: SIN_DATO,
+    fecha: SIN_DATO,
+    descripcion: SIN_DATO
+  };
 
-    const listado = itemsMal
-      .map((item) => `${item.label}${item.comentario ? ` (${item.comentario})` : ""}`)
-      .join(" | ");
+  const comparendos = payload?.detalle_comparendos || [];
+  if (!comparendos.length) return detalle;
 
-    return `${notificacion.mensaje} Ítems en mal estado: ${listado}.`;
+  if (comparendos.length === 1) {
+    const item = comparendos[0];
+    detalle.comparendoNumero = item.numero_comparendo || SIN_DATO;
+    detalle.conductor = item.conductor || SIN_DATO;
+    detalle.fecha = formatFechaComparendo(item.fecha_infraccion) || SIN_DATO;
+    detalle.descripcion = item.descripcion || SIN_DATO;
+    return detalle;
   }
 
-  if (notificacion.tipo === "simit_multa_detectada" || notificacion.tipo === "simit_estado_cambiado") {
-    const comparendos = payload?.detalle_comparendos || [];
-    if (!comparendos.length) return notificacion.mensaje;
-
-    const bloques = comparendos.map((item) => {
+  detalle.comparendoNumero = `Varios (${comparendos.length})`;
+  detalle.descripcion = comparendos
+    .map((item) => {
       const fecha = formatFechaComparendo(item.fecha_infraccion);
       const partes = [`Comparendo ${item.numero_comparendo || "sin número"}`];
       if (fecha) partes.push(`Fecha: ${fecha}`);
       if (item.descripcion) partes.push(`Descripción: ${item.descripcion}`);
       return partes.join(" - ");
-    });
+    })
+    .join(" | ");
+  return detalle;
+}
 
-    return `${notificacion.mensaje} Detalle: ${bloques.join(" | ")}`;
-  }
-
-  return notificacion.mensaje;
+async function resolverVehiculoLabel(vehiculoId, empresaId) {
+  if (!vehiculoId) return SIN_DATO;
+  const vehiculo = await vehiculosRepository.findById(vehiculoId, empresaId);
+  if (!vehiculo) return SIN_DATO;
+  return `${vehiculo.marca || ""} ${vehiculo.modelo || ""} (${vehiculo.placa || SIN_DATO})`.trim();
 }
 
 /**
  * Canal de WhatsApp. Se registra en CHANNELS (notificaciones.service.js) y se
- * dispara para toda notificacion creada. Queda inactivo por completo si no
+ * dispara para toda notificacion creada, pero solo envia para los tipos en
+ * TIPOS_SOPORTADOS (hoy, alertas de SIMIT). Queda inactivo por completo si no
  * hay WHATSAPP_ACCESS_TOKEN/WHATSAPP_PHONE_NUMBER_ID configurados, y solo
  * envia para prioridad alta/critica (configurable via
  * WHATSAPP_ALERT_PRIORIDAD_MINIMA), mismo criterio que el canal de email.
  *
- * La plantilla ("notify_v2") tiene header/footer fijos, 3 variables en el
- * cuerpo (nombre del usuario, titulo, mensaje) y un boton de URL fija (no
- * acepta parametros: Meta rechaza el envio si se le manda un componente
- * "button" para esta plantilla).
+ * La plantilla ("simit_comparendo_v1") tiene header/footer fijos, 7
+ * variables en el cuerpo (ver construirDetalleWhatsapp) y un boton de URL
+ * fija (no acepta parametros: Meta rechaza el envio si se le manda un
+ * componente "button" para esta plantilla).
  */
 async function whatsappChannel(notificacion) {
   try {
+    if (!TIPOS_SOPORTADOS.has(notificacion.tipo)) return;
     if (!env.whatsappToken || !env.whatsappPhoneNumberId) return;
     if (!debeEnviarPorPrioridad(notificacion.prioridad)) return;
 
@@ -98,13 +126,10 @@ async function whatsappChannel(notificacion) {
     const celular = normalizarCelular(usuario?.celular);
     if (!celular) return;
 
-    const defaults = notifConfig.tipoConfig(notificacion.tipo);
-    const titulo = notificacion.titulo || defaults.titulo;
-    // Salvaguarda: construirMensajeWhatsapp ya arma todo en una sola linea,
-    // pero por si algun "mensaje" base trae un salto real, se limpia aqui
-    // tambien -- Meta rechaza (HTTP 400, error 132018) cualquier "\n"/tab
-    // literal en el parametro de la plantilla.
-    const mensaje = construirMensajeWhatsapp(notificacion).replace(/[\n\t]+/g, " ");
+    const limpiar = (texto) => String(texto ?? SIN_DATO).replace(/[\n\t]+/g, " ") || SIN_DATO;
+
+    const vehiculoLabel = await resolverVehiculoLabel(notificacion.vehiculo_id, notificacion.empresa_id);
+    const detalle = construirDetalleWhatsapp(notificacion);
 
     const url = `https://graph.facebook.com/${env.whatsappApiVersion}/${env.whatsappPhoneNumberId}/messages`;
 
@@ -125,9 +150,13 @@ async function whatsappChannel(notificacion) {
             {
               type: "body",
               parameters: [
-                { type: "text", text: usuario?.nombre || "" },
-                { type: "text", text: titulo },
-                { type: "text", text: mensaje }
+                { type: "text", text: limpiar(usuario?.nombre) },
+                { type: "text", text: limpiar(vehiculoLabel) },
+                { type: "text", text: limpiar(detalle.resumen) },
+                { type: "text", text: limpiar(detalle.comparendoNumero) },
+                { type: "text", text: limpiar(detalle.conductor) },
+                { type: "text", text: limpiar(detalle.fecha) },
+                { type: "text", text: limpiar(detalle.descripcion) }
               ]
             }
           ]
