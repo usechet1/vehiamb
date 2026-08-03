@@ -189,9 +189,15 @@ function renderTotalesFlota(grid, items, unidadLabel) {
         { label: "Despachos antes de IVA", valor: formatCOP(totalFacturadoNeto), accent: "var(--color-primary)" },
         { label: "Total gasto (operativo)", valor: formatCOP(totalGastado), accent: "var(--color-primary)", delta: deltaPct },
         { label: "% de participación de despachos en valor despachado sin IVA", valor: pctSobre(totalGastado, totalFacturadoNeto), accent: "var(--color-primary)" },
-        { label: "Total de despachos", valor: formatInt(totalFacturas), accent: "var(--color-muted)" },
-        { label: "Total facturas", valor: formatInt(totalFacturasReales), accent: "var(--color-muted)" },
-        { label: "Total traslados", valor: formatInt(totalTraslados), accent: "var(--color-muted)" },
+        {
+            label: "Total despachos",
+            valor: formatInt(totalFacturas),
+            accent: "var(--color-muted)",
+            dual: [
+                { valor: `${formatInt(totalFacturasReales)} facturas (${pctSobre(totalFacturasReales, totalFacturas)})`, etiqueta: "participación de despachos en total despachos" },
+                { valor: `${formatInt(totalTraslados)} traslados (${pctSobre(totalTraslados, totalFacturas)})`, etiqueta: "participación de despachos en total despachos" }
+            ]
+        },
         {
             label: "Combustible",
             accent: GASTO_COLORS.combustible_pesos,
@@ -221,11 +227,12 @@ function renderTotalesFlota(grid, items, unidadLabel) {
     grid.innerHTML = tarjetas.map((tarjeta) => `
         <div class="costos-kpi-card" style="--kpi-accent: ${tarjeta.accent}">
             <div class="costos-kpi-label">${tarjeta.label}</div>
+            ${tarjeta.valor !== undefined ? `<div class="costos-kpi-valor">${tarjeta.valor}</div>` : ""}
             ${tarjeta.dual
                 ? tarjeta.dual.map((par) => `
                     <div class="costos-kpi-valor costos-kpi-valor-dual">${par.valor}<span class="costos-kpi-valor-etiqueta">${par.etiqueta}</span></div>
                 `).join("")
-                : `<div class="costos-kpi-valor">${tarjeta.valor}</div>`}
+                : ""}
             ${tarjeta.delta !== undefined ? renderDeltaBadge(tarjeta.delta) : ""}
         </div>
     `).join("");
