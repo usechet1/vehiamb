@@ -14,6 +14,7 @@ const costosBloqueConductor = document.getElementById("costosBloqueConductor");
 const costosListaView = document.getElementById("costosListaView");
 const costosListaGrid = document.getElementById("costosListaGrid");
 const costosListaBuscar = document.getElementById("costosListaBuscar");
+const costosListaTotales = document.getElementById("costosListaTotales");
 
 const costosDetalleView = document.getElementById("costosDetalleView");
 const costosVolverButton = document.getElementById("costosVolverButton");
@@ -29,6 +30,7 @@ const costosFacturasTable = document.getElementById("costosFacturasTable");
 const costosConductoresListaView = document.getElementById("costosConductoresListaView");
 const costosConductoresListaGrid = document.getElementById("costosConductoresListaGrid");
 const costosConductoresListaBuscar = document.getElementById("costosConductoresListaBuscar");
+const costosConductoresListaTotales = document.getElementById("costosConductoresListaTotales");
 
 const costosConductorDetalleView = document.getElementById("costosConductorDetalleView");
 const costosConductorVolverButton = document.getElementById("costosConductorVolverButton");
@@ -159,6 +161,34 @@ function escribirEstadoUrl(estado, { replace = false } = {}) {
     }
 }
 
+// ── Totales de toda la flota / todos los conductores ─────────────
+// A diferencia de las tarjetas de la grilla (una por vehiculo/conductor),
+// esto suma TODOS los items del periodo (sin importar el filtro de
+// busqueda, que solo afecta que tarjetas se ven abajo) para dar el numero
+// total de la operacion completa.
+function renderTotalesFlota(grid, items, unidadLabel) {
+    const totalGastado = items.reduce((sum, item) => sum + Number(item.totalGastado || 0), 0);
+    const totalGastadoAnterior = items.reduce((sum, item) => sum + Number(item.totalGastadoAnterior || 0), 0);
+    const totalFacturadoNeto = items.reduce((sum, item) => sum + Number(item.totalFacturadoNeto || 0), 0);
+    const totalFacturas = items.reduce((sum, item) => sum + Number(item.numFacturas || 0), 0);
+    const deltaPct = totalGastadoAnterior > 0 ? Math.round(((totalGastado - totalGastadoAnterior) / totalGastadoAnterior) * 1000) / 10 : null;
+
+    const tarjetas = [
+        { label: unidadLabel, valor: formatInt(items.length), accent: "var(--color-muted)" },
+        { label: "Total gastado (operativo)", valor: formatCOP(totalGastado), accent: "var(--color-primary)", delta: deltaPct },
+        { label: "Facturación neta total", valor: formatCOP(totalFacturadoNeto), accent: "var(--color-primary)" },
+        { label: "Total de facturas", valor: formatInt(totalFacturas), accent: "var(--color-muted)" }
+    ];
+
+    grid.innerHTML = tarjetas.map((tarjeta) => `
+        <div class="costos-kpi-card" style="--kpi-accent: ${tarjeta.accent}">
+            <div class="costos-kpi-label">${tarjeta.label}</div>
+            <div class="costos-kpi-valor">${tarjeta.valor}</div>
+            ${tarjeta.delta !== undefined ? renderDeltaBadge(tarjeta.delta) : ""}
+        </div>
+    `).join("");
+}
+
 // ── Vista: lista de vehiculos ────────────────────────────────────
 
 function renderListaVehiculos() {
@@ -200,6 +230,7 @@ async function cargarListaVehiculos() {
     try {
         const resultado = await window.VehiAmb.api.getCostosVehiculos({ desde: costosDesdeInput.value, hasta: costosHastaInput.value });
         vehiculosCache = resultado.items;
+        renderTotalesFlota(costosListaTotales, vehiculosCache, "Vehículos con gasto");
         renderListaVehiculos();
     } catch (error) {
         console.error(error);
@@ -480,6 +511,7 @@ async function cargarListaConductores() {
     try {
         const resultado = await window.VehiAmb.api.getCostosConductores({ desde: costosDesdeInput.value, hasta: costosHastaInput.value });
         conductoresCache = resultado.items;
+        renderTotalesFlota(costosConductoresListaTotales, conductoresCache, "Conductores con gasto");
         renderListaConductores();
     } catch (error) {
         console.error(error);
