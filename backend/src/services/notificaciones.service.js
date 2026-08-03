@@ -395,7 +395,12 @@ async function conDetalleComparendosCompleto(notificacion) {
     payload = null;
   }
 
-  if (payload?.detalle_comparendos?.length || notificacion.referencia_tipo !== "simit_consulta") {
+  // "conductor" se agrego a detalle_comparendos despues de que existieran
+  // notificaciones ya guardadas -- si el payload trae items pero SIN esa
+  // llave (snapshot viejo), igual hay que refrescar desde la base para traer
+  // el conductor vinculado (el mismo dato que ya se ve en Consulta SIMIT).
+  const detalleCompleto = payload?.detalle_comparendos?.length && payload.detalle_comparendos.every((item) => "conductor" in item);
+  if (detalleCompleto || notificacion.referencia_tipo !== "simit_consulta") {
     return notificacion;
   }
 
