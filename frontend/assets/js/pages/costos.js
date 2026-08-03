@@ -61,9 +61,9 @@ const GASTO_LABELS = {
 
 const KPIS_CONFIG = [
     { key: "totalGastado", label: "Total gasto (operativo)", format: "cop", accent: "var(--color-primary)" },
-    { key: "totalFacturadoNeto", label: "Valor despachado neto (sin IVA)", format: "cop", accent: "var(--color-primary)" },
-    { key: "promedioFacturaNeto", label: "Promedio despachado neto", format: "cop", accent: "var(--color-primary)" },
-    { key: "combustiblePctSobreFacturado", label: "Combustible % del valor despachado neto", format: "pct", accent: GASTO_COLORS.combustible_pesos },
+    { key: "totalFacturadoNeto", label: "Valor despachado (sin IVA)", format: "cop", accent: "var(--color-primary)" },
+    { key: "promedioFacturaNeto", label: "Promedio despachado", format: "cop", accent: "var(--color-primary)" },
+    { key: "combustiblePctSobreFacturado", label: "Combustible % del valor despachado", format: "pct", accent: GASTO_COLORS.combustible_pesos },
     { key: "gastoPctSobreFacturado", label: "% de participación de despachos en valor despachado sin IVA", format: "pct", accent: "var(--color-primary)" },
     { key: "totalCombustible", label: "Combustible", format: "cop", accent: GASTO_COLORS.combustible_pesos },
     { key: "totalGalones", label: "Consumo (galones)", format: "galones", accent: GASTO_COLORS.combustible_pesos },
@@ -203,7 +203,7 @@ function renderTotalesFlota(grid, items, unidadLabel) {
             accent: GASTO_COLORS.combustible_pesos,
             dual: [
                 { valor: pctSobre(totalCombustible, totalGastado), etiqueta: "del gasto operativo" },
-                { valor: pctSobre(totalCombustible, totalFacturadoNeto), etiqueta: "del valor despachado neto" }
+                { valor: pctSobre(totalCombustible, totalFacturadoNeto), etiqueta: "del valor despachado" }
             ]
         },
         {
@@ -211,7 +211,7 @@ function renderTotalesFlota(grid, items, unidadLabel) {
             accent: GASTO_COLORS.almuerzos,
             dual: [
                 { valor: pctSobre(totalAlmuerzos, totalGastado), etiqueta: "del gasto operativo" },
-                { valor: pctSobre(totalAlmuerzos, totalFacturadoNeto), etiqueta: "del valor despachado neto" }
+                { valor: pctSobre(totalAlmuerzos, totalFacturadoNeto), etiqueta: "del valor despachado" }
             ]
         },
         {
@@ -219,7 +219,7 @@ function renderTotalesFlota(grid, items, unidadLabel) {
             accent: GASTO_COLORS.peajes,
             dual: [
                 { valor: pctSobre(totalPeajes, totalGastado), etiqueta: "del gasto operativo" },
-                { valor: pctSobre(totalPeajes, totalFacturadoNeto), etiqueta: "del valor despachado neto" }
+                { valor: pctSobre(totalPeajes, totalFacturadoNeto), etiqueta: "del valor despachado" }
             ]
         }
     ];
@@ -260,7 +260,7 @@ function renderListaVehiculos() {
                         <span>Max: ${formatCOP(v.gastoMasAlto)}</span>
                     </div>
                     <div class="costos-vehiculo-meta">
-                        <span>Valor despachado neto: ${formatCOP(v.totalFacturadoNeto)}</span>
+                        <span>Valor despachado: ${formatCOP(v.totalFacturadoNeto)}</span>
                     </div>
                     ${renderDeltaBadge(v.deltaPct)}
                 </article>
@@ -541,7 +541,7 @@ function renderListaConductores() {
                         <span>Max: ${formatCOP(c.gastoMasAlto)}</span>
                     </div>
                     <div class="costos-vehiculo-meta">
-                        <span>Valor despachado neto: ${formatCOP(c.totalFacturadoNeto)}</span>
+                        <span>Valor despachado: ${formatCOP(c.totalFacturadoNeto)}</span>
                     </div>
                     ${renderDeltaBadge(c.deltaPct)}
                 </article>
