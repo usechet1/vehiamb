@@ -124,6 +124,7 @@ async function listarVehiculos(query, empresaId) {
     return {
       placa: row.placa,
       numFacturas: Number(row.num_facturas),
+      numTraslados: Number(row.num_traslados || 0),
       totalGastado: Number(row.total_gastado),
       totalCombustible: Number(row.total_combustible || 0),
       totalAlmuerzos: Number(row.total_almuerzos || 0),
@@ -307,6 +308,7 @@ async function listarConductores(query, empresaId) {
       conductorKey: row.conductor_key,
       conductorLabel: row.conductor_label || "Sin identificar",
       numFacturas: Number(row.num_facturas),
+      numTraslados: Number(row.num_traslados || 0),
       totalGastado: Number(row.total_gastado),
       totalCombustible: Number(row.total_combustible || 0),
       totalAlmuerzos: Number(row.total_almuerzos || 0),
