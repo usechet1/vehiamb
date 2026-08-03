@@ -102,7 +102,8 @@ function toSafeInspeccion(inspeccion) {
     longitud: inspeccion.longitud != null ? Number(inspeccion.longitud) : null,
     ubicacion_precision: inspeccion.ubicacion_precision != null ? Number(inspeccion.ubicacion_precision) : null,
     total_items: Number(inspeccion.total_items || 0),
-    total_items_mal: Number(inspeccion.total_items_mal || 0)
+    total_items_mal: Number(inspeccion.total_items_mal || 0),
+    firma_url: inspeccion.firma_url
   };
 }
 
@@ -150,6 +151,11 @@ async function crear(vehiculoId, payload, archivos, currentUser) {
     };
   });
 
+  const firma = archivosPorCampo.get("firma");
+  if (!firma) {
+    throw new HttpError(400, "Se requiere la firma del conductor para guardar la inspección");
+  }
+
   const latitud = parseCoordenada(payload.latitud, -90, 90);
   const longitud = parseCoordenada(payload.longitud, -180, 180);
   const ubicacionPrecision = parseCoordenada(payload.ubicacion_precision, 0, 1000000);
@@ -174,6 +180,7 @@ async function crear(vehiculoId, payload, archivos, currentUser) {
     latitud,
     longitud,
     ubicacion_precision: ubicacionPrecision,
+    firma_url: `/uploads/inspecciones/${firma.filename}`,
     empresa_id: empresaId
   });
 

@@ -6,6 +6,10 @@ const inspeccionResumenEl = document.getElementById("inspeccionResumen");
 const guardarInspeccionButton = document.getElementById("guardarInspeccionButton");
 const limpiarInspeccionButton = document.getElementById("limpiarInspeccionButton");
 const inspeccionHistorialList = document.getElementById("inspeccionHistorialList");
+const inspeccionFirmaBox = document.getElementById("inspeccionFirmaBox");
+const inspeccionFirmaCanvas = document.getElementById("inspeccionFirmaCanvas");
+const inspeccionGuardarFirmaButton = document.getElementById("inspeccionGuardarFirmaButton");
+const inspeccionLimpiarFirmaButton = document.getElementById("inspeccionLimpiarFirmaButton");
 
 let inspeccionVehiculoId = "";
 let inspeccionViajeId = "";
@@ -14,6 +18,7 @@ let inspeccionMarcados = new Map();
 let inspeccionActivo = null;
 let inspeccionPuedeCrear = false;
 let inspeccionDetalleCache = new Map();
+let inspeccionFirmaPad = null;
 
 function escapeHtml(value) {
     return String(value ?? "")
@@ -223,6 +228,14 @@ function renderPanelGrupo(item) {
     });
 }
 
+// Se necesita firma ya guardada (bloqueada) para habilitar "Guardar
+// inspeccion" -- se recalcula tanto al marcar/desmarcar items como al
+// guardar/limpiar la firma, ver listeners en initInspeccion.
+function actualizarBotonGuardarInspeccion() {
+    const faltantes = getTotalItemsCount() - inspeccionMarcados.size;
+    guardarInspeccionButton.disabled = !inspeccionPuedeCrear || faltantes > 0 || !inspeccionFirmaPad?.estaBloqueada();
+}
+
 function renderResumen() {
     const totalMarcados = inspeccionMarcados.size;
     const totalMal = [...inspeccionMarcados.values()].filter((item) => item.estado === "mal").length;
@@ -232,6 +245,7 @@ function renderResumen() {
     if (!totalMarcados) {
         inspeccionResumenEl.innerHTML = "";
         guardarInspeccionButton.classList.add("hidden");
+        inspeccionFirmaBox.classList.add("hidden");
         return;
     }
 
@@ -244,11 +258,12 @@ function renderResumen() {
         ${itemsFaltantes.length ? `<p class="field-help inspeccion-faltantes-detalle">Falta marcar: ${itemsFaltantes.map((item) => escapeHtml(item.label)).join(", ")}.</p>` : ""}
     `;
 
-    // El boton "Guardar inspeccion" solo aparece cuando ya se marco cada
-    // item del catalogo (diagrama + kit de herramientas) -- antes de eso no
-    // tiene sentido ofrecer guardar una inspeccion a medio llenar.
+    // El boton "Guardar inspeccion" y la firma solo aparecen cuando ya se
+    // marco cada item del catalogo (diagrama + kit de herramientas) -- antes
+    // de eso no tiene sentido ofrecer guardar una inspeccion a medio llenar.
     guardarInspeccionButton.classList.toggle("hidden", faltantes > 0);
-    guardarInspeccionButton.disabled = !inspeccionPuedeCrear;
+    inspeccionFirmaBox.classList.toggle("hidden", faltantes > 0);
+    actualizarBotonGuardarInspeccion();
 }
 
 async function resetInspeccion({ confirmar = false } = {}) {
@@ -263,6 +278,7 @@ async function resetInspeccion({ confirmar = false } = {}) {
 
     inspeccionMarcados = new Map();
     inspeccionActivo = null;
+    inspeccionFirmaPad?.limpiar();
     renderHotspots();
     renderPanel();
     renderResumen();
@@ -317,6 +333,11 @@ function obtenerUbicacion() {
 async function guardarInspeccion() {
     if (!inspeccionMarcados.size) return;
 
+    if (!inspeccionFirmaPad || inspeccionFirmaPad.estaVacia()) {
+        window.VehiAmb.ui.showMessage(inspeccionMensaje, "Se requiere la firma del conductor para guardar la inspección", "error");
+        return;
+    }
+
     if (!(await confirmarAdvertenciaInspeccion())) return;
 
     const items = [];
@@ -343,6 +364,8 @@ async function guardarInspeccion() {
             formData.append("longitud", ubicacion.longitud);
             formData.append("ubicacion_precision", ubicacion.precision);
         }
+        const firmaBlob = await inspeccionFirmaPad.aBlob();
+        formData.append("firma", firmaBlob, "firma.png");
         await window.VehiAmb.api.crearInspeccion(inspeccionVehiculoId, formData);
         window.VehiAmb.ui.showMessage(inspeccionMensaje, "Inspección guardada correctamente");
         document.dispatchEvent(new CustomEvent("inspeccion:guardada"));
@@ -351,7 +374,7 @@ async function guardarInspeccion() {
     } catch (error) {
         console.error(error);
         window.VehiAmb.ui.showMessage(inspeccionMensaje, error.message || "No se pudo guardar la inspección", "error");
-        guardarInspeccionButton.disabled = false;
+        actualizarBotonGuardarInspeccion();
     }
 }
 
@@ -365,6 +388,7 @@ function renderHistorialDetalle(container, detalle) {
                     : "Sin ubicación registrada"
             }</p>
             <p><strong>Punto de llegada:</strong> ${detalle.destino ? escapeHtml(detalle.destino) : "Sin viaje asociado"}</p>
+            <p><strong>Firma:</strong> ${detalle.firma_url ? `<a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(detalle.firma_url))}" target="_blank" rel="noreferrer">Ver firma del conductor</a>` : "Sin firma"}</p>
         </div>
     `;
 
@@ -473,6 +497,7 @@ async function initInspeccion() {
         inspeccionResumenEl.classList.add("hidden");
         guardarInspeccionButton.classList.add("hidden");
         limpiarInspeccionButton.classList.add("hidden");
+        inspeccionFirmaBox.classList.add("hidden");
 
         const descripcionEl = document.getElementById("inspeccionSectionDescripcion");
         if (descripcionEl) descripcionEl.textContent = "Historial de inspecciones preventivas registradas para este vehículo.";
@@ -481,6 +506,23 @@ async function initInspeccion() {
         // que se vea desplegado de una vez, sin un clic extra para abrirlo.
         document.querySelector(".inspeccion-historial")?.setAttribute("open", "");
     }
+
+    inspeccionFirmaPad = window.VehiAmb.firmaPad.crear(inspeccionFirmaCanvas);
+
+    inspeccionGuardarFirmaButton.addEventListener("click", () => {
+        if (inspeccionFirmaPad.estaVacia()) {
+            window.VehiAmb.ui.showMessage(inspeccionMensaje, "Primero dibuja la firma antes de guardarla", "error");
+            return;
+        }
+        inspeccionFirmaPad.bloquear();
+        window.VehiAmb.ui.showMessage(inspeccionMensaje, "Firma guardada");
+        actualizarBotonGuardarInspeccion();
+    });
+
+    inspeccionLimpiarFirmaButton.addEventListener("click", () => {
+        inspeccionFirmaPad.limpiar();
+        actualizarBotonGuardarInspeccion();
+    });
 
     guardarInspeccionButton.addEventListener("click", guardarInspeccion);
     limpiarInspeccionButton.addEventListener("click", () => resetInspeccion({ confirmar: true }));
