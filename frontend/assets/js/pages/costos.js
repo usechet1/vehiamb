@@ -62,7 +62,6 @@ const GASTO_LABELS = {
 const KPIS_CONFIG = [
     { key: "totalGastado", label: "Total gasto (operativo)", format: "cop", accent: "var(--color-primary)" },
     { key: "totalFacturadoNeto", label: "Valor despachado neto (sin IVA)", format: "cop", accent: "var(--color-primary)" },
-    { key: "totalFacturadoBruto", label: "Valor despachado bruto (con IVA)", format: "cop", accent: "var(--color-primary)" },
     { key: "promedioFacturaNeto", label: "Promedio despachado neto", format: "cop", accent: "var(--color-primary)" },
     { key: "combustiblePctSobreFacturado", label: "Combustible % del valor despachado neto", format: "pct", accent: GASTO_COLORS.combustible_pesos },
     { key: "gastoPctSobreFacturado", label: "% de participación de despachos en valor despachado sin IVA", format: "pct", accent: "var(--color-primary)" },
@@ -172,7 +171,6 @@ function renderTotalesFlota(grid, items, unidadLabel) {
     const totalGastado = items.reduce((sum, item) => sum + Number(item.totalGastado || 0), 0);
     const totalGastadoAnterior = items.reduce((sum, item) => sum + Number(item.totalGastadoAnterior || 0), 0);
     const totalFacturadoNeto = items.reduce((sum, item) => sum + Number(item.totalFacturadoNeto || 0), 0);
-    const totalFacturadoBruto = items.reduce((sum, item) => sum + Number(item.totalFacturadoBruto || 0), 0);
     const totalFacturas = items.reduce((sum, item) => sum + Number(item.numFacturas || 0), 0);
     const totalTraslados = items.reduce((sum, item) => sum + Number(item.numTraslados || 0), 0);
     const totalFacturasReales = totalFacturas - totalTraslados;
@@ -191,7 +189,6 @@ function renderTotalesFlota(grid, items, unidadLabel) {
         { label: "Total gasto (operativo)", valor: formatCOP(totalGastado), accent: "var(--color-primary)", delta: deltaPct },
         { label: "% de participación de despachos en valor despachado sin IVA", valor: pctSobre(totalGastado, totalFacturadoNeto), accent: "var(--color-primary)" },
         { label: "Valor despachado total sin IVA", valor: formatCOP(totalFacturadoNeto), accent: "var(--color-primary)" },
-        { label: "Valor despachado bruto (con IVA)", valor: formatCOP(totalFacturadoBruto), accent: "var(--color-primary)" },
         { label: "Total de despachos", valor: formatInt(totalFacturas), accent: "var(--color-muted)" },
         { label: "Total facturas", valor: formatInt(totalFacturasReales), accent: "var(--color-muted)" },
         { label: "Total traslados", valor: formatInt(totalTraslados), accent: "var(--color-muted)" },
