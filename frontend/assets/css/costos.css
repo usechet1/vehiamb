@@ -186,6 +186,19 @@
     letter-spacing: 0;
 }
 
+/* Tarjeta "Total despachos": el numero total + el desglose de facturas/
+   traslados quedaban muy grandes juntos en una sola tarjeta -- se reduce
+   todo un escalon. */
+.costos-kpi-card--compacto .costos-kpi-valor {
+    font-size: 1rem;
+    margin-bottom: 4px;
+}
+
+.costos-kpi-card--compacto .costos-kpi-valor-dual {
+    font-size: 0.8rem;
+    margin-bottom: 2px;
+}
+
 /* ── Graficas ─────────────────────────────────────────────────── */
 .costos-graficas-grid {
     display: grid;
