@@ -167,6 +167,25 @@
     margin-bottom: 6px;
 }
 
+/* Dos valores dentro de una misma tarjeta (ej. Combustible % del gasto y %
+   del valor despachado neto), cada uno con su propia leyenda al lado en vez
+   de dos tarjetas sueltas que antes quedaban partidas entre filas del grid. */
+.costos-kpi-valor-dual {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 1.1rem;
+    margin-bottom: 4px;
+}
+
+.costos-kpi-valor-etiqueta {
+    color: var(--color-muted);
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
 /* ── Graficas ─────────────────────────────────────────────────── */
 .costos-graficas-grid {
     display: grid;

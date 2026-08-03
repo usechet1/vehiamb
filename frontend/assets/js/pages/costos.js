@@ -177,23 +177,49 @@ function renderTotalesFlota(grid, items, unidadLabel) {
     const deltaPct = totalGastadoAnterior > 0 ? Math.round(((totalGastado - totalGastadoAnterior) / totalGastadoAnterior) * 1000) / 10 : null;
     const pctSobre = (valor, base) => (base > 0 ? formatPct(Math.round((valor / base) * 1000) / 10) : formatPct(0));
 
+    // Tarjetas generales primero, luego una tarjeta por tipo de gasto que
+    // combina los dos porcentajes (sobre el gasto operativo y sobre el valor
+    // despachado neto) con su propia leyenda, en vez de dos tarjetas sueltas
+    // que antes quedaban partidas entre filas del grid.
     const tarjetas = [
         { label: unidadLabel, valor: formatInt(items.length), accent: "var(--color-muted)" },
         { label: "Total gastado (operativo)", valor: formatCOP(totalGastado), accent: "var(--color-primary)", delta: deltaPct },
         { label: "Valor despachado neto total", valor: formatCOP(totalFacturadoNeto), accent: "var(--color-primary)" },
         { label: "Total de despachos", valor: formatInt(totalFacturas), accent: "var(--color-muted)" },
-        { label: "Combustible % del gasto", valor: pctSobre(totalCombustible, totalGastado), accent: GASTO_COLORS.combustible_pesos },
-        { label: "Combustible % del valor despachado neto", valor: pctSobre(totalCombustible, totalFacturadoNeto), accent: GASTO_COLORS.combustible_pesos },
-        { label: "Almuerzos % del gasto", valor: pctSobre(totalAlmuerzos, totalGastado), accent: GASTO_COLORS.almuerzos },
-        { label: "Almuerzos % del valor despachado neto", valor: pctSobre(totalAlmuerzos, totalFacturadoNeto), accent: GASTO_COLORS.almuerzos },
-        { label: "Peajes % del gasto", valor: pctSobre(totalPeajes, totalGastado), accent: GASTO_COLORS.peajes },
-        { label: "Peajes % del valor despachado neto", valor: pctSobre(totalPeajes, totalFacturadoNeto), accent: GASTO_COLORS.peajes }
+        {
+            label: "Combustible",
+            accent: GASTO_COLORS.combustible_pesos,
+            dual: [
+                { valor: pctSobre(totalCombustible, totalGastado), etiqueta: "del gasto" },
+                { valor: pctSobre(totalCombustible, totalFacturadoNeto), etiqueta: "del valor despachado neto" }
+            ]
+        },
+        {
+            label: "Almuerzos",
+            accent: GASTO_COLORS.almuerzos,
+            dual: [
+                { valor: pctSobre(totalAlmuerzos, totalGastado), etiqueta: "del gasto" },
+                { valor: pctSobre(totalAlmuerzos, totalFacturadoNeto), etiqueta: "del valor despachado neto" }
+            ]
+        },
+        {
+            label: "Peajes",
+            accent: GASTO_COLORS.peajes,
+            dual: [
+                { valor: pctSobre(totalPeajes, totalGastado), etiqueta: "del gasto" },
+                { valor: pctSobre(totalPeajes, totalFacturadoNeto), etiqueta: "del valor despachado neto" }
+            ]
+        }
     ];
 
     grid.innerHTML = tarjetas.map((tarjeta) => `
         <div class="costos-kpi-card" style="--kpi-accent: ${tarjeta.accent}">
             <div class="costos-kpi-label">${tarjeta.label}</div>
-            <div class="costos-kpi-valor">${tarjeta.valor}</div>
+            ${tarjeta.dual
+                ? tarjeta.dual.map((par) => `
+                    <div class="costos-kpi-valor costos-kpi-valor-dual">${par.valor}<span class="costos-kpi-valor-etiqueta">${par.etiqueta}</span></div>
+                `).join("")
+                : `<div class="costos-kpi-valor">${tarjeta.valor}</div>`}
             ${tarjeta.delta !== undefined ? renderDeltaBadge(tarjeta.delta) : ""}
         </div>
     `).join("");
