@@ -20,6 +20,7 @@ const documentosRegistradosSection = document.getElementById("documentosRegistra
 const documentosFilterForm = document.getElementById("documentosFilterForm");
 const documentoSelect = document.getElementById("vehiculoDocumento");
 const documentosList = document.getElementById("documentosList");
+const filterDocumentoNumero = document.getElementById("filterDocumentoNumero");
 const filterDocumentoPlaca = document.getElementById("filterDocumentoPlaca");
 const filterDocumentoTipo = document.getElementById("filterDocumentoTipo");
 const filterDocumentoFechaDesde = document.getElementById("filterDocumentoFechaDesde");
@@ -253,12 +254,14 @@ function renderDocumentos(documentos) {
 }
 
 function documentMatchesFilters(item) {
+    const numero = filterDocumentoNumero.value.trim().toLowerCase();
     const placa = filterDocumentoPlaca.value;
     const tipo = filterDocumentoTipo.value;
     const fechaDesde = filterDocumentoFechaDesde.value;
     const fechaHasta = filterDocumentoFechaHasta.value;
     const itemFecha = String(item.fecha_vencimiento || "").slice(0, 10);
 
+    if (numero && !String(item.numero_documento || "").toLowerCase().includes(numero)) return false;
     if (placa && item.placa !== placa) return false;
     if (tipo && item.tipo !== tipo) return false;
     if (fechaDesde && (!itemFecha || itemFecha < fechaDesde)) return false;
@@ -270,6 +273,7 @@ function documentMatchesFilters(item) {
 function updateDocumentosFilterSummary(filteredCount) {
     const total = documentosState.length;
     const hasFilters = Boolean(
+        filterDocumentoNumero.value ||
         filterDocumentoPlaca.value ||
         filterDocumentoTipo.value ||
         filterDocumentoFechaDesde.value ||
@@ -439,7 +443,7 @@ documentosFilterForm.addEventListener("submit", (event) => {
     event.preventDefault();
 });
 
-[filterDocumentoFechaDesde, filterDocumentoFechaHasta].forEach((input) => {
+[filterDocumentoNumero, filterDocumentoFechaDesde, filterDocumentoFechaHasta].forEach((input) => {
     input.addEventListener("input", applyDocumentosFilters);
 });
 
