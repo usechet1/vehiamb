@@ -199,6 +199,66 @@
     margin-bottom: 2px;
 }
 
+/* Ventana emergente de "Total gasto (operativo)" con el desglose de
+   Combustible/Almuerzos/Peajes -- visible al pasar el mouse (desktop) o al
+   tocar/hacer click (touch, ver listener global en renderKpiCardHtml). La
+   tarjeta necesita overflow visible para que el popover no quede recortado;
+   el borde superior de color (::before) se redondea aparte para que no se
+   vea cuadrado al perder el overflow:hidden. */
+.costos-kpi-card.has-popover {
+    overflow: visible;
+    cursor: pointer;
+}
+
+.costos-kpi-card.has-popover::before {
+    border-radius: 12px 12px 0 0;
+}
+
+.costos-kpi-info-icon {
+    color: var(--color-muted);
+    font-size: 0.8em;
+}
+
+.costos-kpi-popover {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 30;
+    min-width: 260px;
+    padding: 4px 14px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(24, 32, 43, 0.18);
+}
+
+.costos-kpi-card.has-popover:hover .costos-kpi-popover,
+.costos-kpi-card.has-popover.is-open .costos-kpi-popover {
+    display: block;
+}
+
+.costos-kpi-popover-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.costos-kpi-popover-item:last-child {
+    border-bottom: none;
+}
+
+.costos-kpi-popover-item strong {
+    font-size: 0.8rem;
+}
+
+.costos-kpi-popover-pct {
+    color: var(--color-muted);
+    font-size: 0.72rem;
+}
+
 /* ── Graficas ─────────────────────────────────────────────────── */
 .costos-graficas-grid {
     display: grid;

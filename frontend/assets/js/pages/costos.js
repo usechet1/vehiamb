@@ -59,19 +59,17 @@ const GASTO_LABELS = {
     otros: "Otros"
 };
 
-// Combustible/Almuerzos/Peajes (ambos % y el desglose de despachos) se
-// arman aparte como tarjetas "duales"/compactas en renderKpis(), igual que
-// en renderTotalesFlota -- no van en este arreglo generico.
+// Combustible/Almuerzos/Peajes ya no son KPIs propios: se resumen en una
+// ventana emergente sobre la tarjeta "Total gasto (operativo)" (ver
+// construirPopoverGasto()), tanto aqui como en renderTotalesFlota. Tampoco
+// va aqui "totalGastado": esa tarjeta se arma a mano en renderKpis() para
+// poder colgarle el popover.
 const KPIS_CONFIG = [
-    { key: "totalGastado", label: "Total gasto (operativo)", format: "cop", accent: "var(--color-primary)" },
     { key: "totalFacturadoNeto", label: "Valor despachado (sin IVA)", format: "cop", accent: "var(--color-primary)" },
     { key: "promedioFacturaNeto", label: "Promedio despachado", format: "cop", accent: "var(--color-primary)" },
     { key: "gastoPctSobreFacturado", label: "Participación de gasto en valor despachado antes de IVA", format: "pct", accent: "var(--color-primary)" },
-    { key: "totalCombustible", label: "Combustible", format: "cop", accent: GASTO_COLORS.combustible_pesos },
     { key: "totalGalones", label: "Consumo (galones)", format: "galones", accent: GASTO_COLORS.combustible_pesos },
     { key: "costoPromedioPorCargue", label: "Promedio por cargue", format: "cop", accent: "var(--color-primary)" },
-    { key: "totalAlmuerzos", label: "Almuerzos", format: "cop", accent: GASTO_COLORS.almuerzos },
-    { key: "totalPeajes", label: "Peajes", format: "cop", accent: GASTO_COLORS.peajes },
     { key: "totalParqueaderos", label: "Parqueaderos", format: "cop", accent: GASTO_COLORS.parqueaderos }
 ];
 
@@ -133,16 +131,37 @@ function renderDeltaBadge(deltaPct) {
     return `<span class="costos-delta ${cls}">${arrow} ${formatPct(Math.abs(deltaPct))}</span>`;
 }
 
+// Combustible/Almuerzos/Peajes dejaron de ser KPIs propios (se veian como
+// demasiadas tarjetas repetidas entre gasto/vehiculo/conductor): ahora se
+// resumen en una ventana emergente sobre "Total gasto (operativo)", visible
+// al pasar el mouse o al tocar/clickear (ver listener global mas abajo).
+function construirPopoverGasto({ totalCombustible, totalAlmuerzos, totalPeajes, totalGastado, totalFacturadoNeto }) {
+    const pctSobre = (valor, base) => (base > 0 ? formatPct(Math.round((valor / base) * 1000) / 10) : formatPct(0));
+    const filas = [
+        { label: "Combustible", color: GASTO_COLORS.combustible_pesos, valor: totalCombustible },
+        { label: "Almuerzos", color: GASTO_COLORS.almuerzos, valor: totalAlmuerzos },
+        { label: "Peajes", color: GASTO_COLORS.peajes, valor: totalPeajes }
+    ];
+
+    return filas.map((fila) => `
+        <div class="costos-kpi-popover-item">
+            <strong style="color: ${fila.color}">${fila.label}</strong>
+            <span>${formatCOP(fila.valor)}</span>
+            <span class="costos-kpi-popover-pct">${pctSobre(fila.valor, totalGastado)} del gasto operativo · ${pctSobre(fila.valor, totalFacturadoNeto)} del valor despachado</span>
+        </div>
+    `).join("");
+}
+
 // Tarjeta de KPI compartida entre renderTotalesFlota() y renderKpis(): admite
 // un valor simple, una lista "dual" (dos valores con su propia leyenda, ej.
-// Combustible % del gasto operativo / % del valor despachado) o ambos a la
-// vez (ej. Total despachos: el numero grande + el desglose de facturas y
-// traslados debajo), y opcionalmente un modificador "compacto" para tarjetas
-// con demasiado contenido para el tamaño de letra normal.
+// Facturas/Traslados) o ambos a la vez (ej. Total despachos: el numero
+// grande + el desglose debajo), un modificador "compacto" para tarjetas con
+// demasiado contenido, y un "popover" (contenido HTML que se muestra en una
+// ventana pequeña al pasar el mouse o hacer click/tap sobre la tarjeta).
 function renderKpiCardHtml(tarjeta) {
     return `
-        <div class="costos-kpi-card${tarjeta.compacto ? " costos-kpi-card--compacto" : ""}" style="--kpi-accent: ${tarjeta.accent}">
-            <div class="costos-kpi-label">${tarjeta.label}</div>
+        <div class="costos-kpi-card${tarjeta.compacto ? " costos-kpi-card--compacto" : ""}${tarjeta.popover ? " has-popover" : ""}" style="--kpi-accent: ${tarjeta.accent}">
+            <div class="costos-kpi-label">${tarjeta.label}${tarjeta.popover ? ' <span class="costos-kpi-info-icon" aria-hidden="true">ⓘ</span>' : ""}</div>
             ${tarjeta.valor !== undefined ? `<div class="costos-kpi-valor">${tarjeta.valor}</div>` : ""}
             ${tarjeta.dual
                 ? tarjeta.dual.map((par) => `
@@ -150,9 +169,21 @@ function renderKpiCardHtml(tarjeta) {
                 `).join("")
                 : ""}
             ${tarjeta.delta !== undefined ? renderDeltaBadge(tarjeta.delta) : ""}
+            ${tarjeta.popover ? `<div class="costos-kpi-popover">${tarjeta.popover}</div>` : ""}
         </div>
     `;
 }
+
+// Abre/cierra el popover con click/tap (el hover ya lo muestra en desktop via
+// CSS); delegado en document para que funcione sin re-adjuntar listeners
+// cada vez que se re-renderiza una grilla de KPIs.
+document.addEventListener("click", (event) => {
+    const trigger = event.target.closest(".costos-kpi-card.has-popover");
+    document.querySelectorAll(".costos-kpi-card.has-popover.is-open").forEach((card) => {
+        if (card !== trigger) card.classList.remove("is-open");
+    });
+    if (trigger) trigger.classList.toggle("is-open");
+});
 
 // ── Estado / URL ─────────────────────────────────────────────────
 
@@ -208,7 +239,13 @@ function renderTotalesFlota(grid, items, unidadLabel) {
     const tarjetas = [
         { label: unidadLabel, valor: formatInt(items.length), accent: "var(--color-muted)" },
         { label: "Despachos antes de IVA", valor: formatCOP(totalFacturadoNeto), accent: "var(--color-primary)" },
-        { label: "Total gasto (operativo)", valor: formatCOP(totalGastado), accent: "var(--color-primary)", delta: deltaPct },
+        {
+            label: "Total gasto (operativo)",
+            valor: formatCOP(totalGastado),
+            accent: "var(--color-primary)",
+            delta: deltaPct,
+            popover: construirPopoverGasto({ totalCombustible, totalAlmuerzos, totalPeajes, totalGastado, totalFacturadoNeto })
+        },
         { label: "Participación de gasto en valor despachado antes de IVA", valor: pctSobre(totalGastado, totalFacturadoNeto), accent: "var(--color-primary)" },
         {
             label: "Total despachos",
@@ -218,30 +255,6 @@ function renderTotalesFlota(grid, items, unidadLabel) {
             dual: [
                 { valor: formatInt(totalFacturasReales), etiqueta: "facturas" },
                 { valor: formatInt(totalTraslados), etiqueta: "traslados" }
-            ]
-        },
-        {
-            label: "Combustible",
-            accent: GASTO_COLORS.combustible_pesos,
-            dual: [
-                { valor: pctSobre(totalCombustible, totalGastado), etiqueta: "del gasto operativo" },
-                { valor: pctSobre(totalCombustible, totalFacturadoNeto), etiqueta: "del valor despachado" }
-            ]
-        },
-        {
-            label: "Almuerzos",
-            accent: GASTO_COLORS.almuerzos,
-            dual: [
-                { valor: pctSobre(totalAlmuerzos, totalGastado), etiqueta: "del gasto operativo" },
-                { valor: pctSobre(totalAlmuerzos, totalFacturadoNeto), etiqueta: "del valor despachado" }
-            ]
-        },
-        {
-            label: "Peajes",
-            accent: GASTO_COLORS.peajes,
-            dual: [
-                { valor: pctSobre(totalPeajes, totalGastado), etiqueta: "del gasto operativo" },
-                { valor: pctSobre(totalPeajes, totalFacturadoNeto), etiqueta: "del valor despachado" }
             ]
         }
     ];
@@ -289,7 +302,12 @@ async function cargarListaVehiculos() {
 
     try {
         const resultado = await window.VehiAmb.api.getCostosVehiculos({ desde: costosDesdeInput.value, hasta: costosHastaInput.value });
-        vehiculosCache = resultado.items;
+        // Vehiculos/conductores sin ningun despacho en el periodo quedan en
+        // 0 en todos sus campos (el universo de aggregarPorVehiculo incluye
+        // TODO el catalogo, tenga o no actividad) -- se descartan aqui, antes
+        // de contarlos ni sumarlos, para que "Vehiculos con gasto" y los
+        // totales reflejen solo actividad real.
+        vehiculosCache = resultado.items.filter((v) => Number(v.numFacturas) > 0);
         renderTotalesFlota(costosListaTotales, vehiculosCache, "Vehículos con gasto");
         renderListaVehiculos();
     } catch (error) {
@@ -314,9 +332,22 @@ function renderKpis(grid, data) {
 
     // Mismo tratamiento que renderTotalesFlota(): el desglose de despachos
     // (facturas/traslados) compacto y sin porcentaje, y Combustible/Almuerzos/
-    // Peajes combinando sus dos porcentajes (del gasto operativo y del valor
-    // despachado) en una sola tarjeta cada uno.
+    // Peajes resumidos en el popover de "Total gasto (operativo)" en vez de
+    // tarjetas propias.
     const especiales = [
+        {
+            label: "Total gasto (operativo)",
+            valor: formatCOP(d.totalGastado),
+            accent: "var(--color-primary)",
+            delta: deltas.totalGastado,
+            popover: construirPopoverGasto({
+                totalCombustible: d.totalCombustible,
+                totalAlmuerzos: d.totalAlmuerzos,
+                totalPeajes: d.totalPeajes,
+                totalGastado: d.totalGastado,
+                totalFacturadoNeto: d.totalFacturadoNeto
+            })
+        },
         {
             label: "Total despachos",
             valor: formatInt(d.numFacturas),
@@ -327,34 +358,10 @@ function renderKpis(grid, data) {
                 { valor: formatInt(d.numFacturasReales), etiqueta: "facturas" },
                 { valor: formatInt(d.numTraslados), etiqueta: "traslados" }
             ]
-        },
-        {
-            label: "Combustible",
-            accent: GASTO_COLORS.combustible_pesos,
-            dual: [
-                { valor: formatPct(d.combustiblePct), etiqueta: "del gasto operativo" },
-                { valor: formatPct(d.combustiblePctSobreFacturado), etiqueta: "del valor despachado" }
-            ]
-        },
-        {
-            label: "Almuerzos",
-            accent: GASTO_COLORS.almuerzos,
-            dual: [
-                { valor: formatPct(d.almuerzosPct), etiqueta: "del gasto operativo" },
-                { valor: formatPct(d.almuerzosPctSobreFacturado), etiqueta: "del valor despachado" }
-            ]
-        },
-        {
-            label: "Peajes",
-            accent: GASTO_COLORS.peajes,
-            dual: [
-                { valor: formatPct(d.peajesPct), etiqueta: "del gasto operativo" },
-                { valor: formatPct(d.peajesPctSobreFacturado), etiqueta: "del valor despachado" }
-            ]
         }
     ];
 
-    grid.innerHTML = [...generales, ...especiales].map(renderKpiCardHtml).join("");
+    grid.innerHTML = [...especiales, ...generales].map(renderKpiCardHtml).join("");
 }
 
 function destruirChart(id) {
@@ -611,7 +618,7 @@ async function cargarListaConductores() {
 
     try {
         const resultado = await window.VehiAmb.api.getCostosConductores({ desde: costosDesdeInput.value, hasta: costosHastaInput.value });
-        conductoresCache = resultado.items;
+        conductoresCache = resultado.items.filter((c) => Number(c.numFacturas) > 0);
         renderTotalesFlota(costosConductoresListaTotales, conductoresCache, "Conductores con gasto");
         renderListaConductores();
     } catch (error) {
