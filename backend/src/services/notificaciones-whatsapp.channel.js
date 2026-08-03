@@ -115,7 +115,7 @@ async function resolverVehiculoLabel(vehiculoId, empresaId) {
   if (!vehiculoId) return SIN_DATO;
   const vehiculo = await vehiculosRepository.findById(vehiculoId, empresaId);
   if (!vehiculo) return SIN_DATO;
-  return `${vehiculo.marca || ""} ${vehiculo.modelo || ""} (${vehiculo.placa || SIN_DATO})`.trim();
+  return vehiculo.placa || SIN_DATO;
 }
 
 /**
