@@ -68,6 +68,7 @@ async function aggregarPorVehiculo(desde, hasta, empresaId) {
         SELECT
           ${PLACA_EXPR} AS placa,
           COUNT(DISTINCT f.id) AS num_facturas,
+          COUNT(DISTINCT f.id) FILTER (WHERE f.sala ILIKE 'TRASL%') AS num_traslados,
           COALESCE(SUM(g.gasto_total), 0) AS total_gastado,
           COALESCE(SUM(g.combustible_pesos), 0) AS total_combustible,
           COALESCE(SUM(g.almuerzos), 0) AS total_almuerzos,
@@ -82,6 +83,7 @@ async function aggregarPorVehiculo(desde, hasta, empresaId) {
       SELECT
         u.placa,
         COALESCE(p.num_facturas, 0) AS num_facturas,
+        COALESCE(p.num_traslados, 0) AS num_traslados,
         COALESCE(p.total_gastado, 0) AS total_gastado,
         COALESCE(p.total_combustible, 0) AS total_combustible,
         COALESCE(p.total_almuerzos, 0) AS total_almuerzos,
@@ -361,6 +363,7 @@ async function aggregarPorConductor(desde, hasta, empresaId) {
         SELECT
           ${CONDUCTOR_EXPR} AS conductor_key,
           COUNT(DISTINCT f.id) AS num_facturas,
+          COUNT(DISTINCT f.id) FILTER (WHERE f.sala ILIKE 'TRASL%') AS num_traslados,
           COALESCE(SUM(g.gasto_total), 0) AS total_gastado,
           COALESCE(SUM(g.combustible_pesos), 0) AS total_combustible,
           COALESCE(SUM(g.almuerzos), 0) AS total_almuerzos,
@@ -376,6 +379,7 @@ async function aggregarPorConductor(desde, hasta, empresaId) {
         u.conductor_key,
         u.conductor_label,
         COALESCE(p.num_facturas, 0) AS num_facturas,
+        COALESCE(p.num_traslados, 0) AS num_traslados,
         COALESCE(p.total_gastado, 0) AS total_gastado,
         COALESCE(p.total_combustible, 0) AS total_combustible,
         COALESCE(p.total_almuerzos, 0) AS total_almuerzos,

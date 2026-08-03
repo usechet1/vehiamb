@@ -171,6 +171,8 @@ function renderTotalesFlota(grid, items, unidadLabel) {
     const totalGastadoAnterior = items.reduce((sum, item) => sum + Number(item.totalGastadoAnterior || 0), 0);
     const totalFacturadoNeto = items.reduce((sum, item) => sum + Number(item.totalFacturadoNeto || 0), 0);
     const totalFacturas = items.reduce((sum, item) => sum + Number(item.numFacturas || 0), 0);
+    const totalTraslados = items.reduce((sum, item) => sum + Number(item.numTraslados || 0), 0);
+    const totalFacturasReales = totalFacturas - totalTraslados;
     const totalCombustible = items.reduce((sum, item) => sum + Number(item.totalCombustible || 0), 0);
     const totalAlmuerzos = items.reduce((sum, item) => sum + Number(item.totalAlmuerzos || 0), 0);
     const totalPeajes = items.reduce((sum, item) => sum + Number(item.totalPeajes || 0), 0);
@@ -186,6 +188,8 @@ function renderTotalesFlota(grid, items, unidadLabel) {
         { label: "Total gasto (operativo)", valor: formatCOP(totalGastado), accent: "var(--color-primary)", delta: deltaPct },
         { label: "Valor despachado neto total", valor: formatCOP(totalFacturadoNeto), accent: "var(--color-primary)" },
         { label: "Total de despachos", valor: formatInt(totalFacturas), accent: "var(--color-muted)" },
+        { label: "Total facturas", valor: formatInt(totalFacturasReales), accent: "var(--color-muted)" },
+        { label: "Total traslados", valor: formatInt(totalTraslados), accent: "var(--color-muted)" },
         {
             label: "Combustible",
             accent: GASTO_COLORS.combustible_pesos,
