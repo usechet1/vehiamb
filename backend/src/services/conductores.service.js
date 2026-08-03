@@ -33,7 +33,12 @@ function normalizePayload(payload) {
     cedula: toTrimmedOrNull(payload.cedula),
     telefono: toTrimmedOrNull(payload.telefono),
     email: String(payload.email || "").trim().toLowerCase(),
-    estado: ESTADOS_VALIDOS.has(payload.estado) ? payload.estado : "activo"
+    estado: ESTADOS_VALIDOS.has(payload.estado) ? payload.estado : "activo",
+    // No afecta si el conductor puede loguearse ni si aparece en otras partes
+    // de la app (ej. selects de actas) -- solo lo saca del dashboard de
+    // gastos por conductor (ver costos.repository.js aggregarPorConductor),
+    // para casos puntuales donde alguien activo no debe figurar ahi.
+    excluir_de_costos: payload.excluir_de_costos === true || payload.excluir_de_costos === "true"
   };
 }
 

@@ -326,7 +326,7 @@ async function aggregarPorConductor(desde, hasta, empresaId) {
       WITH universo AS (
         SELECT 'C' || c.id AS conductor_key, TRIM(COALESCE(c.apellidos, '') || ' ' || COALESCE(c.nombres, '')) AS conductor_label
         FROM conductores c
-        WHERE c.empresa_id = ?
+        WHERE c.empresa_id = ? AND c.excluir_de_costos = FALSE
         UNION
         SELECT DISTINCT 'N:' || UPPER(f.conductor_nombre), f.conductor_nombre
         FROM facturas_vehiculares f
