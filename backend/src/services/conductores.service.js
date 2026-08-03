@@ -89,6 +89,10 @@ async function listConductores(query, empresaId) {
   return { items: rows, page: filters.page, limit: filters.limit, total, totalPages };
 }
 
+async function listActivosCatalogo(empresaId) {
+  return conductoresRepository.findActivosCatalogo(empresaId);
+}
+
 async function getConductor(id, empresaId) {
   const conductor = await conductoresRepository.findById(id, empresaId);
   if (!conductor) {
@@ -208,6 +212,7 @@ async function updateConductor(id, payload, empresaId) {
 
 module.exports = {
   listConductores,
+  listActivosCatalogo,
   getConductor,
   createConductor,
   updateConductor,

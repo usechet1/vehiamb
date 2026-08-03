@@ -12,6 +12,7 @@ const conductoresRepository = require("../repositories/conductores.repository");
 const conductorLicenciasRepository = require("../repositories/conductor-licencias.repository");
 
 router.get("/", requirePermission("conductores.view"), asyncHandler(conductoresController.getConductores));
+router.get("/catalogo", requirePermission("conductores.view"), asyncHandler(conductoresController.getCatalogo));
 router.get("/:id", requirePermission("conductores.view"), asyncHandler(conductoresController.getConductorById));
 router.post("/", requirePermission("conductores.manage"), asyncHandler(conductoresController.createConductor));
 router.put("/:id", requirePermission("conductores.manage"), asyncHandler(conductoresController.updateConductor));

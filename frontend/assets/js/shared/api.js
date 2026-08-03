@@ -893,6 +893,10 @@ window.VehiAmb.api = {
         );
     },
 
+    getConductoresCatalogo() {
+        return requestJson(`${window.VehiAmb.API_URL}/conductores/catalogo`, undefined, "No se pudieron cargar los conductores");
+    },
+
     getConductor(id) {
         return requestJson(`${window.VehiAmb.API_URL}/conductores/${id}`, undefined, "No se pudo cargar el conductor");
     },
