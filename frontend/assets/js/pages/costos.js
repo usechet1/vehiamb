@@ -171,13 +171,20 @@ function renderTotalesFlota(grid, items, unidadLabel) {
     const totalGastadoAnterior = items.reduce((sum, item) => sum + Number(item.totalGastadoAnterior || 0), 0);
     const totalFacturadoNeto = items.reduce((sum, item) => sum + Number(item.totalFacturadoNeto || 0), 0);
     const totalFacturas = items.reduce((sum, item) => sum + Number(item.numFacturas || 0), 0);
+    const totalCombustible = items.reduce((sum, item) => sum + Number(item.totalCombustible || 0), 0);
+    const totalAlmuerzos = items.reduce((sum, item) => sum + Number(item.totalAlmuerzos || 0), 0);
+    const totalPeajes = items.reduce((sum, item) => sum + Number(item.totalPeajes || 0), 0);
     const deltaPct = totalGastadoAnterior > 0 ? Math.round(((totalGastado - totalGastadoAnterior) / totalGastadoAnterior) * 1000) / 10 : null;
+    const pctSobreGastado = (valor) => (totalGastado > 0 ? formatPct(Math.round((valor / totalGastado) * 1000) / 10) : formatPct(0));
 
     const tarjetas = [
         { label: unidadLabel, valor: formatInt(items.length), accent: "var(--color-muted)" },
         { label: "Total gastado (operativo)", valor: formatCOP(totalGastado), accent: "var(--color-primary)", delta: deltaPct },
         { label: "Facturación neta total", valor: formatCOP(totalFacturadoNeto), accent: "var(--color-primary)" },
-        { label: "Total de facturas", valor: formatInt(totalFacturas), accent: "var(--color-muted)" }
+        { label: "Total de facturas", valor: formatInt(totalFacturas), accent: "var(--color-muted)" },
+        { label: "Combustible % del gasto", valor: pctSobreGastado(totalCombustible), accent: GASTO_COLORS.combustible_pesos },
+        { label: "Almuerzos % del gasto", valor: pctSobreGastado(totalAlmuerzos), accent: GASTO_COLORS.almuerzos },
+        { label: "Peajes % del gasto", valor: pctSobreGastado(totalPeajes), accent: GASTO_COLORS.peajes }
     ];
 
     grid.innerHTML = tarjetas.map((tarjeta) => `

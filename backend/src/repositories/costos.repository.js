@@ -53,9 +53,14 @@ async function aggregarPorVehiculo(desde, hasta, empresaId) {
         SELECT 'CLIENTE'
       ),
       gastos_por_factura AS (
-        SELECT factura_id, SUM(valor) AS gasto_total
+        SELECT
+          factura_id,
+          SUM(CASE WHEN tipo_gasto = 'combustible_pesos' THEN valor ELSE 0 END) AS combustible_pesos,
+          SUM(CASE WHEN tipo_gasto = 'almuerzos' THEN valor ELSE 0 END) AS almuerzos,
+          SUM(CASE WHEN tipo_gasto = 'peajes' THEN valor ELSE 0 END) AS peajes,
+          SUM(CASE WHEN unidad = 'COP' THEN valor ELSE 0 END) AS gasto_total
         FROM gastos_operativos
-        WHERE unidad = 'COP' AND empresa_id = ?
+        WHERE empresa_id = ?
         GROUP BY factura_id
       ),
       periodo AS (
@@ -63,6 +68,9 @@ async function aggregarPorVehiculo(desde, hasta, empresaId) {
           ${PLACA_EXPR} AS placa,
           COUNT(DISTINCT f.id) AS num_facturas,
           COALESCE(SUM(g.gasto_total), 0) AS total_gastado,
+          COALESCE(SUM(g.combustible_pesos), 0) AS total_combustible,
+          COALESCE(SUM(g.almuerzos), 0) AS total_almuerzos,
+          COALESCE(SUM(g.peajes), 0) AS total_peajes,
           COALESCE(SUM(f.valor_factura), 0) AS total_facturado_bruto,
           COALESCE(MAX(g.gasto_total), 0) AS gasto_mas_alto
         FROM facturas_vehiculares f
@@ -74,6 +82,9 @@ async function aggregarPorVehiculo(desde, hasta, empresaId) {
         u.placa,
         COALESCE(p.num_facturas, 0) AS num_facturas,
         COALESCE(p.total_gastado, 0) AS total_gastado,
+        COALESCE(p.total_combustible, 0) AS total_combustible,
+        COALESCE(p.total_almuerzos, 0) AS total_almuerzos,
+        COALESCE(p.total_peajes, 0) AS total_peajes,
         COALESCE(p.total_facturado_bruto, 0) AS total_facturado_bruto,
         COALESCE(p.gasto_mas_alto, 0) AS gasto_mas_alto
       FROM universo u
@@ -335,9 +346,14 @@ async function aggregarPorConductor(desde, hasta, empresaId) {
         SELECT 'SIN_IDENTIFICAR', 'Sin identificar'
       ),
       gastos_por_factura AS (
-        SELECT factura_id, SUM(valor) AS gasto_total
+        SELECT
+          factura_id,
+          SUM(CASE WHEN tipo_gasto = 'combustible_pesos' THEN valor ELSE 0 END) AS combustible_pesos,
+          SUM(CASE WHEN tipo_gasto = 'almuerzos' THEN valor ELSE 0 END) AS almuerzos,
+          SUM(CASE WHEN tipo_gasto = 'peajes' THEN valor ELSE 0 END) AS peajes,
+          SUM(CASE WHEN unidad = 'COP' THEN valor ELSE 0 END) AS gasto_total
         FROM gastos_operativos
-        WHERE unidad = 'COP' AND empresa_id = ?
+        WHERE empresa_id = ?
         GROUP BY factura_id
       ),
       periodo AS (
@@ -345,6 +361,9 @@ async function aggregarPorConductor(desde, hasta, empresaId) {
           ${CONDUCTOR_EXPR} AS conductor_key,
           COUNT(DISTINCT f.id) AS num_facturas,
           COALESCE(SUM(g.gasto_total), 0) AS total_gastado,
+          COALESCE(SUM(g.combustible_pesos), 0) AS total_combustible,
+          COALESCE(SUM(g.almuerzos), 0) AS total_almuerzos,
+          COALESCE(SUM(g.peajes), 0) AS total_peajes,
           COALESCE(SUM(f.valor_factura), 0) AS total_facturado_bruto,
           COALESCE(MAX(g.gasto_total), 0) AS gasto_mas_alto
         FROM facturas_vehiculares f
@@ -357,6 +376,9 @@ async function aggregarPorConductor(desde, hasta, empresaId) {
         u.conductor_label,
         COALESCE(p.num_facturas, 0) AS num_facturas,
         COALESCE(p.total_gastado, 0) AS total_gastado,
+        COALESCE(p.total_combustible, 0) AS total_combustible,
+        COALESCE(p.total_almuerzos, 0) AS total_almuerzos,
+        COALESCE(p.total_peajes, 0) AS total_peajes,
         COALESCE(p.total_facturado_bruto, 0) AS total_facturado_bruto,
         COALESCE(p.gasto_mas_alto, 0) AS gasto_mas_alto
       FROM universo u
