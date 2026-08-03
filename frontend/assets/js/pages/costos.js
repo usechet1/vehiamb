@@ -70,7 +70,7 @@ const KPIS_CONFIG = [
     { key: "totalAlmuerzos", label: "Almuerzos", format: "cop", accent: GASTO_COLORS.almuerzos },
     { key: "totalPeajes", label: "Peajes", format: "cop", accent: GASTO_COLORS.peajes },
     { key: "totalParqueaderos", label: "Parqueaderos", format: "cop", accent: GASTO_COLORS.parqueaderos },
-    { key: "numFacturas", label: "Numero de facturas", format: "int", accent: "var(--color-muted)" },
+    { key: "numFacturas", label: "Numero de despachos", format: "int", accent: "var(--color-muted)" },
     { key: "combustiblePct", label: "Combustible % del gasto operativo", format: "pct", accent: GASTO_COLORS.combustible_pesos }
 ];
 
@@ -181,7 +181,7 @@ function renderTotalesFlota(grid, items, unidadLabel) {
         { label: unidadLabel, valor: formatInt(items.length), accent: "var(--color-muted)" },
         { label: "Total gastado (operativo)", valor: formatCOP(totalGastado), accent: "var(--color-primary)", delta: deltaPct },
         { label: "Valor despachado neto total", valor: formatCOP(totalFacturadoNeto), accent: "var(--color-primary)" },
-        { label: "Total de facturas", valor: formatInt(totalFacturas), accent: "var(--color-muted)" },
+        { label: "Total de despachos", valor: formatInt(totalFacturas), accent: "var(--color-muted)" },
         { label: "Combustible % del gasto", valor: pctSobre(totalCombustible, totalGastado), accent: GASTO_COLORS.combustible_pesos },
         { label: "Combustible % del valor despachado neto", valor: pctSobre(totalCombustible, totalFacturadoNeto), accent: GASTO_COLORS.combustible_pesos },
         { label: "Almuerzos % del gasto", valor: pctSobre(totalAlmuerzos, totalGastado), accent: GASTO_COLORS.almuerzos },
@@ -217,7 +217,7 @@ function renderListaVehiculos() {
                     <span class="costos-vehiculo-placa${v.placa === "CLIENTE" ? " es-cliente" : ""}">${escapeHtml(v.placa)}</span>
                     <span class="costos-vehiculo-total">${formatCOP(v.totalGastado)}</span>
                     <div class="costos-vehiculo-meta">
-                        <span>${v.numFacturas} facturas</span>
+                        <span>${v.numFacturas} despachos</span>
                         <span>Max: ${formatCOP(v.gastoMasAlto)}</span>
                     </div>
                     <div class="costos-vehiculo-meta">
@@ -498,7 +498,7 @@ function renderListaConductores() {
                     <span class="costos-vehiculo-placa${c.conductorKey === "SIN_IDENTIFICAR" ? " es-cliente" : ""}">${escapeHtml(c.conductorLabel)}</span>
                     <span class="costos-vehiculo-total">${formatCOP(c.totalGastado)}</span>
                     <div class="costos-vehiculo-meta">
-                        <span>${c.numFacturas} facturas</span>
+                        <span>${c.numFacturas} despachos</span>
                         <span>Max: ${formatCOP(c.gastoMasAlto)}</span>
                     </div>
                     <div class="costos-vehiculo-meta">
