@@ -53,6 +53,18 @@ const TIPOS_SOPORTADOS = new Set(["simit_multa_detectada", "simit_estado_cambiad
 // notificarNovedades), sin repetir el vehiculo porque ya va aparte en {{2}}.
 // Notificaciones de SIMIT creadas antes de que se agregara ese campo caen al
 // mensaje completo (con algo de redundancia, pero sin quedar vacias).
+
+// Cuando varios comparendos llegan en una misma notificacion, conductor y
+// fecha solo tienen un valor claro si TODOS los comparendos comparten el
+// mismo dato -- si no, se avisa que hay varios en vez de mostrar el de uno
+// solo arbitrariamente.
+function valorComunOFallback(valores, fallback) {
+  const unicos = new Set(valores.filter(Boolean));
+  if (unicos.size === 0) return SIN_DATO;
+  if (unicos.size === 1) return [...unicos][0];
+  return fallback;
+}
+
 function construirDetalleWhatsapp(notificacion) {
   let payload = null;
   if (notificacion.accion_payload) {
@@ -74,12 +86,15 @@ function construirDetalleWhatsapp(notificacion) {
   const comparendos = payload?.detalle_comparendos || [];
   if (!comparendos.length) return detalle;
 
+  detalle.conductor = valorComunOFallback(comparendos.map((item) => item.conductor), "Varios");
+  detalle.fecha = valorComunOFallback(
+    comparendos.map((item) => formatFechaComparendo(item.fecha_infraccion)),
+    "Varias fechas"
+  );
+
   if (comparendos.length === 1) {
-    const item = comparendos[0];
-    detalle.comparendoNumero = item.numero_comparendo || SIN_DATO;
-    detalle.conductor = item.conductor || SIN_DATO;
-    detalle.fecha = formatFechaComparendo(item.fecha_infraccion) || SIN_DATO;
-    detalle.descripcion = item.descripcion || SIN_DATO;
+    detalle.comparendoNumero = comparendos[0].numero_comparendo || SIN_DATO;
+    detalle.descripcion = comparendos[0].descripcion || SIN_DATO;
     return detalle;
   }
 
