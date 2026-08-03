@@ -13,11 +13,13 @@ const asignacionCancelEditButton = document.getElementById("asignacionCancelEdit
 const asignacionesFilterForm = document.getElementById("asignacionesFilterForm");
 const asignacionesFiltroFecha = document.getElementById("asignacionesFiltroFecha");
 const asignacionesTableBody = document.getElementById("asignacionesTableBody");
+const asignacionesExportarButton = document.getElementById("asignacionesExportarButton");
 
 const loader = document.getElementById("loader");
 const mensaje = document.getElementById("mensaje");
 
 let conductoresCatalogo = [];
+let asignacionesActuales = [];
 
 function escapeHtml(value) {
     return String(value ?? "")
@@ -91,15 +93,30 @@ function renderRow(item, indice) {
 async function cargarAsignaciones() {
     try {
         asignacionesTableBody.innerHTML = '<tr><td colspan="6" class="dash-empty">Cargando...</td></tr>';
-        const asignaciones = await window.VehiAmb.api.getAsignacionesPorFecha(asignacionesFiltroFecha.value);
+        asignacionesActuales = await window.VehiAmb.api.getAsignacionesPorFecha(asignacionesFiltroFecha.value);
 
-        asignacionesTableBody.innerHTML = asignaciones.length
-            ? asignaciones.map(renderRow).join("")
+        asignacionesTableBody.innerHTML = asignacionesActuales.length
+            ? asignacionesActuales.map(renderRow).join("")
             : '<tr><td colspan="6" class="dash-empty">Sin asignaciones para esta fecha</td></tr>';
     } catch (error) {
+        asignacionesActuales = [];
         asignacionesTableBody.innerHTML = '<tr><td colspan="6" class="dash-empty">No fue posible cargar las asignaciones</td></tr>';
     }
 }
+
+asignacionesExportarButton.addEventListener("click", async () => {
+    asignacionesExportarButton.disabled = true;
+    try {
+        await window.VehiAmb.asignacionesExport.exportReportePdf({
+            fecha: asignacionesFiltroFecha.value,
+            asignaciones: asignacionesActuales
+        });
+    } catch (error) {
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo generar el PDF", "error");
+    } finally {
+        asignacionesExportarButton.disabled = false;
+    }
+});
 
 asignacionesFilterForm.addEventListener("submit", (event) => event.preventDefault());
 
