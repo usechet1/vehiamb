@@ -190,7 +190,7 @@ function renderTotalesFlota(grid, items, unidadLabel) {
             label: "Combustible",
             accent: GASTO_COLORS.combustible_pesos,
             dual: [
-                { valor: pctSobre(totalCombustible, totalGastado), etiqueta: "del gasto" },
+                { valor: pctSobre(totalCombustible, totalGastado), etiqueta: "del gasto operativo" },
                 { valor: pctSobre(totalCombustible, totalFacturadoNeto), etiqueta: "del valor despachado neto" }
             ]
         },
@@ -198,7 +198,7 @@ function renderTotalesFlota(grid, items, unidadLabel) {
             label: "Almuerzos",
             accent: GASTO_COLORS.almuerzos,
             dual: [
-                { valor: pctSobre(totalAlmuerzos, totalGastado), etiqueta: "del gasto" },
+                { valor: pctSobre(totalAlmuerzos, totalGastado), etiqueta: "del gasto operativo" },
                 { valor: pctSobre(totalAlmuerzos, totalFacturadoNeto), etiqueta: "del valor despachado neto" }
             ]
         },
@@ -206,7 +206,7 @@ function renderTotalesFlota(grid, items, unidadLabel) {
             label: "Peajes",
             accent: GASTO_COLORS.peajes,
             dual: [
-                { valor: pctSobre(totalPeajes, totalGastado), etiqueta: "del gasto" },
+                { valor: pctSobre(totalPeajes, totalGastado), etiqueta: "del gasto operativo" },
                 { valor: pctSobre(totalPeajes, totalFacturadoNeto), etiqueta: "del valor despachado neto" }
             ]
         }
