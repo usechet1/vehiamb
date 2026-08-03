@@ -118,6 +118,7 @@ async function kpisVehiculo(placa, desde, hasta, empresaId) {
       )
       SELECT
         COUNT(DISTINCT f.id) AS num_facturas,
+        COUNT(DISTINCT f.id) FILTER (WHERE f.sala ILIKE 'TRASL%') AS num_traslados,
         COALESCE(SUM(g.gasto_total), 0) AS total_gastado,
         COALESCE(SUM(g.combustible_pesos), 0) AS total_combustible,
         COALESCE(SUM(g.combustible_galones), 0) AS total_galones,
@@ -414,6 +415,7 @@ async function kpisConductor(conductorKey, desde, hasta, empresaId) {
       )
       SELECT
         COUNT(DISTINCT f.id) AS num_facturas,
+        COUNT(DISTINCT f.id) FILTER (WHERE f.sala ILIKE 'TRASL%') AS num_traslados,
         COALESCE(SUM(g.gasto_total), 0) AS total_gastado,
         COALESCE(SUM(g.combustible_pesos), 0) AS total_combustible,
         COALESCE(SUM(g.combustible_galones), 0) AS total_galones,

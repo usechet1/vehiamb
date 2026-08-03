@@ -59,20 +59,20 @@ const GASTO_LABELS = {
     otros: "Otros"
 };
 
+// Combustible/Almuerzos/Peajes (ambos % y el desglose de despachos) se
+// arman aparte como tarjetas "duales"/compactas en renderKpis(), igual que
+// en renderTotalesFlota -- no van en este arreglo generico.
 const KPIS_CONFIG = [
     { key: "totalGastado", label: "Total gasto (operativo)", format: "cop", accent: "var(--color-primary)" },
     { key: "totalFacturadoNeto", label: "Valor despachado (sin IVA)", format: "cop", accent: "var(--color-primary)" },
     { key: "promedioFacturaNeto", label: "Promedio despachado", format: "cop", accent: "var(--color-primary)" },
-    { key: "combustiblePctSobreFacturado", label: "Combustible % del valor despachado", format: "pct", accent: GASTO_COLORS.combustible_pesos },
     { key: "gastoPctSobreFacturado", label: "Participación de gasto en valor despachado antes de IVA", format: "pct", accent: "var(--color-primary)" },
     { key: "totalCombustible", label: "Combustible", format: "cop", accent: GASTO_COLORS.combustible_pesos },
     { key: "totalGalones", label: "Consumo (galones)", format: "galones", accent: GASTO_COLORS.combustible_pesos },
     { key: "costoPromedioPorCargue", label: "Promedio por cargue", format: "cop", accent: "var(--color-primary)" },
     { key: "totalAlmuerzos", label: "Almuerzos", format: "cop", accent: GASTO_COLORS.almuerzos },
     { key: "totalPeajes", label: "Peajes", format: "cop", accent: GASTO_COLORS.peajes },
-    { key: "totalParqueaderos", label: "Parqueaderos", format: "cop", accent: GASTO_COLORS.parqueaderos },
-    { key: "numFacturas", label: "Numero de despachos", format: "int", accent: "var(--color-muted)" },
-    { key: "combustiblePct", label: "Combustible % del gasto operativo", format: "pct", accent: GASTO_COLORS.combustible_pesos }
+    { key: "totalParqueaderos", label: "Parqueaderos", format: "cop", accent: GASTO_COLORS.parqueaderos }
 ];
 
 let chartInstances = {};
@@ -131,6 +131,27 @@ function renderDeltaBadge(deltaPct) {
     const cls = deltaPct > 0 ? "subio" : "bajo";
     const arrow = deltaPct > 0 ? "▲" : "▼";
     return `<span class="costos-delta ${cls}">${arrow} ${formatPct(Math.abs(deltaPct))}</span>`;
+}
+
+// Tarjeta de KPI compartida entre renderTotalesFlota() y renderKpis(): admite
+// un valor simple, una lista "dual" (dos valores con su propia leyenda, ej.
+// Combustible % del gasto operativo / % del valor despachado) o ambos a la
+// vez (ej. Total despachos: el numero grande + el desglose de facturas y
+// traslados debajo), y opcionalmente un modificador "compacto" para tarjetas
+// con demasiado contenido para el tamaño de letra normal.
+function renderKpiCardHtml(tarjeta) {
+    return `
+        <div class="costos-kpi-card${tarjeta.compacto ? " costos-kpi-card--compacto" : ""}" style="--kpi-accent: ${tarjeta.accent}">
+            <div class="costos-kpi-label">${tarjeta.label}</div>
+            ${tarjeta.valor !== undefined ? `<div class="costos-kpi-valor">${tarjeta.valor}</div>` : ""}
+            ${tarjeta.dual
+                ? tarjeta.dual.map((par) => `
+                    <div class="costos-kpi-valor costos-kpi-valor-dual">${par.valor}<span class="costos-kpi-valor-etiqueta">${par.etiqueta}</span></div>
+                `).join("")
+                : ""}
+            ${tarjeta.delta !== undefined ? renderDeltaBadge(tarjeta.delta) : ""}
+        </div>
+    `;
 }
 
 // ── Estado / URL ─────────────────────────────────────────────────
@@ -225,18 +246,7 @@ function renderTotalesFlota(grid, items, unidadLabel) {
         }
     ];
 
-    grid.innerHTML = tarjetas.map((tarjeta) => `
-        <div class="costos-kpi-card${tarjeta.compacto ? " costos-kpi-card--compacto" : ""}" style="--kpi-accent: ${tarjeta.accent}">
-            <div class="costos-kpi-label">${tarjeta.label}</div>
-            ${tarjeta.valor !== undefined ? `<div class="costos-kpi-valor">${tarjeta.valor}</div>` : ""}
-            ${tarjeta.dual
-                ? tarjeta.dual.map((par) => `
-                    <div class="costos-kpi-valor costos-kpi-valor-dual">${par.valor}<span class="costos-kpi-valor-etiqueta">${par.etiqueta}</span></div>
-                `).join("")
-                : ""}
-            ${tarjeta.delta !== undefined ? renderDeltaBadge(tarjeta.delta) : ""}
-        </div>
-    `).join("");
+    grid.innerHTML = tarjetas.map(renderKpiCardHtml).join("");
 }
 
 // ── Vista: lista de vehiculos ────────────────────────────────────
@@ -292,18 +302,59 @@ async function cargarListaVehiculos() {
 // ── Vista: detalle de vehiculo ───────────────────────────────────
 
 function renderKpis(grid, data) {
-    grid.innerHTML = KPIS_CONFIG.map((kpi) => {
-        const valor = data.actual[kpi.key];
-        const deltaPct = data.deltas[kpi.key];
+    const d = data.actual;
+    const deltas = data.deltas;
 
-        return `
-            <div class="costos-kpi-card" style="--kpi-accent: ${kpi.accent}">
-                <div class="costos-kpi-label">${kpi.label}</div>
-                <div class="costos-kpi-valor">${formatKpiValue(kpi, valor)}</div>
-                ${renderDeltaBadge(deltaPct)}
-            </div>
-        `;
-    }).join("");
+    const generales = KPIS_CONFIG.map((kpi) => ({
+        label: kpi.label,
+        valor: formatKpiValue(kpi, d[kpi.key]),
+        accent: kpi.accent,
+        delta: deltas[kpi.key]
+    }));
+
+    // Mismo tratamiento que renderTotalesFlota(): el desglose de despachos
+    // (facturas/traslados) compacto y sin porcentaje, y Combustible/Almuerzos/
+    // Peajes combinando sus dos porcentajes (del gasto operativo y del valor
+    // despachado) en una sola tarjeta cada uno.
+    const especiales = [
+        {
+            label: "Total despachos",
+            valor: formatInt(d.numFacturas),
+            accent: "var(--color-muted)",
+            compacto: true,
+            delta: deltas.numFacturas,
+            dual: [
+                { valor: formatInt(d.numFacturasReales), etiqueta: "facturas" },
+                { valor: formatInt(d.numTraslados), etiqueta: "traslados" }
+            ]
+        },
+        {
+            label: "Combustible",
+            accent: GASTO_COLORS.combustible_pesos,
+            dual: [
+                { valor: formatPct(d.combustiblePct), etiqueta: "del gasto operativo" },
+                { valor: formatPct(d.combustiblePctSobreFacturado), etiqueta: "del valor despachado" }
+            ]
+        },
+        {
+            label: "Almuerzos",
+            accent: GASTO_COLORS.almuerzos,
+            dual: [
+                { valor: formatPct(d.almuerzosPct), etiqueta: "del gasto operativo" },
+                { valor: formatPct(d.almuerzosPctSobreFacturado), etiqueta: "del valor despachado" }
+            ]
+        },
+        {
+            label: "Peajes",
+            accent: GASTO_COLORS.peajes,
+            dual: [
+                { valor: formatPct(d.peajesPct), etiqueta: "del gasto operativo" },
+                { valor: formatPct(d.peajesPctSobreFacturado), etiqueta: "del valor despachado" }
+            ]
+        }
+    ];
+
+    grid.innerHTML = [...generales, ...especiales].map(renderKpiCardHtml).join("");
 }
 
 function destruirChart(id) {
