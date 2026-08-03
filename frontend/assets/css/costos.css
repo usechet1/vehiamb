@@ -1,5 +1,16 @@
 /* ── Costos vehiculares ────────────────────────────────────────── */
 
+/* Junta el estado de sincronizacion y el rango de fechas en UNA sola fila
+   (antes quedaban apilados dentro de .page-header-right, que es column,
+   dejando un hueco vertical grande antes de las pestanas). */
+.costos-header-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 20px;
+}
+
 .costos-rango {
     display: flex;
     flex-wrap: wrap;
