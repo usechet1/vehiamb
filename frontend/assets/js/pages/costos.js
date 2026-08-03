@@ -193,9 +193,10 @@ function renderTotalesFlota(grid, items, unidadLabel) {
             label: "Total despachos",
             valor: formatInt(totalFacturas),
             accent: "var(--color-muted)",
+            compacto: true,
             dual: [
-                { valor: `${formatInt(totalFacturasReales)} facturas (${pctSobre(totalFacturasReales, totalFacturas)})`, etiqueta: "participación de despachos en total despachos" },
-                { valor: `${formatInt(totalTraslados)} traslados (${pctSobre(totalTraslados, totalFacturas)})`, etiqueta: "participación de despachos en total despachos" }
+                { valor: formatInt(totalFacturasReales), etiqueta: "facturas" },
+                { valor: formatInt(totalTraslados), etiqueta: "traslados" }
             ]
         },
         {
@@ -225,7 +226,7 @@ function renderTotalesFlota(grid, items, unidadLabel) {
     ];
 
     grid.innerHTML = tarjetas.map((tarjeta) => `
-        <div class="costos-kpi-card" style="--kpi-accent: ${tarjeta.accent}">
+        <div class="costos-kpi-card${tarjeta.compacto ? " costos-kpi-card--compacto" : ""}" style="--kpi-accent: ${tarjeta.accent}">
             <div class="costos-kpi-label">${tarjeta.label}</div>
             ${tarjeta.valor !== undefined ? `<div class="costos-kpi-valor">${tarjeta.valor}</div>` : ""}
             ${tarjeta.dual
