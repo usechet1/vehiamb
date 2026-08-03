@@ -61,9 +61,9 @@ const GASTO_LABELS = {
 
 const KPIS_CONFIG = [
     { key: "totalGastado", label: "Total gastado (operativo)", format: "cop", accent: "var(--color-primary)" },
-    { key: "totalFacturadoNeto", label: "Facturación neta (sin IVA)", format: "cop", accent: "var(--color-primary)" },
-    { key: "promedioFacturaNeto", label: "Promedio factura neta", format: "cop", accent: "var(--color-primary)" },
-    { key: "combustiblePctSobreFacturado", label: "Combustible % de facturación neta", format: "pct", accent: GASTO_COLORS.combustible_pesos },
+    { key: "totalFacturadoNeto", label: "Valor despachado neto (sin IVA)", format: "cop", accent: "var(--color-primary)" },
+    { key: "promedioFacturaNeto", label: "Promedio despachado neto", format: "cop", accent: "var(--color-primary)" },
+    { key: "combustiblePctSobreFacturado", label: "Combustible % del valor despachado neto", format: "pct", accent: GASTO_COLORS.combustible_pesos },
     { key: "totalCombustible", label: "Combustible", format: "cop", accent: GASTO_COLORS.combustible_pesos },
     { key: "totalGalones", label: "Consumo (galones)", format: "galones", accent: GASTO_COLORS.combustible_pesos },
     { key: "costoPromedioPorCargue", label: "Promedio por cargue", format: "cop", accent: "var(--color-primary)" },
@@ -180,14 +180,14 @@ function renderTotalesFlota(grid, items, unidadLabel) {
     const tarjetas = [
         { label: unidadLabel, valor: formatInt(items.length), accent: "var(--color-muted)" },
         { label: "Total gastado (operativo)", valor: formatCOP(totalGastado), accent: "var(--color-primary)", delta: deltaPct },
-        { label: "Facturación neta total", valor: formatCOP(totalFacturadoNeto), accent: "var(--color-primary)" },
+        { label: "Valor despachado neto total", valor: formatCOP(totalFacturadoNeto), accent: "var(--color-primary)" },
         { label: "Total de facturas", valor: formatInt(totalFacturas), accent: "var(--color-muted)" },
         { label: "Combustible % del gasto", valor: pctSobre(totalCombustible, totalGastado), accent: GASTO_COLORS.combustible_pesos },
-        { label: "Combustible % de facturación neta", valor: pctSobre(totalCombustible, totalFacturadoNeto), accent: GASTO_COLORS.combustible_pesos },
+        { label: "Combustible % del valor despachado neto", valor: pctSobre(totalCombustible, totalFacturadoNeto), accent: GASTO_COLORS.combustible_pesos },
         { label: "Almuerzos % del gasto", valor: pctSobre(totalAlmuerzos, totalGastado), accent: GASTO_COLORS.almuerzos },
-        { label: "Almuerzos % de facturación neta", valor: pctSobre(totalAlmuerzos, totalFacturadoNeto), accent: GASTO_COLORS.almuerzos },
+        { label: "Almuerzos % del valor despachado neto", valor: pctSobre(totalAlmuerzos, totalFacturadoNeto), accent: GASTO_COLORS.almuerzos },
         { label: "Peajes % del gasto", valor: pctSobre(totalPeajes, totalGastado), accent: GASTO_COLORS.peajes },
-        { label: "Peajes % de facturación neta", valor: pctSobre(totalPeajes, totalFacturadoNeto), accent: GASTO_COLORS.peajes }
+        { label: "Peajes % del valor despachado neto", valor: pctSobre(totalPeajes, totalFacturadoNeto), accent: GASTO_COLORS.peajes }
     ];
 
     grid.innerHTML = tarjetas.map((tarjeta) => `
@@ -221,7 +221,7 @@ function renderListaVehiculos() {
                         <span>Max: ${formatCOP(v.gastoMasAlto)}</span>
                     </div>
                     <div class="costos-vehiculo-meta">
-                        <span>Facturación neta: ${formatCOP(v.totalFacturadoNeto)}</span>
+                        <span>Valor despachado neto: ${formatCOP(v.totalFacturadoNeto)}</span>
                     </div>
                     ${renderDeltaBadge(v.deltaPct)}
                 </article>
@@ -502,7 +502,7 @@ function renderListaConductores() {
                         <span>Max: ${formatCOP(c.gastoMasAlto)}</span>
                     </div>
                     <div class="costos-vehiculo-meta">
-                        <span>Facturación neta: ${formatCOP(c.totalFacturadoNeto)}</span>
+                        <span>Valor despachado neto: ${formatCOP(c.totalFacturadoNeto)}</span>
                     </div>
                     ${renderDeltaBadge(c.deltaPct)}
                 </article>
