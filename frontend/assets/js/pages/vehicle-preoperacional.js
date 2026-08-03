@@ -3,6 +3,10 @@ const wizardStepPreoperacionalEl = document.getElementById("wizardStepPreoperaci
 const preopChecklistEl = document.getElementById("preopChecklist");
 const guardarPreoperacionalButton = document.getElementById("guardarPreoperacionalButton");
 const preopHistorialList = document.getElementById("preopHistorialList");
+const preopFirmaBox = document.getElementById("preopFirmaBox");
+const preopFirmaCanvas = document.getElementById("preopFirmaCanvas");
+const preopGuardarFirmaButton = document.getElementById("preopGuardarFirmaButton");
+const preopLimpiarFirmaButton = document.getElementById("preopLimpiarFirmaButton");
 
 let preopVehiculoId = "";
 let preopViajeId = "";
@@ -10,6 +14,7 @@ let preopCatalogo = [];
 let preopRespuestas = new Map();
 let preopPuedeCrear = false;
 let preopDetalleCache = new Map();
+let preopFirmaPad = null;
 
 function escapeHtml(value) {
     return String(value ?? "")
@@ -91,31 +96,44 @@ function checklistCompleto() {
     return true;
 }
 
+// La firma solo se pide (y solo cuenta para habilitar "Guardar") una vez el
+// checklist ya esta completo -- mismo criterio que la inspeccion preventiva.
 function actualizarBotonGuardar() {
-    guardarPreoperacionalButton.disabled = !preopPuedeCrear || !checklistCompleto();
+    const completo = checklistCompleto();
+    preopFirmaBox.classList.toggle("hidden", !completo);
+    guardarPreoperacionalButton.disabled = !preopPuedeCrear || !completo || !preopFirmaPad?.estaBloqueada();
 }
 
 async function guardarPreoperacional() {
     if (!checklistCompleto()) return;
+
+    if (!preopFirmaPad || preopFirmaPad.estaVacia()) {
+        window.VehiAmb.ui.showMessage(preopMensaje, "Se requiere la firma del conductor para guardar el preoperacional", "error");
+        return;
+    }
 
     const items = preopCatalogo.map((item) => {
         const valor = preopRespuestas.get(item.codigo);
         return { item_codigo: item.codigo, respuesta: valor.respuesta, observacion: valor.observacion || "" };
     });
 
+    const formData = new FormData();
+    formData.append("items", JSON.stringify(items));
+    if (preopViajeId) formData.append("viaje_id", preopViajeId);
+
     try {
         guardarPreoperacionalButton.disabled = true;
-        const payload = { items };
-        if (preopViajeId) payload.viaje_id = preopViajeId;
+        const firmaBlob = await preopFirmaPad.aBlob();
+        formData.append("firma", firmaBlob, "firma.png");
 
-        await window.VehiAmb.api.crearPreoperacional(preopVehiculoId, payload);
+        await window.VehiAmb.api.crearPreoperacional(preopVehiculoId, formData);
         window.VehiAmb.ui.showMessage(preopMensaje, "Preoperacional guardado correctamente");
         document.dispatchEvent(new CustomEvent("preoperacional:guardado"));
         await cargarHistorial();
     } catch (error) {
         console.error(error);
         window.VehiAmb.ui.showMessage(preopMensaje, error.message || "No se pudo guardar el preoperacional", "error");
-        guardarPreoperacionalButton.disabled = false;
+        actualizarBotonGuardar();
     }
 }
 
@@ -127,7 +145,9 @@ function renderHistorialDetalle(container, detalle) {
         </div>
     `).join("");
 
-    container.innerHTML = items;
+    const firma = `<p><strong>Firma:</strong> ${detalle.firma_url ? `<a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(detalle.firma_url))}" target="_blank" rel="noreferrer">Ver firma del conductor</a>` : "Sin firma"}</p>`;
+
+    container.innerHTML = firma + items;
 }
 
 function renderHistorial(preoperacionales) {
@@ -207,7 +227,25 @@ async function initPreoperacional() {
 
     if (!preopPuedeCrear) {
         guardarPreoperacionalButton.classList.add("hidden");
+        preopFirmaBox.classList.add("hidden");
     }
+
+    preopFirmaPad = window.VehiAmb.firmaPad.crear(preopFirmaCanvas);
+
+    preopGuardarFirmaButton.addEventListener("click", () => {
+        if (preopFirmaPad.estaVacia()) {
+            window.VehiAmb.ui.showMessage(preopMensaje, "Primero dibuja la firma antes de guardarla", "error");
+            return;
+        }
+        preopFirmaPad.bloquear();
+        window.VehiAmb.ui.showMessage(preopMensaje, "Firma guardada");
+        actualizarBotonGuardar();
+    });
+
+    preopLimpiarFirmaButton.addEventListener("click", () => {
+        preopFirmaPad.limpiar();
+        actualizarBotonGuardar();
+    });
 
     guardarPreoperacionalButton.addEventListener("click", guardarPreoperacional);
 

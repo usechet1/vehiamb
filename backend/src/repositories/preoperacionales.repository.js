@@ -1,6 +1,6 @@
 const db = require("../database/query");
 
-const CREATE_FIELDS = ["vehiculo_id", "usuario_id", "viaje_id", "empresa_id"];
+const CREATE_FIELDS = ["vehiculo_id", "usuario_id", "viaje_id", "firma_url", "empresa_id"];
 
 async function create(preoperacional, dbClient = db) {
   const values = CREATE_FIELDS.map((field) => preoperacional[field] ?? null);

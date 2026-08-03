@@ -47,20 +47,33 @@ function toSafePreoperacional(preoperacional) {
     destino: preoperacional.viaje_destino,
     fecha: preoperacional.fecha,
     total_items: Number(preoperacional.total_items || 0),
-    total_items_no: Number(preoperacional.total_items_no || 0)
+    total_items_no: Number(preoperacional.total_items_no || 0),
+    firma_url: preoperacional.firma_url
   };
 }
 
-async function crear(vehiculoId, payload, currentUser) {
+async function crear(vehiculoId, payload, archivos, currentUser) {
   const empresaId = currentUser.empresa_id;
   const vehiculo = await vehiculosRepository.findById(vehiculoId, empresaId);
   if (!vehiculo) {
     throw new HttpError(404, "Vehículo no encontrado");
   }
 
-  const items = Array.isArray(payload.items) ? payload.items : null;
-  if (!items || items.length !== ITEMS_CHECKLIST.length) {
+  let items;
+  try {
+    items = JSON.parse(payload.items);
+  } catch (error) {
+    throw new HttpError(400, "El listado de respuestas del preoperacional es inválido");
+  }
+
+  if (!Array.isArray(items) || items.length !== ITEMS_CHECKLIST.length) {
     throw new HttpError(400, "Debes responder todas las preguntas del preoperacional");
+  }
+
+  const archivosPorCampo = new Map((archivos || []).map((file) => [file.fieldname, file]));
+  const firma = archivosPorCampo.get("firma");
+  if (!firma) {
+    throw new HttpError(400, "Se requiere la firma del conductor para guardar el preoperacional");
   }
 
   const itemsValidados = items.map((item) => {
@@ -104,6 +117,7 @@ async function crear(vehiculoId, payload, currentUser) {
     vehiculo_id: vehiculoId,
     usuario_id: currentUser?.id ?? null,
     viaje_id: viajeId,
+    firma_url: `/uploads/preoperacionales/${firma.filename}`,
     empresa_id: empresaId
   });
 

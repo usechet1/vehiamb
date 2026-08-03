@@ -15,6 +15,6 @@ exports.getDetalle = async (req, res) => {
 };
 
 exports.crear = async (req, res) => {
-  const preoperacional = await preoperacionalesService.crear(req.params.vehiculoId, req.body, req.user);
+  const preoperacional = await preoperacionalesService.crear(req.params.vehiculoId, req.body, req.files, req.user);
   res.status(201).json(preoperacional);
 };

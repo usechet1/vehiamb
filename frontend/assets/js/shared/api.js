@@ -870,14 +870,10 @@ window.VehiAmb.api = {
         );
     },
 
-    crearPreoperacional(vehiculoId, payload) {
+    crearPreoperacional(vehiculoId, formData) {
         return requestJson(
             `${window.VehiAmb.API_URL}/preoperacionales/vehiculo/${vehiculoId}`,
-            {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            },
+            { method: "POST", body: formData },
             "No se pudo guardar el preoperacional"
         );
     },
