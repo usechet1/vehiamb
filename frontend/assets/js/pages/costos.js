@@ -188,7 +188,7 @@ function renderTotalesFlota(grid, items, unidadLabel) {
         { label: unidadLabel, valor: formatInt(items.length), accent: "var(--color-muted)" },
         { label: "Total gasto (operativo)", valor: formatCOP(totalGastado), accent: "var(--color-primary)", delta: deltaPct },
         { label: "% de participación de despachos en valor despachado sin IVA", valor: pctSobre(totalGastado, totalFacturadoNeto), accent: "var(--color-primary)" },
-        { label: "Valor despachado total sin IVA", valor: formatCOP(totalFacturadoNeto), accent: "var(--color-primary)" },
+        { label: "$ Despachos antes de IVA", valor: formatCOP(totalFacturadoNeto), accent: "var(--color-primary)" },
         { label: "Total de despachos", valor: formatInt(totalFacturas), accent: "var(--color-muted)" },
         { label: "Total facturas", valor: formatInt(totalFacturasReales), accent: "var(--color-muted)" },
         { label: "Total traslados", valor: formatInt(totalTraslados), accent: "var(--color-muted)" },
