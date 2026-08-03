@@ -152,25 +152,34 @@ async function kpisVehiculo(placa, query, empresaId) {
 
   const construir = (row) => {
     const numFacturas = Number(row?.num_facturas || 0);
+    const numTraslados = Number(row?.num_traslados || 0);
     const totalGastado = Number(row?.total_gastado || 0);
     const totalCombustible = Number(row?.total_combustible || 0);
+    const totalAlmuerzos = Number(row?.total_almuerzos || 0);
+    const totalPeajes = Number(row?.total_peajes || 0);
     const totalFacturadoBruto = Number(row?.total_facturado_bruto || 0);
     const totalFacturadoNeto = Math.round((totalFacturadoBruto / FACTOR_NETO_IVA) * 100) / 100;
 
     return {
       numFacturas,
+      numTraslados,
+      numFacturasReales: numFacturas - numTraslados,
       totalGastado,
       totalCombustible,
       totalGalones: Number(row?.total_galones || 0),
-      totalAlmuerzos: Number(row?.total_almuerzos || 0),
-      totalPeajes: Number(row?.total_peajes || 0),
+      totalAlmuerzos,
+      totalPeajes,
       totalParqueaderos: Number(row?.total_parqueaderos || 0),
       costoPromedioPorCargue: numFacturas > 0 ? Math.round((totalGastado / numFacturas) * 100) / 100 : 0,
       combustiblePct: totalGastado > 0 ? Math.round((totalCombustible / totalGastado) * 1000) / 10 : 0,
+      almuerzosPct: totalGastado > 0 ? Math.round((totalAlmuerzos / totalGastado) * 1000) / 10 : 0,
+      peajesPct: totalGastado > 0 ? Math.round((totalPeajes / totalGastado) * 1000) / 10 : 0,
       totalFacturadoBruto,
       totalFacturadoNeto,
       promedioFacturaNeto: numFacturas > 0 ? Math.round((totalFacturadoNeto / numFacturas) * 100) / 100 : 0,
       combustiblePctSobreFacturado: totalFacturadoNeto > 0 ? Math.round((totalCombustible / totalFacturadoNeto) * 1000) / 10 : 0,
+      almuerzosPctSobreFacturado: totalFacturadoNeto > 0 ? Math.round((totalAlmuerzos / totalFacturadoNeto) * 1000) / 10 : 0,
+      peajesPctSobreFacturado: totalFacturadoNeto > 0 ? Math.round((totalPeajes / totalFacturadoNeto) * 1000) / 10 : 0,
       gastoPctSobreFacturado: totalFacturadoNeto > 0 ? Math.round((totalGastado / totalFacturadoNeto) * 1000) / 10 : 0
     };
   };
@@ -337,25 +346,34 @@ async function kpisConductor(conductorKey, query, empresaId) {
 
   const construir = (row) => {
     const numFacturas = Number(row?.num_facturas || 0);
+    const numTraslados = Number(row?.num_traslados || 0);
     const totalGastado = Number(row?.total_gastado || 0);
     const totalCombustible = Number(row?.total_combustible || 0);
+    const totalAlmuerzos = Number(row?.total_almuerzos || 0);
+    const totalPeajes = Number(row?.total_peajes || 0);
     const totalFacturadoBruto = Number(row?.total_facturado_bruto || 0);
     const totalFacturadoNeto = Math.round((totalFacturadoBruto / FACTOR_NETO_IVA) * 100) / 100;
 
     return {
       numFacturas,
+      numTraslados,
+      numFacturasReales: numFacturas - numTraslados,
       totalGastado,
       totalCombustible,
       totalGalones: Number(row?.total_galones || 0),
-      totalAlmuerzos: Number(row?.total_almuerzos || 0),
-      totalPeajes: Number(row?.total_peajes || 0),
+      totalAlmuerzos,
+      totalPeajes,
       totalParqueaderos: Number(row?.total_parqueaderos || 0),
       costoPromedioPorCargue: numFacturas > 0 ? Math.round((totalGastado / numFacturas) * 100) / 100 : 0,
       combustiblePct: totalGastado > 0 ? Math.round((totalCombustible / totalGastado) * 1000) / 10 : 0,
+      almuerzosPct: totalGastado > 0 ? Math.round((totalAlmuerzos / totalGastado) * 1000) / 10 : 0,
+      peajesPct: totalGastado > 0 ? Math.round((totalPeajes / totalGastado) * 1000) / 10 : 0,
       totalFacturadoBruto,
       totalFacturadoNeto,
       promedioFacturaNeto: numFacturas > 0 ? Math.round((totalFacturadoNeto / numFacturas) * 100) / 100 : 0,
       combustiblePctSobreFacturado: totalFacturadoNeto > 0 ? Math.round((totalCombustible / totalFacturadoNeto) * 1000) / 10 : 0,
+      almuerzosPctSobreFacturado: totalFacturadoNeto > 0 ? Math.round((totalAlmuerzos / totalFacturadoNeto) * 1000) / 10 : 0,
+      peajesPctSobreFacturado: totalFacturadoNeto > 0 ? Math.round((totalPeajes / totalFacturadoNeto) * 1000) / 10 : 0,
       gastoPctSobreFacturado: totalFacturadoNeto > 0 ? Math.round((totalGastado / totalFacturadoNeto) * 1000) / 10 : 0
     };
   };
