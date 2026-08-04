@@ -1,12 +1,7 @@
 const preopMensaje = document.getElementById("mensaje");
 const wizardStepPreoperacionalEl = document.getElementById("wizardStepPreoperacional");
 const preopChecklistEl = document.getElementById("preopChecklist");
-const guardarPreoperacionalButton = document.getElementById("guardarPreoperacionalButton");
 const preopHistorialList = document.getElementById("preopHistorialList");
-const preopFirmaBox = document.getElementById("preopFirmaBox");
-const preopFirmaCanvas = document.getElementById("preopFirmaCanvas");
-const preopGuardarFirmaButton = document.getElementById("preopGuardarFirmaButton");
-const preopLimpiarFirmaButton = document.getElementById("preopLimpiarFirmaButton");
 
 let preopVehiculoId = "";
 let preopViajeId = "";
@@ -14,7 +9,10 @@ let preopCatalogo = [];
 let preopRespuestas = new Map();
 let preopPuedeCrear = false;
 let preopDetalleCache = new Map();
-let preopFirmaPad = null;
+// La firma ya no se captura aqui -- se movio al paso 5 (Finalizar) del
+// wizard del conductor, unica para inspeccion y preoperacional. Este flag
+// evita disparar "preoperacional:completo" mas de una vez.
+let preopCompletoDisparado = false;
 
 function escapeHtml(value) {
     return String(value ?? "")
@@ -72,14 +70,14 @@ function renderChecklist() {
                     observacion: btn.dataset.valor === "no" ? (existente?.observacion || "") : ""
                 });
                 renderChecklist();
-                actualizarBotonGuardar();
+                evaluarCompletitudPreoperacional();
             });
         });
 
         row.querySelector("[data-observacion]")?.addEventListener("input", (event) => {
             const entrada = preopRespuestas.get(codigo);
             if (entrada) entrada.observacion = event.target.value;
-            actualizarBotonGuardar();
+            evaluarCompletitudPreoperacional();
         });
     });
 }
@@ -96,20 +94,22 @@ function checklistCompleto() {
     return true;
 }
 
-// La firma solo se pide (y solo cuenta para habilitar "Guardar") una vez el
-// checklist ya esta completo -- mismo criterio que la inspeccion preventiva.
-function actualizarBotonGuardar() {
-    const completo = checklistCompleto();
-    preopFirmaBox.classList.toggle("hidden", !completo);
-    guardarPreoperacionalButton.disabled = !preopPuedeCrear || !completo || !preopFirmaPad?.estaBloqueada();
+// Una vez las 9 preguntas tienen respuesta (con observacion en cada "No"),
+// avanza automaticamente al paso 5 (Finalizar) -- el guardado real (con
+// firma) queda diferido a ese paso, ver window.VehiAmb.wizardPreoperacional.
+function evaluarCompletitudPreoperacional() {
+    if (!preopPuedeCrear || preopCompletoDisparado || !checklistCompleto()) return;
+
+    preopCompletoDisparado = true;
+    document.dispatchEvent(new CustomEvent("preoperacional:completo"));
 }
 
-async function guardarPreoperacional() {
-    if (!checklistCompleto()) return;
-
-    if (!preopFirmaPad || preopFirmaPad.estaVacia()) {
-        window.VehiAmb.ui.showMessage(preopMensaje, "Se requiere la firma del conductor para guardar el preoperacional", "error");
-        return;
+// Llamada desde el paso 5 del wizard una vez el conductor firma -- la firma
+// ya viene capturada (un solo pad compartido con la inspeccion), asi que
+// aqui solo arma el resto del payload y sube.
+async function guardarPreoperacionalConFirma(firmaBlob) {
+    if (!checklistCompleto()) {
+        throw new Error("El checklist del preoperacional no está completo");
     }
 
     const items = preopCatalogo.map((item) => {
@@ -120,21 +120,9 @@ async function guardarPreoperacional() {
     const formData = new FormData();
     formData.append("items", JSON.stringify(items));
     if (preopViajeId) formData.append("viaje_id", preopViajeId);
+    formData.append("firma", firmaBlob, "firma.png");
 
-    try {
-        guardarPreoperacionalButton.disabled = true;
-        const firmaBlob = await preopFirmaPad.aBlob();
-        formData.append("firma", firmaBlob, "firma.png");
-
-        await window.VehiAmb.api.crearPreoperacional(preopVehiculoId, formData);
-        window.VehiAmb.ui.showMessage(preopMensaje, "Preoperacional guardado correctamente");
-        document.dispatchEvent(new CustomEvent("preoperacional:guardado"));
-        await cargarHistorial();
-    } catch (error) {
-        console.error(error);
-        window.VehiAmb.ui.showMessage(preopMensaje, error.message || "No se pudo guardar el preoperacional", "error");
-        actualizarBotonGuardar();
-    }
+    await window.VehiAmb.api.crearPreoperacional(preopVehiculoId, formData);
 }
 
 function renderHistorialDetalle(container, detalle) {
@@ -225,34 +213,17 @@ async function initPreoperacional() {
     preopViajeId = new URLSearchParams(window.location.search).get("viaje") || "";
     if (!preopVehiculoId) return;
 
-    if (!preopPuedeCrear) {
-        guardarPreoperacionalButton.classList.add("hidden");
-        preopFirmaBox.classList.add("hidden");
-    }
-
-    preopFirmaPad = window.VehiAmb.firmaPad.crear(preopFirmaCanvas);
-
-    preopGuardarFirmaButton.addEventListener("click", () => {
-        if (preopFirmaPad.estaVacia()) {
-            window.VehiAmb.ui.showMessage(preopMensaje, "Primero dibuja la firma antes de guardarla", "error");
-            return;
-        }
-        preopFirmaPad.bloquear();
-        window.VehiAmb.ui.showMessage(preopMensaje, "Firma guardada");
-        actualizarBotonGuardar();
-    });
-
-    preopLimpiarFirmaButton.addEventListener("click", () => {
-        preopFirmaPad.limpiar();
-        actualizarBotonGuardar();
-    });
-
-    guardarPreoperacionalButton.addEventListener("click", guardarPreoperacional);
+    // Expuesto para que el paso 5 del wizard (vehicle-conductor-wizard.js)
+    // pueda saber si ya se puede finalizar y, al firmar, disparar el guardado
+    // real con la firma capturada alli.
+    window.VehiAmb.wizardPreoperacional = {
+        estaCompleta: () => preopPuedeCrear && checklistCompleto(),
+        guardar: guardarPreoperacionalConFirma
+    };
 
     try {
         preopCatalogo = await window.VehiAmb.api.getPreoperacionalCatalogo();
         renderChecklist();
-        actualizarBotonGuardar();
     } catch (error) {
         console.error(error);
     }
