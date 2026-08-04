@@ -15,6 +15,11 @@ exports.obtenerUltimoControl = async (req, res) => {
   res.json(resultado);
 };
 
+exports.getAsignacionHoy = async (req, res) => {
+  const resultado = await viajesService.obtenerAsignacionHoy(req.user);
+  res.json(resultado);
+};
+
 exports.getPorVehiculo = async (req, res) => {
   const viajes = await viajesService.listarPorVehiculo(req.params.vehiculoId, req.empresaId);
   res.json(viajes);

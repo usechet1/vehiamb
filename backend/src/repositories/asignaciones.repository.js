@@ -8,6 +8,9 @@ const SELECT_JOIN = `
     c.nombres AS conductor_nombres,
     c.apellidos AS conductor_apellidos,
     v.placa AS vehiculo_placa,
+    v.marca AS vehiculo_marca,
+    v.modelo AS vehiculo_modelo,
+    v.imagen_url AS vehiculo_imagen_url,
     r.nombre AS ruta_nombre
   FROM asignaciones_ruta ar
   LEFT JOIN conductores c ON c.id = ar.conductor_id
@@ -50,4 +53,16 @@ async function remove(id, empresaId) {
   return db.run("DELETE FROM asignaciones_ruta WHERE id = ? AND empresa_id = ?", [id, empresaId]);
 }
 
-module.exports = { create, update, findById, findByFecha, remove };
+// Asignacion vigente de un conductor para una fecha puntual (usado por
+// viajes.service.js obtenerAsignacionHoy, para que el conductor vea su ruta
+// del dia ya resuelta en vez de elegir vehiculo/destino a mano). Si por error
+// quedaron dos asignaciones el mismo dia para el mismo conductor, se toma la
+// mas reciente.
+async function findByConductorYFecha(conductorId, fecha, empresaId) {
+  return db.get(
+    `${SELECT_JOIN} WHERE ar.empresa_id = ? AND ar.conductor_id = ? AND ar.fecha = ? ORDER BY ar.id DESC LIMIT 1`,
+    [empresaId, conductorId, fecha]
+  );
+}
+
+module.exports = { create, update, findById, findByFecha, findByConductorYFecha, remove };

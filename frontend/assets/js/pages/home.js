@@ -717,19 +717,50 @@ function pintarViajesRecientes(viajes) {
         .join("");
 }
 
-async function inicializarConductorHome(user) {
-    document.getElementById("dashboardHome").classList.add("hidden");
-    document.getElementById("conductorHome").classList.remove("hidden");
+// Si el conductor tiene una ruta asignada para hoy (modulo "Asignacion de
+// rutas"), el vehiculo y el destino ya quedan resueltos -- no se le muestra
+// la grilla de vehiculos ni los selects de departamento/ciudad, solo un
+// resumen y el boton para iniciar el viaje. El destino que se envia es
+// directamente el nombre de la ruta asignada (confirmado con el negocio: no
+// tiene sentido pedirle tambien departamento/ciudad si ya sabe a donde va).
+function inicializarConductorAsignacionHoy(asignacion) {
+    document.getElementById("conductorAsignacionCard").classList.remove("hidden");
+    document.getElementById("conductorAsignacionRuta").textContent = asignacion.ruta_nombre || "Sin nombre";
 
-    const primerNombre = String(user?.nombre || "").trim().split(" ")[0];
-    document.getElementById("conductorSaludo").textContent = primerNombre ? `¡Hola, ${primerNombre}!` : "¡Hola!";
+    const vehiculoLabel = `${asignacion.vehiculo.placa || ""} · ${asignacion.vehiculo.marca || ""} ${asignacion.vehiculo.modelo || ""}`.trim();
+    document.getElementById("conductorAsignacionVehiculo").textContent = vehiculoLabel;
+
+    const iniciarBtn = document.getElementById("conductorAsignacionIniciarBtn");
+    const mensaje = document.getElementById("conductorAsignacionMensaje");
+
+    iniciarBtn.addEventListener("click", async () => {
+        mensaje.classList.add("hidden");
+        iniciarBtn.disabled = true;
+
+        try {
+            const viaje = await window.VehiAmb.api.crearViaje({
+                vehiculo_id: asignacion.vehiculo.id,
+                destino: asignacion.ruta_nombre
+            });
+            window.location.href = `vehiculo.html?id=${asignacion.vehiculo.id}&viaje=${viaje.id}`;
+        } catch (error) {
+            mensaje.textContent = error.message || "No se pudo registrar el viaje";
+            mensaje.classList.remove("hidden");
+            iniciarBtn.disabled = false;
+        }
+    });
+}
+
+// Flujo manual de siempre: el conductor elige vehiculo y destino a mano
+// (sin ruta asignada para hoy, o sin conductor vinculado a la asignacion).
+async function inicializarConductorSeleccionManual() {
+    document.getElementById("conductorSeleccionManual").classList.remove("hidden");
 
     const iniciarBtn = document.getElementById("conductorIniciarViajeBtn");
     const mensaje = document.getElementById("conductorMensaje");
 
-    const [vehiculosResult, viajesResult, departamentosResult] = await Promise.allSettled([
+    const [vehiculosResult, departamentosResult] = await Promise.allSettled([
         window.VehiAmb.api.getVehiculosCatalogo(),
-        window.VehiAmb.api.getMisViajesRecientes(),
         cargarDepartamentosCiudades()
     ]);
 
@@ -740,14 +771,6 @@ async function inicializarConductorHome(user) {
         console.error(vehiculosResult.reason);
         document.getElementById("conductorVehiculoGrid").innerHTML =
             '<p class="dash-empty">No fue posible cargar los vehículos</p>';
-    }
-
-    if (viajesResult.status === "fulfilled") {
-        pintarViajesRecientes(viajesResult.value);
-    } else {
-        console.error(viajesResult.reason);
-        document.getElementById("conductorViajesRecientes").innerHTML =
-            '<p class="dash-empty">No fue posible cargar tus últimos viajes</p>';
     }
 
     if (departamentosResult.status === "fulfilled") {
@@ -774,6 +797,36 @@ async function inicializarConductorHome(user) {
             iniciarBtn.disabled = false;
         }
     });
+}
+
+async function inicializarConductorHome(user) {
+    document.getElementById("dashboardHome").classList.add("hidden");
+    document.getElementById("conductorHome").classList.remove("hidden");
+
+    const primerNombre = String(user?.nombre || "").trim().split(" ")[0];
+    document.getElementById("conductorSaludo").textContent = primerNombre ? `¡Hola, ${primerNombre}!` : "¡Hola!";
+
+    window.VehiAmb.api.getMisViajesRecientes()
+        .then(pintarViajesRecientes)
+        .catch((error) => {
+            console.error(error);
+            document.getElementById("conductorViajesRecientes").innerHTML =
+                '<p class="dash-empty">No fue posible cargar tus últimos viajes</p>';
+        });
+
+    let asignacion = null;
+    try {
+        asignacion = await window.VehiAmb.api.getAsignacionHoy();
+    } catch (error) {
+        console.error(error);
+    }
+
+    if (asignacion?.vehiculo) {
+        inicializarConductorAsignacionHoy(asignacion);
+        return;
+    }
+
+    await inicializarConductorSeleccionManual();
 }
 
 async function inicializarDashboard() {

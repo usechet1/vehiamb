@@ -1572,6 +1572,15 @@ label[for="loginPassword"] {
     gap: 16px;
 }
 
+/* Envuelve los pasos 1 y 2 del flujo manual (elegir vehiculo/destino) para
+   poder ocultarlos juntos cuando ya hay una ruta asignada para hoy -- mismo
+   gap que .conductor-home para que no se pierda el espaciado entre pasos. */
+#conductorSeleccionManual {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
 .btn-secondary.is-disabled {
     opacity: 0.5;
     pointer-events: none;

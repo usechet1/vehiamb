@@ -1013,6 +1013,14 @@ window.VehiAmb.api = {
         );
     },
 
+    getAsignacionHoy() {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/viajes/asignacion-hoy`,
+            undefined,
+            "No se pudo cargar tu asignación de hoy"
+        );
+    },
+
     getViajesRecientesEmpresa() {
         return requestJson(
             `${window.VehiAmb.API_URL}/viajes/recientes-empresa`,
