@@ -37,7 +37,7 @@ const TIPOS = {
   seguro_vencido: { categoria: "documentacion", prioridad: "critica", titulo: "Póliza Seguro vencida" },
   documento_proximo: { categoria: "documentacion", prioridad: "alta", titulo: "Documento próximo a vencer" },
   documento_vencido: { categoria: "documentacion", prioridad: "critica", titulo: "Documento vencido" },
-  vehiculo_fuera_servicio: { categoria: "incidente", prioridad: "alta", titulo: "Vehículo fuera de servicio" },
+  vehiculo_fuera_servicio: { categoria: "incidente", prioridad: "media", titulo: "Vehículo fuera de servicio" },
   vehiculo_en_mantenimiento: { categoria: "incidente", prioridad: "media", titulo: "Vehículo ingresó a mantenimiento" },
   vehiculo_disponible: { categoria: "incidente", prioridad: "informativa", titulo: "Vehículo disponible nuevamente" },
   usuario_creado: { categoria: "usuario", prioridad: "informativa", titulo: "Nuevo usuario creado" },
