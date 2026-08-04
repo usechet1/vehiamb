@@ -8,6 +8,8 @@ const inspeccionesRepository = require("../repositories/inspecciones-preventivas
 const itemsRepository = require("../repositories/inspeccion-items.repository");
 const preoperacionalesRepository = require("../repositories/preoperacionales.repository");
 const preoperacionalItemsRepository = require("../repositories/preoperacional-items.repository");
+const asignacionesRepository = require("../repositories/asignaciones.repository");
+const { hoyIso } = require("../utils/fecha-negocio");
 
 // Documentos relevantes para un control de transito en carretera. "otro" se
 // deja afuera a proposito -- ahi cae de todo (misceláneo) y no es lo primero
@@ -143,6 +145,36 @@ async function obtenerUltimoViajeControl(currentUser) {
   };
 }
 
+// Asignacion de "Asignacion de rutas" vigente hoy (calendario de Bogota)
+// para el conductor logueado -- permite que la pantalla de inicio del
+// conductor (home.js inicializarConductorHome) muestre directamente su
+// vehiculo/ruta del dia en vez de que tenga que elegirlos a mano. Devuelve
+// null si el conductor no esta vinculado a un usuario, si no hay asignacion
+// para hoy, o si la asignacion no tiene vehiculo cargado -- en cualquiera de
+// esos casos el frontend cae al flujo manual de siempre.
+async function obtenerAsignacionHoy(currentUser) {
+  const conductor = await conductoresRepository.findByUsuarioId(currentUser.id, currentUser.empresa_id);
+  if (!conductor) return null;
+
+  const asignacion = await asignacionesRepository.findByConductorYFecha(
+    conductor.id,
+    hoyIso(),
+    currentUser.empresa_id
+  );
+  if (!asignacion || !asignacion.vehiculo_id) return null;
+
+  return {
+    ruta_nombre: asignacion.ruta_nombre,
+    vehiculo: {
+      id: asignacion.vehiculo_id,
+      placa: asignacion.vehiculo_placa,
+      marca: asignacion.vehiculo_marca,
+      modelo: asignacion.vehiculo_modelo,
+      imagen_url: asignacion.vehiculo_imagen_url
+    }
+  };
+}
+
 // Viajes recientes de toda la empresa (todos los conductores), para el rol
 // que no es Conductor dentro de "Mi ultimo viaje" -- ver mi-viaje.js.
 async function listarRecientesEmpresa(empresaId) {
@@ -243,5 +275,6 @@ module.exports = {
   listarPorVehiculo,
   listarRecientesEmpresa,
   obtenerUltimoViajeControl,
+  obtenerAsignacionHoy,
   obtenerResumen
 };

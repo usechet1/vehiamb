@@ -156,6 +156,21 @@
                     </div>
                 </div>
 
+                <div id="conductorAsignacionCard" class="conductor-card hidden">
+                    <div class="conductor-card-step">
+                        <span class="conductor-step-badge">✓</span>
+                        <div>
+                            <h2>Tu ruta para el día de hoy es: <span id="conductorAsignacionRuta"></span></h2>
+                            <p class="field-help">Tu vehículo es: <strong id="conductorAsignacionVehiculo"></strong></p>
+                        </div>
+                    </div>
+                    <div class="conductor-cta-bar">
+                        <p id="conductorAsignacionMensaje" class="dash-empty hidden"></p>
+                        <button type="button" id="conductorAsignacionIniciarBtn" class="btn-primary conductor-cta-btn">Iniciar viaje</button>
+                    </div>
+                </div>
+
+                <div id="conductorSeleccionManual" class="hidden">
                 <div class="conductor-card">
                     <div class="conductor-card-step">
                         <span class="conductor-step-badge">1</span>
@@ -205,6 +220,7 @@
                         <p id="conductorMensaje" class="dash-empty hidden"></p>
                         <button type="button" id="conductorIniciarViajeBtn" class="btn-primary conductor-cta-btn" disabled>Iniciar viaje</button>
                     </div>
+                </div>
                 </div>
 
                 <details class="dash-panel conductor-viajes-panel">
