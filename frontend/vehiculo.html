@@ -379,16 +379,7 @@
 
                                     <div class="inspeccion-side">
                                         <div class="inspeccion-resumen" id="inspeccionResumen"></div>
-                                        <div class="firma-pad-box hidden" id="inspeccionFirmaBox">
-                                            <label>Firma del conductor</label>
-                                            <canvas id="inspeccionFirmaCanvas" class="firma-pad-canvas" width="320" height="160"></canvas>
-                                            <div class="firma-pad-acciones">
-                                                <button type="button" class="btn-secondary" id="inspeccionGuardarFirmaButton">Guardar firma</button>
-                                                <button type="button" class="btn-secondary" id="inspeccionLimpiarFirmaButton">Limpiar firma</button>
-                                            </div>
-                                        </div>
                                         <div class="form-actions">
-                                            <button type="button" id="guardarInspeccionButton" class="btn-primary hidden" disabled>Guardar inspección</button>
                                             <button type="button" id="limpiarInspeccionButton" class="btn-secondary">Limpiar</button>
                                         </div>
                                     </div>
@@ -414,17 +405,6 @@
                 </div>
                 <div class="section-card-body">
                     <div class="preop-checklist" id="preopChecklist"></div>
-                    <div class="firma-pad-box hidden" id="preopFirmaBox">
-                        <label>Firma del conductor</label>
-                        <canvas id="preopFirmaCanvas" class="firma-pad-canvas" width="320" height="160"></canvas>
-                        <div class="firma-pad-acciones">
-                            <button type="button" class="btn-secondary" id="preopGuardarFirmaButton">Guardar firma</button>
-                            <button type="button" class="btn-secondary" id="preopLimpiarFirmaButton">Limpiar firma</button>
-                        </div>
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" id="guardarPreoperacionalButton" class="btn-primary" disabled>Guardar preoperacional</button>
-                    </div>
 
                     <details class="inspeccion-historial">
                         <summary><h3>Historial de preoperacionales</h3></summary>
@@ -438,11 +418,19 @@
             <section class="section-card hidden" id="wizardStepFinalizar">
                 <div class="section-card-head">
                     <h2>Finalizar</h2>
-                    <p>Ya completaste la inspección y el preoperacional. Confirma para iniciar el viaje.</p>
+                    <p>Ya completaste la inspección y el preoperacional. Firma para confirmar e iniciar el viaje.</p>
                 </div>
                 <div class="section-card-body">
+                    <div class="firma-pad-box" id="finalizarFirmaBox">
+                        <label>Firma del conductor</label>
+                        <canvas id="finalizarFirmaCanvas" class="firma-pad-canvas" width="320" height="160"></canvas>
+                        <div class="firma-pad-acciones">
+                            <button type="button" class="btn-secondary" id="finalizarGuardarFirmaButton">Guardar firma</button>
+                            <button type="button" class="btn-secondary" id="finalizarLimpiarFirmaButton">Limpiar firma</button>
+                        </div>
+                    </div>
                     <div class="conductor-wizard-final">
-                        <button type="button" id="finalizarViajeBtn" class="btn-primary">Finalizar e iniciar viaje</button>
+                        <button type="button" id="finalizarViajeBtn" class="btn-primary" disabled>Finalizar e iniciar viaje</button>
                     </div>
                 </div>
             </section>

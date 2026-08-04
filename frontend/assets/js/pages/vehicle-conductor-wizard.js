@@ -34,8 +34,8 @@ async function initConductorWizard() {
     document.getElementById("vehicleDetailActions")?.classList.add("hidden");
 
     let currentStep = 0;
-    let inspeccionGuardada = false;
-    let preoperacionalGuardado = false;
+    let inspeccionCompleta = false;
+    let preoperacionalCompleta = false;
 
     function render() {
         WIZARD_STEPS.forEach((step) => {
@@ -55,15 +55,19 @@ async function initConductorWizard() {
         const esPasoPreoperacional = currentStep === 3;
         const esUltimoPaso = currentStep === WIZARD_STEPS.length - 1;
 
+        // El avance de estos dos pasos es automatico (ver listeners de
+        // "inspeccion:completa"/"preoperacional:completo" mas abajo); estos
+        // botones/hint quedan solo como respaldo defensivo por si ese evento
+        // no llegara a dispararse.
         siguienteBtn.classList.toggle("hidden", esUltimoPaso);
-        siguienteBtn.disabled = (esPasoInspeccion && !inspeccionGuardada) || (esPasoPreoperacional && !preoperacionalGuardado);
+        siguienteBtn.disabled = (esPasoInspeccion && !inspeccionCompleta) || (esPasoPreoperacional && !preoperacionalCompleta);
 
-        const bloqueado = (esPasoInspeccion && !inspeccionGuardada) || (esPasoPreoperacional && !preoperacionalGuardado);
+        const bloqueado = (esPasoInspeccion && !inspeccionCompleta) || (esPasoPreoperacional && !preoperacionalCompleta);
         hint.classList.toggle("hidden", !bloqueado);
-        if (esPasoInspeccion && !inspeccionGuardada) {
-            hint.textContent = "Guarda la inspección para continuar al siguiente paso.";
-        } else if (esPasoPreoperacional && !preoperacionalGuardado) {
-            hint.textContent = "Guarda el preoperacional para continuar al siguiente paso.";
+        if (esPasoInspeccion && !inspeccionCompleta) {
+            hint.textContent = "Marca todos los ítems de la inspección para continuar.";
+        } else if (esPasoPreoperacional && !preoperacionalCompleta) {
+            hint.textContent = "Responde todas las preguntas del preoperacional para continuar.";
         }
 
         document.getElementById("vehicleHero")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -83,27 +87,93 @@ async function initConductorWizard() {
         }
     });
 
-    document.addEventListener("inspeccion:guardada", () => {
-        inspeccionGuardada = true;
+    // Ni la inspeccion ni el preoperacional se guardan ya al completarse --
+    // solo marcan items/preguntas localmente (ver vehicle-inspeccion.js /
+    // vehicle-preoperacional.js) y avisan aqui para saltar automaticamente
+    // al siguiente paso, sin pedirle al conductor un click extra.
+    document.addEventListener("inspeccion:completa", () => {
+        inspeccionCompleta = true;
+        currentStep = 3;
         render();
     });
 
-    // A diferencia de la inspeccion (que deja al conductor revisar el
-    // resumen antes de avanzar), aqui se salta directo a "Finalizar" -- es
-    // el ultimo paso del checklist, no tiene sentido pedirle un click extra
-    // en "Siguiente" para llegar a algo que ya sabe que sigue.
-    document.addEventListener("preoperacional:guardado", () => {
-        preoperacionalGuardado = true;
+    document.addEventListener("preoperacional:completo", () => {
+        preoperacionalCompleta = true;
         currentStep = WIZARD_STEPS.length - 1;
         render();
     });
 
+    inicializarFirmaFinalizar();
+
+    nav.classList.remove("hidden");
+    actions.classList.remove("hidden");
+    render();
+}
+
+// Firma unica del paso 5 -- se sube tanto a la inspeccion como al
+// preoperacional (window.VehiAmb.wizardInspeccion/wizardPreoperacional, ver
+// esos archivos) al confirmar "Finalizar e iniciar viaje". Ninguno de los
+// dos quedo guardado antes de este punto.
+function inicializarFirmaFinalizar() {
+    const canvas = document.getElementById("finalizarFirmaCanvas");
+    const guardarFirmaBtn = document.getElementById("finalizarGuardarFirmaButton");
+    const limpiarFirmaBtn = document.getElementById("finalizarLimpiarFirmaButton");
+    const finalizarBtn = document.getElementById("finalizarViajeBtn");
+    const mensaje = document.getElementById("mensaje");
+    if (!canvas || !finalizarBtn) return;
+
+    const firmaPad = window.VehiAmb.firmaPad.crear(canvas);
+
+    function actualizarBotonFinalizar() {
+        finalizarBtn.disabled = !firmaPad.estaBloqueada();
+    }
+
+    guardarFirmaBtn?.addEventListener("click", () => {
+        if (firmaPad.estaVacia()) {
+            window.VehiAmb.ui.showMessage(mensaje, "Primero dibuja la firma antes de guardarla", "error");
+            return;
+        }
+        firmaPad.bloquear();
+        window.VehiAmb.ui.showMessage(mensaje, "Firma guardada");
+        actualizarBotonFinalizar();
+    });
+
+    limpiarFirmaBtn?.addEventListener("click", () => {
+        firmaPad.limpiar();
+        actualizarBotonFinalizar();
+    });
+
     // "Finalizar e iniciar viaje" solo es alcanzable en el ultimo paso, que ya
-    // exigio guardar la inspeccion y el preoperacional para llegar hasta
-    // aqui. Muestra la misma animacion de cortina que el saludo de
-    // bienvenida al iniciar sesion, pero en verde y de despedida, antes de
-    // volver a Inicio.
-    document.getElementById("finalizarViajeBtn")?.addEventListener("click", () => {
+    // exigio completar la inspeccion y el preoperacional para llegar hasta
+    // aqui -- aqui se exige ademas la firma, y recien aqui se suben los dos
+    // checklists (con la misma firma) al backend. Si cualquiera de los dos
+    // falla, no se muestra la animacion de cierre ni se vuelve a Inicio.
+    finalizarBtn.addEventListener("click", async () => {
+        if (!firmaPad.estaBloqueada() || firmaPad.estaVacia()) {
+            window.VehiAmb.ui.showMessage(mensaje, "Se requiere la firma del conductor para finalizar", "error");
+            return;
+        }
+
+        if (!window.VehiAmb.wizardInspeccion?.estaCompleta() || !window.VehiAmb.wizardPreoperacional?.estaCompleta()) {
+            window.VehiAmb.ui.showMessage(mensaje, "Completa la inspección y el preoperacional antes de finalizar", "error");
+            return;
+        }
+
+        finalizarBtn.disabled = true;
+
+        try {
+            const firmaBlob = await firmaPad.aBlob();
+            await window.VehiAmb.wizardInspeccion.guardar(firmaBlob);
+            await window.VehiAmb.wizardPreoperacional.guardar(firmaBlob);
+        } catch (error) {
+            console.error(error);
+            window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo finalizar el viaje", "error");
+            finalizarBtn.disabled = false;
+            return;
+        }
+
+        // Misma animacion de cortina que el saludo de bienvenida al iniciar
+        // sesion, pero en verde y de despedida, antes de volver a Inicio.
         const overlay = document.getElementById("viajeIniciadoCurtain");
         if (!overlay) {
             window.location.href = "index.html";
@@ -118,10 +188,6 @@ async function initConductorWizard() {
             }, { once: true });
         }, 1500);
     });
-
-    nav.classList.remove("hidden");
-    actions.classList.remove("hidden");
-    render();
 }
 
 document.addEventListener("DOMContentLoaded", initConductorWizard);
