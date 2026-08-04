@@ -180,6 +180,7 @@ const PERMISSIONS = [
   ["documents.create", "Documentos", "Registrar documentos"],
   ["documents.delete", "Documentos", "Eliminar documentos"],
   ["simit.view", "SIMIT", "Consultar SIMIT"],
+  ["simit.manage", "SIMIT", "Actualizar toda la flota desde SIMIT"],
   ["users.manage", "Usuarios", "Administrar usuarios"],
   ["imports.view", "Importaciones", "Ver importaciones de gastos vehiculares"],
   ["imports.manage", "Importaciones", "Ejecutar importaciones y resolver incidencias"],
@@ -332,6 +333,7 @@ async function seedRolesAndPermissions() {
 const PERMISOS_NUEVOS_POR_ROL = {
   "imports.view": ["Administrador"],
   "imports.manage": ["Administrador"],
+  "simit.manage": ["Administrador"],
   "costs.view": ["Administrador", "Operador", "Consulta"],
   "inventory.view": ["Administrador", "Operador", "Consulta"],
   "inventory.manage": ["Administrador", "Operador"],

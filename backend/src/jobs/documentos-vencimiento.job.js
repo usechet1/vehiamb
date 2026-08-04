@@ -1,8 +1,9 @@
+const env = require("../config/env");
 const db = require("../database/query");
 const notificacionesService = require("../services/notificaciones.service");
 const { RECORDATORIO_UMBRALES_DIAS } = require("../config/notificaciones.config");
 
-const CHECK_INTERVAL_MS = Number(process.env.DOCUMENT_CHECK_INTERVAL_MS || 6 * 60 * 60 * 1000);
+const CHECK_INTERVAL_MS = env.documentCheckIntervalMs;
 const HORAS_SIN_DUPLICAR = 24;
 // "documents.view" (no "documents.create") para que tambien llegue al rol de
 // solo consulta, que puede ver documentos pero no crearlos/aprobarlos.
@@ -29,9 +30,33 @@ async function obtenerDocumentosVigentes() {
   `);
 }
 
+// "Hoy" segun el calendario del negocio (Colombia), no el del servidor: el
+// contenedor corre en UTC (sin TZ configurada), asi que Date.now() vive 5
+// horas adelantado respecto a la medianoche de Bogota. El bug original
+// restaba ese "ahora" exacto (con hora del dia incluida) contra la medianoche
+// UTC de fecha_vencimiento (asi devuelve Postgres una columna DATE) y
+// redondeaba con Math.ceil -- el resultado dependia de a que hora del dia
+// corriera el job, y podia sumar un dia de mas (ej: "vence en 3 dias" cuando
+// en el calendario de Bogota faltaban 2). Ver tambien fechaColumnaToIso en
+// costos.service.js para el mismo problema del lado de facturas.
+function obtenerHoyUTC(timeZone) {
+  const partes = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(new Date());
+
+  const valores = Object.fromEntries(partes.map((parte) => [parte.type, parte.value]));
+  return Date.UTC(Number(valores.year), Number(valores.month) - 1, Number(valores.day));
+}
+
 function calcularDiasRestantes(fechaVencimiento) {
-  const diffMs = new Date(fechaVencimiento).getTime() - Date.now();
-  return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  const vencimiento = new Date(fechaVencimiento);
+  const vencimientoUTC = Date.UTC(vencimiento.getUTCFullYear(), vencimiento.getUTCMonth(), vencimiento.getUTCDate());
+  const hoyUTC = obtenerHoyUTC(env.documentCheckTimezone);
+
+  return Math.round((vencimientoUTC - hoyUTC) / (1000 * 60 * 60 * 24));
 }
 
 async function evaluarDocumento(row) {
