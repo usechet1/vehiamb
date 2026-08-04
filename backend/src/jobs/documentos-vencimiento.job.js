@@ -5,9 +5,11 @@ const { RECORDATORIO_UMBRALES_DIAS } = require("../config/notificaciones.config"
 
 const CHECK_INTERVAL_MS = env.documentCheckIntervalMs;
 const HORAS_SIN_DUPLICAR = 24;
-// "documents.view" (no "documents.create") para que tambien llegue al rol de
-// solo consulta, que puede ver documentos pero no crearlos/aprobarlos.
-const DESTINATARIO_PERMISSION = "documents.view";
+// Solo Administrador/Operador (ver documents.alertas_vencimiento en
+// database/init.js) -- antes usaba "documents.view", que tambien tienen
+// Consulta y Conductor, y terminaba notificando a todos los usuarios de la
+// empresa sobre cualquier vehiculo, no solo a quienes gestionan documentos.
+const DESTINATARIO_PERMISSION = "documents.alertas_vencimiento";
 
 // Documentos cubiertos por el recordatorio automatico. Agregar un tipo nuevo
 // es una entrada mas aqui, sin tocar el resto del job. "Tarjeta de operacion"
