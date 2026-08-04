@@ -32,11 +32,13 @@ function formatFechaComparendo(value) {
   return anio && mes && dia ? `${dia}/${mes}/${anio}` : "";
 }
 
-// Tipos de notificacion soportados por la plantilla ("simit_comparendo_v1"):
+// Tipos de notificacion que usan la plantilla especifica ("simit_comparendo_v1"):
 // su encabezado ("Nuevo comparendo detectado en SIMIT") es texto fijo del
-// disenio aprobado en Meta, no una variable -- por eso este canal solo se
-// dispara para alertas de SIMIT, no para el resto de tipos de notificacion.
-const TIPOS_SOPORTADOS = new Set(["simit_multa_detectada", "simit_estado_cambiado"]);
+// disenio aprobado en Meta, no una variable, asi que solo sirve para alertas
+// de SIMIT. El resto de tipos (documentos, mantenimientos, inspecciones,
+// etc.) usa la plantilla generica ("notify_v2", ver construirMensajeGenerico
+// y enviarPlantillaGenerica mas abajo).
+const TIPOS_SIMIT = new Set(["simit_multa_detectada", "simit_estado_cambiado"]);
 
 // La plantilla tiene 7 variables de texto en el cuerpo: {{1}} nombre del
 // destinatario, {{2}} vehiculo, {{3}} resumen, {{4}} numero de comparendo,
@@ -118,22 +120,108 @@ async function resolverVehiculoLabel(vehiculoId, empresaId) {
   return vehiculo.placa || SIN_DATO;
 }
 
+// Para "inspeccion_con_hallazgos" se le agrega al mensaje un listado de
+// detalle (igual que ya hace notificaciones-email.channel.js en HTML). La
+// plantilla generica solo tiene una variable de texto libre para el mensaje,
+// y Meta rechaza (HTTP 400, error 132018) cualquier "\n"/tab literal en esa
+// variable, asi que se arma todo en una sola linea, separando cada item con
+// " | " (mismo criterio que construirDetalleWhatsapp para SIMIT).
+function construirMensajeGenerico(notificacion) {
+  if (notificacion.tipo !== "inspeccion_con_hallazgos") return notificacion.mensaje;
+
+  let payload = null;
+  if (notificacion.accion_payload) {
+    try {
+      payload = JSON.parse(notificacion.accion_payload);
+    } catch (error) {
+      payload = null;
+    }
+  }
+
+  const itemsMal = payload?.detalle_inspeccion?.items_mal || [];
+  if (!itemsMal.length) return notificacion.mensaje;
+
+  const listado = itemsMal
+    .map((item) => `${item.label}${item.comentario ? ` (${item.comentario})` : ""}`)
+    .join(" | ");
+
+  return `${notificacion.mensaje} Ítems en mal estado: ${listado}.`;
+}
+
+async function enviarPlantilla(templateName, templateLang, celular, parametros) {
+  const url = `https://graph.facebook.com/${env.whatsappApiVersion}/${env.whatsappPhoneNumberId}/messages`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${env.whatsappToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: celular,
+      type: "template",
+      template: {
+        name: templateName,
+        language: { code: templateLang },
+        components: [{ type: "body", parameters: parametros }]
+      }
+    })
+  });
+
+  if (!response.ok) {
+    const detalle = await response.text().catch(() => "");
+    console.error(`Error enviando WhatsApp (HTTP ${response.status}):`, detalle);
+  }
+}
+
+// Plantilla especifica de SIMIT ("simit_comparendo_v1"): header/footer fijos,
+// 7 variables en el cuerpo (ver construirDetalleWhatsapp) y un boton de URL
+// fija (no acepta parametros: Meta rechaza el envio si se le manda un
+// componente "button" para esta plantilla).
+async function enviarPlantillaSimit(notificacion, usuario, celular) {
+  const limpiar = (texto) => String(texto ?? SIN_DATO).replace(/[\n\t]+/g, " ") || SIN_DATO;
+
+  const vehiculoLabel = await resolverVehiculoLabel(notificacion.vehiculo_id, notificacion.empresa_id);
+  const detalle = construirDetalleWhatsapp(notificacion);
+
+  await enviarPlantilla(env.whatsappTemplateName, env.whatsappTemplateLang, celular, [
+    { type: "text", text: limpiar(usuario?.nombre) },
+    { type: "text", text: limpiar(vehiculoLabel) },
+    { type: "text", text: limpiar(detalle.resumen) },
+    { type: "text", text: limpiar(detalle.comparendoNumero) },
+    { type: "text", text: limpiar(detalle.conductor) },
+    { type: "text", text: limpiar(detalle.fecha) },
+    { type: "text", text: limpiar(detalle.descripcion) }
+  ]);
+}
+
+// Plantilla generica ("notify_v2"): header/footer fijos, 3 variables en el
+// cuerpo (nombre del usuario, titulo, mensaje) y un boton de URL fija (mismas
+// restricciones que la de SIMIT). Cubre todo lo que no sea SIMIT: documentos,
+// mantenimientos, inspecciones, etc.
+async function enviarPlantillaGenerica(notificacion, usuario, celular) {
+  const defaults = notifConfig.tipoConfig(notificacion.tipo);
+  const titulo = notificacion.titulo || defaults.titulo;
+  const mensaje = construirMensajeGenerico(notificacion).replace(/[\n\t]+/g, " ");
+
+  await enviarPlantilla(env.whatsappTemplateNameGenerico, env.whatsappTemplateLangGenerico, celular, [
+    { type: "text", text: usuario?.nombre || "" },
+    { type: "text", text: titulo },
+    { type: "text", text: mensaje }
+  ]);
+}
+
 /**
  * Canal de WhatsApp. Se registra en CHANNELS (notificaciones.service.js) y se
- * dispara para toda notificacion creada, pero solo envia para los tipos en
- * TIPOS_SOPORTADOS (hoy, alertas de SIMIT). Queda inactivo por completo si no
- * hay WHATSAPP_ACCESS_TOKEN/WHATSAPP_PHONE_NUMBER_ID configurados, y solo
- * envia para prioridad alta/critica (configurable via
+ * dispara para toda notificacion creada: los tipos en TIPOS_SIMIT usan la
+ * plantilla especifica de SIMIT, el resto usa la plantilla generica. Queda
+ * inactivo por completo si no hay WHATSAPP_ACCESS_TOKEN/WHATSAPP_PHONE_NUMBER_ID
+ * configurados, y solo envia para prioridad alta/critica (configurable via
  * WHATSAPP_ALERT_PRIORIDAD_MINIMA), mismo criterio que el canal de email.
- *
- * La plantilla ("simit_comparendo_v1") tiene header/footer fijos, 7
- * variables en el cuerpo (ver construirDetalleWhatsapp) y un boton de URL
- * fija (no acepta parametros: Meta rechaza el envio si se le manda un
- * componente "button" para esta plantilla).
  */
 async function whatsappChannel(notificacion) {
   try {
-    if (!TIPOS_SOPORTADOS.has(notificacion.tipo)) return;
     if (!env.whatsappToken || !env.whatsappPhoneNumberId) return;
     if (!debeEnviarPorPrioridad(notificacion.prioridad)) return;
 
@@ -141,47 +229,10 @@ async function whatsappChannel(notificacion) {
     const celular = normalizarCelular(usuario?.celular);
     if (!celular) return;
 
-    const limpiar = (texto) => String(texto ?? SIN_DATO).replace(/[\n\t]+/g, " ") || SIN_DATO;
-
-    const vehiculoLabel = await resolverVehiculoLabel(notificacion.vehiculo_id, notificacion.empresa_id);
-    const detalle = construirDetalleWhatsapp(notificacion);
-
-    const url = `https://graph.facebook.com/${env.whatsappApiVersion}/${env.whatsappPhoneNumberId}/messages`;
-
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${env.whatsappToken}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: celular,
-        type: "template",
-        template: {
-          name: env.whatsappTemplateName,
-          language: { code: env.whatsappTemplateLang },
-          components: [
-            {
-              type: "body",
-              parameters: [
-                { type: "text", text: limpiar(usuario?.nombre) },
-                { type: "text", text: limpiar(vehiculoLabel) },
-                { type: "text", text: limpiar(detalle.resumen) },
-                { type: "text", text: limpiar(detalle.comparendoNumero) },
-                { type: "text", text: limpiar(detalle.conductor) },
-                { type: "text", text: limpiar(detalle.fecha) },
-                { type: "text", text: limpiar(detalle.descripcion) }
-              ]
-            }
-          ]
-        }
-      })
-    });
-
-    if (!response.ok) {
-      const detalle = await response.text().catch(() => "");
-      console.error(`Error enviando WhatsApp (HTTP ${response.status}):`, detalle);
+    if (TIPOS_SIMIT.has(notificacion.tipo)) {
+      await enviarPlantillaSimit(notificacion, usuario, celular);
+    } else {
+      await enviarPlantillaGenerica(notificacion, usuario, celular);
     }
   } catch (error) {
     console.error("Error enviando notificacion por WhatsApp:", error.message);

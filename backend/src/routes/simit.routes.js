@@ -9,7 +9,7 @@ router.get("/flota", requirePermission("simit.view"), asyncHandler(simitControll
 router.get("/vehiculo/:vehiculoId/historial", requirePermission("simit.view"), asyncHandler(simitController.getHistorialVehiculo));
 router.get("/consultas/:consultaId", requirePermission("simit.view"), asyncHandler(simitController.getConsultaDetalle));
 router.post("/vehiculo/:vehiculoId/consultar", requirePermission("simit.view"), asyncHandler(simitController.consultarVehiculo));
-router.post("/actualizar-flota", requirePermission("simit.view"), asyncHandler(simitController.actualizarFlota));
+router.post("/actualizar-flota", requirePermission("simit.manage"), asyncHandler(simitController.actualizarFlota));
 router.get("/valor-historico", requirePermission("simit.view"), asyncHandler(simitController.getValorHistorico));
 router.get("/infractor-top", requirePermission("simit.view"), asyncHandler(simitController.getInfractorTop));
 

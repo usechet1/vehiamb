@@ -672,6 +672,10 @@ clearFiltersButton.addEventListener("click", () => {
 
 actualizarFlotaButton.addEventListener("click", actualizarFlotaCompleta);
 
+if (window.VehiAmb.auth?.hasPermission?.("simit.manage")) {
+    actualizarFlotaButton.classList.remove("hidden");
+}
+
 flotaList.addEventListener("click", (event) => {
     const consultarButton = event.target.closest("[data-consultar-id]");
     if (consultarButton) {

@@ -45,6 +45,8 @@ const env = {
   stockImportTimezone: process.env.STOCK_IMPORT_TIMEZONE || process.env.IMPORT_TIMEZONE || "America/Bogota",
   configExcelFilePath: process.env.CONFIG_EXCEL_FILE_PATH || "",
   configSyncSchedule: process.env.CONFIG_SYNC_SCHEDULE || "0 4 * * *",
+  documentCheckIntervalMs: Number(process.env.DOCUMENT_CHECK_INTERVAL_MS || 6 * 60 * 60 * 1000),
+  documentCheckTimezone: process.env.DOCUMENT_CHECK_TIMEZONE || "America/Bogota",
 
   // Canal de email para notificaciones (ver notificaciones-email.channel.js).
   // Se activa solo si SMTP_HOST esta definido; sin eso el canal queda
@@ -67,8 +69,15 @@ const env = {
   whatsappToken: process.env.WHATSAPP_ACCESS_TOKEN || "",
   whatsappPhoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || "",
   whatsappApiVersion: process.env.WHATSAPP_API_VERSION || "v21.0",
+  // Plantilla especifica de SIMIT (7 variables, encabezado fijo "Nuevo
+  // comparendo detectado en SIMIT") -- solo para simit_multa_detectada /
+  // simit_estado_cambiado.
   whatsappTemplateName: process.env.WHATSAPP_TEMPLATE_NAME || "simit_comparendo_v1",
   whatsappTemplateLang: process.env.WHATSAPP_TEMPLATE_LANG || "en",
+  // Plantilla generica (3 variables: nombre, titulo, mensaje) para el resto
+  // de tipos de notificacion (documentos, mantenimientos, inspecciones, etc.).
+  whatsappTemplateNameGenerico: process.env.WHATSAPP_TEMPLATE_NAME_GENERICO || "notify_v2",
+  whatsappTemplateLangGenerico: process.env.WHATSAPP_TEMPLATE_LANG_GENERICO || "es",
   whatsappAlertPrioridadMinima: process.env.WHATSAPP_ALERT_PRIORIDAD_MINIMA || "alta"
 };
 
