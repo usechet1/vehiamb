@@ -169,10 +169,19 @@ async function enviarPlantilla(templateName, templateLang, celular, parametros) 
     })
   });
 
+  const cuerpo = await response.text().catch(() => "");
+
   if (!response.ok) {
-    const detalle = await response.text().catch(() => "");
-    console.error(`Error enviando WhatsApp (HTTP ${response.status}):`, detalle);
+    console.error(`Error enviando WhatsApp (HTTP ${response.status}) a ${celular} via "${templateName}":`, cuerpo);
+    return;
   }
+
+  // Log tambien en el caso exitoso: la respuesta trae el "wamid" (message id,
+  // util para buscar el mensaje en el registro de Meta) y el "wa_id" resuelto
+  // para el numero (contacts[0].wa_id) -- si Meta no devuelve ese campo o
+  // devuelve uno distinto al numero enviado, es señal de que el numero no
+  // resolvio a una cuenta de WhatsApp valida, aunque el HTTP haya sido 200.
+  console.log(`WhatsApp enviado a ${celular} via "${templateName}":`, cuerpo);
 }
 
 // Plantilla especifica de SIMIT ("simit_comparendo_v1"): header/footer fijos,
