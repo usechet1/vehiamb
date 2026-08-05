@@ -28,6 +28,15 @@ const exportSimitExcelButton = document.getElementById("exportSimitExcelButton")
 // llevar al buscador, por eso se copia la placa al portapapeles al abrirlo.
 const SIMIT_PORTAL_URL = "https://www.fcm.org.co/simit/#/estado-cuenta";
 
+// Disparar una consulta real a SIMIT (individual o de toda la flota) tiene
+// costo/limite -- igual que "Actualizar toda la flota", solo Administrador
+// puede iniciarlas. El resto de roles con simit.view solo puede ver lo ya
+// consultado (drawer, filtros, exportar).
+const puedeConsultarSimit = Boolean(window.VehiAmb.auth?.hasPermission?.("simit.manage"));
+if (!puedeConsultarSimit) {
+    simitDrawerConsultarButton.classList.add("hidden");
+}
+
 let flotaState = [];
 let currentDrawerVehiculoId = null;
 // Contexto completo del vehículo actualmente abierto en el drawer (fila de
@@ -395,9 +404,11 @@ function renderFlotaList(rows, { ordenar = true } = {}) {
                     <span class="pill">${formatCurrency(row.valor_total)}</span>
                     <span class="pill">Última consulta: ${formatDateTime(row.fecha_consulta)}</span>
                 </div>
+                ${puedeConsultarSimit ? `
                 <div class="simit-card-actions">
                     <button type="button" class="btn-secondary" data-consultar-id="${row.vehiculo_id}">Consultar ahora</button>
                 </div>
+                ` : ""}
             </article>
         `;
     }).join("");
@@ -672,7 +683,7 @@ clearFiltersButton.addEventListener("click", () => {
 
 actualizarFlotaButton.addEventListener("click", actualizarFlotaCompleta);
 
-if (window.VehiAmb.auth?.hasPermission?.("simit.manage")) {
+if (puedeConsultarSimit) {
     actualizarFlotaButton.classList.remove("hidden");
 }
 

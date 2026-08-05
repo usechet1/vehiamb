@@ -181,7 +181,7 @@ const PERMISSIONS = [
   ["documents.delete", "Documentos", "Eliminar documentos"],
   ["documents.alertas_vencimiento", "Documentos", "Recibir alertas de vencimiento de documentos (SOAT, RTM, seguro)"],
   ["simit.view", "SIMIT", "Consultar SIMIT"],
-  ["simit.manage", "SIMIT", "Actualizar toda la flota desde SIMIT"],
+  ["simit.manage", "SIMIT", "Actualizar toda la flota desde SIMIT y consultar vehiculos individuales"],
   ["users.manage", "Usuarios", "Administrar usuarios"],
   ["imports.view", "Importaciones", "Ver importaciones de gastos vehiculares"],
   ["imports.manage", "Importaciones", "Ejecutar importaciones y resolver incidencias"],
