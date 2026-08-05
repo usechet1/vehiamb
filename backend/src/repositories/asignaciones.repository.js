@@ -1,6 +1,14 @@
 const db = require("../database/query");
 
-const CREATE_FIELDS = ["fecha", "conductor_id", "vehiculo_id", "ruta_id", "telefono", "usuario_id", "empresa_id"];
+const CREATE_FIELDS = ["fecha", "conductor_id", "vehiculo_id", "ruta_id", "destinos", "telefono", "usuario_id", "empresa_id"];
+
+// destinos es JSONB (arreglo de { departamento, municipio } en el orden del
+// recorrido) -- se guarda ademas de ruta_id/ruta_nombre para poder
+// reconstruir el formulario tal cual al editar, sin depender de parsear el
+// texto compuesto.
+function serializarDestinos(destinos) {
+  return destinos ? JSON.stringify(destinos) : null;
+}
 
 const SELECT_JOIN = `
   SELECT
@@ -19,7 +27,9 @@ const SELECT_JOIN = `
 `;
 
 async function create(asignacion) {
-  const values = CREATE_FIELDS.map((field) => asignacion[field] ?? null);
+  const values = CREATE_FIELDS.map((field) =>
+    field === "destinos" ? serializarDestinos(asignacion.destinos) : asignacion[field] ?? null
+  );
   const placeholders = CREATE_FIELDS.map(() => "?").join(", ");
 
   const creada = await db.get(
@@ -31,9 +41,11 @@ async function create(asignacion) {
 }
 
 async function update(id, asignacion, empresaId) {
-  const campos = ["conductor_id", "vehiculo_id", "ruta_id", "telefono"];
+  const campos = ["conductor_id", "vehiculo_id", "ruta_id", "destinos", "telefono"];
   const assignments = campos.map((field) => `${field} = ?`).join(", ");
-  const values = campos.map((field) => asignacion[field] ?? null);
+  const values = campos.map((field) =>
+    field === "destinos" ? serializarDestinos(asignacion.destinos) : asignacion[field] ?? null
+  );
 
   await db.run(`UPDATE asignaciones_ruta SET ${assignments} WHERE id = ? AND empresa_id = ?`, [...values, id, empresaId]);
   return findById(id, empresaId);

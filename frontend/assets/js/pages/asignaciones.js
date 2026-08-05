@@ -4,8 +4,9 @@ const asignacionId = document.getElementById("asignacionId");
 const asignacionFecha = document.getElementById("asignacionFecha");
 const asignacionConductor = document.getElementById("asignacionConductor");
 const asignacionVehiculo = document.getElementById("asignacionVehiculo");
-const asignacionRuta = document.getElementById("asignacionRuta");
-const rutasDatalist = document.getElementById("rutasDatalist");
+const asignacionDestinos = document.getElementById("asignacionDestinos");
+const asignacionAgregarDestinoButton = document.getElementById("asignacionAgregarDestinoButton");
+const asignacionDestinosLegacyHint = document.getElementById("asignacionDestinosLegacyHint");
 const asignacionTelefono = document.getElementById("asignacionTelefono");
 const asignacionSubmitButton = document.getElementById("asignacionSubmitButton");
 const asignacionCancelEditButton = document.getElementById("asignacionCancelEditButton");
@@ -20,6 +21,85 @@ const mensaje = document.getElementById("mensaje");
 
 let conductoresCatalogo = [];
 let asignacionesActuales = [];
+let departamentosCatalogo = [];
+
+// Cada fila = un destino ({ departamento, municipio }) en el orden del
+// recorrido. Se arman con los mismos selects en cascada que usaba antes el
+// conductor para elegir su destino (ver frontend/assets/js/shared/ubicaciones.js).
+function crearFilaDestino(valores = {}) {
+    const fila = document.createElement("div");
+    fila.className = "asignacion-destino-fila";
+    fila.innerHTML = `
+        <div class="form-group">
+            <label>Departamento</label>
+            <select class="asignacion-destino-departamento">
+                <option value="">Selecciona...</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Municipio</label>
+            <select class="asignacion-destino-municipio" disabled>
+                <option value="">Selecciona primero un departamento...</option>
+            </select>
+        </div>
+        <button type="button" class="btn-secondary asignacion-destino-quitar" aria-label="Quitar destino" title="Quitar destino">✕</button>
+    `;
+
+    const departamentoSelect = fila.querySelector(".asignacion-destino-departamento");
+    const municipioSelect = fila.querySelector(".asignacion-destino-municipio");
+
+    for (const { departamento } of departamentosCatalogo) {
+        departamentoSelect.appendChild(new Option(departamento, departamento));
+    }
+
+    departamentoSelect.addEventListener("change", () => {
+        const seleccionado = departamentosCatalogo.find((item) => item.departamento === departamentoSelect.value);
+
+        municipioSelect.innerHTML = "";
+        if (!seleccionado) {
+            municipioSelect.disabled = true;
+            municipioSelect.appendChild(new Option("Selecciona primero un departamento...", ""));
+        } else {
+            municipioSelect.disabled = false;
+            municipioSelect.appendChild(new Option("Selecciona un municipio...", ""));
+            for (const ciudad of seleccionado.ciudades) {
+                municipioSelect.appendChild(new Option(ciudad, ciudad));
+            }
+        }
+    });
+
+    fila.querySelector(".asignacion-destino-quitar").addEventListener("click", () => {
+        if (asignacionDestinos.children.length <= 1) return;
+        fila.remove();
+    });
+
+    if (valores.departamento) {
+        departamentoSelect.value = valores.departamento;
+        departamentoSelect.dispatchEvent(new Event("change"));
+        if (valores.municipio) municipioSelect.value = valores.municipio;
+    }
+
+    return fila;
+}
+
+function agregarFilaDestino(valores = {}) {
+    asignacionDestinos.appendChild(crearFilaDestino(valores));
+}
+
+function resetDestinos() {
+    asignacionDestinos.innerHTML = "";
+    asignacionDestinosLegacyHint.classList.add("hidden");
+    agregarFilaDestino();
+}
+
+function obtenerDestinosSeleccionados() {
+    return [...asignacionDestinos.querySelectorAll(".asignacion-destino-fila")].map((fila) => ({
+        departamento: fila.querySelector(".asignacion-destino-departamento").value,
+        municipio: fila.querySelector(".asignacion-destino-municipio").value
+    }));
+}
+
+asignacionAgregarDestinoButton.addEventListener("click", () => agregarFilaDestino());
 
 function escapeHtml(value) {
     return String(value ?? "")
@@ -37,13 +117,14 @@ function hoyISO() {
 }
 
 async function cargarCatalogos() {
-    const [conductores, vehiculos, rutas] = await Promise.all([
+    const [conductores, vehiculos, departamentos] = await Promise.all([
         window.VehiAmb.api.getConductoresCatalogo(),
         window.VehiAmb.api.getVehiculosCatalogo(),
-        window.VehiAmb.api.getRutasCatalogo()
+        window.VehiAmb.ubicaciones.cargarDepartamentosCiudades()
     ]);
 
     conductoresCatalogo = conductores || [];
+    departamentosCatalogo = departamentos || [];
 
     asignacionConductor.innerHTML = '<option value="">Selecciona...</option>' + conductoresCatalogo
         .map((c) => `<option value="${c.id}">${escapeHtml(`${c.nombres} ${c.apellidos}`.trim())}</option>`)
@@ -53,8 +134,6 @@ async function cargarCatalogos() {
         .filter((v) => v.estado === "activo")
         .map((v) => `<option value="${v.id}">${escapeHtml(v.placa)}</option>`)
         .join("");
-
-    rutasDatalist.innerHTML = rutas.map((r) => `<option value="${escapeHtml(r.nombre)}"></option>`).join("");
 }
 
 // Al elegir un conductor se rellena el telefono con el que ya tiene
@@ -72,6 +151,7 @@ function resetForm() {
     asignacionFormTitle.textContent = "Nueva asignación";
     asignacionSubmitButton.textContent = "Guardar asignación";
     asignacionCancelEditButton.classList.add("hidden");
+    resetDestinos();
 }
 
 function renderRow(item, indice) {
@@ -132,11 +212,17 @@ asignacionCancelEditButton.addEventListener("click", resetForm);
 asignacionForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
+    const destinos = obtenerDestinosSeleccionados();
+    if (!destinos.length || destinos.some((destino) => !destino.departamento || !destino.municipio)) {
+        window.VehiAmb.ui.showMessage(mensaje, "Selecciona departamento y municipio en cada destino", "error");
+        return;
+    }
+
     const payload = {
         fecha: asignacionFecha.value,
         conductor_id: asignacionConductor.value,
         vehiculo_id: asignacionVehiculo.value,
-        ruta_nombre: asignacionRuta.value.trim(),
+        destinos,
         telefono: asignacionTelefono.value.trim()
     };
 
@@ -175,8 +261,23 @@ asignacionesTableBody.addEventListener("click", async (event) => {
         asignacionFecha.value = asignacion.fecha ? String(asignacion.fecha).slice(0, 10) : hoyISO();
         asignacionConductor.value = asignacion.conductor_id || "";
         asignacionVehiculo.value = asignacion.vehiculo_id || "";
-        asignacionRuta.value = asignacion.ruta_nombre || "";
         asignacionTelefono.value = asignacion.telefono || "";
+
+        asignacionDestinos.innerHTML = "";
+        if (asignacion.destinos?.length) {
+            asignacionDestinosLegacyHint.classList.add("hidden");
+            asignacion.destinos.forEach((destino) => agregarFilaDestino(destino));
+        } else {
+            // Asignaciones creadas antes de este cambio solo tienen ruta_nombre
+            // (texto libre) -- no hay forma confiable de reconstruir los
+            // destinos estructurados a partir de ese texto, se le pide al
+            // usuario que los vuelva a seleccionar.
+            asignacionDestinosLegacyHint.textContent = asignacion.ruta_nombre
+                ? `Ruta actual (texto libre): "${asignacion.ruta_nombre}". Selecciona los destinos para reemplazarla.`
+                : "";
+            asignacionDestinosLegacyHint.classList.toggle("hidden", !asignacion.ruta_nombre);
+            agregarFilaDestino();
+        }
 
         asignacionFormTitle.textContent = "Editar asignación";
         asignacionSubmitButton.textContent = "Guardar cambios";
@@ -214,6 +315,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     try {
         await cargarCatalogos();
+        resetDestinos();
     } catch (error) {
         window.VehiAmb.ui.showMessage(mensaje, "No se pudieron cargar conductores/vehículos/rutas", "error");
     }

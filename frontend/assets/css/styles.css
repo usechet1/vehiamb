@@ -2988,6 +2988,32 @@ label[for="loginPassword"] {
     gap: 14px;
 }
 
+.asignacion-destinos {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.asignacion-destino-fila {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 10px;
+    align-items: end;
+}
+
+.asignacion-destino-quitar {
+    min-width: 0;
+    padding: 0 12px;
+    min-height: 44px;
+}
+
+@media (max-width: 620px) {
+    .asignacion-destino-fila {
+        grid-template-columns: 1fr;
+    }
+}
+
 .compact-form textarea {
     width: 100%;
     min-height: 82px;

@@ -1660,7 +1660,8 @@ if (env.dbClient === "sqlite") {
       ensureColumn("facturas_vehiculares", "conductor_id", "BIGINT REFERENCES conductores(id) ON DELETE SET NULL"),
       ensureColumn("conductores", "excluir_de_costos", "BOOLEAN NOT NULL DEFAULT FALSE"),
       ensureColumn("inspecciones_preventivas", "firma_url", "TEXT"),
-      ensureColumn("preoperacionales", "firma_url", "TEXT")
+      ensureColumn("preoperacionales", "firma_url", "TEXT"),
+      ensureColumn("asignaciones_ruta", "destinos", "JSONB")
     ]))
     .then(migrarConductoresNombreSplit)
     .then(migrarEntregasConductorAUsuario)
