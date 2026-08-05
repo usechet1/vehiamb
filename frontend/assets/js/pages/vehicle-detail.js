@@ -515,6 +515,12 @@ async function cargarDetalle() {
         vehicleSimitSection.classList.remove("hidden");
     }
 
+    // Consultar SIMIT tiene costo/limite -- mismo permiso que "Actualizar
+    // toda la flota" en el modulo SIMIT (simit.manage), solo Administrador.
+    if (consultarSimitButton && !window.VehiAmb.auth?.hasPermission?.("simit.manage")) {
+        consultarSimitButton.classList.add("hidden");
+    }
+
     const puedeVerViajes = window.VehiAmb.auth?.hasPermission?.("trips.view");
     if (vehicleViajesSection && puedeVerViajes) {
         vehicleViajesSection.classList.remove("hidden");
