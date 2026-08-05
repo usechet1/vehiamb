@@ -53,10 +53,11 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label>Ruta *</label>
-                                    <input type="text" id="asignacionRuta" list="rutasDatalist" placeholder="Ej: ZIPAQUIRA-TOCANCIPA-CAJICA-CHOCONTA" required>
-                                    <datalist id="rutasDatalist"></datalist>
-                                    <span class="field-help">Escoge una ruta ya usada o escribe una nueva.</span>
+                                    <label>Destinos *</label>
+                                    <div id="asignacionDestinos" class="asignacion-destinos"></div>
+                                    <button type="button" id="asignacionAgregarDestinoButton" class="btn-secondary">+ Agregar destino</button>
+                                    <p id="asignacionDestinosLegacyHint" class="field-help hidden"></p>
+                                    <span class="field-help">Selecciona uno o varios departamentos/municipios, en el orden del recorrido.</span>
                                 </div>
 
                                 <div class="form-group">
@@ -129,6 +130,7 @@
     <script src="assets/js/shared/ui.js"></script>
     <script src="assets/js/shared/notificaciones-config.js"></script>
     <script src="assets/js/shared/sidebar.js"></script>
+    <script src="assets/js/shared/ubicaciones.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="assets/js/shared/pdf-export.js"></script>
     <script src="assets/js/pages/asignaciones-export.js"></script>

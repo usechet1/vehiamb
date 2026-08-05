@@ -16,6 +16,7 @@ function toSafeAsignacion(asignacion) {
     vehiculo_placa: asignacion.vehiculo_placa,
     ruta_id: asignacion.ruta_id,
     ruta_nombre: asignacion.ruta_nombre,
+    destinos: asignacion.destinos || null,
     telefono: asignacion.telefono
   };
 }
@@ -59,10 +60,21 @@ async function validarYResolverPayload(payload, empresaId) {
     throw new HttpError(404, "Vehículo no encontrado");
   }
 
-  const nombreRuta = String(payload.ruta_nombre || "").trim();
-  if (!nombreRuta) {
-    throw new HttpError(400, "Debes indicar la ruta");
+  const destinos = Array.isArray(payload.destinos) ? payload.destinos : [];
+  if (!destinos.length) {
+    throw new HttpError(400, "Debes agregar al menos un destino");
   }
+
+  const destinosNormalizados = destinos.map((destino) => ({
+    departamento: String(destino?.departamento || "").trim(),
+    municipio: String(destino?.municipio || "").trim()
+  }));
+
+  if (destinosNormalizados.some((destino) => !destino.departamento || !destino.municipio)) {
+    throw new HttpError(400, "Selecciona departamento y municipio en cada destino");
+  }
+
+  const nombreRuta = destinosNormalizados.map((destino) => destino.municipio).join(" - ");
   const ruta = await rutasRepository.findOrCreateByNombre(nombreRuta, empresaId);
 
   const telefono = String(payload.telefono || conductor.telefono || "").trim() || null;
@@ -72,6 +84,7 @@ async function validarYResolverPayload(payload, empresaId) {
     conductor_id: conductor.id,
     vehiculo_id: vehiculo.id,
     ruta_id: ruta.id,
+    destinos: destinosNormalizados,
     telefono
   };
 }

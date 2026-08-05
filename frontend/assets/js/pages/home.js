@@ -644,19 +644,6 @@ function initBuscadorVehiculo() {
     });
 }
 
-// El dataset trata a Bogota como una ciudad mas dentro de Cundinamarca, pero
-// administrativamente es su propio Distrito Capital -- se agrega como
-// departamento aparte (con ella misma como unica "ciudad") para que el
-// conductor la encuentre donde la busca.
-async function cargarDepartamentosCiudades() {
-    const response = await fetch("assets/data/colombia-departamentos-ciudades.json");
-    if (!response.ok) throw new Error("No se pudo cargar el listado de departamentos y ciudades");
-    const departamentos = await response.json();
-
-    return [...departamentos, { departamento: "Bogotá D.C.", ciudades: ["Bogotá D.C."] }]
-        .sort((a, b) => a.departamento.localeCompare(b.departamento, "es"));
-}
-
 function initSelectorUbicacion(departamentos) {
     const departamentoSelect = document.getElementById("conductorDepartamentoSelect");
     const ciudadSelect = document.getElementById("conductorCiudadSelect");
@@ -761,7 +748,7 @@ async function inicializarConductorSeleccionManual() {
 
     const [vehiculosResult, departamentosResult] = await Promise.allSettled([
         window.VehiAmb.api.getVehiculosCatalogo(),
-        cargarDepartamentosCiudades()
+        window.VehiAmb.ubicaciones.cargarDepartamentosCiudades()
     ]);
 
     if (vehiculosResult.status === "fulfilled") {
