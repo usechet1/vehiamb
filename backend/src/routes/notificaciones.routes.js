@@ -15,6 +15,7 @@ router.patch("/:id/leido", asyncHandler(notificacionesController.marcarLeida));
 router.patch("/:id/archivar", asyncHandler(notificacionesController.archivar));
 
 router.delete("/leidas", asyncHandler(notificacionesController.eliminarLeidas));
+router.delete("/todas", asyncHandler(notificacionesController.eliminarTodas));
 router.delete("/:id", asyncHandler(notificacionesController.eliminar));
 
 router.post("/:id/aprobar", requirePermission("maintenance.approve"), asyncHandler(notificacionesController.aprobar));

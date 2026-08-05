@@ -11,6 +11,7 @@ const notifClearFiltersButton = document.getElementById("notifClearFiltersButton
 const notifCenterList = document.getElementById("notifCenterList");
 const notifMarkAllReadButton = document.getElementById("notifMarkAllReadButton");
 const notifDeleteReadButton = document.getElementById("notifDeleteReadButton");
+const notifDeleteAllButton = document.getElementById("notifDeleteAllButton");
 const loader = document.getElementById("loader");
 const mensaje = document.getElementById("mensaje");
 
@@ -186,6 +187,22 @@ notifMarkAllReadButton.addEventListener("click", async () => {
 notifDeleteReadButton.addEventListener("click", async () => {
     try {
         await window.VehiAmb.api.eliminarNotificacionesLeidas();
+        await cargarNotificaciones();
+    } catch (error) {
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudieron eliminar las notificaciones", "error");
+    }
+});
+
+notifDeleteAllButton.addEventListener("click", async () => {
+    const confirmado = await window.VehiAmb.ui.confirm({
+        title: "Eliminar todas las notificaciones",
+        message: "¿Eliminar todas tus notificaciones, leídas y no leídas? Esta acción no se puede deshacer.",
+        confirmText: "Eliminar todas"
+    });
+    if (!confirmado) return;
+
+    try {
+        await window.VehiAmb.api.eliminarTodasNotificaciones();
         await cargarNotificaciones();
     } catch (error) {
         window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudieron eliminar las notificaciones", "error");

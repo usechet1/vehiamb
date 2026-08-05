@@ -44,6 +44,11 @@ exports.eliminarLeidas = async (req, res) => {
   res.json({ ok: true });
 };
 
+exports.eliminarTodas = async (req, res) => {
+  await notificacionesService.eliminarTodas(req.user.id);
+  res.json({ ok: true });
+};
+
 exports.reenviarWhatsapp = async (req, res) => {
   await notificacionesService.reenviarPorWhatsapp(req.params.id, req.user);
   res.json({ ok: true });

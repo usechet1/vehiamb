@@ -357,6 +357,14 @@ window.VehiAmb.api = {
         );
     },
 
+    eliminarTodasNotificaciones() {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/notificaciones/todas`,
+            { method: "DELETE" },
+            "No se pudieron eliminar las notificaciones"
+        );
+    },
+
     aprobarNotificacion(id) {
         return requestJson(
             `${window.VehiAmb.API_URL}/notificaciones/${id}/aprobar`,
