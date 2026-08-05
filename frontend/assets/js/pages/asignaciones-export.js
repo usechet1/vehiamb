@@ -4,9 +4,12 @@
     const FOOTER_TEXT = (nombreEmpresa) => (nombreEmpresa ? `Generado por ${APP_NAME} para ${nombreEmpresa}` : `Generado por ${APP_NAME}`);
     const ROJO_BANNER = [200, 22, 30];
     const GRIS_FECHA = [230, 232, 235];
-    const NARANJA_ENCABEZADO = [244, 199, 165];
-    const NARANJA_FILA = [253, 235, 222];
+    const ROJO_CLARO_ENCABEZADO = [247, 199, 203];
+    const ROJO_CLARO_FILA = [253, 235, 236];
+    const BLANCO_FILA = [255, 255, 255];
     const ROW_HEIGHT = 20;
+    const ROW_LINE_HEIGHT = 12;
+    const ROW_PADDING = 8;
 
     const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
     const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
@@ -27,7 +30,7 @@
         return String(value);
     }
 
-    async function addEncabezado(doc, branding, fechaISO) {
+    async function addEncabezado(doc, branding, fechaISO, totalRegistros) {
         const pageWidth = doc.internal.pageSize.getWidth();
         const bannerX = MARGIN_X + 120;
         const bannerHeight = 60;
@@ -61,23 +64,20 @@
         doc.setFontSize(11);
         doc.text(`FECHA: ${formatFechaLarga(fechaISO)}`, pageWidth / 2, fechaY + 1, { align: "center" });
 
-        return fechaY + 28;
+        const totalY = fechaY + 28;
+        doc.setFontSize(10);
+        doc.setFont(undefined, "bold");
+        doc.text(`Total de vehículos: ${totalRegistros}`, MARGIN_X, totalY);
+        doc.setFont(undefined, "normal");
+
+        return totalY + 16;
     }
 
-    function addTabla(doc, startY, asignaciones) {
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const columns = [
-            { label: "", x: MARGIN_X, width: 25, align: "left" },
-            { label: "NOMBRE", x: MARGIN_X + 25, width: 175, align: "left" },
-            { label: "RUTA", x: MARGIN_X + 200, width: 165, align: "left" },
-            { label: "TELEFONO", x: MARGIN_X + 365, width: 75, align: "left" },
-            { label: "PLACA", x: MARGIN_X + 440, width: pageWidth - MARGIN_X - (MARGIN_X + 440), align: "left" }
-        ];
-        const tableWidth = pageWidth - MARGIN_X * 2;
-
-        let y = startY;
-
-        doc.setFillColor(...NARANJA_ENCABEZADO);
+    // Dibuja la fila de encabezado de la tabla -- se repite en cada pagina
+    // nueva (antes solo salia en la primera, y una tabla larga perdia el
+    // significado de las columnas al pasar de pagina).
+    function addTablaHeader(doc, y, columns, tableWidth) {
+        doc.setFillColor(...ROJO_CLARO_ENCABEZADO);
         doc.rect(MARGIN_X, y, tableWidth, ROW_HEIGHT, "F");
         doc.setDrawColor(190, 190, 190);
         doc.rect(MARGIN_X, y, tableWidth, ROW_HEIGHT);
@@ -85,20 +85,25 @@
         doc.setFont(undefined, "bold");
         doc.setFontSize(10);
         columns.forEach((column) => doc.text(column.label, column.x + 4, y + ROW_HEIGHT / 2 + 3));
-        y += ROW_HEIGHT;
-
         doc.setFont(undefined, "normal");
+        return y + ROW_HEIGHT;
+    }
+
+    function addTabla(doc, startY, asignaciones) {
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const bottomLimit = doc.internal.pageSize.getHeight() - 90;
+        const columns = [
+            { label: "#", x: MARGIN_X, width: 25, align: "left" },
+            { label: "NOMBRE", x: MARGIN_X + 25, width: 150, align: "left" },
+            { label: "RUTA", x: MARGIN_X + 175, width: 190, align: "left" },
+            { label: "TELEFONO", x: MARGIN_X + 365, width: 75, align: "left" },
+            { label: "PLACA", x: MARGIN_X + 440, width: pageWidth - MARGIN_X - (MARGIN_X + 440), align: "left" }
+        ];
+        const tableWidth = pageWidth - MARGIN_X * 2;
+
+        let y = addTablaHeader(doc, startY, columns, tableWidth);
+
         asignaciones.forEach((item, indice) => {
-            if (y + ROW_HEIGHT > doc.internal.pageSize.getHeight() - 90) {
-                doc.addPage();
-                y = 40;
-            }
-
-            doc.setFillColor(...NARANJA_FILA);
-            doc.rect(MARGIN_X, y, tableWidth, ROW_HEIGHT, "F");
-            doc.setDrawColor(220, 220, 220);
-            doc.rect(MARGIN_X, y, tableWidth, ROW_HEIGHT);
-
             const valores = [
                 String(indice + 1),
                 safe(item.conductor_nombre, "Sin conductor"),
@@ -107,12 +112,29 @@
                 safe(item.vehiculo_placa, "Sin vehículo")
             ];
 
+            // Las rutas con varios destinos (ver Asignacion de rutas) pueden
+            // ser mucho mas largas que un nombre corto -- se envuelven en
+            // varias lineas en vez de cortarse en la primera, ajustando el
+            // alto de toda la fila a la columna que mas lineas necesite.
+            const columnLines = columns.map((column, colIndex) => doc.splitTextToSize(valores[colIndex], column.width - 8));
+            const maxLines = Math.max(1, ...columnLines.map((lines) => lines.length));
+            const rowHeight = Math.max(ROW_HEIGHT, maxLines * ROW_LINE_HEIGHT + ROW_PADDING);
+
+            if (y + rowHeight > bottomLimit) {
+                doc.addPage();
+                y = addTablaHeader(doc, 40, columns, tableWidth);
+            }
+
+            doc.setFillColor(...(indice % 2 === 0 ? BLANCO_FILA : ROJO_CLARO_FILA));
+            doc.rect(MARGIN_X, y, tableWidth, rowHeight, "F");
+            doc.setDrawColor(220, 220, 220);
+            doc.rect(MARGIN_X, y, tableWidth, rowHeight);
+
             columns.forEach((column, colIndex) => {
-                const texto = doc.splitTextToSize(valores[colIndex], column.width - 8);
-                doc.text(texto[0] || "", column.x + 4, y + ROW_HEIGHT / 2 + 3);
+                doc.text(columnLines[colIndex], column.x + 4, y + 13);
             });
 
-            y += ROW_HEIGHT;
+            y += rowHeight;
         });
 
         return y;
@@ -149,7 +171,7 @@
         const doc = window.VehiAmb.pdfExport.createDocument();
         const branding = await window.VehiAmb.pdfExport.getEmpresaBranding();
 
-        const startY = await addEncabezado(doc, branding, fecha);
+        const startY = await addEncabezado(doc, branding, fecha, asignaciones.length);
         addTabla(doc, startY, asignaciones);
         await addFooter(doc, branding);
 
