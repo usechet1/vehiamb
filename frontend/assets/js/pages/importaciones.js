@@ -6,6 +6,7 @@ const importGrupoDia = document.getElementById("importGrupoDia");
 const importGrupoRango = document.getElementById("importGrupoRango");
 const importDesde = document.getElementById("importDesde");
 const importHasta = document.getElementById("importHasta");
+const importForzar = document.getElementById("importForzar");
 const importSubmitButton = document.getElementById("importSubmitButton");
 const importRunResult = document.getElementById("importRunResult");
 const importStatusBody = document.getElementById("importStatusBody");
@@ -221,9 +222,10 @@ importForm.addEventListener("submit", async (event) => {
 
     try {
         window.VehiAmb.ui.show(loader);
+        const forzar = importForzar.checked;
         const resultado = importModoRango.checked
-            ? await window.VehiAmb.api.ejecutarImportacion({ desde: importDesde.value, hasta: importHasta.value })
-            : await window.VehiAmb.api.ejecutarImportacion({ periodo: importPeriodo.value });
+            ? await window.VehiAmb.api.ejecutarImportacion({ desde: importDesde.value, hasta: importHasta.value, forzar })
+            : await window.VehiAmb.api.ejecutarImportacion({ periodo: importPeriodo.value, forzar });
 
         importRunResult.classList.remove("hidden");
         importRunResult.innerHTML = renderResultadoImportacion(resultado);
