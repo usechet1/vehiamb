@@ -137,6 +137,10 @@ async function removeLeidas(usuarioId) {
   return db.run("DELETE FROM notificaciones WHERE usuario_id = ? AND estado = 'leida'", [usuarioId]);
 }
 
+async function removeTodas(usuarioId) {
+  return db.run("DELETE FROM notificaciones WHERE usuario_id = ?", [usuarioId]);
+}
+
 async function countPendientes(usuarioId) {
   const row = await db.get(
     "SELECT COUNT(*) AS total FROM notificaciones WHERE usuario_id = ? AND estado = 'no_leida'",
@@ -172,6 +176,7 @@ module.exports = {
   archive,
   remove,
   removeLeidas,
+  removeTodas,
   countPendientes,
   existsRecentByReferencia
 };

@@ -376,6 +376,10 @@ async function eliminarLeidas(usuarioId) {
   return notificacionesRepository.removeLeidas(usuarioId);
 }
 
+async function eliminarTodas(usuarioId) {
+  return notificacionesRepository.removeTodas(usuarioId);
+}
+
 // Notificaciones de SIMIT creadas ANTES de que se agregara
 // "detalle_comparendos" al accion_payload (ver simit.service.js
 // notificarNovedades) no tienen ese detalle guardado -- al reenviarlas se
@@ -497,6 +501,7 @@ module.exports = {
   archivarNotificacion,
   eliminarNotificacion,
   eliminarLeidas,
+  eliminarTodas,
   reenviarPorWhatsapp,
   aprobarNotificacion,
   rechazarNotificacion,
