@@ -61,6 +61,25 @@ function excelValueToIsoDate(raw) {
     return `${y}-${m}-${d}`;
   }
 
+  // Texto tipo "04-08-2026" o "4/8/2026": el negocio siempre escribe la
+  // fecha dia-mes-anio (convencion colombiana), pero new Date(...) de JS
+  // interpreta cadenas separadas por guion/slash como mes-dia-anio -- para
+  // cualquier fecha con dia <=12 eso invierte dia y mes en silencio (ej.
+  // "04-08-2026", 4 de agosto, se leia como 8 de abril). Esto hacia que la
+  // fila nunca calzara con el periodo sincronizado y se descartara sin
+  // generar incidencia (ver comentario en parse() mas abajo). Se parsea a
+  // mano antes de caer al motor de fechas generico.
+  const textoMatch = String(raw).trim().match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if (textoMatch) {
+    const [, diaTexto, mesTexto, anioTexto] = textoMatch;
+    const dia = Number(diaTexto);
+    const mes = Number(mesTexto);
+    if (mes >= 1 && mes <= 12 && dia >= 1 && dia <= 31) {
+      return `${anioTexto}-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+    }
+    return null;
+  }
+
   const parsedDate = new Date(raw);
   if (!Number.isNaN(parsedDate.getTime())) return parsedDate.toISOString().slice(0, 10);
 

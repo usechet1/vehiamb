@@ -57,12 +57,18 @@ function generarRangoFechas(desde, hasta) {
  * Procesa un unico dia del Excel (ya abierto y validado) y deja el registro
  * de auditoria correspondiente. Nunca relanza el error: si un dia de un
  * rango falla, los demas dias deben poder seguir procesandose.
+ *
+ * forzar=true salta el atajo de "el archivo no cambio, no reprocesar" -- se
+ * usa para recuperar periodos que ya se sincronizaron con una version vieja
+ * del codigo de parseo (ej. el bug de fechas dia/mes invertidas) y que de
+ * otro modo quedarian con "sin_cambios" para siempre aunque el archivo en
+ * disco no vuelva a cambiar.
  */
-async function ejecutarPeriodo({ periodoObjetivo, hash, nombreArchivo, validated, usuarioId, empresaId }) {
+async function ejecutarPeriodo({ periodoObjetivo, hash, nombreArchivo, validated, usuarioId, empresaId, forzar = false }) {
   const inicioPeriodo = Date.now();
 
   const ultima = await importacionesRepository.findUltimaPorPeriodo(periodoObjetivo, empresaId);
-  if (ultima && ESTADOS_CON_HASH_VIGENTE.includes(ultima.estado) && ultima.hash_archivo === hash) {
+  if (!forzar && ultima && ESTADOS_CON_HASH_VIGENTE.includes(ultima.estado) && ultima.hash_archivo === hash) {
     const sinCambios = await importacionesRepository.create({
       nombre_archivo: nombreArchivo,
       hash_archivo: hash,
@@ -219,7 +225,7 @@ async function registrarFalloObtencionArchivo({ periodos, usuarioId, error, empr
  * Sin importar si el origen del archivo cambia en el futuro (Drive,
  * OneDrive, API), esta capa no se toca.
  */
-async function ejecutar({ periodo, desde, hasta, usuarioId = null } = {}) {
+async function ejecutar({ periodo, desde, hasta, forzar = false, usuarioId = null } = {}) {
   const empresa = await empresasRepository.findEmpresaPrincipal();
   if (!empresa) {
     throw new HttpError(400, "No hay ninguna empresa registrada para asociar la importacion");
@@ -253,7 +259,7 @@ async function ejecutar({ periodo, desde, hasta, usuarioId = null } = {}) {
 
     const resultados = [];
     for (const periodoObjetivo of periodos) {
-      resultados.push(await ejecutarPeriodo({ periodoObjetivo, hash, nombreArchivo, validated, usuarioId, empresaId }));
+      resultados.push(await ejecutarPeriodo({ periodoObjetivo, hash, nombreArchivo, validated, usuarioId, empresaId, forzar }));
     }
 
     const duracionMs = Date.now() - inicio;

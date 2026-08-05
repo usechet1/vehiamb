@@ -14,6 +14,7 @@ exports.ejecutar = async (req, res) => {
   const periodo = req.body?.periodo ? String(req.body.periodo).trim() : null;
   const desde = req.body?.desde ? String(req.body.desde).trim() : null;
   const hasta = req.body?.hasta ? String(req.body.hasta).trim() : null;
+  const forzar = req.body?.forzar === true;
 
   if (periodo && !FECHA_REGEX.test(periodo)) {
     throw new HttpError(400, "El periodo debe tener formato YYYY-MM-DD");
@@ -32,7 +33,7 @@ exports.ejecutar = async (req, res) => {
     }
   }
 
-  const resultado = await importService.ejecutar({ periodo, desde, hasta, usuarioId: req.user.id });
+  const resultado = await importService.ejecutar({ periodo, desde, hasta, forzar, usuarioId: req.user.id });
   res.status(201).json(resultado);
 };
 

@@ -58,6 +58,13 @@
                                         <input type="date" id="importHasta">
                                     </div>
                                 </div>
+                                <div class="form-group form-checkbox">
+                                    <label>
+                                        <input type="checkbox" id="importForzar">
+                                        Forzar reimportación
+                                    </label>
+                                    <span class="field-help">Reprocesa el período aunque el archivo no haya cambiado desde la última sincronización. Úsalo para recuperar datos que se perdieron por un bug ya corregido.</span>
+                                </div>
                                 <button type="submit" class="btn-primary" id="importSubmitButton">Ejecutar importación</button>
                             </form>
                             <div id="importRunResult" class="import-run-result hidden"></div>

@@ -438,13 +438,13 @@ window.VehiAmb.api = {
         );
     },
 
-    ejecutarImportacion({ periodo, desde, hasta } = {}) {
+    ejecutarImportacion({ periodo, desde, hasta, forzar } = {}) {
         return requestJson(
             `${window.VehiAmb.API_URL}/importaciones/ejecutar`,
             {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(desde && hasta ? { desde, hasta } : { periodo })
+                body: JSON.stringify({ ...(desde && hasta ? { desde, hasta } : { periodo }), forzar: Boolean(forzar) })
             },
             "No se pudo ejecutar la importacion"
         );
