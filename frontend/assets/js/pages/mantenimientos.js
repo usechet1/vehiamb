@@ -13,6 +13,8 @@ const loader = document.getElementById("loader");
 const mensaje = document.getElementById("mensaje");
 const mantenimientoKilometraje = document.getElementById("mantenimientoKilometraje");
 const kilometrajeHelp = document.getElementById("kilometrajeHelp");
+const autorizadoPorList = document.getElementById("autorizadoPorList");
+const hechoPorList = document.getElementById("hechoPorList");
 const repuestosData = document.getElementById("repuestosData");
 const repuestosEstructuradosData = document.getElementById("repuestosEstructuradosData");
 const repuestoInput = document.getElementById("repuestoInput");
@@ -990,6 +992,19 @@ async function cargarDatos() {
         window.VehiAmb.ui.showMessage(mensaje, "No fue posible cargar los vehículos", "error");
         window.VehiAmb.ui.hide(loader);
         return;
+    }
+
+    // Sugerencias para "Autorizado por"/"Hecho por": siguen siendo texto
+    // libre (para poder registrar un taller externo en "Hecho por"), pero se
+    // sugieren los usuarios activos para no tener que escribirlos cada vez.
+    // No bloquea el resto del formulario si falla.
+    try {
+        const usuarios = await window.VehiAmb.api.getMantenimientosUsuariosDisponibles();
+        const opciones = usuarios.map((usuario) => `<option value="${escapeHtml(usuario.nombre)}"></option>`).join("");
+        autorizadoPorList.innerHTML = opciones;
+        hechoPorList.innerHTML = opciones;
+    } catch (error) {
+        console.error(error);
     }
 
     try {
