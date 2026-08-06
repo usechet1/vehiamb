@@ -83,7 +83,9 @@ function crearFilaDestino(valores = {}) {
 }
 
 function agregarFilaDestino(valores = {}) {
-    asignacionDestinos.appendChild(crearFilaDestino(valores));
+    const fila = crearFilaDestino(valores);
+    asignacionDestinos.appendChild(fila);
+    return fila;
 }
 
 function resetDestinos() {
@@ -99,7 +101,18 @@ function obtenerDestinosSeleccionados() {
     }));
 }
 
-asignacionAgregarDestinoButton.addEventListener("click", () => agregarFilaDestino());
+// Al agregar un destino manualmente (no al reconstruir filas en modo edicion
+// ni al resetear el formulario) se resalta la fila nueva un momento, para que
+// quede notorio que el clic si agrego una fila y no pase desapercibido.
+asignacionAgregarDestinoButton.addEventListener("click", () => {
+    const fila = agregarFilaDestino();
+    fila.classList.add("es-nueva");
+    // setTimeout en vez de esperar "animationend": con prefers-reduced-motion
+    // la animacion no corre y ese evento nunca se dispara, dejando la fila
+    // resaltada para siempre.
+    setTimeout(() => fila.classList.remove("es-nueva"), 1300);
+    fila.scrollIntoView({ behavior: "smooth", block: "nearest" });
+});
 
 function escapeHtml(value) {
     return String(value ?? "")
