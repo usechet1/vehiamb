@@ -186,7 +186,7 @@
             throw new Error("No hay un vehículo seleccionado para exportar");
         }
 
-        const doc = window.VehiAmb.pdfExport.createDocument({ orientation: "landscape" });
+        const doc = await window.VehiAmb.pdfExport.createDocument({ orientation: "landscape" });
         const layout = makeLayout(doc);
         const branding = await window.VehiAmb.pdfExport.getEmpresaBranding();
         const vehicleName = `${row.marca || ""} ${row.modelo || ""}`.trim();
@@ -222,7 +222,7 @@
         const vehicleName = `${row.marca || ""} ${row.modelo || ""}`.trim();
         const comparendos = detalle?.comparendos || [];
 
-        const workbook = excel.createWorkbook();
+        const workbook = await excel.createWorkbook();
         const sheet = workbook.addWorksheet("Comparendos SIMIT");
         excel.setColumnWidths(sheet, [26, 10, 14, 32, 14, 14, 18, 24]);
 

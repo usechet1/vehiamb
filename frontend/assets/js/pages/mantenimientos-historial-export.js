@@ -130,7 +130,7 @@
             throw new Error("No hay mantenimientos para exportar con los filtros actuales");
         }
 
-        const doc = window.VehiAmb.pdfExport.createDocument({ orientation: "landscape" });
+        const doc = await window.VehiAmb.pdfExport.createDocument({ orientation: "landscape" });
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
         // 130pt (en vez de 50) para dejar espacio al membrete de pie de
@@ -202,7 +202,7 @@
         const branding = await window.VehiAmb.pdfExport.getEmpresaBranding();
         const columnCount = COLUMN_WIDTHS.length;
 
-        const workbook = excel.createWorkbook();
+        const workbook = await excel.createWorkbook();
         const sheet = workbook.addWorksheet("Historial");
         excel.setColumnWidths(sheet, COLUMN_WIDTHS.map((column) => Math.round(column.width / 6)));
 

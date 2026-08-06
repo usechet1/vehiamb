@@ -333,7 +333,7 @@
             throw new Error("No hay viajes para exportar con los filtros actuales");
         }
 
-        const doc = window.VehiAmb.pdfExport.createDocument({ orientation: "landscape" });
+        const doc = await window.VehiAmb.pdfExport.createDocument({ orientation: "landscape" });
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
         const bottomLimit = pageHeight - 130;
@@ -364,7 +364,7 @@
         const branding = await window.VehiAmb.pdfExport.getEmpresaBranding();
         const columnCount = COLUMN_WIDTHS.length;
 
-        const workbook = excel.createWorkbook();
+        const workbook = await excel.createWorkbook();
         const sheet = workbook.addWorksheet("Viajes");
         excel.setColumnWidths(sheet, COLUMN_WIDTHS.map((column) => Math.round(column.width / 6)));
 

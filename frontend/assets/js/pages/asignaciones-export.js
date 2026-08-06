@@ -178,7 +178,7 @@
             throw new Error("No hay asignaciones registradas para esta fecha");
         }
 
-        const doc = window.VehiAmb.pdfExport.createDocument({ orientation: "landscape" });
+        const doc = await window.VehiAmb.pdfExport.createDocument({ orientation: "landscape" });
         const branding = await window.VehiAmb.pdfExport.getEmpresaBranding();
 
         const startY = await addEncabezado(doc, branding, fecha, asignaciones.length);

@@ -1,5 +1,7 @@
 window.VehiAmb = window.VehiAmb || {};
 
+const EXCELJS_CDN_URL = "https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js";
+
 const BRAND_RED = "FFB21F2D";
 const BRAND_RED_LIGHT = "FFFCE9EB";
 const BRAND_INK = "FF18202B";
@@ -10,7 +12,10 @@ const BORDER_COLOR = "FFDCE2EA";
 const THIN_BORDER = { style: "thin", color: { argb: BORDER_COLOR } };
 const CELL_BORDER = { top: THIN_BORDER, left: THIN_BORDER, bottom: THIN_BORDER, right: THIN_BORDER };
 
-function createWorkbook() {
+async function createWorkbook() {
+    if (!window.ExcelJS) {
+        await window.VehiAmb.loadScript(EXCELJS_CDN_URL);
+    }
     const workbook = new ExcelJS.Workbook();
     workbook.creator = "Vehiamb";
     workbook.created = new Date();
