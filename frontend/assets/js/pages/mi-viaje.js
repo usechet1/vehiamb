@@ -15,6 +15,8 @@ const controlConductorNombre = document.getElementById("controlConductorNombre")
 const controlConductorCedula = document.getElementById("controlConductorCedula");
 const controlConductorLicencias = document.getElementById("controlConductorLicencias");
 const controlDocumentosGrid = document.getElementById("controlDocumentosGrid");
+const offlineBanner = document.getElementById("offlineBanner");
+const offlineBannerFecha = document.getElementById("offlineBannerFecha");
 const loader = document.getElementById("loader");
 const mensaje = document.getElementById("mensaje");
 
@@ -96,6 +98,10 @@ function renderDocumentoCard(documento) {
 
     const esVencido = !sinVencimiento && days !== null && days < 0;
 
+    const urlDocumento = documento.archivo_url
+        ? (documento._urlOffline !== undefined ? documento._urlOffline : window.VehiAmb.api.getAssetUrl(documento.archivo_url))
+        : "";
+
     return `
         <article class="record-item control-doc-card ${esVencido ? "is-vencido" : ""}">
             <div class="record-top">
@@ -111,11 +117,11 @@ function renderDocumentoCard(documento) {
                     ? `<span class="pill">Propietario: ${escapeHtml(documento.propietario_tipo_identificacion)} ${escapeHtml(documento.propietario_numero_identificacion)} · ${escapeHtml(documento.propietario_nombre)}</span>`
                     : `<span class="pill">Vencimiento: ${formatFecha(documento.fecha_vencimiento)}</span>`}
             </div>
-            ${documento.archivo_url ? `
-                <a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(documento.archivo_url))}" target="_blank" rel="noreferrer">
-                    Ver documento
-                </a>
-            ` : '<span class="field-help">Sin archivo adjunto</span>'}
+            ${urlDocumento
+                ? `<a class="record-link" href="${escapeHtml(urlDocumento)}" target="_blank" rel="noreferrer">Ver documento</a>`
+                : documento.archivo_url
+                    ? '<span class="field-help">Documento no disponible sin conexión</span>'
+                    : '<span class="field-help">Sin archivo adjunto</span>'}
         </article>
     `;
 }
@@ -132,7 +138,9 @@ function renderDocumentos(documentos) {
 }
 
 function renderVehiculoImagen(vehiculo) {
-    const imageSource = vehiculo?.imagen_url ? window.VehiAmb.api.getAssetUrl(vehiculo.imagen_url) : "";
+    const imageSource = vehiculo?.imagen_url
+        ? (vehiculo._urlOffline !== undefined ? vehiculo._urlOffline : window.VehiAmb.api.getAssetUrl(vehiculo.imagen_url))
+        : "";
 
     if (!imageSource) {
         controlVehiculoImagen.classList.add("hidden");
@@ -156,6 +164,10 @@ function renderLicenciaCard(licencia) {
     const pillClass = days === null ? "" : days < 0 ? "pill-danger" : days <= 30 ? "pill-warning" : "pill-success";
     const statusText = days === null ? "Sin fecha de vencimiento" : days < 0 ? `Vencida hace ${Math.abs(days)} días` : `Vence en ${days} días`;
 
+    const urlLicencia = licencia.archivo_url
+        ? (licencia._urlOffline !== undefined ? licencia._urlOffline : window.VehiAmb.api.getAssetUrl(licencia.archivo_url))
+        : "";
+
     return `
         <article class="record-item control-doc-card ${days !== null && days < 0 ? "is-vencido" : ""}">
             <div class="record-top">
@@ -167,11 +179,11 @@ function renderLicenciaCard(licencia) {
             <div class="record-meta">
                 <span class="pill">Vencimiento: ${formatFecha(licencia.fecha_vencimiento)}</span>
             </div>
-            ${licencia.archivo_url ? `
-                <a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(licencia.archivo_url))}" target="_blank" rel="noreferrer">
-                    Ver foto/soporte de la licencia
-                </a>
-            ` : '<span class="field-help">Sin archivo adjunto</span>'}
+            ${urlLicencia
+                ? `<a class="record-link" href="${escapeHtml(urlLicencia)}" target="_blank" rel="noreferrer">Ver foto/soporte de la licencia</a>`
+                : licencia.archivo_url
+                    ? '<span class="field-help">Documento no disponible sin conexión</span>'
+                    : '<span class="field-help">Sin archivo adjunto</span>'}
         </article>
     `;
 }
@@ -351,10 +363,83 @@ async function cargarViajesEmpresa() {
     }
 }
 
-async function cargarUltimoViaje() {
+function ocultarOfflineBanner() {
+    window.VehiAmb.ui.hide(offlineBanner);
+}
+
+function mostrarOfflineBanner(guardadoEn) {
+    offlineBannerFecha.textContent = guardadoEn ? formatFechaHora(guardadoEn) : "--";
+    window.VehiAmb.ui.show(offlineBanner);
+}
+
+function pintarUltimoViaje(resultado) {
+    controlViajeEmpty.classList.add("hidden");
+    controlViajeContent.classList.remove("hidden");
+
+    const { viaje, vehiculo, documentos, conductor } = resultado;
+
+    controlPlaca.textContent = vehiculo?.placa || viaje.vehiculo_placa || "SIN PLACA";
+    controlVehiculoNombre.textContent = `${vehiculo?.marca || viaje.vehiculo_marca || ""} ${vehiculo?.modelo || viaje.vehiculo_modelo || ""}`.trim() || "Vehículo";
+    controlDestino.textContent = viaje.destino || "--";
+    controlFecha.textContent = formatFechaHora(viaje.creado_en);
+
+    renderVehiculoImagen(vehiculo);
+    renderConductor(conductor);
+    renderDocumentos(documentos || []);
+}
+
+// Descarga en segundo plano las fotos/PDFs del vehiculo, documentos y
+// licencias para poder mostrarlos sin conexion la proxima vez -- no bloquea
+// el render de la pantalla actual, que ya usa datos frescos de la red.
+async function cachearArchivosUltimoViaje(resultado) {
+    const urls = [];
+    if (resultado.vehiculo?.imagen_url) {
+        urls.push(window.VehiAmb.api.getAssetUrl(resultado.vehiculo.imagen_url));
+    }
+    (resultado.documentos || []).forEach((documento) => {
+        if (documento.archivo_url) urls.push(window.VehiAmb.api.getAssetUrl(documento.archivo_url));
+    });
+    (resultado.conductor?.licencias || []).forEach((licencia) => {
+        if (licencia.archivo_url) urls.push(window.VehiAmb.api.getAssetUrl(licencia.archivo_url));
+    });
+
+    await Promise.all(urls.map((url) => window.VehiAmb.offline.guardarArchivo(url)));
+}
+
+// Resuelve las URLs de archivos contra lo que ya se guardo en IndexedDB,
+// para que las tarjetas de documentos/licencias/imagen usen blob: URLs en
+// vez de pegarle a la red (que sabemos que no responde en este momento).
+async function resolverArchivosOffline(resultado) {
+    if (resultado.vehiculo?.imagen_url) {
+        resultado.vehiculo._urlOffline = await window.VehiAmb.offline.obtenerArchivoUrl(
+            window.VehiAmb.api.getAssetUrl(resultado.vehiculo.imagen_url)
+        );
+    }
+
+    for (const documento of resultado.documentos || []) {
+        if (documento.archivo_url) {
+            documento._urlOffline = await window.VehiAmb.offline.obtenerArchivoUrl(
+                window.VehiAmb.api.getAssetUrl(documento.archivo_url)
+            );
+        }
+    }
+
+    for (const licencia of resultado.conductor?.licencias || []) {
+        if (licencia.archivo_url) {
+            licencia._urlOffline = await window.VehiAmb.offline.obtenerArchivoUrl(
+                window.VehiAmb.api.getAssetUrl(licencia.archivo_url)
+            );
+        }
+    }
+
+    return resultado;
+}
+
+async function cargarUltimoViaje(usuarioId) {
     try {
         window.VehiAmb.ui.show(loader);
         const resultado = await window.VehiAmb.api.getUltimoViajeControl();
+        ocultarOfflineBanner();
 
         if (!resultado) {
             controlViajeEmpty.classList.remove("hidden");
@@ -362,21 +447,25 @@ async function cargarUltimoViaje() {
             return;
         }
 
-        controlViajeEmpty.classList.add("hidden");
-        controlViajeContent.classList.remove("hidden");
+        pintarUltimoViaje(resultado);
 
-        const { viaje, vehiculo, documentos, conductor } = resultado;
-
-        controlPlaca.textContent = vehiculo?.placa || viaje.vehiculo_placa || "SIN PLACA";
-        controlVehiculoNombre.textContent = `${vehiculo?.marca || viaje.vehiculo_marca || ""} ${vehiculo?.modelo || viaje.vehiculo_modelo || ""}`.trim() || "Vehículo";
-        controlDestino.textContent = viaje.destino || "--";
-        controlFecha.textContent = formatFechaHora(viaje.creado_en);
-
-        renderVehiculoImagen(vehiculo);
-        renderConductor(conductor);
-        renderDocumentos(documentos || []);
+        window.VehiAmb.offline.guardarControlViaje(usuarioId, resultado)
+            .then(() => cachearArchivosUltimoViaje(resultado))
+            .catch((error) => console.error("No se pudo preparar el modo sin conexión:", error));
     } catch (error) {
         console.error(error);
+
+        const cache = error.message === "Sesion expirada"
+            ? null
+            : await window.VehiAmb.offline.obtenerControlViaje(usuarioId);
+
+        if (cache?.resultado) {
+            const resultadoOffline = await resolverArchivosOffline(cache.resultado);
+            mostrarOfflineBanner(cache.guardadoEn);
+            pintarUltimoViaje(resultadoOffline);
+            return;
+        }
+
         window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo cargar tu último viaje", "error");
     } finally {
         window.VehiAmb.ui.hide(loader);
@@ -387,7 +476,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const currentUser = await window.VehiAmb.auth.fetchCurrentUser();
 
     if (currentUser?.rol === "Conductor") {
-        cargarUltimoViaje();
+        cargarUltimoViaje(currentUser.id);
         return;
     }
 

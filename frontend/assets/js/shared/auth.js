@@ -123,10 +123,20 @@ window.VehiAmb.auth = {
             headers["X-Empresa-Id"] = session.empresaActivaId;
         }
 
-        const response = await fetch(`${window.VehiAmb.API_URL}/auth/me`, {
-            cache: "no-store",
-            headers
-        });
+        let response;
+        try {
+            response = await fetch(`${window.VehiAmb.API_URL}/auth/me`, {
+                cache: "no-store",
+                headers
+            });
+        } catch (error) {
+            // Sin conexion: no es que la sesion sea invalida, asi que no se
+            // debe forzar logout. Si ya tenemos un usuario guardado de una
+            // carga anterior, seguimos con esos datos (pueden estar
+            // desactualizados) en vez de tumbar toda la pagina.
+            if (session.user) return session.user;
+            throw error;
+        }
 
         if (response.status === 401) {
             this.logout();
