@@ -127,6 +127,15 @@ a {
     transform: translateY(-30px);
 }
 
+/* El translateY de arriba compensa el espacio en blanco propio del logo
+   (login.html: logo seguido directo del formulario). En paginas donde antes
+   del formulario hay un parrafo explicativo (cambiar-password.html,
+   olvide-password.html) ese mismo ajuste monta el formulario encima del
+   texto -- se anula ahi con este modificador. */
+.login-form-con-texto {
+    transform: none;
+}
+
 @media (max-width: 480px) {
     .login-shell {
         padding: 16px;
