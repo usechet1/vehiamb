@@ -1220,7 +1220,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     await window.VehiAmb.auth.fetchCurrentUser();
 
     if (!window.VehiAmb.auth.hasPermission("maintenance.create")) {
-        document.getElementById("registrarMantenimientoSection")?.classList.add("hidden");
+        // Ocultar solo la seccion no alcanza: el boton de la pestaña sigue
+        // ahi y switchTab() la vuelve a mostrar al hacer clic (no valida
+        // permisos, solo alterna visibilidad). Hay que quitar tambien el
+        // boton para que un rol de solo consulta (ej. Consulta) no pueda
+        // llegar al formulario de registrar.
+        tabRegistrarButton.remove();
+        registrarMantenimientoSection.remove();
     }
 
     renderRepuestosBuilder();
