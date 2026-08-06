@@ -33,6 +33,10 @@
                 <p class="dash-empty">Todavía no has registrado ningún viaje. Inicia uno desde Inicio para poder consultarlo aquí.</p>
             </div>
 
+            <div id="offlineBanner" class="offline-banner hidden">
+                <span>Sin conexión: mostrando la información guardada el <strong id="offlineBannerFecha">--</strong>. Puede no estar actualizada.</span>
+            </div>
+
             <div id="controlViajeContent" class="stack hidden">
                 <section class="section-card">
                     <div class="section-card-body">
@@ -123,6 +127,7 @@
     <script src="assets/js/shared/ui.js"></script>
     <script src="assets/js/shared/notificaciones-config.js"></script>
     <script src="assets/js/shared/sidebar.js"></script>
+    <script src="assets/js/shared/offline-cache.js"></script>
     <script src="assets/js/pages/mi-viaje.js"></script>
 </body>
 </html>
