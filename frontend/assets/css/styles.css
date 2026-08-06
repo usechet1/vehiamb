@@ -3000,6 +3000,31 @@ label[for="loginPassword"] {
     grid-template-columns: 1fr 1fr auto;
     gap: 10px;
     align-items: end;
+    padding: 6px;
+    border-radius: 8px;
+    transition: background-color 0.15s ease;
+}
+
+.asignacion-destino-fila:hover {
+    background-color: rgba(178, 31, 45, 0.06);
+}
+
+/* Al tocar "+ Agregar destino" la fila nueva se resalta un momento en rojo,
+   para que sea evidente que el clic si agrego el destino y no pase
+   desapercibido entre las demas filas. */
+.asignacion-destino-fila.es-nueva {
+    animation: asignacionDestinoAgregado 1.3s ease-out;
+}
+
+@keyframes asignacionDestinoAgregado {
+    0% {
+        background-color: rgba(178, 31, 45, 0.22);
+        box-shadow: 0 0 0 2px rgba(178, 31, 45, 0.45);
+    }
+    100% {
+        background-color: transparent;
+        box-shadow: 0 0 0 0 rgba(178, 31, 45, 0);
+    }
 }
 
 .asignacion-destino-quitar {
@@ -3011,6 +3036,13 @@ label[for="loginPassword"] {
 @media (max-width: 620px) {
     .asignacion-destino-fila {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .asignacion-destino-fila.es-nueva {
+        animation: none;
+        background-color: rgba(178, 31, 45, 0.22);
     }
 }
 
