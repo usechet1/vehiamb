@@ -3,6 +3,7 @@ const bloqueMetricas = document.getElementById("adminLogsBloqueMetricas");
 const bloqueAccesos = document.getElementById("adminLogsBloqueAccesos");
 const bloqueRegistro = document.getElementById("adminLogsBloqueRegistro");
 const bloqueErrores = document.getElementById("adminLogsBloqueErrores");
+const bloqueNotificaciones = document.getElementById("adminLogsBloqueNotificaciones");
 
 const loader = document.getElementById("loader");
 const mensaje = document.getElementById("mensaje");
@@ -52,6 +53,7 @@ function actualizarTabsUI() {
     bloqueAccesos.classList.toggle("hidden", vistaActual !== "accesos");
     bloqueRegistro.classList.toggle("hidden", vistaActual !== "registro");
     bloqueErrores.classList.toggle("hidden", vistaActual !== "errores");
+    bloqueNotificaciones.classList.toggle("hidden", vistaActual !== "notificaciones");
 }
 
 adminLogsTabs.addEventListener("click", (event) => {
@@ -65,6 +67,7 @@ adminLogsTabs.addEventListener("click", (event) => {
     if (vistaActual === "accesos" && !accesosCargados) cargarAccesos();
     if (vistaActual === "registro" && !registroCargado) cargarRegistro();
     if (vistaActual === "errores" && !erroresCargados) cargarErrores();
+    if (vistaActual === "notificaciones" && !notificacionesCargadas) cargarNotificaciones();
 });
 
 // ── Drawer compartido por las 3 pestañas de logs ──────────────────────
@@ -579,6 +582,125 @@ erroresTableBody.addEventListener("click", (event) => {
             <p><strong>IP:</strong> ${escapeHtml(item.ip) || "--"}</p>
             <p><strong>Mensaje:</strong> ${escapeHtml(item.mensaje)}</p>
             ${item.stack ? `<p><strong>Stack trace:</strong></p><pre class="field-help">${escapeHtml(item.stack)}</pre>` : ""}
+        `
+    );
+});
+
+// ════════════════════════ NOTIFICACIONES ════════════════════════
+const notificacionesSearch = document.getElementById("notificacionesSearch");
+const notificacionesCategoria = document.getElementById("notificacionesCategoria");
+const notificacionesPrioridad = document.getElementById("notificacionesPrioridad");
+const notificacionesEstado = document.getElementById("notificacionesEstado");
+const notificacionesDesde = document.getElementById("notificacionesDesde");
+const notificacionesHasta = document.getElementById("notificacionesHasta");
+const notificacionesClearButton = document.getElementById("notificacionesClearButton");
+const notificacionesSummary = document.getElementById("notificacionesSummary");
+const notificacionesTableBody = document.getElementById("notificacionesTableBody");
+const notificacionesListSummary = document.getElementById("notificacionesListSummary");
+const notificacionesPrevPage = document.getElementById("notificacionesPrevPage");
+const notificacionesNextPage = document.getElementById("notificacionesNextPage");
+
+let notificacionesCargadas = false;
+let notificacionesItems = [];
+let notificacionesState = { page: 1, totalPages: 1 };
+
+const NOTIFICACION_ESTADO_LABEL = { no_leida: "No leída", leida: "Leída", archivada: "Archivada" };
+const NOTIFICACION_ESTADO_CLASS = { no_leida: "badge-amarillo", leida: "badge-verde", archivada: "badge-gris" };
+
+function renderNotificacionRow(item, indice) {
+    const categoria = window.VehiAmb.notifConfig.categoriaConfig(item.categoria);
+    const prioridad = window.VehiAmb.notifConfig.prioridadConfig(item.prioridad);
+
+    return `
+        <tr>
+            <td>${formatDateTime(item.fecha_creacion)}</td>
+            <td>${escapeHtml(item.usuario_nombre) || "Usuario eliminado"}</td>
+            <td>${categoria.icono} ${escapeHtml(categoria.label)}</td>
+            <td>${prioridad.icono} ${escapeHtml(prioridad.label)}</td>
+            <td>${escapeHtml(item.titulo) || "--"}</td>
+            <td><span class="badge ${NOTIFICACION_ESTADO_CLASS[item.estado] || "badge-gris"}">${NOTIFICACION_ESTADO_LABEL[item.estado] || item.estado}</span></td>
+            <td><button type="button" class="btn-secondary" data-notificacion-detalle="${indice}">Ver detalle</button></td>
+        </tr>
+    `;
+}
+
+async function cargarNotificaciones() {
+    try {
+        notificacionesTableBody.innerHTML = '<tr><td colspan="7" class="dash-empty">Cargando...</td></tr>';
+        const resultado = await window.VehiAmb.api.getLogsNotificaciones({
+            search: notificacionesSearch.value.trim() || undefined,
+            categoria: notificacionesCategoria.value || undefined,
+            prioridad: notificacionesPrioridad.value || undefined,
+            estado: notificacionesEstado.value || undefined,
+            desde: notificacionesDesde.value || undefined,
+            hasta: notificacionesHasta.value || undefined,
+            page: notificacionesState.page,
+            limit: 20
+        });
+
+        notificacionesItems = resultado.items;
+        notificacionesState.totalPages = resultado.totalPages;
+
+        notificacionesTableBody.innerHTML = resultado.items.length
+            ? resultado.items.map(renderNotificacionRow).join("")
+            : '<tr><td colspan="7" class="dash-empty">Sin notificaciones registradas</td></tr>';
+
+        notificacionesSummary.textContent = `${resultado.total} registros encontrados`;
+        notificacionesListSummary.textContent = `Página ${resultado.page} de ${resultado.totalPages} · ${resultado.total} registros`;
+        notificacionesPrevPage.disabled = notificacionesState.page <= 1;
+        notificacionesNextPage.disabled = notificacionesState.page >= notificacionesState.totalPages;
+        notificacionesCargadas = true;
+    } catch (error) {
+        console.error(error);
+        notificacionesTableBody.innerHTML = '<tr><td colspan="7" class="dash-empty">No fue posible cargar las notificaciones</td></tr>';
+    }
+}
+
+document.getElementById("notificacionesFilterForm").addEventListener("submit", (event) => event.preventDefault());
+[notificacionesCategoria, notificacionesPrioridad, notificacionesEstado, notificacionesDesde, notificacionesHasta].forEach((input) => {
+    input.addEventListener("change", () => { notificacionesState.page = 1; cargarNotificaciones(); });
+});
+
+let notificacionesSearchDebounce;
+notificacionesSearch.addEventListener("input", () => {
+    clearTimeout(notificacionesSearchDebounce);
+    notificacionesSearchDebounce = setTimeout(() => { notificacionesState.page = 1; cargarNotificaciones(); }, 300);
+});
+
+notificacionesClearButton.addEventListener("click", () => {
+    document.getElementById("notificacionesFilterForm").reset();
+    notificacionesState.page = 1;
+    cargarNotificaciones();
+});
+
+notificacionesPrevPage.addEventListener("click", () => {
+    if (notificacionesState.page > 1) { notificacionesState.page -= 1; cargarNotificaciones(); }
+});
+notificacionesNextPage.addEventListener("click", () => {
+    if (notificacionesState.page < notificacionesState.totalPages) { notificacionesState.page += 1; cargarNotificaciones(); }
+});
+
+notificacionesTableBody.addEventListener("click", (event) => {
+    const boton = event.target.closest("[data-notificacion-detalle]");
+    if (!boton) return;
+
+    const item = notificacionesItems[Number(boton.dataset.notificacionDetalle)];
+    if (!item) return;
+
+    const categoria = window.VehiAmb.notifConfig.categoriaConfig(item.categoria);
+    const prioridad = window.VehiAmb.notifConfig.prioridadConfig(item.prioridad);
+
+    abrirDrawer(
+        item.titulo || "Notificación",
+        formatDateTime(item.fecha_creacion),
+        `
+            <p><strong>Destinatario:</strong> ${escapeHtml(item.usuario_nombre) || "Usuario eliminado"} ${item.usuario_email ? `(${escapeHtml(item.usuario_email)})` : ""}</p>
+            <p><strong>Categoría:</strong> ${categoria.icono} ${escapeHtml(categoria.label)}</p>
+            <p><strong>Prioridad:</strong> ${prioridad.icono} ${escapeHtml(prioridad.label)}</p>
+            <p><strong>Estado:</strong> ${NOTIFICACION_ESTADO_LABEL[item.estado] || item.estado}</p>
+            ${item.vehiculo_placa ? `<p><strong>Vehículo:</strong> ${escapeHtml(item.vehiculo_placa)}</p>` : ""}
+            <p><strong>Mensaje:</strong></p>
+            <p class="field-help">${escapeHtml(item.mensaje)}</p>
         `
     );
 });

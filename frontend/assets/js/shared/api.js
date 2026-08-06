@@ -549,6 +549,25 @@ window.VehiAmb.api = {
         );
     },
 
+    getLogsNotificaciones(filters = {}) {
+        const params = new URLSearchParams();
+        if (filters.categoria) params.set("categoria", filters.categoria);
+        if (filters.prioridad) params.set("prioridad", filters.prioridad);
+        if (filters.estado) params.set("estado", filters.estado);
+        if (filters.desde) params.set("desde", filters.desde);
+        if (filters.hasta) params.set("hasta", filters.hasta);
+        if (filters.search) params.set("search", filters.search);
+        if (filters.page) params.set("page", filters.page);
+        if (filters.limit) params.set("limit", filters.limit);
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/admin-logs/notificaciones${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudieron cargar las notificaciones"
+        );
+    },
+
     getMetricasAdmin(filters = {}) {
         const params = new URLSearchParams();
         if (filters.desde) params.set("desde", filters.desde);

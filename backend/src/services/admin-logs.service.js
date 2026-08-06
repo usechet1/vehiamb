@@ -3,6 +3,7 @@ const logsAccesoRepository = require("../repositories/logs-acceso.repository");
 const logsRegistroRepository = require("../repositories/logs-registro.repository");
 const logsErroresRepository = require("../repositories/logs-errores.repository");
 const importacionesRepository = require("../repositories/importaciones.repository");
+const notificacionesRepository = require("../repositories/notificaciones.repository");
 
 const PERMISO_SUPER_ADMIN = "empresas.switch";
 
@@ -38,6 +39,10 @@ async function listRegistro(filters, empresaId) {
 
 async function listErrores(filters, empresaId) {
   return logsErroresRepository.findAll(filters, empresaId);
+}
+
+async function listNotificaciones(filters, empresaId) {
+  return notificacionesRepository.findAllEmpresa(filters, empresaId);
 }
 
 async function modulosMasUsados(desde, hasta, empresaId) {
@@ -87,4 +92,4 @@ async function getMetricas(filters, { empresaId, permisos = [] } = {}) {
   return metricas;
 }
 
-module.exports = { listAccesos, listRegistro, listErrores, getMetricas };
+module.exports = { listAccesos, listRegistro, listErrores, listNotificaciones, getMetricas };
