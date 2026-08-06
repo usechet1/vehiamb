@@ -1124,6 +1124,21 @@ async function ensurePostgresTables() {
     )
   `);
 
+  // ── Recuperacion de contrasena ("olvide mi contrasena") ── Se guarda el
+  // hash del token (no el token en claro, mismo criterio que password_hash)
+  // para que un acceso de lectura a la BD no alcance para usarlo. El token
+  // real solo existe en el enlace que se manda por correo.
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id BIGSERIAL PRIMARY KEY,
+      usuario_id BIGINT NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL,
+      expira_en TIMESTAMPTZ NOT NULL,
+      usado_en TIMESTAMPTZ,
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
   await db.run("CREATE INDEX IF NOT EXISTS idx_vehiculos_placa ON vehiculos (placa)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios (email)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_mantenimientos_vehiculo_id ON mantenimientos (vehiculo_id)");
@@ -1173,6 +1188,8 @@ async function ensurePostgresTables() {
   await db.run("CREATE INDEX IF NOT EXISTS idx_logs_registro_usuario_afectado ON logs_registro (usuario_afectado_id)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_logs_errores_empresa_creado ON logs_errores (empresa_id, creado_en DESC)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_logs_errores_status_code ON logs_errores (status_code)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_usuario_id ON password_reset_tokens (usuario_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token_hash ON password_reset_tokens (token_hash)");
 
   // La bodega y configuracion por defecto ya NO se insertan aqui: bodegas.codigo
   // y configuracion_inventario.clave pasan a ser unicos POR EMPRESA (ver mas abajo
@@ -1667,6 +1684,7 @@ if (env.dbClient === "sqlite") {
       ensureColumn("usuarios", "role_id", "BIGINT REFERENCES roles(id)"),
     ensureColumn("usuarios", "foto_url", "TEXT"),
       ensureColumn("usuarios", "celular", "TEXT"),
+      ensureColumn("usuarios", "debe_cambiar_password", "BOOLEAN NOT NULL DEFAULT FALSE"),
       ensureColumn("roles", "permisos_configurados", "BOOLEAN NOT NULL DEFAULT FALSE"),
       ensureColumn("mantenimientos", "repuestos", "TEXT"),
       ensureColumn("mantenimientos", "autorizado_por", "TEXT"),

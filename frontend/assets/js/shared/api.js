@@ -53,6 +53,42 @@ window.VehiAmb.api = {
         return `${window.VehiAmb.ASSET_BASE_URL}${path}`;
     },
 
+    cambiarPassword(payload) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/auth/cambiar-password`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            },
+            "No se pudo cambiar la contraseña"
+        );
+    },
+
+    solicitarRecuperacionPassword(email) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/auth/olvide-password`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email })
+            },
+            "No se pudo procesar la solicitud"
+        );
+    },
+
+    restablecerPassword(token, passwordNueva) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/auth/reset-password`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ token, password_nueva: passwordNueva })
+            },
+            "No se pudo restablecer la contraseña"
+        );
+    },
+
     getEmpresas() {
         return requestJson(`${window.VehiAmb.API_URL}/empresas`, undefined, "No se pudieron cargar las empresas");
     },

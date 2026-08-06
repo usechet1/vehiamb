@@ -2,6 +2,13 @@ window.VehiAmb = window.VehiAmb || {};
 window.VehiAmb.API_URL = window.VehiAmb.API_URL || "/api";
 
 const LOGIN_PAGE = "login.html";
+// Paginas sin sesion (link "olvide mi contrasena" y el enlace del correo de
+// recuperacion) -- no exigen token, a diferencia de cualquier otra pagina.
+const PUBLIC_PAGES = ["olvide-password.html", "restablecer-password.html"];
+// Pantalla de cambio de contrasena obligatorio (primera vez que entra con
+// una contrasena que puso un Administrador). Si exige sesion, pero es la
+// unica pagina a la que puede llegar mientras debe_cambiar_password sea true.
+const FORCE_CHANGE_PASSWORD_PAGE = "cambiar-password.html";
 const AUTH_STORAGE_KEY = "vehiamb.auth";
 const PAGE_PERMISSIONS = {
     "index.html": "dashboard.view",
@@ -191,6 +198,17 @@ window.VehiAmb.auth = {
 
         if (!user) return null;
 
+        // Contrasena temporal (la puso un Administrador al crear/editar la
+        // cuenta): no puede usar el resto de la app hasta que la cambie.
+        if (user.debe_cambiar_password && currentPage !== FORCE_CHANGE_PASSWORD_PAGE) {
+            window.location.href = FORCE_CHANGE_PASSWORD_PAGE;
+            return null;
+        }
+        if (!user.debe_cambiar_password && currentPage === FORCE_CHANGE_PASSWORD_PAGE) {
+            window.location.href = "index.html";
+            return null;
+        }
+
         if (!hasPermission(user, permission)) {
             window.location.href = "index.html";
             return null;
@@ -215,6 +233,8 @@ window.VehiAmb.auth = {
         }
         return;
     }
+
+    if (PUBLIC_PAGES.includes(currentPage)) return;
 
     if (!getStoredSession()?.token) {
         redirectToLogin();

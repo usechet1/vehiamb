@@ -13,6 +13,7 @@ const USER_SELECT = `
     u.celular,
     u.empresa_id,
     u.created_at,
+    u.debe_cambiar_password,
     r.nombre AS role_nombre,
     e.nombre AS empresa_nombre,
     e.logo_url AS empresa_logo_url,
@@ -68,11 +69,14 @@ async function findAll(empresaId) {
   );
 }
 
+// debe_cambiar_password nace en TRUE: la contrasena la eligio el
+// Administrador al crear la cuenta, asi que es temporal por definicion --
+// el dueno real la reemplaza en su primer login (ver auth.service.js).
 async function create(user) {
   const result = await db.get(
     `
-      INSERT INTO usuarios (nombre, email, password_hash, rol, role_id, activo, foto_url, celular, empresa_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO usuarios (nombre, email, password_hash, rol, role_id, activo, foto_url, celular, empresa_id, debe_cambiar_password)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE)
       RETURNING id
     `,
     [
@@ -112,7 +116,9 @@ async function update(id, user, empresaId) {
   ];
 
   if (user.password_hash) {
-    assignments.push("password_hash = ?");
+    // Misma logica que en create(): si el Administrador le puso una nueva
+    // contrasena a otro usuario desde este formulario, tambien es temporal.
+    assignments.push("password_hash = ?", "debe_cambiar_password = TRUE");
     values.push(user.password_hash);
   }
 
@@ -133,6 +139,18 @@ async function update(id, user, empresaId) {
 async function setActive(id, active, empresaId) {
   await db.run("UPDATE usuarios SET activo = ? WHERE id = ? AND empresa_id = ?", [active, id, empresaId]);
   return findById(id, empresaId);
+}
+
+// Usado por "cambiar mi contrasena" (forzado en el primer login o
+// voluntario) y por "restablecer por token" -- en ambos casos el propio
+// usuario acaba de fijar una contrasena que el ya conoce, asi que
+// debe_cambiar_password se apaga.
+async function setPassword(id, passwordHash) {
+  await db.run(
+    "UPDATE usuarios SET password_hash = ?, debe_cambiar_password = FALSE WHERE id = ?",
+    [passwordHash, id]
+  );
+  return findById(id);
 }
 
 async function findPermissionsByUserId(userId) {
@@ -179,6 +197,7 @@ module.exports = {
   create,
   update,
   setActive,
+  setPassword,
   findPermissionsByUserId,
   findByPermission
 };

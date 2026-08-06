@@ -1,7 +1,7 @@
-const nodemailer = require("nodemailer");
 const env = require("../config/env");
 const usuariosRepository = require("../repositories/usuarios.repository");
 const notifConfig = require("../config/notificaciones.config");
+const { getTransporter } = require("../utils/mailer");
 
 // Mismo mapeo que ACCIONES en frontend/assets/js/shared/notificaciones-config.js:
 // cada accion_tipo resuelve a la pagina de destino dentro de la app. Se
@@ -14,24 +14,6 @@ const ACCION_RUTAS = {
   ver_usuario: () => "admin-usuarios.html",
   ver_repuesto: () => "repuestos.html"
 };
-
-let transporter = null;
-let transporterInitIntentado = false;
-
-function getTransporter() {
-  if (!env.smtpHost) return null;
-  if (transporter || transporterInitIntentado) return transporter;
-
-  transporterInitIntentado = true;
-  transporter = nodemailer.createTransport({
-    host: env.smtpHost,
-    port: env.smtpPort,
-    secure: env.smtpSecure,
-    auth: env.smtpUser ? { user: env.smtpUser, pass: env.smtpPass } : undefined
-  });
-
-  return transporter;
-}
 
 function debeEnviarPorPrioridad(prioridad) {
   const minimo = notifConfig.ordenPrioridad(env.emailAlertPrioridadMinima);
