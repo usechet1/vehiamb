@@ -5,6 +5,7 @@ const vehiculosRepository = require("../repositories/vehiculos.repository");
 const repuestosRepository = require("../repositories/repuestos.repository");
 const repuestosStockRepository = require("../repositories/repuestos-stock.repository");
 const configuracionInventarioRepository = require("../repositories/configuracion-inventario.repository");
+const usuariosRepository = require("../repositories/usuarios.repository");
 const notificacionesService = require("./notificaciones.service");
 
 const TIPOS_VALIDOS = new Set([
@@ -288,10 +289,19 @@ async function createMantenimiento(payload, file, currentUser) {
   return { ...creado, advertenciasStock };
 }
 
+// "Autorizado por"/"Hecho por" siguen siendo texto libre en mantenimientos
+// (no una FK) -- esto solo alimenta el <select> del formulario con los
+// usuarios activos de la empresa para que se elija un nombre consistente en
+// vez de escribirlo a mano cada vez.
+async function listUsuariosDisponibles(empresaId) {
+  return usuariosRepository.findAllActivosSimplificado(empresaId);
+}
+
 module.exports = {
   listMantenimientos,
   listMantenimientosByVehicle,
   getRepuestosEstructurados,
   getMantenimiento,
-  createMantenimiento
+  createMantenimiento,
+  listUsuariosDisponibles
 };

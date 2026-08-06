@@ -165,6 +165,14 @@ window.VehiAmb.api = {
         );
     },
 
+    getMantenimientosUsuariosDisponibles() {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/mantenimientos/usuarios-disponibles`,
+            undefined,
+            "No se pudieron cargar los usuarios"
+        );
+    },
+
     getMantenimiento(id) {
         return requestJson(`${window.VehiAmb.API_URL}/mantenimientos/${id}`, undefined, "No se pudo cargar el mantenimiento");
     },

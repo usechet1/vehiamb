@@ -93,12 +93,14 @@
 
                                 <div class="form-group">
                                     <label>Autorizado por</label>
-                                    <input type="text" name="autorizado_por" placeholder="Nombre de quien autoriza">
+                                    <input type="text" name="autorizado_por" list="autorizadoPorList" placeholder="Nombre de quien autoriza" autocomplete="off">
+                                    <datalist id="autorizadoPorList"></datalist>
                                 </div>
 
                                 <div class="form-group">
                                     <label>Hecho por</label>
-                                    <input type="text" name="hecho_por" placeholder="Taller, técnico o responsable">
+                                    <input type="text" name="hecho_por" list="hechoPorList" placeholder="Taller, técnico o responsable" autocomplete="off">
+                                    <datalist id="hechoPorList"></datalist>
                                 </div>
                             </div>
 

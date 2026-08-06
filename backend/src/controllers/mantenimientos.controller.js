@@ -33,3 +33,8 @@ exports.getMantenimientoById = async (req, res) => {
   const mantenimiento = await mantenimientosService.getMantenimiento(req.params.id, req.empresaId);
   res.json(mantenimiento);
 };
+
+exports.getUsuariosDisponibles = async (req, res) => {
+  const usuarios = await mantenimientosService.listUsuariosDisponibles(req.empresaId);
+  res.json(usuarios);
+};
