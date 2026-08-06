@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="img/car.png">
+    <link rel="apple-touch-icon" href="img/vehiamb_icon.png">
+    <link rel="manifest" href="manifest.json">
+    <title>Registro y métricas - Vehiamb</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <link rel="stylesheet" href="assets/css/costos.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar"></aside>
+
+        <main class="content">
+            <div class="page-header">
+                <div>
+                    <h1>Registro y métricas</h1>
+                    <p class="page-kicker">Acceso, registro de usuarios, errores del sistema y uso de la app -- exclusivo de Administrador.</p>
+                </div>
+            </div>
+
+            <div class="tabs" id="adminLogsTabs">
+                <button type="button" class="tab-button active" data-tab-vista="metricas">Métricas</button>
+                <button type="button" class="tab-button" data-tab-vista="accesos">Accesos</button>
+                <button type="button" class="tab-button" data-tab-vista="registro">Registro</button>
+                <button type="button" class="tab-button" data-tab-vista="errores">Errores</button>
+            </div>
+
+            <!-- ================= METRICAS ================= -->
+            <div id="adminLogsBloqueMetricas">
+                <section class="section-card">
+                    <div class="section-card-body">
+                        <form id="metricasFilterForm" class="filter-form" style="flex-direction: row; align-items: center; gap: 10px;">
+                            <div class="form-group">
+                                <label>Desde</label>
+                                <input type="date" id="metricasDesde">
+                            </div>
+                            <div class="form-group">
+                                <label>Hasta</label>
+                                <input type="date" id="metricasHasta">
+                            </div>
+                        </form>
+
+                        <div id="metricasKpisGrid" class="kpis-grid"></div>
+
+                        <div class="costos-graficas-grid">
+                            <div class="costos-card costos-card-chart">
+                                <h3>Inicios de sesión por día</h3>
+                                <div class="costos-chart-wrap"><canvas id="chartLoginsPorDia"></canvas></div>
+                            </div>
+                            <div class="costos-card costos-card-chart">
+                                <h3>Errores del sistema por día</h3>
+                                <div class="costos-chart-wrap"><canvas id="chartErroresPorDia"></canvas></div>
+                            </div>
+                        </div>
+
+                        <div class="costos-graficas-grid">
+                            <div class="costos-card">
+                                <h3>Módulos más usados</h3>
+                                <div class="table-scroll">
+                                    <table class="import-table">
+                                        <thead><tr><th>Módulo</th><th>Registros creados</th></tr></thead>
+                                        <tbody id="metricasModulosBody"><tr><td colspan="2" class="dash-empty">Cargando...</td></tr></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="costos-card">
+                                <h3>Últimas sincronizaciones automáticas</h3>
+                                <div class="table-scroll">
+                                    <table class="import-table">
+                                        <thead><tr><th>Período</th><th>Estado</th><th>Nuevos</th><th>Duración</th></tr></thead>
+                                        <tbody id="metricasSincronizacionesBody"><tr><td colspan="4" class="dash-empty">Cargando...</td></tr></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- ================= ACCESOS ================= -->
+            <div id="adminLogsBloqueAccesos" class="hidden">
+                <section class="section-card">
+                    <div class="section-card-body">
+                        <form id="accesosFilterForm" class="filter-form">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Buscar</label>
+                                    <input type="text" id="accesosSearch" placeholder="Correo o nombre">
+                                </div>
+                                <div class="form-group">
+                                    <label>Resultado</label>
+                                    <select id="accesosResultado">
+                                        <option value="">Todos</option>
+                                        <option value="exitoso">Exitoso</option>
+                                        <option value="credenciales_invalidas">Credenciales inválidas</option>
+                                        <option value="usuario_inactivo">Usuario inactivo</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Desde</label>
+                                    <input type="date" id="accesosDesde">
+                                </div>
+                                <div class="form-group">
+                                    <label>Hasta</label>
+                                    <input type="date" id="accesosHasta">
+                                </div>
+                            </div>
+                            <div class="filter-actions">
+                                <span id="accesosSummary" class="field-help">Cargando...</span>
+                                <button type="button" id="accesosClearButton" class="btn-secondary">Limpiar filtros</button>
+                            </div>
+                        </form>
+
+                        <div class="table-scroll">
+                            <table class="import-table">
+                                <thead>
+                                    <tr><th>Fecha</th><th>Correo</th><th>Usuario</th><th>Resultado</th><th>IP</th></tr>
+                                </thead>
+                                <tbody id="accesosTableBody"><tr><td colspan="5" class="dash-empty">Cargando...</td></tr></tbody>
+                            </table>
+                        </div>
+                        <div class="filter-actions">
+                            <span id="accesosListSummary" class="field-help"></span>
+                            <div class="pagination-buttons">
+                                <button type="button" id="accesosPrevPage" class="btn-secondary">Anterior</button>
+                                <button type="button" id="accesosNextPage" class="btn-secondary">Siguiente</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- ================= REGISTRO ================= -->
+            <div id="adminLogsBloqueRegistro" class="hidden">
+                <section class="section-card">
+                    <div class="section-card-body">
+                        <form id="registroFilterForm" class="filter-form">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Buscar</label>
+                                    <input type="text" id="registroSearch" placeholder="Nombre del usuario afectado o del actor">
+                                </div>
+                                <div class="form-group">
+                                    <label>Evento</label>
+                                    <select id="registroEvento">
+                                        <option value="">Todos</option>
+                                        <option value="creado">Creado</option>
+                                        <option value="editado">Editado</option>
+                                        <option value="activado">Activado</option>
+                                        <option value="desactivado">Desactivado</option>
+                                        <option value="rol_cambiado">Rol cambiado</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Desde</label>
+                                    <input type="date" id="registroDesde">
+                                </div>
+                                <div class="form-group">
+                                    <label>Hasta</label>
+                                    <input type="date" id="registroHasta">
+                                </div>
+                            </div>
+                            <div class="filter-actions">
+                                <span id="registroSummary" class="field-help">Cargando...</span>
+                                <button type="button" id="registroClearButton" class="btn-secondary">Limpiar filtros</button>
+                            </div>
+                        </form>
+
+                        <div class="table-scroll">
+                            <table class="import-table">
+                                <thead>
+                                    <tr><th>Fecha</th><th>Usuario afectado</th><th>Evento</th><th>Realizado por</th><th></th></tr>
+                                </thead>
+                                <tbody id="registroTableBody"><tr><td colspan="5" class="dash-empty">Cargando...</td></tr></tbody>
+                            </table>
+                        </div>
+                        <div class="filter-actions">
+                            <span id="registroListSummary" class="field-help"></span>
+                            <div class="pagination-buttons">
+                                <button type="button" id="registroPrevPage" class="btn-secondary">Anterior</button>
+                                <button type="button" id="registroNextPage" class="btn-secondary">Siguiente</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- ================= ERRORES ================= -->
+            <div id="adminLogsBloqueErrores" class="hidden">
+                <section class="section-card">
+                    <div class="section-card-body">
+                        <form id="erroresFilterForm" class="filter-form">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Buscar</label>
+                                    <input type="text" id="erroresSearch" placeholder="Ruta o mensaje">
+                                </div>
+                                <div class="form-group">
+                                    <label>Código</label>
+                                    <select id="erroresStatusCode">
+                                        <option value="">Todos</option>
+                                        <option value="500">500</option>
+                                        <option value="502">502</option>
+                                        <option value="503">503</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Desde</label>
+                                    <input type="date" id="erroresDesde">
+                                </div>
+                                <div class="form-group">
+                                    <label>Hasta</label>
+                                    <input type="date" id="erroresHasta">
+                                </div>
+                            </div>
+                            <div class="filter-actions">
+                                <span id="erroresSummary" class="field-help">Cargando...</span>
+                                <button type="button" id="erroresClearButton" class="btn-secondary">Limpiar filtros</button>
+                            </div>
+                        </form>
+
+                        <div class="table-scroll">
+                            <table class="import-table">
+                                <thead>
+                                    <tr><th>Fecha</th><th>Método</th><th>Ruta</th><th>Código</th><th>Mensaje</th><th></th></tr>
+                                </thead>
+                                <tbody id="erroresTableBody"><tr><td colspan="6" class="dash-empty">Cargando...</td></tr></tbody>
+                            </table>
+                        </div>
+                        <div class="filter-actions">
+                            <span id="erroresListSummary" class="field-help"></span>
+                            <div class="pagination-buttons">
+                                <button type="button" id="erroresPrevPage" class="btn-secondary">Anterior</button>
+                                <button type="button" id="erroresNextPage" class="btn-secondary">Siguiente</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div id="loader" class="loader hidden">
+                <video src="img/loader.mp4" autoplay loop muted playsinline></video>
+            </div>
+            <div id="mensaje" class="mensaje hidden"></div>
+
+            <div id="adminLogsDrawerBackdrop" class="drawer-backdrop hidden"></div>
+            <aside id="adminLogsDrawer" class="detail-drawer hidden" aria-hidden="true" aria-labelledby="adminLogsDrawerTitle">
+                <div class="detail-drawer-head">
+                    <div>
+                        <span class="form-step">Detalle</span>
+                        <h2 id="adminLogsDrawerTitle">Detalle</h2>
+                        <p id="adminLogsDrawerSubtitle"></p>
+                    </div>
+                    <button type="button" id="closeAdminLogsDrawer" class="drawer-close" aria-label="Cerrar detalle">×</button>
+                </div>
+                <div id="adminLogsDrawerBody" class="detail-drawer-body"></div>
+            </aside>
+        </main>
+    </div>
+
+    <script src="assets/js/shared/auth.js"></script>
+    <script src="assets/js/shared/api.js"></script>
+    <script src="assets/js/shared/ui.js"></script>
+    <script src="assets/js/shared/notificaciones-config.js"></script>
+    <script src="assets/js/shared/sidebar.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="assets/js/pages/admin-logs.js"></script>
+</body>
+</html>

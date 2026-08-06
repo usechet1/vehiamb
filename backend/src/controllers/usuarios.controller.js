@@ -7,12 +7,19 @@ exports.getUsuarios = async (req, res) => {
 };
 
 exports.createUsuario = async (req, res) => {
-  const usuario = await usuariosService.createUser(req.body, req.file, req.empresaId, req.user?.permisos || []);
+  const usuario = await usuariosService.createUser(req.body, req.file, req.empresaId, req.user?.permisos || [], req.user?.id);
   res.status(201).json(usuario);
 };
 
 exports.updateUsuario = async (req, res) => {
-  const usuario = await usuariosService.updateUser(req.params.id, req.body, req.file, req.empresaId, req.user?.permisos || []);
+  const usuario = await usuariosService.updateUser(
+    req.params.id,
+    req.body,
+    req.file,
+    req.empresaId,
+    req.user?.permisos || [],
+    req.user?.id
+  );
   res.json(usuario);
 };
 
