@@ -58,9 +58,15 @@ async function findRecientesPorVehiculo(vehiculoId, empresaId, { limit = 10 } = 
 // para el exportable PDF/Excel de esa misma pantalla. Sin fechaDesde/
 // fechaHasta se limita a los mas recientes (vista rapida); con alguna de
 // las dos, se trae todo el rango sin tope, para poder "exportar completo"
-// el dia consultado. Incluye el resumen del preoperacional de cada viaje
-// (si se lleno y cuantos items quedaron en mal estado) en la misma
-// consulta, para no tener que pedirlo aparte fila por fila.
+// el dia consultado.
+//
+// Trae tambien el detalle item por item del preoperacional y la inspeccion
+// preventiva de cada viaje (no solo el conteo), para el exportable. Un
+// viaje puede tener mas de una inspeccion/preoperacional asociada en datos
+// reales (sin restriccion de unicidad en la BD) -- se usa LEFT JOIN LATERAL
+// para quedarse solo con la mas reciente de cada una, igual que ya hacen
+// inspeccionesRepository.findByViajeId/preoperacionalesRepository.findByViajeId
+// (ORDER BY id DESC LIMIT 1), y asi evitar que un viaje aparezca duplicado.
 async function findRecientesPorEmpresa(empresaId, { fechaDesde, fechaHasta, limit = 20 } = {}) {
   const conditions = ["v.empresa_id = ?"];
   const values = [empresaId];
@@ -87,14 +93,27 @@ async function findRecientesPorEmpresa(empresaId, { fechaDesde, fechaHasta, limi
         veh.marca AS vehiculo_marca,
         veh.modelo AS vehiculo_modelo,
         p.id AS preoperacional_id,
-        COUNT(pi.id) FILTER (WHERE pi.respuesta = 'no') AS preoperacional_items_mal
+        (
+          SELECT COALESCE(json_agg(jsonb_build_object('item_label', pi.item_label, 'respuesta', pi.respuesta, 'observacion', pi.observacion) ORDER BY pi.id), '[]'::json)
+          FROM preoperacional_items pi
+          WHERE pi.preoperacional_id = p.id
+        ) AS preoperacional_items,
+        insp.id AS inspeccion_id,
+        (
+          SELECT COALESCE(json_agg(jsonb_build_object('item_label', ii.item_label, 'estado', ii.estado, 'comentario', ii.comentario) ORDER BY ii.id), '[]'::json)
+          FROM inspeccion_items ii
+          WHERE ii.inspeccion_id = insp.id
+        ) AS inspeccion_items
       FROM viajes v
       LEFT JOIN usuarios u ON u.id = v.usuario_id
       LEFT JOIN vehiculos veh ON veh.id = v.vehiculo_id
-      LEFT JOIN preoperacionales p ON p.viaje_id = v.id
-      LEFT JOIN preoperacional_items pi ON pi.preoperacional_id = p.id
+      LEFT JOIN LATERAL (
+        SELECT pp.id FROM preoperacionales pp WHERE pp.viaje_id = v.id ORDER BY pp.id DESC LIMIT 1
+      ) p ON true
+      LEFT JOIN LATERAL (
+        SELECT ip.id FROM inspecciones_preventivas ip WHERE ip.viaje_id = v.id ORDER BY ip.id DESC LIMIT 1
+      ) insp ON true
       WHERE ${conditions.join(" AND ")}
-      GROUP BY v.id, u.nombre, veh.placa, veh.marca, veh.modelo, p.id
       ORDER BY v.creado_en DESC
       ${sinFiltroDeFecha ? "LIMIT ?" : ""}
     `,
