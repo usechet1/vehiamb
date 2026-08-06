@@ -379,7 +379,9 @@ const REGISTRO_EVENTO_LABEL = {
     editado: "Editado",
     activado: "Activado",
     desactivado: "Desactivado",
-    rol_cambiado: "Rol cambiado"
+    rol_cambiado: "Rol cambiado",
+    password_recuperacion_solicitada: "Recuperación solicitada",
+    password_cambiada: "Contraseña cambiada"
 };
 
 const REGISTRO_EVENTO_CLASS = {
@@ -387,7 +389,9 @@ const REGISTRO_EVENTO_CLASS = {
     editado: "badge-amarillo",
     activado: "badge-verde",
     desactivado: "badge-rojo",
-    rol_cambiado: "badge-amarillo"
+    rol_cambiado: "badge-amarillo",
+    password_recuperacion_solicitada: "badge-amarillo",
+    password_cambiada: "badge-verde"
 };
 
 function renderRegistroRow(item, indice) {

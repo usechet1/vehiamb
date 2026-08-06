@@ -1,6 +1,7 @@
 const HttpError = require("../errors/http-error");
 const usuariosRepository = require("../repositories/usuarios.repository");
 const logsAccesoRepository = require("../repositories/logs-acceso.repository");
+const logsRegistroRepository = require("../repositories/logs-registro.repository");
 const passwordResetTokensRepository = require("../repositories/password-reset-tokens.repository");
 const { verifyPassword, hashPassword } = require("../utils/password");
 const { createAuthToken, verifyAuthToken } = require("../utils/token");
@@ -16,6 +17,16 @@ function registrarAcceso(data) {
   logsAccesoRepository
     .registrar(data)
     .catch((error) => console.error("No fue posible registrar el log de acceso:", error.message));
+}
+
+// Mismo criterio fire-and-forget que registrarAcceso, pero hacia
+// logs_registro (panel admin > Registro) -- para poder auditar cuando
+// alguien pide o completa un cambio de contraseña, igual que ya se audita
+// creado/editado/activado/desactivado/rol_cambiado en usuarios.service.js.
+function registrarEventoUsuario(data) {
+  logsRegistroRepository
+    .registrar(data)
+    .catch((error) => console.error("No fue posible registrar el log de registro:", error.message));
 }
 
 function toSafeUser(user) {
@@ -148,7 +159,17 @@ async function cambiarPassword(userId, payload) {
     throw new HttpError(401, "La contraseña actual no es correcta");
   }
 
+  const eraCambioObligatorio = Boolean(user.debe_cambiar_password);
   const updated = await usuariosRepository.setPassword(userId, await hashPassword(passwordNueva));
+
+  registrarEventoUsuario({
+    usuario_afectado_id: userId,
+    actor_usuario_id: userId,
+    empresa_id: user.empresa_id,
+    evento: "password_cambiada",
+    detalle: { origen: eraCambioObligatorio ? "cambio_obligatorio_primer_login" : "cambio_voluntario" }
+  });
+
   return enrichUser(updated);
 }
 
@@ -182,6 +203,13 @@ async function solicitarRecuperacionPassword(email) {
 
   const user = await usuariosRepository.findByEmail(normalizado);
   if (!user || !user.activo) return;
+
+  registrarEventoUsuario({
+    usuario_afectado_id: user.id,
+    actor_usuario_id: null,
+    empresa_id: user.empresa_id,
+    evento: "password_recuperacion_solicitada"
+  });
 
   const smtp = getTransporter();
   if (!smtp) {
@@ -225,8 +253,16 @@ async function restablecerPassword(token, passwordNueva) {
     throw new HttpError(400, "El enlace ya no es válido. Solicita uno nuevo.");
   }
 
-  await usuariosRepository.setPassword(registro.usuario_id, await hashPassword(passwordLimpia));
+  const updated = await usuariosRepository.setPassword(registro.usuario_id, await hashPassword(passwordLimpia));
   await passwordResetTokensRepository.marcarUsado(registro.id);
+
+  registrarEventoUsuario({
+    usuario_afectado_id: registro.usuario_id,
+    actor_usuario_id: null,
+    empresa_id: updated.empresa_id,
+    evento: "password_cambiada",
+    detalle: { origen: "recuperacion_por_correo" }
+  });
 }
 
 module.exports = {
