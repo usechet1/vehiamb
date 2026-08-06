@@ -92,12 +92,22 @@
     function addTabla(doc, startY, asignaciones) {
         const pageWidth = doc.internal.pageSize.getWidth();
         const bottomLimit = doc.internal.pageSize.getHeight() - 90;
+
+        // Con la pagina en horizontal sobra ancho -- se lo damos casi todo a
+        // RUTA, que es la columna que mas lo necesita (rutas con varios
+        // destinos, ver Asignacion de rutas), en vez de dejarlo desperdiciado
+        // en PLACA como quedaba en el layout vertical original.
+        const anchoNumero = 30;
+        const anchoNombre = 170;
+        const anchoTelefono = 85;
+        const anchoPlaca = 85;
+        const anchoRuta = pageWidth - MARGIN_X * 2 - (anchoNumero + anchoNombre + anchoTelefono + anchoPlaca);
         const columns = [
-            { label: "#", x: MARGIN_X, width: 25, align: "left" },
-            { label: "NOMBRE", x: MARGIN_X + 25, width: 150, align: "left" },
-            { label: "RUTA", x: MARGIN_X + 175, width: 190, align: "left" },
-            { label: "TELEFONO", x: MARGIN_X + 365, width: 75, align: "left" },
-            { label: "PLACA", x: MARGIN_X + 440, width: pageWidth - MARGIN_X - (MARGIN_X + 440), align: "left" }
+            { label: "#", x: MARGIN_X, width: anchoNumero, align: "left" },
+            { label: "NOMBRE", x: MARGIN_X + anchoNumero, width: anchoNombre, align: "left" },
+            { label: "RUTA", x: MARGIN_X + anchoNumero + anchoNombre, width: anchoRuta, align: "left" },
+            { label: "TELEFONO", x: MARGIN_X + anchoNumero + anchoNombre + anchoRuta, width: anchoTelefono, align: "left" },
+            { label: "PLACA", x: MARGIN_X + anchoNumero + anchoNombre + anchoRuta + anchoTelefono, width: anchoPlaca, align: "left" }
         ];
         const tableWidth = pageWidth - MARGIN_X * 2;
 
@@ -168,7 +178,7 @@
             throw new Error("No hay asignaciones registradas para esta fecha");
         }
 
-        const doc = window.VehiAmb.pdfExport.createDocument();
+        const doc = window.VehiAmb.pdfExport.createDocument({ orientation: "landscape" });
         const branding = await window.VehiAmb.pdfExport.getEmpresaBranding();
 
         const startY = await addEncabezado(doc, branding, fecha, asignaciones.length);
