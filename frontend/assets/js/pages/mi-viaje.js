@@ -1,6 +1,13 @@
 const pageTitulo = document.getElementById("pageTitulo");
 const pageDescripcion = document.getElementById("pageDescripcion");
 const viajesEmpresaSection = document.getElementById("viajesEmpresaSection");
+const viajesEmpresaFilterForm = document.getElementById("viajesEmpresaFilterForm");
+const viajesFiltroDesde = document.getElementById("viajesFiltroDesde");
+const viajesFiltroHasta = document.getElementById("viajesFiltroHasta");
+const viajesFiltroSummary = document.getElementById("viajesFiltroSummary");
+const viajesFiltroClearButton = document.getElementById("viajesFiltroClearButton");
+const exportViajesPdfButton = document.getElementById("exportViajesPdfButton");
+const exportViajesExcelButton = document.getElementById("exportViajesExcelButton");
 const viajesEmpresaList = document.getElementById("viajesEmpresaList");
 const controlViajeEmpty = document.getElementById("controlViajeEmpty");
 const controlViajeContent = document.getElementById("controlViajeContent");
@@ -27,6 +34,8 @@ const viajeDrawerSubtitle = document.getElementById("viajeDrawerSubtitle");
 const viajeDrawerBody = document.getElementById("viajeDrawerBody");
 const closeViajeDrawer = document.getElementById("closeViajeDrawer");
 const resumenViajeCache = new Map();
+let viajesEmpresaState = [];
+let viajesEmpresaRequestToken = 0;
 
 const TIPOS_DOCUMENTO_LABEL = {
     soat: "SOAT",
@@ -349,19 +358,75 @@ document.addEventListener("keydown", (event) => {
     }
 });
 
+function currentViajesFilters() {
+    return {
+        fecha_desde: viajesFiltroDesde.value,
+        fecha_hasta: viajesFiltroHasta.value
+    };
+}
+
+function updateViajesFiltroSummary(cantidad) {
+    const filtros = currentViajesFilters();
+    const hayFiltros = Boolean(filtros.fecha_desde || filtros.fecha_hasta);
+
+    viajesFiltroSummary.textContent = hayFiltros
+        ? `Mostrando ${cantidad} viaje(s) en el rango seleccionado.`
+        : `Mostrando los ${cantidad} viajes más recientes. Filtra por fecha para exportar un rango completo.`;
+}
+
 async function cargarViajesEmpresa() {
+    const requestToken = ++viajesEmpresaRequestToken;
+
     try {
         window.VehiAmb.ui.show(loader);
-        const viajes = await window.VehiAmb.api.getViajesRecientesEmpresa();
+        const viajes = await window.VehiAmb.api.getViajesRecientesEmpresa(currentViajesFilters());
+        if (requestToken !== viajesEmpresaRequestToken) return;
+
         viajesEmpresaSection.classList.remove("hidden");
-        renderViajesEmpresa(viajes || []);
+        viajesEmpresaState = viajes || [];
+        renderViajesEmpresa(viajesEmpresaState);
+        updateViajesFiltroSummary(viajesEmpresaState.length);
     } catch (error) {
+        if (requestToken !== viajesEmpresaRequestToken) return;
+
         console.error(error);
         window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo cargar el historial de viajes", "error");
+        updateViajesFiltroSummary(0);
     } finally {
-        window.VehiAmb.ui.hide(loader);
+        if (requestToken === viajesEmpresaRequestToken) window.VehiAmb.ui.hide(loader);
     }
 }
+
+viajesEmpresaFilterForm.addEventListener("submit", (event) => event.preventDefault());
+
+[viajesFiltroDesde, viajesFiltroHasta].forEach((input) => {
+    input.addEventListener("change", cargarViajesEmpresa);
+});
+
+viajesFiltroClearButton.addEventListener("click", () => {
+    viajesFiltroDesde.value = "";
+    viajesFiltroHasta.value = "";
+    cargarViajesEmpresa();
+});
+
+async function exportarViajes(boton, exportFn) {
+    const originalLabel = boton.textContent;
+    boton.disabled = true;
+    boton.textContent = "Generando...";
+
+    try {
+        await exportFn(viajesEmpresaState, currentViajesFilters());
+    } catch (error) {
+        console.error(error);
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo exportar el historial de viajes", "error");
+    } finally {
+        boton.disabled = false;
+        boton.textContent = originalLabel;
+    }
+}
+
+exportViajesPdfButton.addEventListener("click", () => exportarViajes(exportViajesPdfButton, window.VehiAmb.miViajeExport.exportViajesPdf));
+exportViajesExcelButton.addEventListener("click", () => exportarViajes(exportViajesExcelButton, window.VehiAmb.miViajeExport.exportViajesExcel));
 
 function ocultarOfflineBanner() {
     window.VehiAmb.ui.hide(offlineBanner);

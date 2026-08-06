@@ -26,7 +26,8 @@ exports.getPorVehiculo = async (req, res) => {
 };
 
 exports.getRecientesEmpresa = async (req, res) => {
-  const viajes = await viajesService.listarRecientesEmpresa(req.empresaId);
+  const { fecha_desde: fechaDesde, fecha_hasta: fechaHasta } = req.query;
+  const viajes = await viajesService.listarRecientesEmpresa(req.empresaId, { fechaDesde, fechaHasta });
   res.json(viajes);
 };
 
