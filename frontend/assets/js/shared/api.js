@@ -1101,9 +1101,14 @@ window.VehiAmb.api = {
         );
     },
 
-    getViajesRecientesEmpresa() {
+    getViajesRecientesEmpresa(filters = {}) {
+        const params = new URLSearchParams();
+        if (filters.fecha_desde) params.set("fecha_desde", filters.fecha_desde);
+        if (filters.fecha_hasta) params.set("fecha_hasta", filters.fecha_hasta);
+        const query = params.toString();
+
         return requestJson(
-            `${window.VehiAmb.API_URL}/viajes/recientes-empresa`,
+            `${window.VehiAmb.API_URL}/viajes/recientes-empresa${query ? `?${query}` : ""}`,
             undefined,
             "No se pudo cargar el historial de viajes"
         );

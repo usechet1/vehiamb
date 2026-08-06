@@ -176,10 +176,17 @@ async function obtenerAsignacionHoy(currentUser) {
 }
 
 // Viajes recientes de toda la empresa (todos los conductores), para el rol
-// que no es Conductor dentro de "Mi ultimo viaje" -- ver mi-viaje.js.
-async function listarRecientesEmpresa(empresaId) {
-  const viajes = await viajesRepository.findRecientesPorEmpresa(empresaId);
-  return viajes.map(toSafeViaje);
+// que no es Conductor dentro de "Mi ultimo viaje" -- ver mi-viaje.js. Con
+// filtros de fecha, ademas alimenta el exportable PDF/Excel de esa misma
+// pantalla (mi-viaje-export.js), por eso cada viaje trae tambien el estado
+// de su preoperacional.
+async function listarRecientesEmpresa(empresaId, { fechaDesde, fechaHasta } = {}) {
+  const viajes = await viajesRepository.findRecientesPorEmpresa(empresaId, { fechaDesde, fechaHasta });
+  return viajes.map((viaje) => ({
+    ...toSafeViaje(viaje),
+    preoperacional_realizado: viaje.preoperacional_id !== null && viaje.preoperacional_id !== undefined,
+    preoperacional_items_mal: Number(viaje.preoperacional_items_mal || 0)
+  }));
 }
 
 // Resumen de un viaje puntual para el drawer de "Viajes recientes"
