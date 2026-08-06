@@ -459,6 +459,13 @@ async function cargarSidebar() {
             }
         });
 
+        // El Conductor no debe tener la campana de notificaciones -- ni el
+        // modulo completo (ya oculto arriba) ni este acceso rapido, que es un
+        // elemento aparte del sidebar-footer, no un boton mas del <nav>.
+        if (user.rol === "Conductor") {
+            aside.querySelector(".notif-bell-wrap")?.remove();
+        }
+
         removeEmptyMenuGroups(aside);
         await setupNotificaciones(aside);
     } catch (error) {
