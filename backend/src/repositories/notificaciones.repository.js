@@ -150,6 +150,77 @@ async function countPendientes(usuarioId) {
   return Number(row?.total || 0);
 }
 
+// Todas las notificaciones de la empresa sin importar el destinatario, para
+// el panel admin (admin-logs.html > Notificaciones) -- "a quien se le
+// notifica" de un vistazo, distinto de findByUsuario que solo trae las
+// propias del usuario logueado (centro de notificaciones normal).
+async function findAllEmpresa({ page = 1, limit = 20, categoria, prioridad, estado, desde, hasta, search } = {}, empresaId) {
+  const conditions = ["n.empresa_id = ?"];
+  const values = [empresaId];
+
+  if (categoria) {
+    conditions.push("n.categoria = ?");
+    values.push(categoria);
+  }
+
+  if (prioridad) {
+    conditions.push("n.prioridad = ?");
+    values.push(prioridad);
+  }
+
+  if (estado) {
+    conditions.push("n.estado = ?");
+    values.push(estado);
+  }
+
+  if (desde) {
+    conditions.push("n.fecha_creacion >= ?");
+    values.push(desde);
+  }
+
+  if (hasta) {
+    conditions.push("n.fecha_creacion < (?::date + INTERVAL '1 day')");
+    values.push(hasta);
+  }
+
+  if (search) {
+    const term = `%${search}%`;
+    conditions.push("(n.titulo ILIKE ? OR n.mensaje ILIKE ? OR u.nombre ILIKE ? OR v.placa ILIKE ?)");
+    values.push(term, term, term, term);
+  }
+
+  const whereClause = `WHERE ${conditions.join(" AND ")}`;
+  const offset = (Math.max(1, page) - 1) * limit;
+  const joinClause = `
+    FROM notificaciones n
+    LEFT JOIN usuarios u ON u.id = n.usuario_id
+    LEFT JOIN vehiculos v ON v.id = n.vehiculo_id
+  `;
+
+  const rowsPromise = db.all(
+    `
+      SELECT n.*, u.nombre AS usuario_nombre, u.email AS usuario_email, v.placa AS vehiculo_placa
+      ${joinClause}
+      ${whereClause}
+      ORDER BY n.fecha_creacion DESC, n.id DESC
+      LIMIT ? OFFSET ?
+    `,
+    [...values, limit, offset]
+  );
+
+  const totalPromise = db.get(`SELECT COUNT(*) AS total ${joinClause} ${whereClause}`, values);
+
+  const [rows, totalRow] = await Promise.all([rowsPromise, totalPromise]);
+
+  return {
+    items: rows,
+    page,
+    limit,
+    total: Number(totalRow?.total || 0),
+    totalPages: Math.max(1, Math.ceil(Number(totalRow?.total || 0) / limit))
+  };
+}
+
 async function existsRecentByReferencia(referenciaTipo, referenciaId, sinceHours, empresaId) {
   const row = await db.get(
     `
@@ -170,6 +241,7 @@ async function existsRecentByReferencia(referenciaTipo, referenciaId, sinceHours
 module.exports = {
   findById,
   findByUsuario,
+  findAllEmpresa,
   create,
   markAsRead,
   markAllAsRead,

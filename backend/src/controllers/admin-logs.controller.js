@@ -41,6 +41,24 @@ exports.getErrores = async (req, res) => {
   res.json(resultado);
 };
 
+exports.getNotificaciones = async (req, res) => {
+  const { page, limit } = parsePage(req.query);
+  const resultado = await adminLogsService.listNotificaciones(
+    {
+      page,
+      limit,
+      categoria: req.query.categoria,
+      prioridad: req.query.prioridad,
+      estado: req.query.estado,
+      desde: req.query.desde,
+      hasta: req.query.hasta,
+      search: req.query.search
+    },
+    req.empresaId
+  );
+  res.json(resultado);
+};
+
 exports.getMetricas = async (req, res) => {
   const metricas = await adminLogsService.getMetricas(
     { desde: req.query.desde, hasta: req.query.hasta },

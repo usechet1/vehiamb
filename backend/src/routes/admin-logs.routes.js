@@ -10,6 +10,7 @@ router.use(requirePermission("logs.view"));
 router.get("/accesos", asyncHandler(adminLogsController.getAccesos));
 router.get("/registro", asyncHandler(adminLogsController.getRegistro));
 router.get("/errores", asyncHandler(adminLogsController.getErrores));
+router.get("/notificaciones", asyncHandler(adminLogsController.getNotificaciones));
 router.get("/metricas", asyncHandler(adminLogsController.getMetricas));
 
 module.exports = router;

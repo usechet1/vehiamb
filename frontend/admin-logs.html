@@ -27,6 +27,7 @@
                 <button type="button" class="tab-button" data-tab-vista="accesos">Accesos</button>
                 <button type="button" class="tab-button" data-tab-vista="registro">Registro</button>
                 <button type="button" class="tab-button" data-tab-vista="errores">Errores</button>
+                <button type="button" class="tab-button" data-tab-vista="notificaciones">Notificaciones</button>
             </div>
 
             <!-- ================= METRICAS ================= -->
@@ -238,6 +239,82 @@
                             <div class="pagination-buttons">
                                 <button type="button" id="erroresPrevPage" class="btn-secondary">Anterior</button>
                                 <button type="button" id="erroresNextPage" class="btn-secondary">Siguiente</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- ================= NOTIFICACIONES ================= -->
+            <div id="adminLogsBloqueNotificaciones" class="hidden">
+                <section class="section-card">
+                    <div class="section-card-body">
+                        <form id="notificacionesFilterForm" class="filter-form">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Buscar</label>
+                                    <input type="text" id="notificacionesSearch" placeholder="Destinatario, título, mensaje o placa">
+                                </div>
+                                <div class="form-group">
+                                    <label>Categoría</label>
+                                    <select id="notificacionesCategoria">
+                                        <option value="">Todas</option>
+                                        <option value="mantenimiento">Mantenimientos</option>
+                                        <option value="documentacion">Documentación</option>
+                                        <option value="incidente">Incidentes</option>
+                                        <option value="usuario">Usuarios</option>
+                                        <option value="sistema">Sistema</option>
+                                        <option value="inventario">Inventario</option>
+                                        <option value="inspeccion">Inspecciones</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Prioridad</label>
+                                    <select id="notificacionesPrioridad">
+                                        <option value="">Todas</option>
+                                        <option value="critica">Crítica</option>
+                                        <option value="alta">Alta</option>
+                                        <option value="media">Media</option>
+                                        <option value="informativa">Informativa</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Estado</label>
+                                    <select id="notificacionesEstado">
+                                        <option value="">Todos</option>
+                                        <option value="no_leida">No leída</option>
+                                        <option value="leida">Leída</option>
+                                        <option value="archivada">Archivada</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Desde</label>
+                                    <input type="date" id="notificacionesDesde">
+                                </div>
+                                <div class="form-group">
+                                    <label>Hasta</label>
+                                    <input type="date" id="notificacionesHasta">
+                                </div>
+                            </div>
+                            <div class="filter-actions">
+                                <span id="notificacionesSummary" class="field-help">Cargando...</span>
+                                <button type="button" id="notificacionesClearButton" class="btn-secondary">Limpiar filtros</button>
+                            </div>
+                        </form>
+
+                        <div class="table-scroll">
+                            <table class="import-table">
+                                <thead>
+                                    <tr><th>Fecha</th><th>Destinatario</th><th>Categoría</th><th>Prioridad</th><th>Título</th><th>Estado</th><th></th></tr>
+                                </thead>
+                                <tbody id="notificacionesTableBody"><tr><td colspan="7" class="dash-empty">Cargando...</td></tr></tbody>
+                            </table>
+                        </div>
+                        <div class="filter-actions">
+                            <span id="notificacionesListSummary" class="field-help"></span>
+                            <div class="pagination-buttons">
+                                <button type="button" id="notificacionesPrevPage" class="btn-secondary">Anterior</button>
+                                <button type="button" id="notificacionesNextPage" class="btn-secondary">Siguiente</button>
                             </div>
                         </div>
                     </div>
