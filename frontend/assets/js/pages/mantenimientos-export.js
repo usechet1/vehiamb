@@ -195,7 +195,7 @@
             throw new Error("No hay un mantenimiento seleccionado para exportar");
         }
 
-        const doc = window.VehiAmb.pdfExport.createDocument();
+        const doc = await window.VehiAmb.pdfExport.createDocument();
         const layout = makeLayout(doc);
         const branding = await window.VehiAmb.pdfExport.getEmpresaBranding();
         const vehicleName = `${item.marca || ""} ${item.modelo || ""}`.trim();
@@ -264,7 +264,7 @@
         const repuestos = parseRepuestos(item.repuestos);
         const totalRepuestos = repuestos.reduce((sum, repuesto) => sum + Number(repuesto.valor || 0), 0);
 
-        const workbook = excel.createWorkbook();
+        const workbook = await excel.createWorkbook();
         const sheet = workbook.addWorksheet("Mantenimiento");
         excel.setColumnWidths(sheet, [26, 24, 16, 30]);
 

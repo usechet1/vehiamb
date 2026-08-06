@@ -282,7 +282,7 @@
             throw new Error("No hay un acta cargada para exportar");
         }
 
-        const doc = window.VehiAmb.pdfExport.createDocument();
+        const doc = await window.VehiAmb.pdfExport.createDocument();
         const layout = makeLayout(doc);
         const branding = await window.VehiAmb.pdfExport.getEmpresaBranding();
 

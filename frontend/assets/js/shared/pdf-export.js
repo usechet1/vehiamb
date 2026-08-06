@@ -1,5 +1,7 @@
 window.VehiAmb = window.VehiAmb || {};
 
+const JSPDF_CDN_URL = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+
 /**
  * Normaliza cualquier imagen soportada por el navegador (png/jpeg/webp) a un
  * JPEG dibujandola en un canvas. jsPDF no soporta WEBP directamente, asi que
@@ -42,7 +44,10 @@ async function loadImageAsJpegDataUrl(url) {
     }
 }
 
-function createDocument(options) {
+async function createDocument(options) {
+    if (!window.jspdf) {
+        await window.VehiAmb.loadScript(JSPDF_CDN_URL);
+    }
     const { jsPDF } = window.jspdf;
     return new jsPDF({ unit: "pt", format: "a4", ...options });
 }
