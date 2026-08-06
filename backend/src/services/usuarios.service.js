@@ -3,8 +3,17 @@ const path = require("path");
 const HttpError = require("../errors/http-error");
 const rolesRepository = require("../repositories/roles.repository");
 const usuariosRepository = require("../repositories/usuarios.repository");
+const logsRegistroRepository = require("../repositories/logs-registro.repository");
 const { hashPassword } = require("../utils/password");
 const notificacionesService = require("./notificaciones.service");
+
+// Fire-and-forget, mismo criterio que las notificaciones de este archivo: un
+// fallo al guardar el log de registro nunca debe romper la operacion real.
+function registrarEventoUsuario(data) {
+  logsRegistroRepository
+    .registrar(data)
+    .catch((error) => console.error("No fue posible registrar el log de registro:", error.message));
+}
 
 const PERMISO_SUPER_ADMIN = "empresas.switch";
 const UPLOADS_ROOT = path.resolve(__dirname, "..", "..", "uploads");
@@ -130,7 +139,7 @@ async function listUsers(empresaId) {
 // El email es unico en TODA la plataforma (decision de producto: una cuenta
 // = una empresa, el login no pide elegir empresa), asi que la verificacion
 // de unicidad de email es deliberadamente global, sin filtrar por empresaId.
-async function createUser(payload, file, empresaId, callerPermisos = []) {
+async function createUser(payload, file, empresaId, callerPermisos = [], actorUserId = null) {
   const user = await validateUserPayload(payload, { callerPermisos });
   const existing = await usuariosRepository.findByEmail(user.email);
 
@@ -151,10 +160,18 @@ async function createUser(payload, file, empresaId, callerPermisos = []) {
     console.error("No fue posible notificar la creacion de usuario:", error.message);
   });
 
+  registrarEventoUsuario({
+    usuario_afectado_id: safeUser.id,
+    actor_usuario_id: actorUserId,
+    empresa_id: empresaId,
+    evento: "creado",
+    detalle: { rol: safeUser.rol }
+  });
+
   return safeUser;
 }
 
-async function updateUser(id, payload, file, empresaId, callerPermisos = []) {
+async function updateUser(id, payload, file, empresaId, callerPermisos = [], actorUserId = null) {
   const existing = await usuariosRepository.findById(id, empresaId);
   if (!existing) {
     throw new HttpError(404, "Usuario no encontrado");
@@ -189,6 +206,34 @@ async function updateUser(id, payload, file, empresaId, callerPermisos = []) {
     notificacionesService.notificarPermisosActualizados(safeUser).catch((error) => {
       console.error("No fue posible notificar el cambio de permisos:", error.message);
     });
+
+    registrarEventoUsuario({
+      usuario_afectado_id: safeUser.id,
+      actor_usuario_id: actorUserId,
+      empresa_id: empresaId,
+      evento: "rol_cambiado",
+      detalle: { rol_anterior: existing.rol, rol_nuevo: safeUser.rol }
+    });
+  }
+
+  const camposModificados = {};
+  if (existing.nombre !== safeUser.nombre) camposModificados.nombre = { anterior: existing.nombre, nuevo: safeUser.nombre };
+  if ((existing.celular || null) !== (safeUser.celular || null)) {
+    camposModificados.celular = { anterior: existing.celular, nuevo: safeUser.celular };
+  }
+  if (Boolean(existing.activo) !== safeUser.activo) {
+    camposModificados.activo = { anterior: Boolean(existing.activo), nuevo: safeUser.activo };
+  }
+  if (file) camposModificados.foto = { actualizada: true };
+
+  if (Object.keys(camposModificados).length) {
+    registrarEventoUsuario({
+      usuario_afectado_id: safeUser.id,
+      actor_usuario_id: actorUserId,
+      empresa_id: empresaId,
+      evento: "editado",
+      detalle: camposModificados
+    });
   }
 
   return safeUser;
@@ -205,7 +250,16 @@ async function setUserActive(id, active, currentUserId, empresaId) {
   }
 
   const updated = await usuariosRepository.setActive(id, Boolean(active), empresaId);
-  return toSafeUser(updated);
+  const safeUser = toSafeUser(updated);
+
+  registrarEventoUsuario({
+    usuario_afectado_id: safeUser.id,
+    actor_usuario_id: currentUserId,
+    empresa_id: empresaId,
+    evento: active ? "activado" : "desactivado"
+  });
+
+  return safeUser;
 }
 
 module.exports = {

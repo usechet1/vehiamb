@@ -183,6 +183,7 @@ const PERMISSIONS = [
   ["simit.view", "SIMIT", "Consultar SIMIT"],
   ["simit.manage", "SIMIT", "Actualizar toda la flota desde SIMIT y consultar vehiculos individuales"],
   ["users.manage", "Usuarios", "Administrar usuarios"],
+  ["logs.view", "Logs y metricas", "Ver logs de acceso, registro de usuarios, errores y metricas del sistema"],
   ["imports.view", "Importaciones", "Ver importaciones de gastos vehiculares"],
   ["imports.manage", "Importaciones", "Ejecutar importaciones y resolver incidencias"],
   ["costs.view", "Gastos", "Ver el dashboard de gastos vehiculares"],
@@ -354,7 +355,8 @@ const PERMISOS_NUEVOS_POR_ROL = {
   "delivery.view": ["Administrador", "Operador", "Consulta", "Conductor"],
   "delivery.create": ["Administrador", "Operador", "Conductor"],
   "asignaciones.view": ["Administrador", "Operador"],
-  "asignaciones.create": ["Administrador", "Operador"]
+  "asignaciones.create": ["Administrador", "Operador"],
+  "logs.view": ["Administrador"]
 };
 
 async function grantPermisosNuevos() {
@@ -1072,6 +1074,56 @@ async function ensurePostgresTables() {
     )
   `);
 
+  // ── Panel admin: logs de acceso/registro/errores (ver frontend/admin-logs.html) ──
+  // Tres tablas dedicadas en vez de una polimorfica: sus columnas no se
+  // parecen entre si (ip/email_intentado vs. usuario_afectado_id/detalle vs.
+  // ruta/status_code/stack), mismo criterio que importaciones/
+  // importaciones_stock/importaciones_config_vehiculos (auditorias separadas,
+  // no una tabla con discriminador). Se guardan indefinidamente (sin purga),
+  // igual que el resto de historiales de la app.
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS logs_acceso (
+      id BIGSERIAL PRIMARY KEY,
+      usuario_id BIGINT REFERENCES usuarios(id) ON DELETE SET NULL,
+      empresa_id BIGINT REFERENCES empresas(id) ON DELETE SET NULL,
+      email_intentado TEXT NOT NULL,
+      resultado TEXT NOT NULL,
+      ip TEXT,
+      user_agent TEXT,
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS logs_registro (
+      id BIGSERIAL PRIMARY KEY,
+      usuario_afectado_id BIGINT REFERENCES usuarios(id) ON DELETE SET NULL,
+      actor_usuario_id BIGINT REFERENCES usuarios(id) ON DELETE SET NULL,
+      empresa_id BIGINT NOT NULL REFERENCES empresas(id),
+      evento TEXT NOT NULL,
+      detalle JSONB,
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  // Solo se guardan errores 5xx (ver logs-errores.repository.js/error-handler.js)
+  // -- los 4xx (permisos, 404, validaciones) ya quedan cubiertos por
+  // logs_acceso (login) o simplemente no son "algo se rompio de verdad".
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS logs_errores (
+      id BIGSERIAL PRIMARY KEY,
+      empresa_id BIGINT REFERENCES empresas(id) ON DELETE SET NULL,
+      usuario_id BIGINT REFERENCES usuarios(id) ON DELETE SET NULL,
+      metodo TEXT NOT NULL,
+      ruta TEXT NOT NULL,
+      status_code INTEGER NOT NULL,
+      mensaje TEXT NOT NULL,
+      stack TEXT,
+      ip TEXT,
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
   await db.run("CREATE INDEX IF NOT EXISTS idx_vehiculos_placa ON vehiculos (placa)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios (email)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_mantenimientos_vehiculo_id ON mantenimientos (vehiculo_id)");
@@ -1115,6 +1167,12 @@ async function ensurePostgresTables() {
   await db.run("CREATE INDEX IF NOT EXISTS idx_entrega_items_entrega_id ON entrega_items (entrega_id)");
   await db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_rutas_empresa_nombre ON rutas (empresa_id, nombre)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_asignaciones_ruta_fecha ON asignaciones_ruta (empresa_id, fecha DESC)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_logs_acceso_empresa_creado ON logs_acceso (empresa_id, creado_en DESC)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_logs_acceso_usuario_id ON logs_acceso (usuario_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_logs_registro_empresa_creado ON logs_registro (empresa_id, creado_en DESC)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_logs_registro_usuario_afectado ON logs_registro (usuario_afectado_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_logs_errores_empresa_creado ON logs_errores (empresa_id, creado_en DESC)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_logs_errores_status_code ON logs_errores (status_code)");
 
   // La bodega y configuracion por defecto ya NO se insertan aqui: bodegas.codigo
   // y configuracion_inventario.clave pasan a ser unicos POR EMPRESA (ver mas abajo

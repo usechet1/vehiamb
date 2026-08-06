@@ -27,9 +27,15 @@ const empresasRoutes = require("./routes/empresas.routes");
 const conductoresRoutes = require("./routes/conductores.routes");
 const entregasRecibidasRoutes = require("./routes/entregas-recibidas.routes");
 const asignacionesRoutes = require("./routes/asignaciones.routes");
+const adminLogsRoutes = require("./routes/admin-logs.routes");
 const { apiLimiter } = require("./middlewares/rate-limit");
 
 const app = express();
+
+// Sin esto, req.ip resuelve la IP del proxy/balanceador en produccion, no la
+// del cliente real -- necesario para que logs_acceso/logs_errores (panel
+// admin) guarden una IP util, y beneficia de paso al rate limiter por IP.
+app.set("trust proxy", 1);
 
 app.use(cors({ origin: env.corsOrigin }));
 app.use(express.json({ limit: "1mb" }));
@@ -78,6 +84,7 @@ app.use("/api/empresas", requireAuth, empresasRoutes);
 app.use("/api/conductores", requireAuth, conductoresRoutes);
 app.use("/api/entregas-recibidas", requireAuth, entregasRecibidasRoutes);
 app.use("/api/asignaciones", requireAuth, asignacionesRoutes);
+app.use("/api/admin-logs", requireAuth, adminLogsRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

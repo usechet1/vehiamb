@@ -462,6 +462,70 @@ window.VehiAmb.api = {
         return requestJson(`${window.VehiAmb.API_URL}/importaciones/status`, undefined, "No se pudo cargar el estado de importaciones");
     },
 
+    getLogsAcceso(filters = {}) {
+        const params = new URLSearchParams();
+        if (filters.resultado) params.set("resultado", filters.resultado);
+        if (filters.desde) params.set("desde", filters.desde);
+        if (filters.hasta) params.set("hasta", filters.hasta);
+        if (filters.search) params.set("search", filters.search);
+        if (filters.page) params.set("page", filters.page);
+        if (filters.limit) params.set("limit", filters.limit);
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/admin-logs/accesos${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudieron cargar los logs de acceso"
+        );
+    },
+
+    getLogsRegistro(filters = {}) {
+        const params = new URLSearchParams();
+        if (filters.evento) params.set("evento", filters.evento);
+        if (filters.desde) params.set("desde", filters.desde);
+        if (filters.hasta) params.set("hasta", filters.hasta);
+        if (filters.search) params.set("search", filters.search);
+        if (filters.page) params.set("page", filters.page);
+        if (filters.limit) params.set("limit", filters.limit);
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/admin-logs/registro${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudieron cargar los logs de registro"
+        );
+    },
+
+    getLogsErrores(filters = {}) {
+        const params = new URLSearchParams();
+        if (filters.status_code) params.set("status_code", filters.status_code);
+        if (filters.desde) params.set("desde", filters.desde);
+        if (filters.hasta) params.set("hasta", filters.hasta);
+        if (filters.search) params.set("search", filters.search);
+        if (filters.page) params.set("page", filters.page);
+        if (filters.limit) params.set("limit", filters.limit);
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/admin-logs/errores${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudieron cargar los logs de errores"
+        );
+    },
+
+    getMetricasAdmin(filters = {}) {
+        const params = new URLSearchParams();
+        if (filters.desde) params.set("desde", filters.desde);
+        if (filters.hasta) params.set("hasta", filters.hasta);
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/admin-logs/metricas${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudieron cargar las métricas"
+        );
+    },
+
     getCostosVehiculos({ desde, hasta } = {}) {
         const params = new URLSearchParams();
         if (desde) params.set("desde", desde);
