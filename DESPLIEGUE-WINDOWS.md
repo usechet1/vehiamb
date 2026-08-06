@@ -377,7 +377,11 @@ schtasks /run /tn "VehiAmbBackend"
 - Revocar `CONNECT` de `PUBLIC` en las otras bases compartidas de Postgres
   (`cargues_db`, `gestor_tareas_ti_ambientes*`, `rouc_creditos*`) — ver nota en
   Fase 2, se dejó pausado a propósito.
-- Backups periódicos de Postgres (`pg_dump`) y de `backend\uploads\`.
+- ~~Backups periódicos de Postgres (`pg_dump`) y de `backend\uploads\`~~ —
+  automatizado (`backend/src/jobs/backup.job.js`, corre solo mientras el
+  backend esté vivo). Falta definir `BACKUP_DIR` en el `.env` del servidor
+  apuntando a un disco/recurso de red distinto al de la base de datos — sin
+  eso, cae en una carpeta local que no protege contra una falla de disco.
 - Guardar el `.env` en un lugar seguro fuera del repo.
 - El backend depende de que la sesión RDP de `user2` se mantenga iniciada
   (Fase 6, Task Scheduler) para conservar el acceso a

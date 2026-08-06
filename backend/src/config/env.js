@@ -1,3 +1,5 @@
+const path = require("path");
+
 require("dotenv").config({ quiet: true });
 
 const DEFAULT_DEV_AUTH_SECRET = "vehiamb-dev-secret";
@@ -78,7 +80,18 @@ const env = {
   // de tipos de notificacion (documentos, mantenimientos, inspecciones, etc.).
   whatsappTemplateNameGenerico: process.env.WHATSAPP_TEMPLATE_NAME_GENERICO || "notify_v2",
   whatsappTemplateLangGenerico: process.env.WHATSAPP_TEMPLATE_LANG_GENERICO || "es",
-  whatsappAlertPrioridadMinima: process.env.WHATSAPP_ALERT_PRIORIDAD_MINIMA || "alta"
+  whatsappAlertPrioridadMinima: process.env.WHATSAPP_ALERT_PRIORIDAD_MINIMA || "alta",
+
+  // Backup automatico (pg_dump + espejo de uploads/) -- ver backup.job.js.
+  // BACKUP_DIR deberia apuntar a un disco/recurso de red DISTINTO al del
+  // servidor que corre la app: un backup en el mismo disco no protege contra
+  // una falla de ese disco. PG_DUMP_PATH solo hace falta si pg_dump no esta
+  // en el PATH del sistema (tipico en Windows: viene con la instalacion de
+  // PostgreSQL pero su carpeta "bin" no se agrega al PATH automaticamente).
+  backupSchedule: process.env.BACKUP_SCHEDULE || "0 1 * * *",
+  backupDir: process.env.BACKUP_DIR || path.resolve(__dirname, "..", "..", "backups"),
+  backupRetencionDias: Number(process.env.BACKUP_RETENCION_DIAS || 14),
+  pgDumpPath: process.env.PG_DUMP_PATH || "pg_dump"
 };
 
 module.exports = env;
