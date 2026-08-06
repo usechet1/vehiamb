@@ -27,9 +27,9 @@ loginForm.addEventListener("submit", async (event) => {
     const password = String(formData.get("password") || "");
 
     try {
-        await window.VehiAmb.auth.login(email, password);
+        const data = await window.VehiAmb.auth.login(email, password);
         sessionStorage.setItem("vehiamb.showWelcome", "1");
-        window.location.href = "index.html";
+        window.location.href = data.user?.debe_cambiar_password ? "cambiar-password.html" : "index.html";
     } catch (error) {
         window.VehiAmb.ui.showMessage(loginMessage, error.message || "No fue posible iniciar sesión", "error");
     }

@@ -52,7 +52,8 @@ function toSafeUser(user) {
     foto_url: user.foto_url || null,
     celular: user.celular || null,
     empresa_id: user.empresa_id,
-    created_at: user.created_at
+    created_at: user.created_at,
+    debe_cambiar_password: Boolean(user.debe_cambiar_password)
   };
 }
 
