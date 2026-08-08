@@ -203,7 +203,10 @@ const PERMISSIONS = [
   ["delivery.view", "Actas de vehiculo", "Ver las actas de vehiculo"],
   ["delivery.create", "Actas de vehiculo", "Registrar actas de vehiculo"],
   ["asignaciones.view", "Asignaciones", "Ver el reporte diario de asignacion de rutas"],
-  ["asignaciones.create", "Asignaciones", "Crear, editar y eliminar asignaciones de ruta"]
+  ["asignaciones.create", "Asignaciones", "Crear, editar y eliminar asignaciones de ruta"],
+  ["seguridad.view", "Seguridad y Salud", "Ver los registros de extintores e inspecciones de botiquin"],
+  ["seguridad.create", "Seguridad y Salud", "Registrar extintores e inspecciones de botiquin"],
+  ["seguridad.delete", "Seguridad y Salud", "Eliminar registros de extintores e inspecciones de botiquin"]
 ];
 
 const ROLE_PERMISSIONS = {
@@ -356,7 +359,10 @@ const PERMISOS_NUEVOS_POR_ROL = {
   "delivery.create": ["Administrador", "Operador", "Conductor"],
   "asignaciones.view": ["Administrador", "Operador"],
   "asignaciones.create": ["Administrador", "Operador"],
-  "logs.view": ["Administrador"]
+  "logs.view": ["Administrador"],
+  "seguridad.view": ["Administrador", "Operador", "Consulta"],
+  "seguridad.create": ["Administrador", "Operador"],
+  "seguridad.delete": ["Administrador"]
 };
 
 async function grantPermisosNuevos() {
@@ -1139,6 +1145,67 @@ async function ensurePostgresTables() {
     )
   `);
 
+  // ── Seguridad y Salud en el Trabajo (SG-SST) ── Extintores y botiquines de
+  // los vehiculos. Dos registros separados (no una tabla con discriminador)
+  // porque no se parecen en nada: el extintor es una ficha de dos datos
+  // (codigo + vencimiento) y el botiquin es una inspeccion con ~20 items
+  // hijos, cada uno con su propio estado/cantidad/vencimiento. Mismo criterio
+  // que logs_acceso/logs_registro/logs_errores mas arriba.
+  //
+  // Nota: la inspeccion preventiva (inspecciones_preventivas) ya tiene
+  // "extintor" y "botiquin" como un unico item bien/mal del chequeo rapido de
+  // ruta. Esto NO lo reemplaza: es el registro formal SG-SST, detallado y
+  // trazable, que vive en su propio modulo.
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS extintores (
+      id BIGSERIAL PRIMARY KEY,
+      vehiculo_id BIGINT NOT NULL REFERENCES vehiculos(id) ON DELETE CASCADE,
+      codigo TEXT NOT NULL,
+      fecha_vencimiento DATE NOT NULL,
+      usuario_id BIGINT REFERENCES usuarios(id),
+      empresa_id BIGINT NOT NULL REFERENCES empresas(id),
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  // Cabecera del "FORMATO INSPECCION DE BOTIQUINES VEHICULOS" (SG-SST-FT).
+  // Los nombres de personas van en nombres/apellidos separados, como el resto
+  // de la app (ver conductores).
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS inspecciones_botiquin (
+      id BIGSERIAL PRIMARY KEY,
+      vehiculo_id BIGINT NOT NULL REFERENCES vehiculos(id) ON DELETE CASCADE,
+      fecha DATE NOT NULL,
+      inspeccionado_por_nombres TEXT NOT NULL,
+      inspeccionado_por_apellidos TEXT NOT NULL,
+      inspeccionado_por_cargo TEXT,
+      revisado_por_nombres TEXT,
+      revisado_por_apellidos TEXT,
+      revisado_por_cargo TEXT,
+      observaciones TEXT,
+      usuario_id BIGINT REFERENCES usuarios(id),
+      empresa_id BIGINT NOT NULL REFERENCES empresas(id),
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  // Una fila por renglon del checklist. fecha_vencimiento es opcional porque
+  // el formato dice "FECHA VENCIMIENTO (SI APLICA)": insumos como las tijeras
+  // o el silbato no vencen.
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS botiquin_items (
+      id BIGSERIAL PRIMARY KEY,
+      inspeccion_id BIGINT NOT NULL REFERENCES inspecciones_botiquin(id) ON DELETE CASCADE,
+      item_codigo TEXT NOT NULL,
+      item_label TEXT NOT NULL,
+      estado TEXT NOT NULL DEFAULT 'bueno',
+      cantidad INTEGER,
+      fecha_vencimiento DATE,
+      empresa_id BIGINT NOT NULL REFERENCES empresas(id),
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
   await db.run("CREATE INDEX IF NOT EXISTS idx_vehiculos_placa ON vehiculos (placa)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios (email)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_mantenimientos_vehiculo_id ON mantenimientos (vehiculo_id)");
@@ -1188,6 +1255,11 @@ async function ensurePostgresTables() {
   await db.run("CREATE INDEX IF NOT EXISTS idx_logs_registro_usuario_afectado ON logs_registro (usuario_afectado_id)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_logs_errores_empresa_creado ON logs_errores (empresa_id, creado_en DESC)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_logs_errores_status_code ON logs_errores (status_code)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_extintores_vehiculo_id ON extintores (vehiculo_id, fecha_vencimiento ASC)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_extintores_empresa_id ON extintores (empresa_id, fecha_vencimiento ASC)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_inspecciones_botiquin_vehiculo_id ON inspecciones_botiquin (vehiculo_id, fecha DESC)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_inspecciones_botiquin_empresa_id ON inspecciones_botiquin (empresa_id, fecha DESC)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_botiquin_items_inspeccion_id ON botiquin_items (inspeccion_id)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_usuario_id ON password_reset_tokens (usuario_id)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token_hash ON password_reset_tokens (token_hash)");
 

@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="img/car.png">
+    <link rel="apple-touch-icon" href="img/vehiamb_icon.png">
+    <link rel="manifest" href="manifest.json">
+    <title>Extintores y botiquines - Vehiamb</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar"></aside>
+
+        <main class="content">
+            <div class="page-header">
+                <div>
+                    <h1>Extintores y botiquines</h1>
+                    <p class="page-kicker">Seguridad y Salud en el Trabajo (SG-SST)</p>
+                </div>
+            </div>
+
+            <div class="tabs" role="tablist">
+                <button type="button" class="tab-button active" id="tabExtintoresButton" role="tab" aria-selected="true" data-tab="extintores">Extintores</button>
+                <button type="button" class="tab-button" id="tabBotiquinButton" role="tab" aria-selected="false" data-tab="botiquin">Inspección de botiquines</button>
+            </div>
+
+            <!-- ───────────────────────────── Extintores ───────────────────────────── -->
+            <div class="stack" id="bloqueExtintores">
+                <section class="section-card hidden" id="registrarExtintorSection">
+                    <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
+                            <h2 id="extintorFormTitle">Registrar extintor</h2>
+                            <p>Código del extintor y su fecha de vencimiento.</p>
+                        </summary>
+                        <div class="section-card-body">
+                            <form id="extintorForm" class="compact-form">
+                                <input type="hidden" id="extintorId">
+
+                                <div class="form-group">
+                                    <label>Vehículo</label>
+                                    <select id="extintorVehiculo" required>
+                                        <option value="">Selecciona un vehículo</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Código</label>
+                                        <input type="text" id="extintorCodigo" placeholder="Ej: EXT-014" required>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Fecha de vencimiento</label>
+                                        <input type="date" id="extintorFechaVencimiento" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-actions">
+                                    <button type="button" id="extintorCancelEditButton" class="btn-secondary hidden">Cancelar edición</button>
+                                    <button type="submit" class="btn-primary" id="extintorSubmitButton">Guardar extintor</button>
+                                </div>
+                            </form>
+                        </div>
+                    </details>
+                </section>
+
+                <section class="section-card" id="extintoresRegistradosSection">
+                    <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
+                            <h2>Extintores registrados</h2>
+                            <p>Ordenados por la fecha de vencimiento más próxima.</p>
+                        </summary>
+                        <div class="section-card-body">
+                            <form id="extintoresFilterForm" class="filter-form">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Código</label>
+                                        <input type="search" id="filterExtintorCodigo" placeholder="Buscar por código...">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Placa</label>
+                                        <select id="filterExtintorPlaca">
+                                            <option value="">Todas las placas</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="filter-actions">
+                                    <span id="extintoresFilterSummary" class="field-help">Mostrando todos los extintores.</span>
+                                    <button type="button" id="clearExtintoresFiltersButton" class="btn-secondary">Limpiar filtros</button>
+                                </div>
+                            </form>
+
+                            <div class="table-scroll">
+                                <table class="import-table" id="extintoresTabla">
+                                    <thead>
+                                        <tr>
+                                            <th>Vehículo</th>
+                                            <th>Código</th>
+                                            <th>Vencimiento</th>
+                                            <th>Estado</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="extintoresTablaBody">
+                                        <tr><td colspan="5" class="dash-empty">Cargando...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </details>
+                </section>
+            </div>
+
+            <!-- ────────────────────────── Botiquines ────────────────────────── -->
+            <div class="stack hidden" id="bloqueBotiquin">
+                <section class="section-card hidden" id="registrarBotiquinSection">
+                    <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
+                            <h2>Nueva inspección de botiquín</h2>
+                            <p>Formato de inspección de botiquines de vehículos (SG-SST).</p>
+                        </summary>
+                        <div class="section-card-body">
+                            <form id="botiquinForm" class="compact-form">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Vehículo</label>
+                                        <select id="botiquinVehiculo" required>
+                                            <option value="">Selecciona un vehículo</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Fecha de la inspección</label>
+                                        <input type="date" id="botiquinFecha" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Inspeccionado por (nombres)</label>
+                                        <input type="text" id="botiquinInspeccionadoNombres" required>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Inspeccionado por (apellidos)</label>
+                                        <input type="text" id="botiquinInspeccionadoApellidos" required>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Cargo</label>
+                                        <input type="text" id="botiquinInspeccionadoCargo">
+                                    </div>
+                                </div>
+
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Revisado por (nombres)</label>
+                                        <input type="text" id="botiquinRevisadoNombres">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Revisado por (apellidos)</label>
+                                        <input type="text" id="botiquinRevisadoApellidos">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Cargo</label>
+                                        <input type="text" id="botiquinRevisadoCargo">
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Contenido del botiquín</label>
+                                    <div class="botiquin-checklist-actions">
+                                        <button type="button" class="btn-secondary" id="botiquinMarcarTodoBueno">Marcar todo como bueno</button>
+                                    </div>
+                                    <div class="table-scroll">
+                                        <table class="import-table botiquin-checklist">
+                                            <thead>
+                                                <tr>
+                                                    <th>Insumo</th>
+                                                    <th>Estado</th>
+                                                    <th>Cantidad</th>
+                                                    <th>Vencimiento (si aplica)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="botiquinChecklistBody">
+                                                <tr><td colspan="4" class="dash-empty">Cargando insumos...</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Observaciones generales</label>
+                                    <textarea id="botiquinObservaciones" rows="3" maxlength="1000"></textarea>
+                                </div>
+
+                                <div class="form-actions">
+                                    <button type="button" id="botiquinCancelButton" class="btn-secondary">Limpiar formulario</button>
+                                    <button type="submit" class="btn-primary" id="botiquinSubmitButton">Guardar inspección</button>
+                                </div>
+                            </form>
+                        </div>
+                    </details>
+                </section>
+
+                <section class="section-card" id="botiquinHistorialSection">
+                    <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
+                            <h2>Inspecciones realizadas</h2>
+                            <p>Historial de inspecciones de botiquín por vehículo.</p>
+                        </summary>
+                        <div class="section-card-body">
+                            <form id="botiquinFilterForm" class="filter-form">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Placa</label>
+                                        <select id="filterBotiquinPlaca">
+                                            <option value="">Todas las placas</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Desde</label>
+                                        <input type="date" id="filterBotiquinDesde">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Hasta</label>
+                                        <input type="date" id="filterBotiquinHasta">
+                                    </div>
+                                </div>
+
+                                <div class="filter-actions">
+                                    <span id="botiquinFilterSummary" class="field-help">Mostrando todas las inspecciones.</span>
+                                    <button type="button" id="clearBotiquinFiltersButton" class="btn-secondary">Limpiar filtros</button>
+                                </div>
+                            </form>
+
+                            <div class="table-scroll">
+                                <table class="import-table" id="botiquinTabla">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>Vehículo</th>
+                                            <th>Inspeccionado por</th>
+                                            <th>Insumos</th>
+                                            <th>En mal estado</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="botiquinTablaBody">
+                                        <tr><td colspan="6" class="dash-empty">Cargando...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </details>
+                </section>
+            </div>
+
+            <div id="botiquinDrawerBackdrop" class="drawer-backdrop hidden"></div>
+            <aside id="botiquinDrawer" class="detail-drawer hidden" aria-hidden="true" aria-labelledby="botiquinDrawerTitle">
+                <div class="detail-drawer-head">
+                    <div>
+                        <span class="form-step">Detalle de la inspección</span>
+                        <h2 id="botiquinDrawerTitle">Inspección de botiquín</h2>
+                        <p id="botiquinDrawerSubtitle">Contenido revisado renglón por renglón</p>
+                    </div>
+                    <div class="detail-drawer-actions">
+                        <button type="button" id="botiquinDrawerExportButton" class="btn-secondary btn-pdf">Exportar PDF</button>
+                        <button type="button" id="botiquinDrawerClose" class="drawer-close" aria-label="Cerrar detalle">×</button>
+                    </div>
+                </div>
+                <div id="botiquinDrawerBody" class="detail-drawer-body"></div>
+            </aside>
+
+            <div id="loader" class="loader hidden">
+                <video src="img/loader.mp4" autoplay loop muted playsinline></video>
+            </div>
+            <div id="mensaje" class="mensaje hidden"></div>
+        </main>
+    </div>
+
+    <script src="assets/js/shared/auth.js"></script>
+    <script src="assets/js/shared/api.js"></script>
+    <script src="assets/js/shared/ui.js"></script>
+    <script src="assets/js/shared/notificaciones-config.js"></script>
+    <script src="assets/js/shared/sidebar.js"></script>
+    <script src="assets/js/shared/load-script.js"></script>
+    <script src="assets/js/shared/pdf-export.js"></script>
+    <script src="assets/js/pages/seguridad-export.js"></script>
+    <script src="assets/js/pages/seguridad.js"></script>
+</body>
+</html>

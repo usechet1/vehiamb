@@ -1,0 +1,280 @@
+const HttpError = require("../errors/http-error");
+const vehiculosRepository = require("../repositories/vehiculos.repository");
+const extintoresRepository = require("../repositories/extintores.repository");
+const inspeccionesBotiquinRepository = require("../repositories/inspecciones-botiquin.repository");
+const botiquinItemsRepository = require("../repositories/botiquin-items.repository");
+
+// Catalogo fijo del "FORMATO INSPECCION DE BOTIQUINES VEHICULOS"
+// (SG-SST-FT, version 001 del 21-10-2024). El orden de esta lista es el orden
+// en que se muestran e imprimen los renglones, asi que respeta el del formato
+// fisico. Agregar un insumo nuevo es una entrada mas aqui: el frontend, la
+// validacion y el PDF salen todos de este mismo catalogo.
+const ITEMS_BOTIQUIN = [
+  { codigo: "algodon", label: "Algodón cotton softer 25g/088 oz" },
+  { codigo: "venda_algodon_laminado", label: 'Venda de algodón laminado 3"x 5 yardas' },
+  { codigo: "venda_elastica", label: 'Venda elástica 2"x 5 yardas' },
+  { codigo: "inmovilizador_cuello", label: "Inmovilizador de cuello" },
+  { codigo: "guantes_quirurgicos", label: "Guantes quirúrgicos desechables" },
+  { codigo: "solucion_inyectable", label: "Solución inyectable 500 ml" },
+  { codigo: "alcohol_antiseptico", label: "Alcohol antiséptico 70% - 120ml" },
+  { codigo: "jeringa_desechable", label: "Jeringa desechable estéril 5ml" },
+  { codigo: "bajalenguas", label: "Bajalenguas de madera paqx10" },
+  { codigo: "hisopos", label: "Hisopos punta de algodón paqx10" },
+  { codigo: "silbato", label: "Silbato" },
+  { codigo: "esparadrapo", label: 'Esparadrapo de tela 1"x5 yardas' },
+  { codigo: "gasa_no_tejida", label: 'Gasa no tejida 3"x3"' },
+  { codigo: "tiras_adhesivas", label: "Tiras adhesivas (curitas)" },
+  { codigo: "toallas_higienicas", label: "Toallas higiénicas" },
+  { codigo: "parche_ojos", label: "Parche para ojos" },
+  { codigo: "tijeras", label: "Tijeras" },
+  { codigo: "sales_rehidratacion", label: "Sales de rehidratación oral 28.4g" },
+  { codigo: "tapabocas", label: "Tapabocas desechables" },
+  { codigo: "cinta_microporosa", label: "Cinta adhesiva microporosa" }
+];
+
+const ITEMS_POR_CODIGO = new Map(ITEMS_BOTIQUIN.map((item) => [item.codigo, item]));
+
+const ESTADOS_VALIDOS = new Set(["bueno", "malo"]);
+
+const FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+function getCatalogoBotiquin() {
+  return ITEMS_BOTIQUIN;
+}
+
+function texto(valor, maximo = 200) {
+  if (valor === undefined || valor === null) return null;
+  const limpio = String(valor).trim();
+  return limpio ? limpio.slice(0, maximo) : null;
+}
+
+function fechaObligatoria(valor, campo) {
+  const fecha = texto(valor, 10);
+  if (!fecha || !FECHA_ISO.test(fecha)) {
+    throw new HttpError(400, `${campo} es obligatoria y debe tener el formato AAAA-MM-DD`);
+  }
+  return fecha;
+}
+
+function fechaOpcional(valor, campo) {
+  const fecha = texto(valor, 10);
+  if (!fecha) return null;
+  if (!FECHA_ISO.test(fecha)) {
+    throw new HttpError(400, `${campo} debe tener el formato AAAA-MM-DD`);
+  }
+  return fecha;
+}
+
+async function asegurarVehiculo(vehiculoId, empresaId) {
+  if (!vehiculoId) {
+    throw new HttpError(400, "El vehículo es obligatorio");
+  }
+
+  const vehiculo = await vehiculosRepository.findById(vehiculoId, empresaId);
+  if (!vehiculo) {
+    throw new HttpError(404, "Vehículo no encontrado");
+  }
+
+  return vehiculo;
+}
+
+// ───────────────────────────── Extintores ─────────────────────────────
+
+function normalizarExtintor(payload) {
+  const codigo = texto(payload.codigo, 60);
+  if (!codigo) {
+    throw new HttpError(400, "El código del extintor es obligatorio");
+  }
+
+  return {
+    vehiculo_id: payload.vehiculo_id ? Number(payload.vehiculo_id) : null,
+    codigo,
+    fecha_vencimiento: fechaObligatoria(payload.fecha_vencimiento, "La fecha de vencimiento")
+  };
+}
+
+async function listarExtintores(empresaId) {
+  return extintoresRepository.findAll(empresaId);
+}
+
+async function crearExtintor(payload, currentUser) {
+  const empresaId = currentUser.empresa_id;
+  const extintor = normalizarExtintor(payload);
+  await asegurarVehiculo(extintor.vehiculo_id, empresaId);
+
+  return extintoresRepository.create({
+    ...extintor,
+    usuario_id: currentUser?.id ?? null,
+    empresa_id: empresaId
+  });
+}
+
+async function actualizarExtintor(id, payload, empresaId) {
+  const existente = await extintoresRepository.findById(id, empresaId);
+  if (!existente) {
+    throw new HttpError(404, "Extintor no encontrado");
+  }
+
+  const extintor = normalizarExtintor(payload);
+  await asegurarVehiculo(extintor.vehiculo_id, empresaId);
+
+  return extintoresRepository.update(id, extintor, empresaId);
+}
+
+async function eliminarExtintor(id, empresaId) {
+  const existente = await extintoresRepository.findById(id, empresaId);
+  if (!existente) {
+    throw new HttpError(404, "Extintor no encontrado");
+  }
+
+  await extintoresRepository.remove(id, empresaId);
+}
+
+// ─────────────────────── Inspecciones de botiquín ───────────────────────
+
+function normalizarItems(itemsPayload) {
+  if (!Array.isArray(itemsPayload) || !itemsPayload.length) {
+    throw new HttpError(400, "Debes diligenciar el checklist del botiquín");
+  }
+
+  return itemsPayload.map((item) => {
+    const codigo = String(item.item_codigo || "");
+    const catalogoItem = ITEMS_POR_CODIGO.get(codigo);
+    if (!catalogoItem) {
+      throw new HttpError(400, `Ítem de botiquín inválido: ${codigo}`);
+    }
+
+    const estado = String(item.estado || "");
+    if (!ESTADOS_VALIDOS.has(estado)) {
+      throw new HttpError(400, `Debes marcar bueno o malo para "${catalogoItem.label}"`);
+    }
+
+    // La cantidad es opcional (el formato la deja en blanco cuando no aplica),
+    // pero si viene tiene que ser un entero no negativo.
+    let cantidad = null;
+    if (item.cantidad !== undefined && item.cantidad !== null && item.cantidad !== "") {
+      cantidad = Number(item.cantidad);
+      if (!Number.isInteger(cantidad) || cantidad < 0) {
+        throw new HttpError(400, `La cantidad de "${catalogoItem.label}" debe ser un número entero positivo`);
+      }
+    }
+
+    return {
+      item_codigo: catalogoItem.codigo,
+      item_label: catalogoItem.label,
+      estado,
+      cantidad,
+      fecha_vencimiento: fechaOpcional(item.fecha_vencimiento, `La fecha de vencimiento de "${catalogoItem.label}"`)
+    };
+  });
+}
+
+function toSafeItem(item) {
+  return {
+    id: item.id,
+    item_codigo: item.item_codigo,
+    item_label: item.item_label,
+    estado: item.estado,
+    cantidad: item.cantidad != null ? Number(item.cantidad) : null,
+    fecha_vencimiento: item.fecha_vencimiento
+  };
+}
+
+function toSafeInspeccion(inspeccion) {
+  return {
+    id: inspeccion.id,
+    vehiculo_id: inspeccion.vehiculo_id,
+    placa: inspeccion.placa,
+    marca: inspeccion.marca,
+    modelo: inspeccion.modelo,
+    fecha: inspeccion.fecha,
+    inspeccionado_por_nombres: inspeccion.inspeccionado_por_nombres,
+    inspeccionado_por_apellidos: inspeccion.inspeccionado_por_apellidos,
+    inspeccionado_por_cargo: inspeccion.inspeccionado_por_cargo,
+    revisado_por_nombres: inspeccion.revisado_por_nombres,
+    revisado_por_apellidos: inspeccion.revisado_por_apellidos,
+    revisado_por_cargo: inspeccion.revisado_por_cargo,
+    observaciones: inspeccion.observaciones,
+    total_items: Number(inspeccion.total_items || 0),
+    total_items_malos: Number(inspeccion.total_items_malos || 0),
+    creado_en: inspeccion.creado_en
+  };
+}
+
+async function listarInspecciones(filtros, empresaId) {
+  const inspecciones = await inspeccionesBotiquinRepository.findAll(filtros, empresaId);
+  return inspecciones.map(toSafeInspeccion);
+}
+
+async function obtenerInspeccion(id, empresaId) {
+  const inspeccion = await inspeccionesBotiquinRepository.findById(id, empresaId);
+  if (!inspeccion) {
+    throw new HttpError(404, "Inspección de botiquín no encontrada");
+  }
+
+  const items = await botiquinItemsRepository.findByInspeccion(id, empresaId);
+
+  return { ...toSafeInspeccion(inspeccion), items: items.map(toSafeItem) };
+}
+
+async function crearInspeccion(payload, currentUser) {
+  const empresaId = currentUser.empresa_id;
+  const vehiculoId = payload.vehiculo_id ? Number(payload.vehiculo_id) : null;
+  await asegurarVehiculo(vehiculoId, empresaId);
+
+  const nombres = texto(payload.inspeccionado_por_nombres, 80);
+  const apellidos = texto(payload.inspeccionado_por_apellidos, 80);
+  if (!nombres || !apellidos) {
+    throw new HttpError(400, "Los nombres y apellidos de quien inspecciona son obligatorios");
+  }
+
+  const items = normalizarItems(payload.items);
+
+  const inspeccion = await inspeccionesBotiquinRepository.create({
+    vehiculo_id: vehiculoId,
+    fecha: fechaObligatoria(payload.fecha, "La fecha de la inspección"),
+    inspeccionado_por_nombres: nombres,
+    inspeccionado_por_apellidos: apellidos,
+    inspeccionado_por_cargo: texto(payload.inspeccionado_por_cargo, 80),
+    revisado_por_nombres: texto(payload.revisado_por_nombres, 80),
+    revisado_por_apellidos: texto(payload.revisado_por_apellidos, 80),
+    revisado_por_cargo: texto(payload.revisado_por_cargo, 80),
+    observaciones: texto(payload.observaciones, 1000),
+    usuario_id: currentUser?.id ?? null,
+    empresa_id: empresaId
+  });
+
+  const itemsCreados = await botiquinItemsRepository.bulkCreate(inspeccion.id, items, empresaId);
+
+  return {
+    ...toSafeInspeccion({
+      ...inspeccion,
+      total_items: itemsCreados.length,
+      total_items_malos: itemsCreados.filter((item) => item.estado === "malo").length
+    }),
+    items: itemsCreados.map(toSafeItem)
+  };
+}
+
+async function eliminarInspeccion(id, empresaId) {
+  const existente = await inspeccionesBotiquinRepository.findById(id, empresaId);
+  if (!existente) {
+    throw new HttpError(404, "Inspección de botiquín no encontrada");
+  }
+
+  // botiquin_items tiene ON DELETE CASCADE, asi que los renglones se van con
+  // la cabecera sin borrarlos a mano.
+  await inspeccionesBotiquinRepository.remove(id, empresaId);
+}
+
+module.exports = {
+  getCatalogoBotiquin,
+  listarExtintores,
+  crearExtintor,
+  actualizarExtintor,
+  eliminarExtintor,
+  listarInspecciones,
+  obtenerInspeccion,
+  crearInspeccion,
+  eliminarInspeccion
+};
