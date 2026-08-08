@@ -27,7 +27,8 @@ const PAGE_PERMISSIONS = {
     "conductores.html": "conductores.view",
     "entrega-recibida.html": "delivery.view",
     "mi-viaje.html": "trips.view",
-    "asignaciones.html": "asignaciones.view"
+    "asignaciones.html": "asignaciones.view",
+    "seguridad.html": "seguridad.view"
 };
 
 function getStoredSession() {

@@ -5060,3 +5060,60 @@ button.record-link {
         grid-template-columns: 1fr;
     }
 }
+
+/* ── Seguridad y Salud: extintores y checklist de botiquín ── */
+
+.table-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    white-space: nowrap;
+}
+
+.table-actions .btn-secondary {
+    min-height: 32px;
+    padding: 6px 10px;
+    font-size: 0.8rem;
+}
+
+.botiquin-checklist-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 8px;
+}
+
+.botiquin-estado {
+    display: flex;
+    gap: 12px;
+    white-space: nowrap;
+}
+
+.botiquin-estado label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* Las columnas de cantidad/vencimiento se mantienen angostas para que la
+   descripción del insumo conserve el ancho, igual que en el formato impreso. */
+.botiquin-checklist .botiquin-cantidad {
+    width: 90px;
+}
+
+.botiquin-checklist .botiquin-vencimiento {
+    width: 160px;
+}
+
+@media (max-width: 720px) {
+    .table-actions {
+        justify-content: flex-start;
+    }
+
+    .botiquin-estado {
+        flex-direction: column;
+        gap: 4px;
+    }
+}

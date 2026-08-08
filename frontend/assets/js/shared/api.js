@@ -43,6 +43,11 @@ async function requestJson(url, options, errorMessage) {
         throw new Error(serverMessage || errorMessage);
     }
 
+    // Un 204 ("No Content") no trae cuerpo, y response.json() sobre un cuerpo
+    // vacio lanza SyntaxError -- lo que hacia que los DELETE exitosos
+    // (documentos, asignaciones, etc.) mostraran un toast de error igual.
+    if (response.status === 204) return null;
+
     return response.json();
 }
 
@@ -1234,6 +1239,96 @@ window.VehiAmb.api = {
             `${window.VehiAmb.API_URL}/asignaciones/${id}`,
             { method: "DELETE" },
             "No se pudo eliminar la asignación"
+        );
+    },
+
+    getCatalogoBotiquin() {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/seguridad/botiquin/catalogo`,
+            undefined,
+            "No se pudo cargar el listado de insumos del botiquín"
+        );
+    },
+
+    getExtintores() {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/seguridad/extintores`,
+            undefined,
+            "No se pudieron cargar los extintores"
+        );
+    },
+
+    crearExtintor(payload) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/seguridad/extintores`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            },
+            "No se pudo guardar el extintor"
+        );
+    },
+
+    actualizarExtintor(id, payload) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/seguridad/extintores/${id}`,
+            {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            },
+            "No se pudo actualizar el extintor"
+        );
+    },
+
+    eliminarExtintor(id) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/seguridad/extintores/${id}`,
+            { method: "DELETE" },
+            "No se pudo eliminar el extintor"
+        );
+    },
+
+    getInspeccionesBotiquin(filtros = {}) {
+        const params = new URLSearchParams();
+        if (filtros.vehiculo_id) params.set("vehiculo_id", filtros.vehiculo_id);
+        if (filtros.fecha_desde) params.set("fecha_desde", filtros.fecha_desde);
+        if (filtros.fecha_hasta) params.set("fecha_hasta", filtros.fecha_hasta);
+
+        const query = params.toString();
+        return requestJson(
+            `${window.VehiAmb.API_URL}/seguridad/botiquin${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudieron cargar las inspecciones de botiquín"
+        );
+    },
+
+    getInspeccionBotiquin(id) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/seguridad/botiquin/${id}`,
+            undefined,
+            "No se pudo cargar la inspección de botiquín"
+        );
+    },
+
+    crearInspeccionBotiquin(payload) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/seguridad/botiquin`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            },
+            "No se pudo guardar la inspección de botiquín"
+        );
+    },
+
+    eliminarInspeccionBotiquin(id) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/seguridad/botiquin/${id}`,
+            { method: "DELETE" },
+            "No se pudo eliminar la inspección de botiquín"
         );
     }
 };
