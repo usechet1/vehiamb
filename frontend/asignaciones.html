@@ -65,6 +65,11 @@
                                     <input type="text" inputmode="numeric" id="asignacionTelefono" required>
                                 </div>
 
+                                <div class="form-group">
+                                    <label>Observaciones</label>
+                                    <textarea id="asignacionObservaciones" rows="2" maxlength="500" placeholder="Novedades del recorrido (opcional)"></textarea>
+                                </div>
+
                                 <span class="field-help">* Campos obligatorios</span>
 
                                 <div class="filter-actions">
@@ -91,7 +96,8 @@
                                     <input type="date" id="asignacionesFiltroFecha">
                                 </div>
                                 <div class="filter-actions">
-                                    <button type="button" class="btn-secondary" id="asignacionesExportarButton">Generar PDF</button>
+                                    <button type="button" class="btn-secondary btn-pdf" id="asignacionesExportarButton">Exportar PDF</button>
+                                    <button type="button" class="btn-secondary btn-excel" id="asignacionesExportarExcelButton">Exportar Excel</button>
                                 </div>
                             </form>
 
@@ -104,11 +110,12 @@
                                             <th>Ruta</th>
                                             <th>Teléfono</th>
                                             <th>Placa</th>
+                                            <th>Observaciones</th>
                                             <th></th>
                                         </tr>
                                     </thead>
                                     <tbody id="asignacionesTableBody">
-                                        <tr><td colspan="6" class="dash-empty">Cargando...</td></tr>
+                                        <tr><td colspan="7" class="dash-empty">Cargando...</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -133,6 +140,7 @@
     <script src="assets/js/shared/ubicaciones.js"></script>
     <script src="assets/js/shared/load-script.js"></script>
     <script src="assets/js/shared/pdf-export.js"></script>
+    <script src="assets/js/shared/excel-export.js"></script>
     <script src="assets/js/pages/asignaciones-export.js"></script>
     <script src="assets/js/pages/asignaciones.js"></script>
 </body>

@@ -8,6 +8,7 @@ const asignacionDestinos = document.getElementById("asignacionDestinos");
 const asignacionAgregarDestinoButton = document.getElementById("asignacionAgregarDestinoButton");
 const asignacionDestinosLegacyHint = document.getElementById("asignacionDestinosLegacyHint");
 const asignacionTelefono = document.getElementById("asignacionTelefono");
+const asignacionObservaciones = document.getElementById("asignacionObservaciones");
 const asignacionSubmitButton = document.getElementById("asignacionSubmitButton");
 const asignacionCancelEditButton = document.getElementById("asignacionCancelEditButton");
 
@@ -15,6 +16,7 @@ const asignacionesFilterForm = document.getElementById("asignacionesFilterForm")
 const asignacionesFiltroFecha = document.getElementById("asignacionesFiltroFecha");
 const asignacionesTableBody = document.getElementById("asignacionesTableBody");
 const asignacionesExportarButton = document.getElementById("asignacionesExportarButton");
+const asignacionesExportarExcelButton = document.getElementById("asignacionesExportarExcelButton");
 
 const loader = document.getElementById("loader");
 const mensaje = document.getElementById("mensaje");
@@ -175,6 +177,7 @@ function renderRow(item, indice) {
             <td>${escapeHtml(item.ruta_nombre || "--")}</td>
             <td>${escapeHtml(item.telefono || "--")}</td>
             <td>${escapeHtml(item.vehiculo_placa || "Sin vehículo")}</td>
+            <td>${escapeHtml(item.observaciones || "--")}</td>
             <td>
                 <button type="button" class="btn-secondary" data-editar-asignacion="${item.id}">Editar</button>
                 <button type="button" class="btn-secondary" data-eliminar-asignacion="${item.id}">Eliminar</button>
@@ -185,15 +188,15 @@ function renderRow(item, indice) {
 
 async function cargarAsignaciones() {
     try {
-        asignacionesTableBody.innerHTML = '<tr><td colspan="6" class="dash-empty">Cargando...</td></tr>';
+        asignacionesTableBody.innerHTML = '<tr><td colspan="7" class="dash-empty">Cargando...</td></tr>';
         asignacionesActuales = await window.VehiAmb.api.getAsignacionesPorFecha(asignacionesFiltroFecha.value);
 
         asignacionesTableBody.innerHTML = asignacionesActuales.length
             ? asignacionesActuales.map(renderRow).join("")
-            : '<tr><td colspan="6" class="dash-empty">Sin asignaciones para esta fecha</td></tr>';
+            : '<tr><td colspan="7" class="dash-empty">Sin asignaciones para esta fecha</td></tr>';
     } catch (error) {
         asignacionesActuales = [];
-        asignacionesTableBody.innerHTML = '<tr><td colspan="6" class="dash-empty">No fue posible cargar las asignaciones</td></tr>';
+        asignacionesTableBody.innerHTML = '<tr><td colspan="7" class="dash-empty">No fue posible cargar las asignaciones</td></tr>';
     }
 }
 
@@ -208,6 +211,20 @@ asignacionesExportarButton.addEventListener("click", async () => {
         window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo generar el PDF", "error");
     } finally {
         asignacionesExportarButton.disabled = false;
+    }
+});
+
+asignacionesExportarExcelButton.addEventListener("click", async () => {
+    asignacionesExportarExcelButton.disabled = true;
+    try {
+        await window.VehiAmb.asignacionesExport.exportReporteExcel({
+            fecha: asignacionesFiltroFecha.value,
+            asignaciones: asignacionesActuales
+        });
+    } catch (error) {
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo generar el Excel", "error");
+    } finally {
+        asignacionesExportarExcelButton.disabled = false;
     }
 });
 
@@ -236,7 +253,8 @@ asignacionForm.addEventListener("submit", async (event) => {
         conductor_id: asignacionConductor.value,
         vehiculo_id: asignacionVehiculo.value,
         destinos,
-        telefono: asignacionTelefono.value.trim()
+        telefono: asignacionTelefono.value.trim(),
+        observaciones: asignacionObservaciones.value.trim()
     };
 
     asignacionSubmitButton.disabled = true;
@@ -275,6 +293,7 @@ asignacionesTableBody.addEventListener("click", async (event) => {
         asignacionConductor.value = asignacion.conductor_id || "";
         asignacionVehiculo.value = asignacion.vehiculo_id || "";
         asignacionTelefono.value = asignacion.telefono || "";
+        asignacionObservaciones.value = asignacion.observaciones || "";
 
         asignacionDestinos.innerHTML = "";
         if (asignacion.destinos?.length) {

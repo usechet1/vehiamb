@@ -17,7 +17,8 @@ function toSafeAsignacion(asignacion) {
     ruta_id: asignacion.ruta_id,
     ruta_nombre: asignacion.ruta_nombre,
     destinos: asignacion.destinos || null,
-    telefono: asignacion.telefono
+    telefono: asignacion.telefono,
+    observaciones: asignacion.observaciones || null
   };
 }
 
@@ -78,6 +79,10 @@ async function validarYResolverPayload(payload, empresaId) {
   const ruta = await rutasRepository.findOrCreateByNombre(nombreRuta, empresaId);
 
   const telefono = String(payload.telefono || conductor.telefono || "").trim() || null;
+  // Campo libre y opcional: novedades del recorrido (retrasos, cambios de
+  // ultima hora, carga especial). Se recorta para que una nota larga no
+  // desarme la columna del reporte impreso.
+  const observaciones = String(payload.observaciones || "").trim().slice(0, 500) || null;
 
   return {
     fecha: payload.fecha,
@@ -85,7 +90,8 @@ async function validarYResolverPayload(payload, empresaId) {
     vehiculo_id: vehiculo.id,
     ruta_id: ruta.id,
     destinos: destinosNormalizados,
-    telefono
+    telefono,
+    observaciones
   };
 }
 

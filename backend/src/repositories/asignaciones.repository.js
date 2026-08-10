@@ -1,6 +1,6 @@
 const db = require("../database/query");
 
-const CREATE_FIELDS = ["fecha", "conductor_id", "vehiculo_id", "ruta_id", "destinos", "telefono", "usuario_id", "empresa_id"];
+const CREATE_FIELDS = ["fecha", "conductor_id", "vehiculo_id", "ruta_id", "destinos", "telefono", "observaciones", "usuario_id", "empresa_id"];
 
 // destinos es JSONB (arreglo de { departamento, municipio } en el orden del
 // recorrido) -- se guarda ademas de ruta_id/ruta_nombre para poder
@@ -41,7 +41,7 @@ async function create(asignacion) {
 }
 
 async function update(id, asignacion, empresaId) {
-  const campos = ["conductor_id", "vehiculo_id", "ruta_id", "destinos", "telefono"];
+  const campos = ["conductor_id", "vehiculo_id", "ruta_id", "destinos", "telefono", "observaciones"];
   const assignments = campos.map((field) => `${field} = ?`).join(", ");
   const values = campos.map((field) =>
     field === "destinos" ? serializarDestinos(asignacion.destinos) : asignacion[field] ?? null
