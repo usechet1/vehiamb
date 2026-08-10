@@ -140,7 +140,12 @@ async function evaluarNotificacionInspeccion({ inspeccion, vehiculo, currentUser
   // y el enlace de la app), pero aqui se aprovecha para cargar tambien el
   // detalle que el canal de email necesita (items malos, ubicacion, fecha)
   // sin tener que volver a consultar la BD desde notificaciones-email.channel.js.
-  await notificarUsuariosConPermiso("vehicles.edit", {
+  // Permiso dedicado y no "vehicles.edit" (que era lo que se usaba antes):
+  // quien debe enterarse de un hallazgo no es necesariamente quien puede
+  // editar la ficha del vehiculo, y atar las dos cosas dejaba fuera a los
+  // Operadores en instalaciones donde se configuraron los permisos del rol a
+  // mano. Mismo criterio que documents.alertas_vencimiento.
+  await notificarUsuariosConPermiso("inspections.alertas_hallazgos", {
     tipo: "inspeccion_con_hallazgos",
     mensaje: `El conductor ${currentUser.nombre} inició un viaje con el vehículo ${vehiculo.marca} ${vehiculo.modelo} (${vehiculo.placa}) y la inspección preventiva quedó con ${partes.join(" y ")}.`,
     vehiculo_id: vehiculo.id,
@@ -496,6 +501,7 @@ async function rechazarNotificacion(notificacionId, currentUser) {
 }
 
 module.exports = {
+  ROLES_SIN_NOTIFICACION_AUTOMATICA,
   notificar,
   notificarUsuariosConPermiso,
   evaluarNotificacionInspeccion,
