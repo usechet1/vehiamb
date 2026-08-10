@@ -71,6 +71,52 @@ async function listarUsuarios() {
   console.log(`\nTotal: ${usuarios.length} usuarios (${activos} activos)`);
 }
 
+// "Nadie la recibe" tiene dos causas muy distintas y conviene distinguirlas:
+// que el permiso todavia no exista en la base (falta reiniciar el backend
+// con el codigo nuevo, porque los permisos se siembran en el arranque) o que
+// exista pero ningun rol lo tenga asignado. Sin esto, el diagnostico se
+// confunde con el sintoma.
+async function diagnosticarPermisos() {
+  console.log("\n═══════════ ESTADO DE LOS PERMISOS ═══════════\n");
+
+  const roles = await db.all("SELECT nombre FROM roles WHERE activo = TRUE ORDER BY nombre");
+  console.log(`  Roles activos: ${roles.map((r) => r.nombre).join(", ")}\n`);
+
+  let faltantes = 0;
+  for (const [descripcion, permiso] of ALERTAS) {
+    const fila = await db.get("SELECT id FROM permisos WHERE codigo = ?", [permiso]);
+    if (!fila) {
+      faltantes += 1;
+      console.log(`  ✗ ${permiso}  NO EXISTE en la base  (${descripcion})`);
+      continue;
+    }
+
+    const rolesConPermiso = await db.all(
+      `
+        SELECT r.nombre
+        FROM roles r
+        INNER JOIN roles_permisos rp ON rp.role_id = r.id
+        WHERE rp.permiso_id = ? AND r.activo = TRUE
+        ORDER BY r.nombre
+      `,
+      [fila.id]
+    );
+
+    const asignados = rolesConPermiso.map((r) => r.nombre).join(", ") || "NINGUN ROL";
+    console.log(`  ✓ ${permiso}  →  ${asignados}`);
+  }
+
+  if (faltantes) {
+    console.log(
+      `\n  ⚠  Hay ${faltantes} permiso(s) que no existen todavia en esta base.\n` +
+      "     Los permisos se crean al arrancar el backend, asi que esto suele\n" +
+      "     significar que falta reiniciarlo con el codigo actualizado:\n" +
+      '       schtasks /end /tn "VehiAmbBackend"\n' +
+      '       schtasks /run /tn "VehiAmbBackend"'
+    );
+  }
+}
+
 async function listarDestinatarios() {
   const empresas = await db.all("SELECT id, nombre FROM empresas ORDER BY id");
 
@@ -114,6 +160,7 @@ async function listarDestinatarios() {
 
 (async () => {
   await listarUsuarios();
+  await diagnosticarPermisos();
   await listarDestinatarios();
   console.log(`\nRoles excluidos del reparto automático: ${ROLES_EXCLUIDOS.join(", ")}`);
   process.exit(0);
