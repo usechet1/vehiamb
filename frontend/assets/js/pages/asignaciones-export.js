@@ -223,9 +223,6 @@
             align: "center"
         });
 
-        excel.addLabelValueRow(sheet, "Total de vehículos:", asignaciones.length);
-        sheet.addRow([]);
-
         excel.addTableHeaderRow(sheet, EXCEL_COLUMN_WIDTHS.map((column) => column.label));
 
         asignaciones.forEach((item, indice) => {
