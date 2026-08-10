@@ -197,7 +197,19 @@ Get-Process node -ErrorAction SilentlyContinue
 curl http://localhost:3001/api/health
 ```
 
-Para reiniciar tras un cambio de código (reemplaza al `nssm restart` de antes):
+Para reiniciar tras un cambio de código (reemplaza al `nssm restart` de antes),
+usa el script `scripts/restart-backend.ps1` en vez de los comandos sueltos:
+```powershell
+cd C:\vehiamb\backend
+powershell -ExecutionPolicy Bypass -File .\scripts\restart-backend.ps1
+```
+Hace las tres cosas que hay que hacer en orden — parar la tarea, matar el
+`node.exe` que quede colgado del puerto (identificándolo por su línea de
+comandos, sin tocar otros procesos Node de la máquina), volver a arrancar — y
+al final confirma con `/api/health` que sí quedó respondiendo, en vez de
+asumirlo.
+
+Si preferís los comandos sueltos, el equivalente manual es:
 ```powershell
 schtasks /end /tn "VehiAmbBackend"
 schtasks /run /tn "VehiAmbBackend"
