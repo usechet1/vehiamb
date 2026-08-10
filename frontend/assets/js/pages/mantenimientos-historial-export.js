@@ -209,7 +209,8 @@
         excel.addTitleBar(sheet, {
             title: "Historial de mantenimientos",
             subtitle: APP_NAME,
-            columnCount
+            columnCount,
+            logo: branding?.logo
         });
 
         excel.addLabelValueRow(sheet, "Filtros aplicados:", describeFiltros(filtros));

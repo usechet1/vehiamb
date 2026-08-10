@@ -229,7 +229,8 @@
         excel.addTitleBar(sheet, {
             title: "Reporte de comparendos SIMIT",
             subtitle: APP_NAME,
-            columnCount: EXCEL_COLUMN_COUNT
+            columnCount: EXCEL_COLUMN_COUNT,
+            logo: branding?.logo
         });
 
         excel.addSectionHeader(sheet, "Información general", EXCEL_COLUMN_COUNT);

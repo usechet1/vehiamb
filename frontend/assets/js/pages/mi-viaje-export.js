@@ -371,7 +371,8 @@
         excel.addTitleBar(sheet, {
             title: "Reporte de viajes",
             subtitle: APP_NAME,
-            columnCount
+            columnCount,
+            logo: branding?.logo
         });
 
         excel.addLabelValueRow(sheet, "Filtros aplicados:", describeFiltros(filtros));

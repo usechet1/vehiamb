@@ -217,7 +217,8 @@
         excel.addTitleBar(sheet, {
             title: "Reporte de vehículos",
             subtitle: `Fecha: ${formatFechaLarga(fecha)}`,
-            columnCount
+            columnCount,
+            logo: branding?.logo
         });
 
         excel.addLabelValueRow(sheet, "Total de vehículos:", asignaciones.length);
