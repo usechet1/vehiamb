@@ -62,6 +62,23 @@ const TIPOS = {
 // jobs sin tocar su lógica.
 const RECORDATORIO_UMBRALES_DIAS = [30, 15, 7, 3, 1];
 
+// Roles que NO reciben avisos por canales externos (correo y WhatsApp). Los
+// Conductores tienen permisos de lectura sobre documentos, mantenimientos y
+// actas para poder consultar los suyos en la app, y eso los volvia
+// destinatarios de cada vencimiento de SOAT o mantenimiento proximo de TODA
+// la flota. Ademas su interfaz no tiene campana de notificaciones (ver
+// sidebar.js), asi que el aviso in-app tampoco les aporta: el registro se
+// sigue guardando para la auditoria del panel de administracion, pero no se
+// les manda nada al correo ni al celular.
+const ROLES_SIN_CANALES_EXTERNOS = ["Conductor"];
+
+// Los canales resuelven el rol igual que auth.service.js (role_nombre es el
+// nombre vigente de la tabla roles; u.rol es la columna heredada).
+function recibeCanalesExternos(usuario) {
+  const rol = usuario?.role_nombre || usuario?.rol;
+  return !ROLES_SIN_CANALES_EXTERNOS.includes(rol);
+}
+
 function normalizarPrioridad(prioridad) {
   return PRIORIDAD_LEGACY_ALIAS[prioridad] || prioridad || "media";
 }
@@ -80,6 +97,8 @@ module.exports = {
   PRIORIDADES,
   TIPOS,
   RECORDATORIO_UMBRALES_DIAS,
+  ROLES_SIN_CANALES_EXTERNOS,
+  recibeCanalesExternos,
   normalizarPrioridad,
   tipoConfig,
   ordenPrioridad

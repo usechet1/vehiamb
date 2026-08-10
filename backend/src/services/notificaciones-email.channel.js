@@ -159,6 +159,7 @@ async function emailChannel(notificacion) {
 
     const usuario = await usuariosRepository.findById(notificacion.usuario_id, notificacion.empresa_id);
     if (!usuario?.email) return;
+    if (!notifConfig.recibeCanalesExternos(usuario)) return;
 
     const { subject, html } = construirCorreo(notificacion);
 

@@ -235,6 +235,8 @@ async function whatsappChannel(notificacion) {
     if (!debeEnviarPorPrioridad(notificacion.prioridad)) return;
 
     const usuario = await usuariosRepository.findById(notificacion.usuario_id, notificacion.empresa_id);
+    if (!notifConfig.recibeCanalesExternos(usuario)) return;
+
     const celular = normalizarCelular(usuario?.celular);
     if (!celular) return;
 
