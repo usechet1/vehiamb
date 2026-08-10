@@ -166,8 +166,22 @@ notepad C:\vehiamb\backend\run_backend.bat
 ```bat
 @echo off
 cd /d C:\vehiamb\backend
-node server.js
+if not exist logs mkdir logs
+if exist logs\backend.prev.log del logs\backend.prev.log
+if exist logs\backend.log move /y logs\backend.log logs\backend.prev.log >nul
+node server.js >> logs\backend.log 2>&1
 ```
+
+`>> logs\backend.log 2>&1` guarda salida y errores en un archivo. Sin esto, la
+consola del backend no existe en ningún lado y sus errores se pierden — que es
+exactamente cómo un fallo de migración en el arranque pasó desapercibido
+(la app respondía normal, pero un permiso recién agregado nunca se creó).
+
+Las tres líneas de rotación conservan el log del arranque anterior en
+`backend.prev.log` antes de empezar uno nuevo, para que reiniciar no borre la
+evidencia de por qué se cayó. Solo rota entre arranques: si el proceso corre
+meses sin reiniciarse, `backend.log` crece sin límite y conviene vaciarlo a
+mano de vez en cuando.
 
 Crea la tarea programada (ajusta `user2` a tu usuario real de RDP):
 ```powershell
@@ -187,6 +201,48 @@ Para reiniciar tras un cambio de código (reemplaza al `nssm restart` de antes):
 ```powershell
 schtasks /end /tn "VehiAmbBackend"
 schtasks /run /tn "VehiAmbBackend"
+```
+
+⚠️ **El `/end` es obligatorio, y hay que verificar que surtió efecto.**
+`schtasks /run` sobre una tarea que ya está corriendo no la reinicia, y
+`/end` no siempre alcanza a matar el `node.exe` hijo. El síntoma es
+desconcertante: la carpeta ya tiene el código nuevo (`git log` lo confirma)
+pero el proceso en memoria sigue ejecutando el viejo, así que los cambios
+"no se aplican" sin ningún error a la vista. Verifica que el puerto quedó
+libre antes de arrancar de nuevo:
+```powershell
+schtasks /end /tn "VehiAmbBackend"
+Get-NetTCPConnection -LocalPort 3001 -State Listen -ErrorAction SilentlyContinue | Select-Object OwningProcess
+# si todavía devuelve un PID:  Stop-Process -Id <PID> -Force
+schtasks /run /tn "VehiAmbBackend"
+```
+
+**No mates procesos `node` a ciegas.** En este servidor conviven otras
+herramientas Node (CLIs, etc.) y todas se ven igual en `Get-Process node`
+—mismo nombre, mismo `Path`—. Lo que las distingue es la línea de comandos:
+```powershell
+$p3001 = (Get-NetTCPConnection -LocalPort 3001 -State Listen -ErrorAction SilentlyContinue).OwningProcess
+Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Select-Object `
+  @{N='PID';E={$_.ProcessId}}, @{N='Arranco';E={$_.CreationDate}}, `
+  @{N='Puerto3001';E={if ($p3001 -contains $_.ProcessId) {'SI'} else {'no'}}}, `
+  @{N='Comando';E={$_.CommandLine}} | Format-List
+```
+El backend es el que muestra `server.js` y `Puerto3001 : SI`.
+
+Para revisar los logs después de un arranque:
+```powershell
+Get-Content C:\vehiamb\backend\logs\backend.log -Tail 40
+Get-Content C:\vehiamb\backend\logs\backend.log -Wait   # en vivo
+```
+Un arranque sano termina con `Columnas PostgreSQL verificadas`. Si en cambio
+aparece `[init] Fallo una migracion de Postgres`, el stack indica el paso
+exacto; el arranque continúa igual y siembra permisos y usuarios, y la
+migración pendiente se reintenta sola en el siguiente arranque.
+
+Para auditar quién recibe cada alerta (y detectar permisos sin sembrar):
+```powershell
+cd C:\vehiamb\backend
+node scripts/destinatarios-notificaciones.js
 ```
 
 Si en el futuro se resuelve el acceso de red con una cuenta dedicada de bajo
