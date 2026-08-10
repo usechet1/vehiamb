@@ -29,13 +29,15 @@ async function createWorkbook() {
  * un recuadro blanco a la izquierda del titulo -- igual disposicion que el
  * encabezado del PDF: logo + banda roja al lado, no una encima de otra.
  */
-function addTitleBar(worksheet, { title, subtitle, columnCount, logo }) {
+function addTitleBar(worksheet, { title, subtitle, columnCount, logo, size = 13, align = "left" }) {
     const usaLogo = Boolean(logo);
     const colInicioTitulo = usaLogo ? 2 : 1;
     // 46pt de alto (vs. 26pt sin logo) para que el logo entre con margen --
     // el banner del PDF mide 60pt, pero una fila de Excel tan alta se ve
     // desproporcionada al lado del resto de filas del reporte.
-    const alturaFila = usaLogo ? 46 : 26;
+    // Con un tamano de letra mayor al default, la fila necesita ese mismo
+    // extra de alto o el texto queda apretado contra el borde.
+    const alturaFila = Math.max(usaLogo ? 46 : 26, size * 2);
 
     if (usaLogo) {
         // La columna 1 del reporte (ej. "#") suele ser mas angosta que el
@@ -58,8 +60,12 @@ function addTitleBar(worksheet, { title, subtitle, columnCount, logo }) {
 
     const celdaTitulo = row.getCell(colInicioTitulo);
     celdaTitulo.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BRAND_RED } };
-    celdaTitulo.font = { bold: true, size: 13, color: { argb: "FFFFFFFF" } };
-    celdaTitulo.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
+    celdaTitulo.font = { bold: true, size, color: { argb: "FFFFFFFF" } };
+    // El indent solo tiene sentido alineado a la izquierda -- centrado no
+    // necesita ese empujon y se ve descuadrado si se deja.
+    celdaTitulo.alignment = align === "center"
+        ? { vertical: "middle", horizontal: "center" }
+        : { vertical: "middle", horizontal: "left", indent: 1 };
 
     if (usaLogo) {
         row.getCell(1).border = CELL_BORDER;
@@ -88,7 +94,9 @@ function addTitleBar(worksheet, { title, subtitle, columnCount, logo }) {
         const subRow = worksheet.addRow(usaLogo ? [null, subtitle] : [subtitle]);
         worksheet.mergeCells(subRow.number, colInicioTitulo, subRow.number, columnCount);
         subRow.getCell(colInicioTitulo).font = { italic: true, size: 9, color: { argb: BRAND_MUTED } };
-        subRow.getCell(colInicioTitulo).alignment = { indent: 1 };
+        subRow.getCell(colInicioTitulo).alignment = align === "center"
+            ? { horizontal: "center" }
+            : { indent: 1 };
     }
 
     worksheet.addRow([]);

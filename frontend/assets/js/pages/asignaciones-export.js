@@ -215,10 +215,12 @@
         excel.setColumnWidths(sheet, EXCEL_COLUMN_WIDTHS.map((column) => column.width));
 
         excel.addTitleBar(sheet, {
-            title: "Reporte de vehículos",
+            title: "REPORTE DE VEHÍCULOS",
             subtitle: `Fecha: ${formatFechaLarga(fecha)}`,
             columnCount,
-            logo: branding?.logo
+            logo: branding?.logo,
+            size: 18,
+            align: "center"
         });
 
         excel.addLabelValueRow(sheet, "Total de vehículos:", asignaciones.length);
