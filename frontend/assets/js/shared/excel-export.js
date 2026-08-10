@@ -24,20 +24,71 @@ async function createWorkbook() {
 
 /**
  * Barra de titulo roja de marca, igual al encabezado de los reportes PDF.
+ * Si se pasa "logo" (el mismo objeto { dataUrl, width, height } que ya
+ * arma getEmpresaBranding() para el PDF, ver pdf-export.js), lo incrusta en
+ * un recuadro blanco a la izquierda del titulo -- igual disposicion que el
+ * encabezado del PDF: logo + banda roja al lado, no una encima de otra.
  */
-function addTitleBar(worksheet, { title, subtitle, columnCount }) {
-    const row = worksheet.addRow([title]);
-    worksheet.mergeCells(row.number, 1, row.number, columnCount);
-    row.height = 26;
-    row.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: BRAND_RED } };
-    row.getCell(1).font = { bold: true, size: 13, color: { argb: "FFFFFFFF" } };
-    row.getCell(1).alignment = { vertical: "middle", horizontal: "left", indent: 1 };
+function addTitleBar(worksheet, { title, subtitle, columnCount, logo }) {
+    const usaLogo = Boolean(logo);
+    const colInicioTitulo = usaLogo ? 2 : 1;
+    // 46pt de alto (vs. 26pt sin logo) para que el logo entre con margen --
+    // el banner del PDF mide 60pt, pero una fila de Excel tan alta se ve
+    // desproporcionada al lado del resto de filas del reporte.
+    const alturaFila = usaLogo ? 46 : 26;
+
+    if (usaLogo) {
+        // La columna 1 del reporte (ej. "#") suele ser mas angosta que el
+        // logo -- una imagen flotante no la ensancha sola, asi que si hace
+        // falta se agranda un poco para que el logo no se monte sobre el
+        // titulo de la columna 2.
+        const columnaLogo = worksheet.getColumn(1);
+        const anchoMinimo = 14;
+        if (!columnaLogo.width || columnaLogo.width < anchoMinimo) {
+            columnaLogo.width = anchoMinimo;
+        }
+    }
+
+    const row = worksheet.addRow(usaLogo ? [null, title] : [title]);
+    row.height = alturaFila;
+
+    if (columnCount > colInicioTitulo) {
+        worksheet.mergeCells(row.number, colInicioTitulo, row.number, columnCount);
+    }
+
+    const celdaTitulo = row.getCell(colInicioTitulo);
+    celdaTitulo.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BRAND_RED } };
+    celdaTitulo.font = { bold: true, size: 13, color: { argb: "FFFFFFFF" } };
+    celdaTitulo.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
+
+    if (usaLogo) {
+        row.getCell(1).border = CELL_BORDER;
+
+        // ExcelJS solo acepta la parte base64 pura (sin el prefijo
+        // "data:image/jpeg;base64,"), a diferencia de jsPDF que sí recibe el
+        // data URL completo.
+        const base64 = logo.dataUrl.split(",")[1] || logo.dataUrl;
+        const imageId = worksheet.workbook.addImage({ base64, extension: "jpeg" });
+
+        // Mismo criterio de escala-a-caber que el logo del PDF
+        // (getEmpresaBranding/addEncabezado en cada *-export.js): se respeta
+        // la proporcion real del logo en vez de estirarlo a un cuadrado.
+        const alturaFilaPx = alturaFila * (96 / 72);
+        const anchoMaximoPx = 90;
+        const altoMaximoPx = alturaFilaPx - 8;
+        const escala = Math.min(anchoMaximoPx / logo.width, altoMaximoPx / logo.height, 1);
+
+        worksheet.addImage(imageId, {
+            tl: { col: 0.15, row: row.number - 1 + 0.1 },
+            ext: { width: logo.width * escala, height: logo.height * escala }
+        });
+    }
 
     if (subtitle) {
-        const subRow = worksheet.addRow([subtitle]);
-        worksheet.mergeCells(subRow.number, 1, subRow.number, columnCount);
-        subRow.getCell(1).font = { italic: true, size: 9, color: { argb: BRAND_MUTED } };
-        subRow.getCell(1).alignment = { indent: 1 };
+        const subRow = worksheet.addRow(usaLogo ? [null, subtitle] : [subtitle]);
+        worksheet.mergeCells(subRow.number, colInicioTitulo, subRow.number, columnCount);
+        subRow.getCell(colInicioTitulo).font = { italic: true, size: 9, color: { argb: BRAND_MUTED } };
+        subRow.getCell(colInicioTitulo).alignment = { indent: 1 };
     }
 
     worksheet.addRow([]);

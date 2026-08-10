@@ -271,7 +271,8 @@
         excel.addTitleBar(sheet, {
             title: "Reporte de mantenimiento",
             subtitle: APP_NAME,
-            columnCount: EXCEL_COLUMN_COUNT
+            columnCount: EXCEL_COLUMN_COUNT,
+            logo: branding?.logo
         });
 
         excel.addSectionHeader(sheet, "Información general", EXCEL_COLUMN_COUNT);
