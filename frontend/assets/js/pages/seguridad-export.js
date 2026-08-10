@@ -29,7 +29,7 @@
         return `${nombres || ""} ${apellidos || ""}`.trim();
     }
 
-    async function addEncabezado(doc, branding, inspeccion) {
+    async function addEncabezado(doc, branding, inspeccion, tituloLinea1, tituloLinea2) {
         const pageWidth = doc.internal.pageSize.getWidth();
         const bannerX = MARGIN_X + 120;
         const bannerHeight = 60;
@@ -51,9 +51,9 @@
         doc.setTextColor(255, 255, 255);
         doc.setFont(undefined, "bold");
         doc.setFontSize(14);
-        doc.text("FORMATO INSPECCIÓN DE BOTIQUINES", bannerX + (pageWidth - MARGIN_X - bannerX) / 2, bannerY + bannerHeight / 2 - 2, { align: "center" });
+        doc.text(tituloLinea1, bannerX + (pageWidth - MARGIN_X - bannerX) / 2, bannerY + bannerHeight / 2 - 2, { align: "center" });
         doc.setFontSize(11);
-        doc.text("VEHÍCULOS", bannerX + (pageWidth - MARGIN_X - bannerX) / 2, bannerY + bannerHeight / 2 + 14, { align: "center" });
+        doc.text(tituloLinea2, bannerX + (pageWidth - MARGIN_X - bannerX) / 2, bannerY + bannerHeight / 2 + 14, { align: "center" });
 
         // Bloque de datos de la cabecera del formato, en dos columnas.
         let y = bannerY + bannerHeight + 16;
@@ -100,7 +100,7 @@
         return y + ROW_HEIGHT;
     }
 
-    function addTablaItems(doc, startY, items) {
+    function addTablaItems(doc, startY, items, columnaContenidoLabel) {
         const pageWidth = doc.internal.pageSize.getWidth();
         const bottomLimit = doc.internal.pageSize.getHeight() - 90;
         const tableWidth = pageWidth - MARGIN_X * 2;
@@ -111,7 +111,7 @@
         const anchoContenido = tableWidth - (anchoEstado + anchoCantidad + anchoVencimiento);
 
         const columns = [
-            { label: "CONTENIDO BOTIQUÍN PRIMEROS AUXILIOS", x: MARGIN_X, width: anchoContenido },
+            { label: columnaContenidoLabel, x: MARGIN_X, width: anchoContenido },
             { label: "ESTADO", x: MARGIN_X + anchoContenido, width: anchoEstado },
             { label: "CANTIDAD", x: MARGIN_X + anchoContenido + anchoEstado, width: anchoCantidad },
             { label: "VENCIMIENTO", x: MARGIN_X + anchoContenido + anchoEstado + anchoCantidad, width: anchoVencimiento }
@@ -240,7 +240,13 @@
         }
     }
 
-    async function exportInspeccionBotiquinPdf(inspeccion) {
+    // Compartida entre botiquin y kit de herramientas: el dibujo del PDF es
+    // identico en los dos (mismo encabezado con logo, misma tabla de items,
+    // mismo cierre con revisado-por/observaciones), solo cambia el titulo
+    // del banner, el encabezado de la columna de contenido y el nombre del
+    // archivo. Mismo criterio de reuso que normalizarItemsChecklist en
+    // seguridad.service.js.
+    async function exportInspeccionChecklistPdf(inspeccion, { tituloLinea1, tituloLinea2, columnaContenidoLabel, filePrefix }) {
         if (!inspeccion || !inspeccion.items?.length) {
             throw new Error("La inspección no tiene ítems para exportar");
         }
@@ -248,14 +254,32 @@
         const doc = await window.VehiAmb.pdfExport.createDocument();
         const branding = await window.VehiAmb.pdfExport.getEmpresaBranding();
 
-        const startY = await addEncabezado(doc, branding, inspeccion);
-        const tablaY = addTablaItems(doc, startY, inspeccion.items);
+        const startY = await addEncabezado(doc, branding, inspeccion, tituloLinea1, tituloLinea2);
+        const tablaY = addTablaItems(doc, startY, inspeccion.items, columnaContenidoLabel);
         addCierre(doc, tablaY, inspeccion);
         await addFooter(doc, branding);
 
-        doc.save(`inspeccion-botiquin-${inspeccion.placa || "vehiculo"}-${String(inspeccion.fecha).slice(0, 10)}.pdf`);
+        doc.save(`${filePrefix}-${inspeccion.placa || "vehiculo"}-${String(inspeccion.fecha).slice(0, 10)}.pdf`);
+    }
+
+    function exportInspeccionBotiquinPdf(inspeccion) {
+        return exportInspeccionChecklistPdf(inspeccion, {
+            tituloLinea1: "FORMATO INSPECCIÓN DE BOTIQUINES",
+            tituloLinea2: "VEHÍCULOS",
+            columnaContenidoLabel: "CONTENIDO BOTIQUÍN PRIMEROS AUXILIOS",
+            filePrefix: "inspeccion-botiquin"
+        });
+    }
+
+    function exportInspeccionHerramientasPdf(inspeccion) {
+        return exportInspeccionChecklistPdf(inspeccion, {
+            tituloLinea1: "FORMATO INSPECCIÓN DE KIT DE",
+            tituloLinea2: "HERRAMIENTAS VEHÍCULOS",
+            columnaContenidoLabel: "CONTENIDO KIT DE HERRAMIENTAS",
+            filePrefix: "inspeccion-herramientas"
+        });
     }
 
     window.VehiAmb = window.VehiAmb || {};
-    window.VehiAmb.seguridadExport = { exportInspeccionBotiquinPdf };
+    window.VehiAmb.seguridadExport = { exportInspeccionBotiquinPdf, exportInspeccionHerramientasPdf };
 })();

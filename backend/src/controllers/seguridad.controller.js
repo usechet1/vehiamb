@@ -50,3 +50,34 @@ exports.deleteInspeccionBotiquin = async (req, res) => {
   await seguridadService.eliminarInspeccion(req.params.id, req.empresaId);
   res.status(204).send();
 };
+
+exports.getCatalogoHerramientas = async (req, res) => {
+  res.json(seguridadService.getCatalogoHerramientas());
+};
+
+exports.getInspeccionesHerramientas = async (req, res) => {
+  const inspecciones = await seguridadService.listarInspeccionesHerramientas(
+    {
+      vehiculoId: req.query.vehiculo_id || null,
+      fechaDesde: req.query.fecha_desde || null,
+      fechaHasta: req.query.fecha_hasta || null
+    },
+    req.empresaId
+  );
+  res.json(inspecciones);
+};
+
+exports.getInspeccionHerramientas = async (req, res) => {
+  const inspeccion = await seguridadService.obtenerInspeccionHerramientas(req.params.id, req.empresaId);
+  res.json(inspeccion);
+};
+
+exports.createInspeccionHerramientas = async (req, res) => {
+  const inspeccion = await seguridadService.crearInspeccionHerramientas(req.body, req.user);
+  res.status(201).json(inspeccion);
+};
+
+exports.deleteInspeccionHerramientas = async (req, res) => {
+  await seguridadService.eliminarInspeccionHerramientas(req.params.id, req.empresaId);
+  res.status(204).send();
+};

@@ -1330,5 +1330,55 @@ window.VehiAmb.api = {
             { method: "DELETE" },
             "No se pudo eliminar la inspección de botiquín"
         );
+    },
+
+    getCatalogoHerramientas() {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/seguridad/herramientas/catalogo`,
+            undefined,
+            "No se pudo cargar el listado de herramientas"
+        );
+    },
+
+    getInspeccionesHerramientas(filtros = {}) {
+        const params = new URLSearchParams();
+        if (filtros.vehiculo_id) params.set("vehiculo_id", filtros.vehiculo_id);
+        if (filtros.fecha_desde) params.set("fecha_desde", filtros.fecha_desde);
+        if (filtros.fecha_hasta) params.set("fecha_hasta", filtros.fecha_hasta);
+
+        const query = params.toString();
+        return requestJson(
+            `${window.VehiAmb.API_URL}/seguridad/herramientas${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudieron cargar las inspecciones de kit de herramientas"
+        );
+    },
+
+    getInspeccionHerramientas(id) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/seguridad/herramientas/${id}`,
+            undefined,
+            "No se pudo cargar la inspección de kit de herramientas"
+        );
+    },
+
+    crearInspeccionHerramientas(payload) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/seguridad/herramientas`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            },
+            "No se pudo guardar la inspección de kit de herramientas"
+        );
+    },
+
+    eliminarInspeccionHerramientas(id) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/seguridad/herramientas/${id}`,
+            { method: "DELETE" },
+            "No se pudo eliminar la inspección de kit de herramientas"
+        );
     }
 };

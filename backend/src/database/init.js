@@ -47,6 +47,24 @@ async function ensureNumericColumn(tableName, columnName, precision = "12, 2") {
 // nombres, resto = apellidos, mejor esfuerzo) y se elimina la columna vieja.
 // En una instalacion nueva "nombre" nunca existio (ver ensurePostgresTables),
 // asi que columnExists devuelve false y esta funcion no hace nada.
+// Le asigna un correlativo (1, 2, 3... por empresa, en el orden en que se
+// crearon) a los extintores registrados antes de que la columna existiera.
+// De ahi en adelante el correlativo lo asigna el servicio al crear
+// (findSiguienteConsecutivo en extintores.repository.js); este backfill es
+// solo para no dejar en blanco los que ya estaban.
+async function backfillExtintoresConsecutivo() {
+  await db.run(`
+    UPDATE extintores e
+    SET consecutivo = sub.rn
+    FROM (
+      SELECT id, ROW_NUMBER() OVER (PARTITION BY empresa_id ORDER BY id ASC) AS rn
+      FROM extintores
+      WHERE consecutivo IS NULL
+    ) sub
+    WHERE e.id = sub.id
+  `);
+}
+
 async function migrarConductoresNombreSplit() {
   if (!(await columnExists("conductores", "nombre"))) return;
 
@@ -207,7 +225,8 @@ const PERMISSIONS = [
   ["asignaciones.create", "Asignaciones", "Crear, editar y eliminar asignaciones de ruta"],
   ["seguridad.view", "Seguridad y Salud", "Ver los registros de extintores e inspecciones de botiquin"],
   ["seguridad.create", "Seguridad y Salud", "Registrar extintores e inspecciones de botiquin"],
-  ["seguridad.delete", "Seguridad y Salud", "Eliminar registros de extintores e inspecciones de botiquin"]
+  ["seguridad.delete", "Seguridad y Salud", "Eliminar registros de extintores e inspecciones de botiquin"],
+  ["notificaciones.comentar", "Notificaciones", "Comentar y adjuntar evidencia en notificaciones"]
 ];
 
 const ROLE_PERMISSIONS = {
@@ -364,7 +383,8 @@ const PERMISOS_NUEVOS_POR_ROL = {
   "logs.view": ["Administrador"],
   "seguridad.view": ["Administrador", "Operador", "Consulta"],
   "seguridad.create": ["Administrador", "Operador"],
-  "seguridad.delete": ["Administrador"]
+  "seguridad.delete": ["Administrador"],
+  "notificaciones.comentar": ["Administrador", "Operador"]
 };
 
 async function grantPermisosNuevos() {
@@ -1149,6 +1169,22 @@ async function ensurePostgresTables() {
       creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+  // Creacion nueva tabla para agregar comentarios en el apartado de notificaciones.
+  await db.run(`
+     CREATE TABLE IF NOT EXISTS notificacion_comentarios (
+    id BIGSERIAL PRIMARY KEY,
+    referencia_tipo TEXT NOT NULL,
+    referencia_id BIGINT NOT NULL,
+    usuario_id BIGINT REFERENCES usuarios(id),
+    comentario TEXT NOT NULL,
+    foto_url TEXT,
+    foto_nombre TEXT,
+    foto_mime TEXT,
+    empresa_id BIGINT NOT NULL REFERENCES empresas(id),
+    creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )
+`);
+
 
   // ── Seguridad y Salud en el Trabajo (SG-SST) ── Extintores y botiquines de
   // los vehiculos. Dos registros separados (no una tabla con discriminador)
@@ -1201,6 +1237,43 @@ async function ensurePostgresTables() {
     CREATE TABLE IF NOT EXISTS botiquin_items (
       id BIGSERIAL PRIMARY KEY,
       inspeccion_id BIGINT NOT NULL REFERENCES inspecciones_botiquin(id) ON DELETE CASCADE,
+      item_codigo TEXT NOT NULL,
+      item_label TEXT NOT NULL,
+      estado TEXT NOT NULL DEFAULT 'bueno',
+      cantidad INTEGER,
+      fecha_vencimiento DATE,
+      empresa_id BIGINT NOT NULL REFERENCES empresas(id),
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  // Mismo par cabecera+items que inspecciones_botiquin/botiquin_items de
+  // arriba, para el kit de herramientas -- el catalogo de items reutiliza
+  // los mismos 9 codigos ("kit_alicate", "kit_gato", etc.) que ya existen
+  // como sub-items de la inspeccion preventiva (ver ITEMS_CHECKLIST en
+  // inspecciones.service.js), asi que la lista no queda inventada dos veces.
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS inspecciones_herramientas (
+      id BIGSERIAL PRIMARY KEY,
+      vehiculo_id BIGINT NOT NULL REFERENCES vehiculos(id) ON DELETE CASCADE,
+      fecha DATE NOT NULL,
+      inspeccionado_por_nombres TEXT NOT NULL,
+      inspeccionado_por_apellidos TEXT NOT NULL,
+      inspeccionado_por_cargo TEXT,
+      revisado_por_nombres TEXT,
+      revisado_por_apellidos TEXT,
+      revisado_por_cargo TEXT,
+      observaciones TEXT,
+      usuario_id BIGINT REFERENCES usuarios(id),
+      empresa_id BIGINT NOT NULL REFERENCES empresas(id),
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS herramientas_items (
+      id BIGSERIAL PRIMARY KEY,
+      inspeccion_id BIGINT NOT NULL REFERENCES inspecciones_herramientas(id) ON DELETE CASCADE,
       item_codigo TEXT NOT NULL,
       item_label TEXT NOT NULL,
       estado TEXT NOT NULL DEFAULT 'bueno',
@@ -1265,6 +1338,9 @@ async function ensurePostgresTables() {
   await db.run("CREATE INDEX IF NOT EXISTS idx_inspecciones_botiquin_vehiculo_id ON inspecciones_botiquin (vehiculo_id, fecha DESC)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_inspecciones_botiquin_empresa_id ON inspecciones_botiquin (empresa_id, fecha DESC)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_botiquin_items_inspeccion_id ON botiquin_items (inspeccion_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_inspecciones_herramientas_vehiculo_id ON inspecciones_herramientas (vehiculo_id, fecha DESC)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_inspecciones_herramientas_empresa_id ON inspecciones_herramientas (empresa_id, fecha DESC)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_herramientas_items_inspeccion_id ON herramientas_items (inspeccion_id)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_usuario_id ON password_reset_tokens (usuario_id)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token_hash ON password_reset_tokens (token_hash)");
 
@@ -1815,8 +1891,11 @@ if (env.dbClient === "sqlite") {
       ensureColumn("inspecciones_preventivas", "firma_url", "TEXT"),
       ensureColumn("preoperacionales", "firma_url", "TEXT"),
       ensureColumn("asignaciones_ruta", "destinos", "JSONB"),
-      ensureColumn("asignaciones_ruta", "observaciones", "TEXT")
+      ensureColumn("asignaciones_ruta", "observaciones", "TEXT"),
+      ensureColumn("extintores", "libras", "NUMERIC(5,1)"),
+      ensureColumn("extintores", "consecutivo", "INTEGER")
     ]))
+    .then(backfillExtintoresConsecutivo)
     .then(migrarConductoresNombreSplit)
     .then(migrarEntregasConductorAUsuario)
     .then(migrarTarjetaOperacionASeguro)

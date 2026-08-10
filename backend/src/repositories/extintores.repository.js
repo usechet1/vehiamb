@@ -1,6 +1,6 @@
 const db = require("../database/query");
 
-const EXTINTOR_FIELDS = ["vehiculo_id", "codigo", "fecha_vencimiento", "usuario_id", "empresa_id"];
+const EXTINTOR_FIELDS = ["vehiculo_id", "codigo", "libras", "fecha_vencimiento", "consecutivo", "usuario_id", "empresa_id"];
 
 async function findAll(empresaId) {
   return db.all(
@@ -13,6 +13,17 @@ async function findAll(empresaId) {
     `,
     [empresaId]
   );
+}
+
+// El consecutivo es un correlativo por empresa (1, 2, 3...), asignado por el
+// servicio antes de crear -- nunca lo escribe el usuario. Mismo patron que
+// findSiguienteNumeroCodigo en repuestos.repository.js, pero mas simple aca
+// porque no hay prefijo de texto que extraer: la columna ya es entera.
+async function findSiguienteConsecutivo(empresaId) {
+  const row = await db.get("SELECT COALESCE(MAX(consecutivo), 0) AS max_actual FROM extintores WHERE empresa_id = ?", [
+    empresaId
+  ]);
+  return Number(row?.max_actual || 0) + 1;
 }
 
 async function findByVehiculo(vehiculoId, empresaId) {
@@ -42,7 +53,8 @@ async function create(extintor) {
 }
 
 // usuario_id no se reasigna en el update: queda quien lo registro originalmente.
-const CAMPOS_EDITABLES = ["vehiculo_id", "codigo", "fecha_vencimiento"];
+// consecutivo tampoco: es un correlativo asignado una sola vez al crear.
+const CAMPOS_EDITABLES = ["vehiculo_id", "codigo", "libras", "fecha_vencimiento"];
 
 async function update(id, extintor, empresaId) {
   const assignments = CAMPOS_EDITABLES.map((field) => `${field} = ?`).join(", ");
@@ -62,6 +74,7 @@ module.exports = {
   findAll,
   findByVehiculo,
   findById,
+  findSiguienteConsecutivo,
   create,
   update,
   remove
