@@ -175,7 +175,7 @@ async function findPermissionsByUserId(userId) {
 async function findByPermission(permissionCode, empresaId) {
   return db.all(
     `
-      SELECT DISTINCT u.id, u.nombre, u.email
+      SELECT DISTINCT u.id, u.nombre, u.email, r.nombre AS rol
       FROM usuarios u
       INNER JOIN roles r ON r.id = u.role_id
       INNER JOIN roles_permisos rp ON rp.role_id = r.id

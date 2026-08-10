@@ -101,11 +101,21 @@ async function notificar({
   return notificacion;
 }
 
+// SuperAdministrador es la cuenta tecnica sembrada desde el .env, no una
+// persona que vaya a actuar sobre la alerta -- y como su rol deriva de
+// PERMISSIONS.map(...), tiene TODOS los permisos, asi que calzaba en cada
+// llamada a notificarUsuariosConPermiso y recibia por correo/WhatsApp todas
+// las alertas de todas las empresas a las que pertenece. Queda excluida del
+// reparto automatico; las notificaciones dirigidas a un usuario concreto
+// (notificar con usuario_id explicito) no pasan por aqui y no se ven afectadas.
+const ROLES_SIN_NOTIFICACION_AUTOMATICA = ["SuperAdministrador"];
+
 async function notificarUsuariosConPermiso(permissionCode, payload, empresaId) {
   const usuarios = await usuariosRepository.findByPermission(permissionCode, empresaId);
+  const destinatarios = usuarios.filter((usuario) => !ROLES_SIN_NOTIFICACION_AUTOMATICA.includes(usuario.rol));
 
   return Promise.all(
-    usuarios.map((usuario) => notificar({ ...payload, usuario_id: usuario.id, empresa_id: empresaId }))
+    destinatarios.map((usuario) => notificar({ ...payload, usuario_id: usuario.id, empresa_id: empresaId }))
   );
 }
 
