@@ -17,4 +17,10 @@ router.get("/botiquin/:id", requirePermission("seguridad.view"), asyncHandler(se
 router.post("/botiquin", requirePermission("seguridad.create"), asyncHandler(seguridadController.createInspeccionBotiquin));
 router.delete("/botiquin/:id", requirePermission("seguridad.delete"), asyncHandler(seguridadController.deleteInspeccionBotiquin));
 
+router.get("/herramientas/catalogo", requirePermission("seguridad.view"), asyncHandler(seguridadController.getCatalogoHerramientas));
+router.get("/herramientas", requirePermission("seguridad.view"), asyncHandler(seguridadController.getInspeccionesHerramientas));
+router.get("/herramientas/:id", requirePermission("seguridad.view"), asyncHandler(seguridadController.getInspeccionHerramientas));
+router.post("/herramientas", requirePermission("seguridad.create"), asyncHandler(seguridadController.createInspeccionHerramientas));
+router.delete("/herramientas/:id", requirePermission("seguridad.delete"), asyncHandler(seguridadController.deleteInspeccionHerramientas));
+
 module.exports = router;

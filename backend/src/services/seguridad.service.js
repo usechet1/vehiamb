@@ -3,6 +3,8 @@ const vehiculosRepository = require("../repositories/vehiculos.repository");
 const extintoresRepository = require("../repositories/extintores.repository");
 const inspeccionesBotiquinRepository = require("../repositories/inspecciones-botiquin.repository");
 const botiquinItemsRepository = require("../repositories/botiquin-items.repository");
+const inspeccionesHerramientasRepository = require("../repositories/inspecciones-herramientas.repository");
+const herramientasItemsRepository = require("../repositories/herramientas-items.repository");
 
 // Catalogo fijo del "FORMATO INSPECCION DE BOTIQUINES VEHICULOS"
 // (SG-SST-FT, version 001 del 21-10-2024). El orden de esta lista es el orden
@@ -34,12 +36,37 @@ const ITEMS_BOTIQUIN = [
 
 const ITEMS_POR_CODIGO = new Map(ITEMS_BOTIQUIN.map((item) => [item.codigo, item]));
 
+// Mismos 9 codigos ("kit_alicate", "kit_gato", etc.) que ya existen como
+// sub-items del grupo "kit_herramientas" dentro del checklist de la
+// inspeccion preventiva (ver ITEMS_CHECKLIST en inspecciones.service.js) --
+// se copian los codigos/labels aca en vez de importarlos porque ese
+// catalogo vive mezclado con el resto de items del chequeo de ruta
+// (llantas, luces, etc.) y aca solo hace falta el subconjunto de
+// herramientas, con su propio formato de inspeccion detallada.
+const ITEMS_HERRAMIENTAS = [
+  { codigo: "kit_alicate", label: "Alicate" },
+  { codigo: "kit_destornilladores", label: "Destornilladores" },
+  { codigo: "kit_llave_expansion", label: "Llave de expansión" },
+  { codigo: "kit_llaves_fijas", label: "Llaves fijas" },
+  { codigo: "kit_gato", label: "Gato" },
+  { codigo: "kit_cruceta", label: "Cruceta" },
+  { codigo: "kit_senales", label: "Señales de carretera" },
+  { codigo: "kit_tacos", label: "Tacos para bloquear el vehículo" },
+  { codigo: "kit_linterna", label: "Linterna" }
+];
+
+const ITEMS_HERRAMIENTAS_POR_CODIGO = new Map(ITEMS_HERRAMIENTAS.map((item) => [item.codigo, item]));
+
 const ESTADOS_VALIDOS = new Set(["bueno", "malo"]);
 
 const FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 function getCatalogoBotiquin() {
   return ITEMS_BOTIQUIN;
+}
+
+function getCatalogoHerramientas() {
+  return ITEMS_HERRAMIENTAS;
 }
 
 function texto(valor, maximo = 200) {
@@ -86,9 +113,15 @@ function normalizarExtintor(payload) {
     throw new HttpError(400, "El código del extintor es obligatorio");
   }
 
+  const libras = Number(payload.libras);
+  if (!Number.isFinite(libras) || libras <= 0) {
+    throw new HttpError(400, "Las libras del extintor deben ser un número mayor a cero");
+  }
+
   return {
     vehiculo_id: payload.vehiculo_id ? Number(payload.vehiculo_id) : null,
     codigo,
+    libras,
     fecha_vencimiento: fechaObligatoria(payload.fecha_vencimiento, "La fecha de vencimiento")
   };
 }
@@ -102,8 +135,13 @@ async function crearExtintor(payload, currentUser) {
   const extintor = normalizarExtintor(payload);
   await asegurarVehiculo(extintor.vehiculo_id, empresaId);
 
+  // El consecutivo lo calcula el servicio, nunca lo manda el formulario --
+  // ver findSiguienteConsecutivo en extintores.repository.js.
+  const consecutivo = await extintoresRepository.findSiguienteConsecutivo(empresaId);
+
   return extintoresRepository.create({
     ...extintor,
+    consecutivo,
     usuario_id: currentUser?.id ?? null,
     empresa_id: empresaId
   });
@@ -132,16 +170,20 @@ async function eliminarExtintor(id, empresaId) {
 
 // ─────────────────────── Inspecciones de botiquín ───────────────────────
 
-function normalizarItems(itemsPayload) {
+// Compartida entre botiquin y kit de herramientas: la validacion de cada
+// renglon del checklist es identica en los dos (mismas reglas de estado/
+// cantidad/fecha), solo cambia de que catalogo sale el item_codigo valido y
+// como se llama el modulo en los mensajes de error.
+function normalizarItemsChecklist(itemsPayload, itemsPorCodigo, nombreModulo) {
   if (!Array.isArray(itemsPayload) || !itemsPayload.length) {
-    throw new HttpError(400, "Debes diligenciar el checklist del botiquín");
+    throw new HttpError(400, `Debes diligenciar el checklist de ${nombreModulo}`);
   }
 
   return itemsPayload.map((item) => {
     const codigo = String(item.item_codigo || "");
-    const catalogoItem = ITEMS_POR_CODIGO.get(codigo);
+    const catalogoItem = itemsPorCodigo.get(codigo);
     if (!catalogoItem) {
-      throw new HttpError(400, `Ítem de botiquín inválido: ${codigo}`);
+      throw new HttpError(400, `Ítem de ${nombreModulo} inválido: ${codigo}`);
     }
 
     const estado = String(item.estado || "");
@@ -228,7 +270,7 @@ async function crearInspeccion(payload, currentUser) {
     throw new HttpError(400, "Los nombres y apellidos de quien inspecciona son obligatorios");
   }
 
-  const items = normalizarItems(payload.items);
+  const items = normalizarItemsChecklist(payload.items, ITEMS_POR_CODIGO, "botiquín");
 
   const inspeccion = await inspeccionesBotiquinRepository.create({
     vehiculo_id: vehiculoId,
@@ -267,8 +309,80 @@ async function eliminarInspeccion(id, empresaId) {
   await inspeccionesBotiquinRepository.remove(id, empresaId);
 }
 
+// ─────────────────────── Inspecciones de kit de herramientas ───────────────────────
+// Mismo par cabecera+items, misma validacion (normalizarItemsChecklist) y
+// mismos toSafeItem/toSafeInspeccion que botiquin -- lo unico que cambia es
+// el catalogo de items y el repositorio de destino.
+
+async function listarInspeccionesHerramientas(filtros, empresaId) {
+  const inspecciones = await inspeccionesHerramientasRepository.findAll(filtros, empresaId);
+  return inspecciones.map(toSafeInspeccion);
+}
+
+async function obtenerInspeccionHerramientas(id, empresaId) {
+  const inspeccion = await inspeccionesHerramientasRepository.findById(id, empresaId);
+  if (!inspeccion) {
+    throw new HttpError(404, "Inspección de kit de herramientas no encontrada");
+  }
+
+  const items = await herramientasItemsRepository.findByInspeccion(id, empresaId);
+
+  return { ...toSafeInspeccion(inspeccion), items: items.map(toSafeItem) };
+}
+
+async function crearInspeccionHerramientas(payload, currentUser) {
+  const empresaId = currentUser.empresa_id;
+  const vehiculoId = payload.vehiculo_id ? Number(payload.vehiculo_id) : null;
+  await asegurarVehiculo(vehiculoId, empresaId);
+
+  const nombres = texto(payload.inspeccionado_por_nombres, 80);
+  const apellidos = texto(payload.inspeccionado_por_apellidos, 80);
+  if (!nombres || !apellidos) {
+    throw new HttpError(400, "Los nombres y apellidos de quien inspecciona son obligatorios");
+  }
+
+  const items = normalizarItemsChecklist(payload.items, ITEMS_HERRAMIENTAS_POR_CODIGO, "kit de herramientas");
+
+  const inspeccion = await inspeccionesHerramientasRepository.create({
+    vehiculo_id: vehiculoId,
+    fecha: fechaObligatoria(payload.fecha, "La fecha de la inspección"),
+    inspeccionado_por_nombres: nombres,
+    inspeccionado_por_apellidos: apellidos,
+    inspeccionado_por_cargo: texto(payload.inspeccionado_por_cargo, 80),
+    revisado_por_nombres: texto(payload.revisado_por_nombres, 80),
+    revisado_por_apellidos: texto(payload.revisado_por_apellidos, 80),
+    revisado_por_cargo: texto(payload.revisado_por_cargo, 80),
+    observaciones: texto(payload.observaciones, 1000),
+    usuario_id: currentUser?.id ?? null,
+    empresa_id: empresaId
+  });
+
+  const itemsCreados = await herramientasItemsRepository.bulkCreate(inspeccion.id, items, empresaId);
+
+  return {
+    ...toSafeInspeccion({
+      ...inspeccion,
+      total_items: itemsCreados.length,
+      total_items_malos: itemsCreados.filter((item) => item.estado === "malo").length
+    }),
+    items: itemsCreados.map(toSafeItem)
+  };
+}
+
+async function eliminarInspeccionHerramientas(id, empresaId) {
+  const existente = await inspeccionesHerramientasRepository.findById(id, empresaId);
+  if (!existente) {
+    throw new HttpError(404, "Inspección de kit de herramientas no encontrada");
+  }
+
+  // herramientas_items tiene ON DELETE CASCADE, asi que los renglones se van
+  // con la cabecera sin borrarlos a mano.
+  await inspeccionesHerramientasRepository.remove(id, empresaId);
+}
+
 module.exports = {
   getCatalogoBotiquin,
+  getCatalogoHerramientas,
   listarExtintores,
   crearExtintor,
   actualizarExtintor,
@@ -276,5 +390,9 @@ module.exports = {
   listarInspecciones,
   obtenerInspeccion,
   crearInspeccion,
-  eliminarInspeccion
+  eliminarInspeccion,
+  listarInspeccionesHerramientas,
+  obtenerInspeccionHerramientas,
+  crearInspeccionHerramientas,
+  eliminarInspeccionHerramientas
 };
