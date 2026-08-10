@@ -1842,11 +1842,34 @@ if (env.dbClient === "sqlite") {
         AND n.referencia_id = m.id
         AND n.vehiculo_id IS NULL
     `))
+    // ── Fin de la fase de migraciones ──
+    //
+    // Este catch NO es cosmetico: sin el, cualquier fallo en alguna de las
+    // ~30 migraciones de arriba saltaba directo al final de la cadena y
+    // dejaba SIN sembrar los permisos y el usuario admin. El sintoma que
+    // producia era enganoso: la app arrancaba y respondia normal, pero un
+    // permiso recien agregado al catalogo simplemente no existia, y quien
+    // dependiera de el (por ejemplo, quien recibe una alerta) se quedaba sin
+    // nada, sin ningun error visible.
+    //
+    // Absorber el fallo aca deja el arranque "degradado pero correcto": la
+    // migracion pendiente se reintenta sola en el proximo arranque (todas
+    // son idempotentes), mientras que el catalogo de permisos -- que no
+    // depende de esas migraciones -- queda al dia igual.
+    .catch((error) => {
+      console.error("[init] Fallo una migracion de Postgres. El resto del arranque continua.");
+      console.error(error.stack || error.message);
+    })
     .then(seedRolesAndPermissions)
     .then(grantPermisosNuevos)
     .then(revocarPermisosObsoletos)
     .then(syncUserRoles)
     .then(seedAdminUser)
     .then(() => console.log("Columnas PostgreSQL verificadas"))
-    .catch((error) => console.error("Error verificando columnas PostgreSQL", error.message));
+    // Un fallo aca si es grave (sin permisos sembrados la app queda a medias),
+    // asi que se registra con stack completo en vez de solo el mensaje.
+    .catch((error) => {
+      console.error("[init] Fallo el sembrado de roles/permisos/admin:");
+      console.error(error.stack || error.message);
+    });
 }
