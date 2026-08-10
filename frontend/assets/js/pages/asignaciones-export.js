@@ -93,23 +93,26 @@
         const pageWidth = doc.internal.pageSize.getWidth();
         const bottomLimit = doc.internal.pageSize.getHeight() - 90;
 
-        // Con la pagina en horizontal sobra ancho -- se lo damos casi todo a
-        // RUTA, que es la columna que mas lo necesita (rutas con varios
-        // destinos, ver Asignacion de rutas), en vez de dejarlo desperdiciado
-        // en PLACA como quedaba en el layout vertical original.
-        const anchoNumero = 30;
-        const anchoNombre = 170;
-        const anchoTelefono = 85;
-        const anchoPlaca = 85;
-        const anchoRuta = pageWidth - MARGIN_X * 2 - (anchoNumero + anchoNombre + anchoTelefono + anchoPlaca);
-        const columns = [
-            { label: "#", x: MARGIN_X, width: anchoNumero, align: "left" },
-            { label: "NOMBRE", x: MARGIN_X + anchoNumero, width: anchoNombre, align: "left" },
-            { label: "RUTA", x: MARGIN_X + anchoNumero + anchoNombre, width: anchoRuta, align: "left" },
-            { label: "TELEFONO", x: MARGIN_X + anchoNumero + anchoNombre + anchoRuta, width: anchoTelefono, align: "left" },
-            { label: "PLACA", x: MARGIN_X + anchoNumero + anchoNombre + anchoRuta + anchoTelefono, width: anchoPlaca, align: "left" }
-        ];
         const tableWidth = pageWidth - MARGIN_X * 2;
+
+        // Con la pagina en horizontal sobra ancho, asi que RUTA y OBSERVACIONES
+        // -- las dos columnas de texto libre que mas lo necesitan -- se quedan
+        // con la mayor parte, en vez de desperdiciarlo en PLACA como quedaba en
+        // el layout vertical original. OBSERVACIONES toma el sobrante para que
+        // la suma cierre exacta contra el ancho de la tabla con cualquier
+        // tamano de pagina.
+        const anchosFijos = { "#": 30, NOMBRE: 150, RUTA: 220, TELEFONO: 80, PLACA: 75 };
+        const anchoObservaciones = tableWidth - Object.values(anchosFijos).reduce((total, ancho) => total + ancho, 0);
+
+        // Las x se acumulan en un reduce en vez de sumarse a mano en cada
+        // columna: con seis columnas, la cadena de sumas era el tipo de detalle
+        // donde es facil olvidar un termino y correr toda la tabla.
+        let x = MARGIN_X;
+        const columns = [...Object.entries(anchosFijos), ["OBSERVACIONES", anchoObservaciones]].map(([label, width]) => {
+            const columna = { label, x, width, align: "left" };
+            x += width;
+            return columna;
+        });
 
         let y = addTablaHeader(doc, startY, columns, tableWidth);
 
@@ -119,7 +122,8 @@
                 safe(item.conductor_nombre, "Sin conductor"),
                 safe(item.ruta_nombre),
                 safe(item.telefono),
-                safe(item.vehiculo_placa, "Sin vehículo")
+                safe(item.vehiculo_placa, "Sin vehículo"),
+                safe(item.observaciones)
             ];
 
             // Las rutas con varios destinos (ver Asignacion de rutas) pueden
@@ -188,6 +192,59 @@
         doc.save(`Reporte_vehiculos_${fecha}.pdf`);
     }
 
+    const EXCEL_COLUMN_WIDTHS = [
+        { label: "#", width: 6 },
+        { label: "NOMBRE", width: 26 },
+        { label: "RUTA", width: 34 },
+        { label: "TELEFONO", width: 16 },
+        { label: "PLACA", width: 14 },
+        { label: "OBSERVACIONES", width: 40 }
+    ];
+
+    async function exportReporteExcel({ fecha, asignaciones }) {
+        if (!asignaciones || !asignaciones.length) {
+            throw new Error("No hay asignaciones registradas para esta fecha");
+        }
+
+        const excel = window.VehiAmb.excelExport;
+        const branding = await window.VehiAmb.pdfExport.getEmpresaBranding();
+        const columnCount = EXCEL_COLUMN_WIDTHS.length;
+
+        const workbook = await excel.createWorkbook();
+        const sheet = workbook.addWorksheet("Asignaciones");
+        excel.setColumnWidths(sheet, EXCEL_COLUMN_WIDTHS.map((column) => column.width));
+
+        excel.addTitleBar(sheet, {
+            title: "Reporte de vehículos",
+            subtitle: `Fecha: ${formatFechaLarga(fecha)}`,
+            columnCount
+        });
+
+        excel.addLabelValueRow(sheet, "Total de vehículos:", asignaciones.length);
+        sheet.addRow([]);
+
+        excel.addTableHeaderRow(sheet, EXCEL_COLUMN_WIDTHS.map((column) => column.label));
+
+        asignaciones.forEach((item, indice) => {
+            excel.addTableDataRow(
+                sheet,
+                [
+                    indice + 1,
+                    safe(item.conductor_nombre, "Sin conductor"),
+                    safe(item.ruta_nombre),
+                    safe(item.telefono),
+                    safe(item.vehiculo_placa, "Sin vehículo"),
+                    safe(item.observaciones, "")
+                ],
+                { band: indice % 2 === 1 }
+            );
+        });
+
+        excel.addFooterRow(sheet, FOOTER_TEXT(branding?.nombreEmpresa), columnCount);
+
+        await excel.downloadWorkbook(workbook, `Reporte_vehiculos_${fecha}.xlsx`);
+    }
+
     window.VehiAmb = window.VehiAmb || {};
-    window.VehiAmb.asignacionesExport = { exportReportePdf };
+    window.VehiAmb.asignacionesExport = { exportReportePdf, exportReporteExcel };
 })();

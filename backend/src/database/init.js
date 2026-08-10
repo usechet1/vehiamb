@@ -1812,7 +1812,8 @@ if (env.dbClient === "sqlite") {
       ensureColumn("conductores", "excluir_de_costos", "BOOLEAN NOT NULL DEFAULT FALSE"),
       ensureColumn("inspecciones_preventivas", "firma_url", "TEXT"),
       ensureColumn("preoperacionales", "firma_url", "TEXT"),
-      ensureColumn("asignaciones_ruta", "destinos", "JSONB")
+      ensureColumn("asignaciones_ruta", "destinos", "JSONB"),
+      ensureColumn("asignaciones_ruta", "observaciones", "TEXT")
     ]))
     .then(migrarConductoresNombreSplit)
     .then(migrarEntregasConductorAUsuario)
