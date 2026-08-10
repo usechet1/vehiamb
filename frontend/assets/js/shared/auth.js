@@ -14,7 +14,15 @@ const PAGE_PERMISSIONS = {
     "index.html": "dashboard.view",
     "dashboard.html": "vehicles.view",
     "vehiculo.html": "vehicles.view",
-    "add.html": "vehicles.create",
+    // add.html sirve dos casos con permisos distintos (crear un vehiculo
+    // nuevo vs. editar uno existente, segun traiga o no "?id=" en la URL) --
+    // el backend ya los distingue (POST pide vehicles.create, PUT pide
+    // vehicles.edit, ver vehiculos.routes.js), asi que el guardia de la
+    // pagina tiene que hacer lo mismo o un rol con permiso de editar pero no
+    // de crear (ej. Operador) quedaria bloqueado de entrar a editar.
+    "add.html": () => (
+        new URLSearchParams(window.location.search).get("id") ? "vehicles.edit" : "vehicles.create"
+    ),
     "mantenimientos.html": "maintenance.view",
     "documentos.html": "documents.view",
     "simit.html": "simit.view",
@@ -194,7 +202,8 @@ window.VehiAmb.auth = {
 
     async requirePageAccess() {
         const currentPage = window.location.pathname.split("/").pop() || "index.html";
-        const permission = PAGE_PERMISSIONS[currentPage];
+        const permissionEntry = PAGE_PERMISSIONS[currentPage];
+        const permission = typeof permissionEntry === "function" ? permissionEntry() : permissionEntry;
         const user = await this.fetchCurrentUser();
 
         if (!user) return null;

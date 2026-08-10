@@ -220,7 +220,6 @@ const ROLE_PERMISSIONS = {
   Operador: [
     "dashboard.view",
     "vehicles.view",
-    "vehicles.create",
     "vehicles.edit",
     "vehicles.repuestos_sugeridos",
     "maintenance.view",
@@ -402,7 +401,10 @@ async function grantPermisosNuevos() {
 const PERMISOS_REVOCADOS_POR_ROL = {
   "imports.view": ["Operador", "Consulta"],
   "imports.manage": ["Operador", "Consulta"],
-  "inventory.import": ["Operador", "Consulta"]
+  "inventory.import": ["Operador", "Consulta"],
+  // Operador conserva vehicles.edit (puede seguir editando vehiculos
+  // existentes) pero pierde la posibilidad de crear uno nuevo.
+  "vehicles.create": ["Operador"]
 };
 
 async function revocarPermisosObsoletos() {

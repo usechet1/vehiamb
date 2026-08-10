@@ -327,6 +327,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     const saludoEl = document.getElementById("vehiculosSaludoNombre");
     if (saludoEl) saludoEl.textContent = primerNombre;
 
+    // A diferencia de los botones del sidebar (filtrados por sidebar.js
+    // segun su data-permission), este link vive en la propia pagina y antes
+    // se mostraba siempre, sin chequear el permiso -- hasta un usuario de
+    // Consulta lo veia, aunque al hacer clic add.html lo rebotaba.
+    if (!window.VehiAmb.auth.hasPermission?.("vehicles.create")) {
+        document.getElementById("nuevoVehiculoLink")?.remove();
+    }
+
     applyFiltersToForm();
     loadMarcas();
     cargarVehiculos();
