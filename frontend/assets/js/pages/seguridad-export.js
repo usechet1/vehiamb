@@ -183,20 +183,16 @@
         }
 
         const revisor = nombreCompleto(inspeccion.revisado_por_nombres, inspeccion.revisado_por_apellidos);
-        const anchoCampo = anchoTotal / 2;
 
         doc.setFontSize(9);
-        [["REVISADO POR", safe(revisor)], ["CARGO", safe(inspeccion.revisado_por_cargo)]].forEach(([label, valor], indice) => {
-            const x = MARGIN_X + indice * anchoCampo;
-            doc.setFillColor(...GRIS_CAMPO);
-            doc.rect(x, y, anchoCampo, 22, "F");
-            doc.setDrawColor(200, 200, 200);
-            doc.rect(x, y, anchoCampo, 22);
-            doc.setFont(undefined, "bold");
-            doc.text(`${label}:`, x + 5, y + 14);
-            doc.setFont(undefined, "normal");
-            doc.text(doc.splitTextToSize(valor, anchoCampo - 100)[0] || "--", x + 95, y + 14);
-        });
+        doc.setFillColor(...GRIS_CAMPO);
+        doc.rect(MARGIN_X, y, anchoTotal, 22, "F");
+        doc.setDrawColor(200, 200, 200);
+        doc.rect(MARGIN_X, y, anchoTotal, 22);
+        doc.setFont(undefined, "bold");
+        doc.text("REVISADO POR:", MARGIN_X + 5, y + 14);
+        doc.setFont(undefined, "normal");
+        doc.text(doc.splitTextToSize(safe(revisor), anchoTotal - 100)[0] || "--", MARGIN_X + 95, y + 14);
 
         y += 22;
 
