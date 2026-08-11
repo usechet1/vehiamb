@@ -275,6 +275,10 @@ window.VehiAmb.api = {
         return requestJson(`${window.VehiAmb.API_URL}/usuarios`, undefined, "No se pudieron cargar los usuarios");
     },
 
+    getUsuariosCatalogo() {
+        return requestJson(`${window.VehiAmb.API_URL}/usuarios/catalogo`, undefined, "No se pudieron cargar los usuarios");
+    },
+
     createUsuario(formData) {
         return requestJson(
             `${window.VehiAmb.API_URL}/usuarios`,

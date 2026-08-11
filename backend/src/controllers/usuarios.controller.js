@@ -6,6 +6,11 @@ exports.getUsuarios = async (req, res) => {
   res.json(usuarios);
 };
 
+exports.getUsuariosCatalogo = async (req, res) => {
+  const usuarios = await usuariosService.listUsersCatalogo(req.empresaId);
+  res.json(usuarios);
+};
+
 exports.createUsuario = async (req, res) => {
   const usuario = await usuariosService.createUser(req.body, req.file, req.empresaId, req.user?.permisos || [], req.user?.id);
   res.status(201).json(usuario);
