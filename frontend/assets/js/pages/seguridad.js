@@ -32,9 +32,7 @@ const botiquinVehiculo = document.getElementById("botiquinVehiculo");
 const botiquinFecha = document.getElementById("botiquinFecha");
 const botiquinInspeccionado = document.getElementById("botiquinInspeccionado");
 const botiquinInspeccionadoCargo = document.getElementById("botiquinInspeccionadoCargo");
-const botiquinRevisadoNombres = document.getElementById("botiquinRevisadoNombres");
-const botiquinRevisadoApellidos = document.getElementById("botiquinRevisadoApellidos");
-const botiquinRevisadoCargo = document.getElementById("botiquinRevisadoCargo");
+const botiquinRevisado = document.getElementById("botiquinRevisado");
 const botiquinChecklistBody = document.getElementById("botiquinChecklistBody");
 const botiquinObservaciones = document.getElementById("botiquinObservaciones");
 const botiquinCancelButton = document.getElementById("botiquinCancelButton");
@@ -54,9 +52,7 @@ const herramientasVehiculo = document.getElementById("herramientasVehiculo");
 const herramientasFecha = document.getElementById("herramientasFecha");
 const herramientasInspeccionado = document.getElementById("herramientasInspeccionado");
 const herramientasInspeccionadoCargo = document.getElementById("herramientasInspeccionadoCargo");
-const herramientasRevisadoNombres = document.getElementById("herramientasRevisadoNombres");
-const herramientasRevisadoApellidos = document.getElementById("herramientasRevisadoApellidos");
-const herramientasRevisadoCargo = document.getElementById("herramientasRevisadoCargo");
+const herramientasRevisado = document.getElementById("herramientasRevisado");
 const herramientasChecklistBody = document.getElementById("herramientasChecklistBody");
 const herramientasObservaciones = document.getElementById("herramientasObservaciones");
 const herramientasCancelButton = document.getElementById("herramientasCancelButton");
@@ -145,11 +141,11 @@ function fillVehicleSelect(select, vehiculos, placeholder = "Selecciona un vehí
     select.value = seleccionado;
 }
 
-function fillUserSelect(select, usuarios) {
+function fillUserSelect(select, usuarios, placeholder = "Selecciona un usuario") {
     if (!select) return;
 
     const seleccionado = select.value;
-    select.innerHTML = '<option value="">Selecciona un usuario</option>';
+    select.innerHTML = `<option value="">${placeholder}</option>`;
 
     usuarios.forEach((usuario) => {
         const option = document.createElement("option");
@@ -171,6 +167,15 @@ function splitNombreCompleto(nombreCompleto) {
     const espacio = texto.indexOf(" ");
     if (espacio === -1) return { nombres: texto, apellidos: "" };
     return { nombres: texto.slice(0, espacio), apellidos: texto.slice(espacio + 1).trim() };
+}
+
+// Resuelve nombres/apellidos a partir del usuario elegido en un <select> de
+// inspeccionado-por/revisado-por. Revisado-por es opcional, asi que un select
+// vacio simplemente devuelve nombres/apellidos vacios (el backend ya trata
+// esos campos como opcionales para revisado_por).
+function leerUsuarioSeleccionado(select) {
+    const usuario = usuariosState.find((candidato) => String(candidato.id) === select.value);
+    return splitNombreCompleto(usuario?.nombre);
 }
 
 // ───────────────────────────── Extintores ─────────────────────────────
@@ -416,8 +421,8 @@ async function cargarInspecciones() {
 botiquinForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    const usuarioInspecciono = usuariosState.find((usuario) => String(usuario.id) === botiquinInspeccionado.value);
-    const { nombres: inspeccionadoNombres, apellidos: inspeccionadoApellidos } = splitNombreCompleto(usuarioInspecciono?.nombre);
+    const { nombres: inspeccionadoNombres, apellidos: inspeccionadoApellidos } = leerUsuarioSeleccionado(botiquinInspeccionado);
+    const { nombres: revisadoNombres, apellidos: revisadoApellidos } = leerUsuarioSeleccionado(botiquinRevisado);
 
     const payload = {
         vehiculo_id: botiquinVehiculo.value,
@@ -425,9 +430,8 @@ botiquinForm?.addEventListener("submit", async (event) => {
         inspeccionado_por_nombres: inspeccionadoNombres,
         inspeccionado_por_apellidos: inspeccionadoApellidos,
         inspeccionado_por_cargo: botiquinInspeccionadoCargo.value.trim(),
-        revisado_por_nombres: botiquinRevisadoNombres.value.trim(),
-        revisado_por_apellidos: botiquinRevisadoApellidos.value.trim(),
-        revisado_por_cargo: botiquinRevisadoCargo.value.trim(),
+        revisado_por_nombres: revisadoNombres,
+        revisado_por_apellidos: revisadoApellidos,
         observaciones: botiquinObservaciones.value.trim(),
         items: leerChecklist()
     };
@@ -668,8 +672,8 @@ async function cargarInspeccionesHerramientas() {
 herramientasForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    const usuarioInspecciono = usuariosState.find((usuario) => String(usuario.id) === herramientasInspeccionado.value);
-    const { nombres: inspeccionadoNombres, apellidos: inspeccionadoApellidos } = splitNombreCompleto(usuarioInspecciono?.nombre);
+    const { nombres: inspeccionadoNombres, apellidos: inspeccionadoApellidos } = leerUsuarioSeleccionado(herramientasInspeccionado);
+    const { nombres: revisadoNombres, apellidos: revisadoApellidos } = leerUsuarioSeleccionado(herramientasRevisado);
 
     const payload = {
         vehiculo_id: herramientasVehiculo.value,
@@ -677,9 +681,8 @@ herramientasForm?.addEventListener("submit", async (event) => {
         inspeccionado_por_nombres: inspeccionadoNombres,
         inspeccionado_por_apellidos: inspeccionadoApellidos,
         inspeccionado_por_cargo: herramientasInspeccionadoCargo.value.trim(),
-        revisado_por_nombres: herramientasRevisadoNombres.value.trim(),
-        revisado_por_apellidos: herramientasRevisadoApellidos.value.trim(),
-        revisado_por_cargo: herramientasRevisadoCargo.value.trim(),
+        revisado_por_nombres: revisadoNombres,
+        revisado_por_apellidos: revisadoApellidos,
         observaciones: herramientasObservaciones.value.trim(),
         items: leerChecklistHerramientas()
     };
@@ -882,6 +885,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             usuariosState = usuarios.filter((usuario) => usuario.activo);
             fillUserSelect(botiquinInspeccionado, usuariosState);
             fillUserSelect(herramientasInspeccionado, usuariosState);
+            fillUserSelect(botiquinRevisado, usuariosState, "Sin revisar");
+            fillUserSelect(herramientasRevisado, usuariosState, "Sin revisar");
 
             catalogoBotiquin = await window.VehiAmb.api.getCatalogoBotiquin();
             renderChecklist();
