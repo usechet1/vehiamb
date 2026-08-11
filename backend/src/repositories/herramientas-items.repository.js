@@ -1,6 +1,6 @@
 const db = require("../database/query");
 
-const FIELDS = ["inspeccion_id", "item_codigo", "item_label", "estado", "cantidad", "fecha_vencimiento", "empresa_id"];
+const FIELDS = ["inspeccion_id", "item_codigo", "item_label", "estado", "cantidad", "codigo", "empresa_id"];
 
 async function bulkCreate(inspeccionId, items, empresaId, dbClient = db) {
   if (!items.length) return [];
@@ -13,7 +13,7 @@ async function bulkCreate(inspeccionId, items, empresaId, dbClient = db) {
       item_label: item.item_label,
       estado: item.estado,
       cantidad: item.cantidad ?? null,
-      fecha_vencimiento: item.fecha_vencimiento || null,
+      codigo: item.codigo || null,
       empresa_id: empresaId
     };
 

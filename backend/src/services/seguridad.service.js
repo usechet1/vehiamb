@@ -172,9 +172,10 @@ async function eliminarExtintor(id, empresaId) {
 
 // Compartida entre botiquin y kit de herramientas: la validacion de cada
 // renglon del checklist es identica en los dos (mismas reglas de estado/
-// cantidad/fecha), solo cambia de que catalogo sale el item_codigo valido y
-// como se llama el modulo en los mensajes de error.
-function normalizarItemsChecklist(itemsPayload, itemsPorCodigo, nombreModulo) {
+// cantidad), solo cambia de que catalogo sale el item_codigo valido, como se
+// llama el modulo en los mensajes de error, y el campo extra propio de cada
+// uno (botiquin vence, herramientas no -- ver normalizarExtra).
+function normalizarItemsChecklist(itemsPayload, itemsPorCodigo, nombreModulo, normalizarExtra) {
   if (!Array.isArray(itemsPayload) || !itemsPayload.length) {
     throw new HttpError(400, `Debes diligenciar el checklist de ${nombreModulo}`);
   }
@@ -206,7 +207,7 @@ function normalizarItemsChecklist(itemsPayload, itemsPorCodigo, nombreModulo) {
       item_label: catalogoItem.label,
       estado,
       cantidad,
-      fecha_vencimiento: fechaOpcional(item.fecha_vencimiento, `La fecha de vencimiento de "${catalogoItem.label}"`)
+      ...normalizarExtra(item, catalogoItem)
     };
   });
 }
@@ -218,7 +219,8 @@ function toSafeItem(item) {
     item_label: item.item_label,
     estado: item.estado,
     cantidad: item.cantidad != null ? Number(item.cantidad) : null,
-    fecha_vencimiento: item.fecha_vencimiento
+    fecha_vencimiento: item.fecha_vencimiento ?? null,
+    codigo: item.codigo ?? null
   };
 }
 
@@ -270,7 +272,9 @@ async function crearInspeccion(payload, currentUser) {
     throw new HttpError(400, "Los nombres y apellidos de quien inspecciona son obligatorios");
   }
 
-  const items = normalizarItemsChecklist(payload.items, ITEMS_POR_CODIGO, "botiquín");
+  const items = normalizarItemsChecklist(payload.items, ITEMS_POR_CODIGO, "botiquín", (item, catalogoItem) => ({
+    fecha_vencimiento: fechaOpcional(item.fecha_vencimiento, `La fecha de vencimiento de "${catalogoItem.label}"`)
+  }));
 
   const inspeccion = await inspeccionesBotiquinRepository.create({
     vehiculo_id: vehiculoId,
@@ -341,7 +345,9 @@ async function crearInspeccionHerramientas(payload, currentUser) {
     throw new HttpError(400, "Los nombres y apellidos de quien inspecciona son obligatorios");
   }
 
-  const items = normalizarItemsChecklist(payload.items, ITEMS_HERRAMIENTAS_POR_CODIGO, "kit de herramientas");
+  const items = normalizarItemsChecklist(payload.items, ITEMS_HERRAMIENTAS_POR_CODIGO, "kit de herramientas", (item) => ({
+    codigo: texto(item.codigo, 60)
+  }));
 
   const inspeccion = await inspeccionesHerramientasRepository.create({
     vehiculo_id: vehiculoId,

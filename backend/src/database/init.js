@@ -1252,6 +1252,8 @@ async function ensurePostgresTables() {
   // los mismos 9 codigos ("kit_alicate", "kit_gato", etc.) que ya existen
   // como sub-items de la inspeccion preventiva (ver ITEMS_CHECKLIST en
   // inspecciones.service.js), asi que la lista no queda inventada dos veces.
+  // A diferencia del botiquin, las herramientas no vencen: en vez de
+  // fecha_vencimiento cada renglon tiene un codigo de inventario opcional.
   await db.run(`
     CREATE TABLE IF NOT EXISTS inspecciones_herramientas (
       id BIGSERIAL PRIMARY KEY,
@@ -1278,7 +1280,7 @@ async function ensurePostgresTables() {
       item_label TEXT NOT NULL,
       estado TEXT NOT NULL DEFAULT 'bueno',
       cantidad INTEGER,
-      fecha_vencimiento DATE,
+      codigo TEXT,
       empresa_id BIGINT NOT NULL REFERENCES empresas(id),
       creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
@@ -1893,7 +1895,8 @@ if (env.dbClient === "sqlite") {
       ensureColumn("asignaciones_ruta", "destinos", "JSONB"),
       ensureColumn("asignaciones_ruta", "observaciones", "TEXT"),
       ensureColumn("extintores", "libras", "NUMERIC(5,1)"),
-      ensureColumn("extintores", "consecutivo", "INTEGER")
+      ensureColumn("extintores", "consecutivo", "INTEGER"),
+      ensureColumn("herramientas_items", "codigo", "TEXT")
     ]))
     .then(backfillExtintoresConsecutivo)
     .then(migrarConductoresNombreSplit)
