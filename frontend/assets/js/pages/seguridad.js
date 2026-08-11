@@ -30,8 +30,7 @@ const extintoresFilterForm = document.getElementById("extintoresFilterForm");
 const botiquinForm = document.getElementById("botiquinForm");
 const botiquinVehiculo = document.getElementById("botiquinVehiculo");
 const botiquinFecha = document.getElementById("botiquinFecha");
-const botiquinInspeccionadoNombres = document.getElementById("botiquinInspeccionadoNombres");
-const botiquinInspeccionadoApellidos = document.getElementById("botiquinInspeccionadoApellidos");
+const botiquinInspeccionado = document.getElementById("botiquinInspeccionado");
 const botiquinInspeccionadoCargo = document.getElementById("botiquinInspeccionadoCargo");
 const botiquinRevisadoNombres = document.getElementById("botiquinRevisadoNombres");
 const botiquinRevisadoApellidos = document.getElementById("botiquinRevisadoApellidos");
@@ -53,8 +52,7 @@ const botiquinFilterForm = document.getElementById("botiquinFilterForm");
 const herramientasForm = document.getElementById("herramientasForm");
 const herramientasVehiculo = document.getElementById("herramientasVehiculo");
 const herramientasFecha = document.getElementById("herramientasFecha");
-const herramientasInspeccionadoNombres = document.getElementById("herramientasInspeccionadoNombres");
-const herramientasInspeccionadoApellidos = document.getElementById("herramientasInspeccionadoApellidos");
+const herramientasInspeccionado = document.getElementById("herramientasInspeccionado");
 const herramientasInspeccionadoCargo = document.getElementById("herramientasInspeccionadoCargo");
 const herramientasRevisadoNombres = document.getElementById("herramientasRevisadoNombres");
 const herramientasRevisadoApellidos = document.getElementById("herramientasRevisadoApellidos");
@@ -92,6 +90,7 @@ let catalogoBotiquin = [];
 let inspeccionAbierta = null;
 let catalogoHerramientas = [];
 let inspeccionHerramientasAbierta = null;
+let usuariosState = [];
 
 function formatearFecha(valor) {
     if (!valor) return "—";
@@ -144,6 +143,34 @@ function fillVehicleSelect(select, vehiculos, placeholder = "Selecciona un vehí
     });
 
     select.value = seleccionado;
+}
+
+function fillUserSelect(select, usuarios) {
+    if (!select) return;
+
+    const seleccionado = select.value;
+    select.innerHTML = '<option value="">Selecciona un usuario</option>';
+
+    usuarios.forEach((usuario) => {
+        const option = document.createElement("option");
+        option.value = usuario.id;
+        option.textContent = usuario.nombre;
+        select.appendChild(option);
+    });
+
+    select.value = seleccionado;
+}
+
+// El nombre del usuario logueado hoy vive en un solo campo (usuarios.nombre)
+// -- ver [[feedback_nombres_apellidos_separados]] -- pero inspeccionado_por
+// en botiquin/herramientas ya se guarda como nombres/apellidos separados.
+// Mismo criterio "mejor esfuerzo" que migrarConductoresNombreSplit en
+// init.js: primera palabra = nombres, resto = apellidos.
+function splitNombreCompleto(nombreCompleto) {
+    const texto = String(nombreCompleto || "").trim();
+    const espacio = texto.indexOf(" ");
+    if (espacio === -1) return { nombres: texto, apellidos: "" };
+    return { nombres: texto.slice(0, espacio), apellidos: texto.slice(espacio + 1).trim() };
 }
 
 // ───────────────────────────── Extintores ─────────────────────────────
@@ -389,11 +416,14 @@ async function cargarInspecciones() {
 botiquinForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
 
+    const usuarioInspecciono = usuariosState.find((usuario) => String(usuario.id) === botiquinInspeccionado.value);
+    const { nombres: inspeccionadoNombres, apellidos: inspeccionadoApellidos } = splitNombreCompleto(usuarioInspecciono?.nombre);
+
     const payload = {
         vehiculo_id: botiquinVehiculo.value,
         fecha: botiquinFecha.value,
-        inspeccionado_por_nombres: botiquinInspeccionadoNombres.value.trim(),
-        inspeccionado_por_apellidos: botiquinInspeccionadoApellidos.value.trim(),
+        inspeccionado_por_nombres: inspeccionadoNombres,
+        inspeccionado_por_apellidos: inspeccionadoApellidos,
         inspeccionado_por_cargo: botiquinInspeccionadoCargo.value.trim(),
         revisado_por_nombres: botiquinRevisadoNombres.value.trim(),
         revisado_por_apellidos: botiquinRevisadoApellidos.value.trim(),
@@ -638,11 +668,14 @@ async function cargarInspeccionesHerramientas() {
 herramientasForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
 
+    const usuarioInspecciono = usuariosState.find((usuario) => String(usuario.id) === herramientasInspeccionado.value);
+    const { nombres: inspeccionadoNombres, apellidos: inspeccionadoApellidos } = splitNombreCompleto(usuarioInspecciono?.nombre);
+
     const payload = {
         vehiculo_id: herramientasVehiculo.value,
         fecha: herramientasFecha.value,
-        inspeccionado_por_nombres: herramientasInspeccionadoNombres.value.trim(),
-        inspeccionado_por_apellidos: herramientasInspeccionadoApellidos.value.trim(),
+        inspeccionado_por_nombres: inspeccionadoNombres,
+        inspeccionado_por_apellidos: inspeccionadoApellidos,
         inspeccionado_por_cargo: herramientasInspeccionadoCargo.value.trim(),
         revisado_por_nombres: herramientasRevisadoNombres.value.trim(),
         revisado_por_apellidos: herramientasRevisadoApellidos.value.trim(),
@@ -845,6 +878,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         fillVehicleSelect(filterHerramientasPlaca, vehiculos, "Todas las placas");
 
         if (puedeCrear()) {
+            const usuarios = await window.VehiAmb.api.getUsuarios();
+            usuariosState = usuarios.filter((usuario) => usuario.activo);
+            fillUserSelect(botiquinInspeccionado, usuariosState);
+            fillUserSelect(herramientasInspeccionado, usuariosState);
+
             catalogoBotiquin = await window.VehiAmb.api.getCatalogoBotiquin();
             renderChecklist();
             botiquinFecha.value = new Date().toISOString().slice(0, 10);
