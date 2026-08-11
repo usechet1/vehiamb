@@ -221,13 +221,30 @@
         return 30 + imgHeight;
     }
 
-    function descargarDataUrl(dataUrl, fileName) {
+    // Igual patron que downloadWorkbook en excel-export.js: un Blob +
+    // URL.createObjectURL, no una data: URI directa en el href. Las data:
+    // URI de este tamano (canvas.toDataURL) no disparan la descarga de forma
+    // confiable en la PWA instalada -- el navegador normal si las acepta,
+    // pero el contenedor de la PWA las trata como navegacion/vista en vez de
+    // descarga.
+    function canvasToBlob(canvas, calidad) {
+        return new Promise((resolve, reject) => {
+            canvas.toBlob((blob) => {
+                if (blob) resolve(blob);
+                else reject(new Error("No se pudo generar la imagen"));
+            }, "image/jpeg", calidad);
+        });
+    }
+
+    function descargarBlob(blob, fileName) {
+        const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
-        link.href = dataUrl;
+        link.href = url;
         link.download = fileName;
         document.body.appendChild(link);
         link.click();
         link.remove();
+        URL.revokeObjectURL(url);
     }
 
     async function exportReporteImagen({ fecha, asignaciones }) {
@@ -264,7 +281,8 @@
         const tablaY = dibujarTablaImagen(ctx, startY, columns, filasMedidas, tableWidth);
         await dibujarFooterImagen(ctx, tablaY, branding, membrete);
 
-        descargarDataUrl(canvas.toDataURL("image/jpeg", 0.92), `Reporte_vehiculos_${fecha}.jpg`);
+        const blob = await canvasToBlob(canvas, 0.92);
+        descargarBlob(blob, `Reporte_vehiculos_${fecha}.jpg`);
     }
 
     const EXCEL_COLUMN_WIDTHS = [
