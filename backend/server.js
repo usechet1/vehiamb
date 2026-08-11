@@ -14,13 +14,25 @@ const backupJob = require("./src/jobs/backup.job");
 
 const server = app.listen(env.port, () => {
   console.log(`Servidor corriendo en puerto ${env.port}`);
-  preventivoCambioAceiteJob.start();
-  documentosVencimientoJob.start();
-  mantenimientosProximosJob.start();
+
+  // Estos 4 jobs corren una revision inmediata al arrancar (ademas de su
+  // setInterval periodico), y esa revision inmediata puede enviar
+  // notificaciones reales por email/WhatsApp -- util en produccion (no
+  // espera al primer intervalo para avisar de algo vencido), pero al
+  // levantar el servidor en un puerto de pruebas contra la base real termina
+  // mandando mensajes reales sin querer. DISABLE_STARTUP_JOBS=true salta
+  // solo esa primera ejecucion inmediata de estos 4; el resto de jobs (que
+  // solo usan cron.schedule, sin ejecucion al arrancar) no se ven afectados
+  // y siguen igual.
+  if (process.env.DISABLE_STARTUP_JOBS !== "true") {
+    preventivoCambioAceiteJob.start();
+    documentosVencimientoJob.start();
+    mantenimientosProximosJob.start();
+    stockAlertasJob.start();
+  }
   importSchedulerJob.start();
   gastosSyncJob.start();
   stockImportSchedulerJob.start();
-  stockAlertasJob.start();
   simitConsultaJob.start();
   configSyncJob.start();
   backupJob.start();
