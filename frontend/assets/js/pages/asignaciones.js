@@ -15,7 +15,7 @@ const asignacionCancelEditButton = document.getElementById("asignacionCancelEdit
 const asignacionesFilterForm = document.getElementById("asignacionesFilterForm");
 const asignacionesFiltroFecha = document.getElementById("asignacionesFiltroFecha");
 const asignacionesTableBody = document.getElementById("asignacionesTableBody");
-const asignacionesExportarButton = document.getElementById("asignacionesExportarButton");
+const asignacionesExportarImagenButton = document.getElementById("asignacionesExportarImagenButton");
 const asignacionesExportarExcelButton = document.getElementById("asignacionesExportarExcelButton");
 
 const loader = document.getElementById("loader");
@@ -200,17 +200,17 @@ async function cargarAsignaciones() {
     }
 }
 
-asignacionesExportarButton.addEventListener("click", async () => {
-    asignacionesExportarButton.disabled = true;
+asignacionesExportarImagenButton.addEventListener("click", async () => {
+    asignacionesExportarImagenButton.disabled = true;
     try {
-        await window.VehiAmb.asignacionesExport.exportReportePdf({
+        await window.VehiAmb.asignacionesExport.exportReporteImagen({
             fecha: asignacionesFiltroFecha.value,
             asignaciones: asignacionesActuales
         });
     } catch (error) {
-        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo generar el PDF", "error");
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo generar la imagen", "error");
     } finally {
-        asignacionesExportarButton.disabled = false;
+        asignacionesExportarImagenButton.disabled = false;
     }
 });
 
