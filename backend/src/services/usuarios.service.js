@@ -137,6 +137,18 @@ async function listUsers(empresaId) {
   return users.map(toSafeUser);
 }
 
+// Version minima para selectores (ej. "Inspeccionado por" en Seguridad y
+// Salud): solo id + nombre de usuarios activos, sin email/rol/celular. A
+// diferencia de listUsers, la usa cualquier usuario autenticado -- no exige
+// users.manage (ver GET /usuarios/catalogo, montada antes del
+// requirePermission("users.manage") global en usuarios.routes.js), porque
+// cualquier rol que pueda crear un registro con "quien lo hizo" necesita
+// poder listar personas, no solo un Administrador.
+async function listUsersCatalogo(empresaId) {
+  const users = await usuariosRepository.findAll(empresaId);
+  return users.filter((user) => user.activo).map((user) => ({ id: user.id, nombre: user.nombre }));
+}
+
 // El email es unico en TODA la plataforma (decision de producto: una cuenta
 // = una empresa, el login no pide elegir empresa), asi que la verificacion
 // de unicidad de email es deliberadamente global, sin filtrar por empresaId.
@@ -265,6 +277,7 @@ async function setUserActive(id, active, currentUserId, empresaId) {
 
 module.exports = {
   listUsers,
+  listUsersCatalogo,
   createUser,
   updateUser,
   setUserActive,

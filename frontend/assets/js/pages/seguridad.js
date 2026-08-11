@@ -881,8 +881,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         fillVehicleSelect(filterHerramientasPlaca, vehiculos, "Todas las placas");
 
         if (puedeCrear()) {
-            const usuarios = await window.VehiAmb.api.getUsuarios();
-            usuariosState = usuarios.filter((usuario) => usuario.activo);
+            usuariosState = await window.VehiAmb.api.getUsuariosCatalogo();
             fillUserSelect(botiquinInspeccionado, usuariosState);
             fillUserSelect(herramientasInspeccionado, usuariosState);
             fillUserSelect(botiquinRevisado, usuariosState, "Sin revisar");

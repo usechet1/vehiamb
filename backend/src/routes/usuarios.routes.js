@@ -13,6 +13,13 @@ function construirNombreUsuario(req) {
   return [req.body.nombre, "FOTO", fechaCorta()];
 }
 
+// Catalogo minimo (id + nombre, solo usuarios activos) para selectores como
+// "Inspeccionado por" en Seguridad y Salud -- montada antes del
+// requirePermission("users.manage") de abajo a proposito: cualquier usuario
+// autenticado puede listar personas para ese tipo de selector, no solo un
+// Administrador. Ver listUsersCatalogo en usuarios.service.js.
+router.get("/catalogo", asyncHandler(usuariosController.getUsuariosCatalogo));
+
 router.use(requirePermission("users.manage"));
 
 router.get("/", asyncHandler(usuariosController.getUsuarios));
