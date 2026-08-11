@@ -3254,6 +3254,11 @@ label[for="loginPassword"] {
     color: var(--color-success);
 }
 
+.btn-imagen:hover {
+    border-color: var(--color-warning);
+    color: var(--color-warning);
+}
+
 .btn-pagar:hover {
     border-color: var(--color-warning);
     color: var(--color-warning);

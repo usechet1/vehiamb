@@ -30,77 +30,54 @@
         return String(value);
     }
 
-    async function addEncabezado(doc, branding, fechaISO, totalRegistros) {
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const bannerX = MARGIN_X + 120;
-        const bannerHeight = 60;
-        const bannerY = 30;
+    // El PDF se reemplazo por una imagen JPG (ver exportReporteImagen mas
+    // abajo): mismo layout, dibujado con Canvas 2D en vez del API de jsPDF,
+    // asi que ninguna de estas funciones necesita cargar jsPDF por CDN.
+    const PAGE_WIDTH_IMAGEN = 842; // misma proporcion que el A4 horizontal que usaba el PDF
+    const CANVAS_SCALE = 2; // resolucion mas nitida sin generar un archivo enorme
+    const CANVAS_FUENTE = "Helvetica, Arial, sans-serif";
 
-        // Logo de la empresa a la izquierda, mismo criterio que
-        // entrega-export.js/vehiculo-export.js (getEmpresaBranding): cada
-        // empresa lleva su propio logo, sin membrete generico de plataforma.
-        doc.setDrawColor(200, 200, 200);
-        doc.rect(MARGIN_X, bannerY, 110, bannerHeight);
-        if (branding?.logo) {
-            const maxWidth = 100;
-            const maxHeight = bannerHeight - 10;
-            const scale = Math.min(maxWidth / branding.logo.width, maxHeight / branding.logo.height);
-            const w = branding.logo.width * scale;
-            const h = branding.logo.height * scale;
-            doc.addImage(branding.logo.dataUrl, "JPEG", MARGIN_X + (110 - w) / 2, bannerY + (bannerHeight - h) / 2, w, h);
-        }
-
-        doc.setFillColor(...ROJO_BANNER);
-        doc.rect(bannerX, bannerY, pageWidth - MARGIN_X - bannerX, bannerHeight, "F");
-        doc.setTextColor(255, 255, 255);
-        doc.setFont(undefined, "bold");
-        doc.setFontSize(20);
-        doc.text("REPORTE DE VEHÍCULOS", bannerX + (pageWidth - MARGIN_X - bannerX) / 2, bannerY + bannerHeight / 2 + 7, { align: "center" });
-
-        const fechaY = bannerY + bannerHeight + 18;
-        doc.setFillColor(...GRIS_FECHA);
-        doc.rect(MARGIN_X, fechaY - 14, pageWidth - MARGIN_X * 2, 22, "F");
-        doc.setTextColor(24, 32, 43);
-        doc.setFontSize(11);
-        doc.text(`FECHA: ${formatFechaLarga(fechaISO)}`, pageWidth / 2, fechaY + 1, { align: "center" });
-
-        const totalY = fechaY + 28;
-        doc.setFontSize(10);
-        doc.setFont(undefined, "bold");
-        doc.text(`Total de vehículos: ${totalRegistros}`, MARGIN_X, totalY);
-        doc.setFont(undefined, "normal");
-
-        return totalY + 16;
+    function fuenteCanvas(size, bold) {
+        return `${bold ? "bold " : ""}${size}px ${CANVAS_FUENTE}`;
     }
 
-    // Dibuja la fila de encabezado de la tabla -- se repite en cada pagina
-    // nueva (antes solo salia en la primera, y una tabla larga perdia el
-    // significado de las columnas al pasar de pagina).
-    function addTablaHeader(doc, y, columns, tableWidth) {
-        doc.setFillColor(...ROJO_CLARO_ENCABEZADO);
-        doc.rect(MARGIN_X, y, tableWidth, ROW_HEIGHT, "F");
-        doc.setDrawColor(190, 190, 190);
-        doc.rect(MARGIN_X, y, tableWidth, ROW_HEIGHT);
-        doc.setTextColor(24, 32, 43);
-        doc.setFont(undefined, "bold");
-        doc.setFontSize(10);
-        columns.forEach((column) => doc.text(column.label, column.x + 4, y + ROW_HEIGHT / 2 + 3));
-        doc.setFont(undefined, "normal");
-        return y + ROW_HEIGHT;
+    function loadImageElement(dataUrl) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => reject(new Error("No se pudo cargar la imagen"));
+            img.src = dataUrl;
+        });
     }
 
-    function addTabla(doc, startY, asignaciones) {
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const bottomLimit = doc.internal.pageSize.getHeight() - 90;
+    // Equivalente a doc.splitTextToSize de jsPDF, pero contra measureText de
+    // Canvas -- Canvas no envuelve texto largo solo, hay que partirlo a mano.
+    function wrapTextCanvas(ctx, text, maxWidth) {
+        const palabras = String(text).split(" ");
+        const lineas = [];
+        let lineaActual = "";
 
-        const tableWidth = pageWidth - MARGIN_X * 2;
+        palabras.forEach((palabra) => {
+            const intento = lineaActual ? `${lineaActual} ${palabra}` : palabra;
+            if (lineaActual && ctx.measureText(intento).width > maxWidth) {
+                lineas.push(lineaActual);
+                lineaActual = palabra;
+            } else {
+                lineaActual = intento;
+            }
+        });
 
+        if (lineaActual) lineas.push(lineaActual);
+        return lineas.length ? lineas : [""];
+    }
+
+    function calcularColumnasImagen(tableWidth) {
         // RUTA es la columna de texto libre que mas necesita espacio (las
         // rutas con varios destinos pueden ser mucho mas largas que un
         // nombre corto), asi que se queda con el ancho sobrante para que la
-        // suma cierre exacta contra el ancho de la tabla con cualquier
-        // tamano de pagina. OBSERVACIONES no sale en este reporte -- queda
-        // solo en el Excel (ver exportReporteExcel).
+        // suma cierre exacta contra el ancho de la tabla. OBSERVACIONES no
+        // sale en este reporte -- queda solo en el Excel (ver
+        // exportReporteExcel).
         const anchoNumero = 30;
         const anchoNombre = 150;
         const anchoTelefono = 80;
@@ -108,21 +85,26 @@
         const anchoRuta = tableWidth - (anchoNumero + anchoNombre + anchoTelefono + anchoPlaca);
 
         let x = MARGIN_X;
-        const columns = [
+        return [
             ["#", anchoNumero],
             ["NOMBRE", anchoNombre],
             ["RUTA", anchoRuta],
             ["TELEFONO", anchoTelefono],
             ["PLACA", anchoPlaca]
         ].map(([label, width]) => {
-            const columna = { label, x, width, align: "left" };
+            const columna = { label, x, width };
             x += width;
             return columna;
         });
+    }
 
-        let y = addTablaHeader(doc, startY, columns, tableWidth);
-
-        asignaciones.forEach((item, indice) => {
+    // Mide de una vez el alto de cada fila (segun cuantas lineas necesite
+    // envolver la columna mas larga) para poder calcular el alto total de la
+    // imagen ANTES de crear el canvas final -- a diferencia del PDF, una
+    // imagen no tiene paginas: se dibuja completa de una sola vez.
+    function medirFilasImagen(ctxMedicion, asignaciones, columns) {
+        ctxMedicion.font = fuenteCanvas(10, false);
+        return asignaciones.map((item, indice) => {
             const valores = [
                 String(indice + 1),
                 safe(item.conductor_nombre, "Sin conductor"),
@@ -130,71 +112,159 @@
                 safe(item.telefono),
                 safe(item.vehiculo_placa, "Sin vehículo")
             ];
-
-            // Las rutas con varios destinos (ver Asignacion de rutas) pueden
-            // ser mucho mas largas que un nombre corto -- se envuelven en
-            // varias lineas en vez de cortarse en la primera, ajustando el
-            // alto de toda la fila a la columna que mas lineas necesite.
-            const columnLines = columns.map((column, colIndex) => doc.splitTextToSize(valores[colIndex], column.width - 8));
+            const columnLines = columns.map((column, colIndex) => wrapTextCanvas(ctxMedicion, valores[colIndex], column.width - 8));
             const maxLines = Math.max(1, ...columnLines.map((lines) => lines.length));
-            const rowHeight = Math.max(ROW_HEIGHT, maxLines * ROW_LINE_HEIGHT + ROW_PADDING);
+            const altura = Math.max(ROW_HEIGHT, maxLines * ROW_LINE_HEIGHT + ROW_PADDING);
+            return { columnLines, altura };
+        });
+    }
 
-            if (y + rowHeight > bottomLimit) {
-                doc.addPage();
-                y = addTablaHeader(doc, 40, columns, tableWidth);
-            }
+    async function dibujarEncabezadoImagen(ctx, branding, fechaISO, totalRegistros) {
+        const bannerX = MARGIN_X + 120;
+        const bannerHeight = 60;
+        const bannerY = 30;
 
-            doc.setFillColor(...(indice % 2 === 0 ? BLANCO_FILA : ROJO_CLARO_FILA));
-            doc.rect(MARGIN_X, y, tableWidth, rowHeight, "F");
-            doc.setDrawColor(220, 220, 220);
-            doc.rect(MARGIN_X, y, tableWidth, rowHeight);
+        // Logo de la empresa a la izquierda, mismo criterio que
+        // entrega-export.js/vehiculo-export.js (getEmpresaBranding): cada
+        // empresa lleva su propio logo, sin membrete generico de plataforma.
+        ctx.strokeStyle = "rgb(200, 200, 200)";
+        ctx.strokeRect(MARGIN_X, bannerY, 110, bannerHeight);
+        if (branding?.logo) {
+            const logoImg = await loadImageElement(branding.logo.dataUrl);
+            const maxWidth = 100;
+            const maxHeight = bannerHeight - 10;
+            const scale = Math.min(maxWidth / branding.logo.width, maxHeight / branding.logo.height);
+            const w = branding.logo.width * scale;
+            const h = branding.logo.height * scale;
+            ctx.drawImage(logoImg, MARGIN_X + (110 - w) / 2, bannerY + (bannerHeight - h) / 2, w, h);
+        }
 
+        ctx.fillStyle = `rgb(${ROJO_BANNER.join(", ")})`;
+        ctx.fillRect(bannerX, bannerY, PAGE_WIDTH_IMAGEN - MARGIN_X - bannerX, bannerHeight);
+        ctx.fillStyle = "#ffffff";
+        ctx.font = fuenteCanvas(20, true);
+        ctx.textAlign = "center";
+        ctx.fillText("REPORTE DE VEHÍCULOS", bannerX + (PAGE_WIDTH_IMAGEN - MARGIN_X - bannerX) / 2, bannerY + bannerHeight / 2 + 7);
+
+        const fechaY = bannerY + bannerHeight + 18;
+        ctx.fillStyle = `rgb(${GRIS_FECHA.join(", ")})`;
+        ctx.fillRect(MARGIN_X, fechaY - 14, PAGE_WIDTH_IMAGEN - MARGIN_X * 2, 22);
+        ctx.fillStyle = "rgb(24, 32, 43)";
+        ctx.font = fuenteCanvas(11, false);
+        ctx.fillText(`FECHA: ${formatFechaLarga(fechaISO)}`, PAGE_WIDTH_IMAGEN / 2, fechaY + 1);
+
+        const totalY = fechaY + 28;
+        ctx.font = fuenteCanvas(10, true);
+        ctx.textAlign = "left";
+        ctx.fillText(`Total de vehículos: ${totalRegistros}`, MARGIN_X, totalY);
+
+        return totalY + 16;
+    }
+
+    function dibujarTablaHeaderImagen(ctx, y, columns, tableWidth) {
+        ctx.fillStyle = `rgb(${ROJO_CLARO_ENCABEZADO.join(", ")})`;
+        ctx.fillRect(MARGIN_X, y, tableWidth, ROW_HEIGHT);
+        ctx.strokeStyle = "rgb(190, 190, 190)";
+        ctx.strokeRect(MARGIN_X, y, tableWidth, ROW_HEIGHT);
+        ctx.fillStyle = "rgb(24, 32, 43)";
+        ctx.font = fuenteCanvas(10, true);
+        ctx.textAlign = "left";
+        columns.forEach((column) => ctx.fillText(column.label, column.x + 4, y + ROW_HEIGHT / 2 + 3));
+        return y + ROW_HEIGHT;
+    }
+
+    function dibujarTablaImagen(ctx, startY, columns, filasMedidas, tableWidth) {
+        let y = dibujarTablaHeaderImagen(ctx, startY, columns, tableWidth);
+        ctx.font = fuenteCanvas(10, false);
+
+        filasMedidas.forEach((fila, indice) => {
+            ctx.fillStyle = `rgb(${(indice % 2 === 0 ? BLANCO_FILA : ROJO_CLARO_FILA).join(", ")})`;
+            ctx.fillRect(MARGIN_X, y, tableWidth, fila.altura);
+            ctx.strokeStyle = "rgb(220, 220, 220)";
+            ctx.strokeRect(MARGIN_X, y, tableWidth, fila.altura);
+
+            ctx.fillStyle = "rgb(24, 32, 43)";
             columns.forEach((column, colIndex) => {
-                doc.text(columnLines[colIndex], column.x + 4, y + 13);
+                fila.columnLines[colIndex].forEach((linea, lineaIndex) => {
+                    ctx.fillText(linea, column.x + 4, y + 13 + lineaIndex * ROW_LINE_HEIGHT);
+                });
             });
 
-            y += rowHeight;
+            y += fila.altura;
         });
 
         return y;
     }
 
-    async function addFooter(doc, branding) {
-        const pageCount = doc.internal.getNumberOfPages();
+    async function dibujarFooterImagen(ctx, startY, branding, membrete) {
         const generado = FOOTER_TEXT(branding?.nombreEmpresa);
-        const membrete = await window.VehiAmb.pdfExport.getMembreteFooterImage();
+        const y = startY + 20;
 
-        for (let page = 1; page <= pageCount; page += 1) {
-            doc.setPage(page);
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const pageHeight = doc.internal.pageSize.getHeight();
-            doc.setFontSize(8);
-            doc.setTextColor(120, 128, 140);
+        ctx.font = fuenteCanvas(8, false);
+        ctx.fillStyle = "rgb(120, 128, 140)";
+        ctx.textAlign = "left";
+        ctx.fillText(generado, MARGIN_X, y);
 
-            if (membrete) {
-                const imgWidth = pageWidth - MARGIN_X * 2;
-                const imgHeight = imgWidth / (membrete.width / membrete.height);
-                doc.text(generado, MARGIN_X, pageHeight - imgHeight - 10);
-                doc.addImage(membrete.dataUrl, "JPEG", MARGIN_X, pageHeight - imgHeight, imgWidth, imgHeight);
-            } else {
-                doc.text(generado, MARGIN_X, pageHeight - 20);
-            }
-        }
+        if (!membrete) return y + 20;
+
+        const imgWidth = PAGE_WIDTH_IMAGEN - MARGIN_X * 2;
+        const imgHeight = imgWidth / (membrete.width / membrete.height);
+        const membreteImg = await loadImageElement(membrete.dataUrl);
+        ctx.drawImage(membreteImg, MARGIN_X, y + 10, imgWidth, imgHeight);
+        return y + 10 + imgHeight + 10;
     }
 
-    async function exportReportePdf({ fecha, asignaciones }) {
+    function calcularAlturaFooter(membrete) {
+        if (!membrete) return 40;
+        const imgWidth = PAGE_WIDTH_IMAGEN - MARGIN_X * 2;
+        const imgHeight = imgWidth / (membrete.width / membrete.height);
+        return 30 + imgHeight;
+    }
+
+    function descargarDataUrl(dataUrl, fileName) {
+        const link = document.createElement("a");
+        link.href = dataUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    }
+
+    async function exportReporteImagen({ fecha, asignaciones }) {
         if (!asignaciones || !asignaciones.length) {
             throw new Error("No hay asignaciones registradas para esta fecha");
         }
 
-        const doc = await window.VehiAmb.pdfExport.createDocument({ orientation: "landscape" });
         const branding = await window.VehiAmb.pdfExport.getEmpresaBranding();
+        const membrete = await window.VehiAmb.pdfExport.getMembreteFooterImage();
 
-        const startY = await addEncabezado(doc, branding, fecha, asignaciones.length);
-        addTabla(doc, startY, asignaciones);
-        await addFooter(doc, branding);
+        const tableWidth = PAGE_WIDTH_IMAGEN - MARGIN_X * 2;
+        const columns = calcularColumnasImagen(tableWidth);
 
-        doc.save(`Reporte_vehiculos_${fecha}.pdf`);
+        // Canvas descartable, solo para medir texto con measureText antes de
+        // saber el alto final -- no se dibuja nada en el.
+        const ctxMedicion = document.createElement("canvas").getContext("2d");
+        const filasMedidas = medirFilasImagen(ctxMedicion, asignaciones, columns);
+
+        const alturaEncabezado = 30 + 60 + 18 + 22 + 28 + 16; // igual al valor que devuelve dibujarEncabezadoImagen
+        const alturaTabla = ROW_HEIGHT + filasMedidas.reduce((total, fila) => total + fila.altura, 0);
+        const alturaFooter = calcularAlturaFooter(membrete);
+        const alturaTotal = alturaEncabezado + alturaTabla + alturaFooter;
+
+        const canvas = document.createElement("canvas");
+        canvas.width = PAGE_WIDTH_IMAGEN * CANVAS_SCALE;
+        canvas.height = alturaTotal * CANVAS_SCALE;
+        const ctx = canvas.getContext("2d");
+        ctx.scale(CANVAS_SCALE, CANVAS_SCALE);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, PAGE_WIDTH_IMAGEN, alturaTotal);
+
+        const startY = await dibujarEncabezadoImagen(ctx, branding, fecha, asignaciones.length);
+        const tablaY = dibujarTablaImagen(ctx, startY, columns, filasMedidas, tableWidth);
+        await dibujarFooterImagen(ctx, tablaY, branding, membrete);
+
+        descargarDataUrl(canvas.toDataURL("image/jpeg", 0.92), `Reporte_vehiculos_${fecha}.jpg`);
     }
 
     const EXCEL_COLUMN_WIDTHS = [
@@ -321,5 +391,5 @@
     }
 
     window.VehiAmb = window.VehiAmb || {};
-    window.VehiAmb.asignacionesExport = { exportReportePdf, exportReporteExcel };
+    window.VehiAmb.asignacionesExport = { exportReporteImagen, exportReporteExcel };
 })();
