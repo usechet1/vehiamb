@@ -155,6 +155,21 @@ function setColumnWidths(worksheet, widths) {
     });
 }
 
+/**
+ * Convierte un indice de columna 1-based ("A" = 1) a su letra de Excel, para
+ * armar referencias de formula (ej. "G5-H5") sin escribirlas a mano.
+ */
+function columnLetter(index) {
+    let letra = "";
+    let n = index;
+    while (n > 0) {
+        const resto = (n - 1) % 26;
+        letra = String.fromCharCode(65 + resto) + letra;
+        n = Math.floor((n - 1) / 26);
+    }
+    return letra;
+}
+
 async function downloadWorkbook(workbook, fileName) {
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
@@ -195,6 +210,7 @@ window.VehiAmb.excelExport = {
     addTableDataRow,
     addFooterRow,
     setColumnWidths,
+    columnLetter,
     downloadWorkbook,
     formatDateForExcel
 };
