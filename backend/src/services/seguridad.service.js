@@ -36,13 +36,21 @@ const ITEMS_BOTIQUIN = [
 
 const ITEMS_POR_CODIGO = new Map(ITEMS_BOTIQUIN.map((item) => [item.codigo, item]));
 
-// Mismos 9 codigos ("kit_alicate", "kit_gato", etc.) que ya existen como
-// sub-items del grupo "kit_herramientas" dentro del checklist de la
-// inspeccion preventiva (ver ITEMS_CHECKLIST en inspecciones.service.js) --
-// se copian los codigos/labels aca en vez de importarlos porque ese
-// catalogo vive mezclado con el resto de items del chequeo de ruta
-// (llantas, luces, etc.) y aca solo hace falta el subconjunto de
-// herramientas, con su propio formato de inspeccion detallada.
+// Los primeros 9 codigos ("kit_alicate", "kit_gato", etc.) son los mismos
+// que ya existen como sub-items del grupo "kit_herramientas" dentro del
+// checklist de la inspeccion preventiva (ver ITEMS_CHECKLIST en
+// inspecciones.service.js) -- se copian los codigos/labels aca en vez de
+// importarlos porque ese catalogo vive mezclado con el resto de items del
+// chequeo de ruta (llantas, luces, etc.) y aca solo hace falta el
+// subconjunto de herramientas, con su propio formato de inspeccion
+// detallada. "kit_llanta_repuesto" es la excepcion: en la inspeccion
+// preventiva la llanta de repuesto ya tiene su propio hotspot aparte
+// (codigo "llanta_repuesto", fuera del grupo kit_herramientas), pero este
+// modulo SG-SST no tenia ningun lugar donde registrarla -- a diferencia de
+// botiquin y extintor, que sí tienen su propia pestaña aca mismo y por eso
+// no se duplican en este catalogo. Los 9 items del kit exigido por el
+// Articulo 30 de la Ley 769 de 2002 quedan cubiertos entre este catalogo y
+// las pestañas de Botiquín y Extintor de esta misma página.
 const ITEMS_HERRAMIENTAS = [
   { codigo: "kit_alicate", label: "Alicate" },
   { codigo: "kit_destornilladores", label: "Destornilladores" },
@@ -52,6 +60,7 @@ const ITEMS_HERRAMIENTAS = [
   { codigo: "kit_cruceta", label: "Cruceta" },
   { codigo: "kit_senales", label: "Señales de carretera" },
   { codigo: "kit_tacos", label: "Tacos para bloquear el vehículo" },
+  { codigo: "kit_llanta_repuesto", label: "Llanta de repuesto" },
   { codigo: "kit_linterna", label: "Linterna" }
 ];
 
