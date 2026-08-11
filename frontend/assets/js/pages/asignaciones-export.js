@@ -4,8 +4,8 @@
     const FOOTER_TEXT = (nombreEmpresa) => (nombreEmpresa ? `Generado por ${APP_NAME} para ${nombreEmpresa}` : `Generado por ${APP_NAME}`);
     const ROJO_BANNER = [200, 22, 30];
     const GRIS_FECHA = [230, 232, 235];
-    const ROJO_CLARO_ENCABEZADO = [235, 162, 170];
-    const ROJO_CLARO_FILA = [243, 206, 210];
+    const ROJO_CLARO_ENCABEZADO = [228, 139, 143];
+    const ROJO_CLARO_FILA = [239, 185, 188];
     const BLANCO_FILA = [255, 255, 255];
     const ROW_HEIGHT = 20;
     const ROW_LINE_HEIGHT = 12;
