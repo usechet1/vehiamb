@@ -222,24 +222,27 @@
     const COLUMNA_GASTO = 8;
     const COLUMNA_CAMBIO = 9;
 
+    // Las 5 primeras columnas (#, NOMBRE, RUTA, TELEFONO, PLACA) son la
+    // informacion de la ruta en si; las 5 siguientes (OBSERVACIONES en
+    // adelante) son el seguimiento manual de dinero que solo tiene sentido
+    // para quien despacha. La hoja "sin valores" (ver exportReporteExcel)
+    // reusa exactamente las 5 primeras para un reporte limpio, pensado para
+    // compartir con el conductor/otras personas sin exponer esos datos.
+    const COLUMNAS_RUTA = EXCEL_COLUMN_WIDTHS.slice(0, 5);
+
     function centrarFila(row) {
         row.eachCell({ includeEmpty: true }, (cell) => {
             cell.alignment = { horizontal: "center", vertical: "middle" };
         });
     }
 
-    async function exportReporteExcel({ fecha, asignaciones }) {
-        if (!asignaciones || !asignaciones.length) {
-            throw new Error("No hay asignaciones registradas para esta fecha");
-        }
-
+    function construirHojaReporte(workbook, { nombreHoja, fecha, asignaciones, branding, conValores }) {
         const excel = window.VehiAmb.excelExport;
-        const branding = await window.VehiAmb.pdfExport.getEmpresaBranding();
-        const columnCount = EXCEL_COLUMN_WIDTHS.length;
+        const columnas = conValores ? EXCEL_COLUMN_WIDTHS : COLUMNAS_RUTA;
+        const columnCount = columnas.length;
 
-        const workbook = await excel.createWorkbook();
-        const sheet = workbook.addWorksheet("Asignaciones");
-        excel.setColumnWidths(sheet, EXCEL_COLUMN_WIDTHS.map((column) => column.width));
+        const sheet = workbook.addWorksheet(nombreHoja);
+        excel.setColumnWidths(sheet, columnas.map((column) => column.width));
 
         excel.addTitleBar(sheet, {
             title: "REPORTE DE VEHÍCULOS",
@@ -253,43 +256,66 @@
             // columna -- se combina con la B (mucho mas ancha) solo en esta
             // fila de titulo para darle espacio, sin ensanchar la columna A
             // para el resto de la tabla.
-            logoColumnSpan: 2
+            logoColumnSpan: 2,
+            // El area combinada A1:B1 sobra de ancho, asi que el logo se
+            // ve mas grande que el resto de reportes (que lo dejan en una
+            // sola columna angosta).
+            logoRowHeight: 72,
+            logoMaxWidthPx: 170
         });
 
-        const headerRow = excel.addTableHeaderRow(sheet, EXCEL_COLUMN_WIDTHS.map((column) => column.label));
+        const headerRow = excel.addTableHeaderRow(sheet, columnas.map((column) => column.label));
         centrarFila(headerRow);
 
         asignaciones.forEach((item, indice) => {
             const filaExcel = headerRow.number + 1 + indice;
-            const row = excel.addTableDataRow(
-                sheet,
-                [
-                    indice + 1,
-                    safe(item.conductor_nombre, "Sin conductor"),
-                    safe(item.ruta_nombre),
-                    safe(item.telefono),
-                    safe(item.vehiculo_placa, "Sin vehículo"),
+            const valoresRuta = [
+                indice + 1,
+                safe(item.conductor_nombre, "Sin conductor"),
+                safe(item.ruta_nombre),
+                safe(item.telefono),
+                safe(item.vehiculo_placa, "Sin vehículo")
+            ];
+            const valores = conValores
+                ? [
+                    ...valoresRuta,
                     safe(item.observaciones, ""),
                     "",
                     "",
                     { formula: `${excel.columnLetter(COLUMNA_ANTICIPO)}${filaExcel}-${excel.columnLetter(COLUMNA_GASTO)}${filaExcel}`, result: 0 },
                     ""
-                ],
-                { band: indice % 2 === 1 }
-            );
+                ]
+                : valoresRuta;
 
+            const row = excel.addTableDataRow(sheet, valores, { band: indice % 2 === 1 });
             centrarFila(row);
 
             // Telefono como columna de texto (no numero) para que Excel no
             // marque el numero como "guardado como texto" -- el telefono
             // nunca se usa en calculos, mostrar el error ahi es ruido.
             row.getCell(COLUMNA_TELEFONO).numFmt = "@";
-            row.getCell(COLUMNA_ANTICIPO).numFmt = "$#,##0";
-            row.getCell(COLUMNA_GASTO).numFmt = "$#,##0";
-            row.getCell(COLUMNA_CAMBIO).numFmt = "$#,##0";
+
+            if (conValores) {
+                row.getCell(COLUMNA_ANTICIPO).numFmt = "$#,##0";
+                row.getCell(COLUMNA_GASTO).numFmt = "$#,##0";
+                row.getCell(COLUMNA_CAMBIO).numFmt = "$#,##0";
+            }
         });
 
         excel.addFooterRow(sheet, FOOTER_TEXT(branding?.nombreEmpresa), columnCount);
+    }
+
+    async function exportReporteExcel({ fecha, asignaciones }) {
+        if (!asignaciones || !asignaciones.length) {
+            throw new Error("No hay asignaciones registradas para esta fecha");
+        }
+
+        const excel = window.VehiAmb.excelExport;
+        const branding = await window.VehiAmb.pdfExport.getEmpresaBranding();
+
+        const workbook = await excel.createWorkbook();
+        construirHojaReporte(workbook, { nombreHoja: "Asignaciones", fecha, asignaciones, branding, conValores: true });
+        construirHojaReporte(workbook, { nombreHoja: "Asignaciones sin valores", fecha, asignaciones, branding, conValores: false });
 
         await excel.downloadWorkbook(workbook, `Reporte_vehiculos_${fecha}.xlsx`);
     }

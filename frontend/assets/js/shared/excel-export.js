@@ -29,15 +29,17 @@ async function createWorkbook() {
  * un recuadro blanco a la izquierda del titulo -- igual disposicion que el
  * encabezado del PDF: logo + banda roja al lado, no una encima de otra.
  */
-function addTitleBar(worksheet, { title, subtitle, columnCount, logo, size = 13, align = "left", logoColumnSpan = 1 }) {
+function addTitleBar(worksheet, { title, subtitle, columnCount, logo, size = 13, align = "left", logoColumnSpan = 1, logoRowHeight, logoMaxWidthPx = 90 }) {
     const usaLogo = Boolean(logo);
     const colInicioTitulo = usaLogo ? logoColumnSpan + 1 : 1;
     // 46pt de alto (vs. 26pt sin logo) para que el logo entre con margen --
     // el banner del PDF mide 60pt, pero una fila de Excel tan alta se ve
     // desproporcionada al lado del resto de filas del reporte.
     // Con un tamano de letra mayor al default, la fila necesita ese mismo
-    // extra de alto o el texto queda apretado contra el borde.
-    const alturaFila = Math.max(usaLogo ? 46 : 26, size * 2);
+    // extra de alto o el texto queda apretado contra el borde. logoRowHeight
+    // permite pedir una fila (y por lo tanto un logo) mas grande solo en el
+    // reporte que lo necesite, sin afectar el resto (ver asignaciones-export.js).
+    const alturaFila = Math.max(logoRowHeight || (usaLogo ? 46 : 26), size * 2);
 
     if (usaLogo && logoColumnSpan === 1) {
         // La columna 1 del reporte (ej. "#") suele ser mas angosta que el
@@ -91,7 +93,7 @@ function addTitleBar(worksheet, { title, subtitle, columnCount, logo, size = 13,
         // (getEmpresaBranding/addEncabezado en cada *-export.js): se respeta
         // la proporcion real del logo en vez de estirarlo a un cuadrado.
         const alturaFilaPx = alturaFila * (96 / 72);
-        const anchoMaximoPx = 90;
+        const anchoMaximoPx = logoMaxWidthPx;
         const altoMaximoPx = alturaFilaPx - 8;
         const escala = Math.min(anchoMaximoPx / logo.width, altoMaximoPx / logo.height, 1);
 
