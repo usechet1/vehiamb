@@ -135,6 +135,14 @@ function renderNotifItem(notificacion, { dentroDeGrupo = false } = {}) {
             botones.push(`<button type="button" class="btn-secondary" data-notif-action="leido" data-notif-id="${notificacion.id}">Marcar leida</button>`);
         }
     }
+    // No toda notificacion tiene un evento real detras (ej. "usuario creado"
+    // no trae referencia_tipo/referencia_id) -- sin eso no hay a que colgarle
+    // el comentario, asi que el boton solo aparece cuando si aplica. Se
+    // filtra ademas por permiso, igual que el resto de acciones que no todos
+    // los roles pueden hacer.
+    if (notificacion.referencia_tipo && notificacion.referencia_id && window.VehiAmb.auth?.hasPermission?.("notificaciones.comentar")) {
+        botones.push(`<button type="button" class="btn-secondary notif-item-icon-btn" data-notif-action="comentar" data-notif-id="${notificacion.id}" data-notif-referencia-tipo="${escapeHtml(notificacion.referencia_tipo)}" data-notif-referencia-id="${notificacion.referencia_id}" title="Comentar">💬</button>`);
+    }
     botones.push(`<button type="button" class="btn-secondary notif-item-icon-btn" data-notif-action="eliminar" data-notif-id="${notificacion.id}" title="Eliminar">✕</button>`);
 
     const vehiculoLabel = notificacion.vehiculo
@@ -194,6 +202,102 @@ function renderNotificaciones(notificaciones, body, badge, pendientes) {
     body.innerHTML = notificaciones.map(renderNotifEntry).join("");
 }
 
+// Mismo patron visual que window.VehiAmb.ui.confirm() (ui.js) -- backdrop +
+// modal, Escape/click afuera cancela -- pero con un formulario en vez de un
+// mensaje, porque acá hace falta capturar texto + un archivo opcional, no
+// solo confirmar o cancelar. Devuelve { comentario, foto } o null si se
+// cancela.
+function renderHiloComentarios(hilo) {
+    const cfg = window.VehiAmb.notifConfig;
+
+    if (!hilo.length) {
+        return '<p class="dash-empty">Todavía no hay comentarios.</p>';
+    }
+
+    return hilo.map((comentario) => `
+        <div class="notif-comentario-item">
+            <div class="notif-comentario-meta">
+                <strong>${escapeHtml(comentario.usuario_nombre || "Usuario")}</strong>
+                <span class="notif-item-time">${cfg.tiempoTranscurrido(comentario.creado_en)}</span>
+            </div>
+            <p>${escapeHtml(comentario.comentario)}</p>
+            ${comentario.foto_url ? `<a href="${escapeHtml(window.VehiAmb.api.getAssetUrl(comentario.foto_url))}" target="_blank" rel="noopener">Ver foto adjunta</a>` : ""}
+        </div>
+    `).join("");
+}
+
+// "hilo" son los comentarios que ya existen para este evento (referencia_tipo
+// + referencia_id) -- se piden ANTES de abrir el modal (ver el handler de
+// click) para que aparezca completo desde el primer render, sin un salto
+// visual de "vacio" a "con contenido".
+function abrirFormularioComentario(hilo = []) {
+    return new Promise((resolve) => {
+        const backdrop = document.createElement("div");
+        backdrop.className = "confirm-backdrop";
+
+        const modal = document.createElement("div");
+        modal.className = "confirm-modal";
+        modal.setAttribute("role", "dialog");
+        modal.setAttribute("aria-modal", "true");
+        modal.innerHTML = `
+            <h3>Comentarios</h3>
+            <div class="notif-comentarios-hilo">${renderHiloComentarios(hilo)}</div>
+            <div class="form-group">
+                <label>Nuevo comentario</label>
+                <textarea rows="3" maxlength="500" placeholder="Ej: Ya se está gestionando" data-comentario-texto></textarea>
+            </div>
+            <div class="form-group">
+                <label>Foto (opcional)</label>
+                <input type="file" accept="image/png,image/jpeg,image/webp" data-comentario-foto>
+            </div>
+            <div class="confirm-modal-actions">
+                <button type="button" class="btn-secondary" data-comentario-cancelar>Cancelar</button>
+                <button type="button" class="btn-primary" data-comentario-guardar>Guardar</button>
+            </div>
+        `;
+
+        backdrop.appendChild(modal);
+        document.body.appendChild(backdrop);
+
+        const textoInput = modal.querySelector("[data-comentario-texto]");
+        const fotoInput = modal.querySelector("[data-comentario-foto]");
+
+        function cleanup(resultado) {
+            backdrop.remove();
+            document.removeEventListener("keydown", onKeydown);
+            resolve(resultado);
+        }
+
+        function onKeydown(event) {
+            if (event.key === "Escape") cleanup(null);
+        }
+
+        backdrop.addEventListener("click", (event) => {
+            // El backdrop/modal cuelga de document.body, fuera del <aside>
+            // del panel de notificaciones -- sin cortar la propagacion aca,
+            // cualquier clic adentro (el boton Guardar incluido) burbujea
+            // hasta el listener de "clic afuera" (mas abajo, en
+            // setupNotificaciones) y ese cierra el panel por error, como si
+            // hubieras clickeado afuera de todo.
+            event.stopPropagation();
+            if (event.target === backdrop) cleanup(null);
+        });
+
+        modal.querySelector("[data-comentario-cancelar]").addEventListener("click", () => cleanup(null));
+        modal.querySelector("[data-comentario-guardar]").addEventListener("click", () => {
+            const comentario = textoInput.value.trim();
+            if (!comentario) {
+                textoInput.focus();
+                return;
+            }
+            cleanup({ comentario, foto: fotoInput.files[0] || null });
+        });
+
+        document.addEventListener("keydown", onKeydown);
+        textoInput.focus();
+    });
+}
+
 async function setupNotificaciones(aside) {
     const bellButton = aside.querySelector("#notifBellButton");
     const panel = aside.querySelector("#notifPanel");
@@ -245,7 +349,42 @@ async function setupNotificaciones(aside) {
         if (!actionButton) return;
 
         event.preventDefault();
-        const { notifAction, notifId } = actionButton.dataset;
+        const { notifAction, notifId, notifReferenciaTipo, notifReferenciaId } = actionButton.dataset;
+
+        // "comentar" abre un formulario antes de decidir si hay algo que
+        // mandar -- si el usuario cancela, no hay que deshabilitar el boton
+        // ni tocar la red, a diferencia del resto de acciones que son
+        // inmediatas.
+        if (notifAction === "comentar") {
+            actionButton.disabled = true;
+            let hilo = [];
+            try {
+                hilo = await window.VehiAmb.api.getComentariosNotificacion(notifReferenciaTipo, notifReferenciaId);
+            } catch (error) {
+                console.error(error);
+            } finally {
+                actionButton.disabled = false;
+            }
+
+            const resultado = await abrirFormularioComentario(hilo);
+            if (!resultado) return;
+
+            actionButton.disabled = true;
+            try {
+                const formData = new FormData();
+                formData.append("comentario", resultado.comentario);
+                if (resultado.foto) formData.append("foto", resultado.foto);
+
+                await window.VehiAmb.api.comentarNotificacion(notifReferenciaTipo, notifReferenciaId, formData);
+                await refrescar();
+            } catch (error) {
+                console.error(error);
+            } finally {
+                actionButton.disabled = false;
+            }
+            return;
+        }
+
         actionButton.disabled = true;
 
         try {

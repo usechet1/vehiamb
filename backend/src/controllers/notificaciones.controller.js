@@ -63,3 +63,13 @@ exports.rechazar = async (req, res) => {
   const mantenimiento = await notificacionesService.rechazarNotificacion(req.params.id, req.user);
   res.json(mantenimiento);
 };
+
+exports.getComentarios = async (req, res) => {
+  const comentarios = await notificacionesService.listarComentarios(req.params.tipo, req.params.id, req.user);
+  res.json(comentarios);
+};
+
+exports.crearComentario = async (req, res) => {
+  const comentario = await notificacionesService.comentarNotificacion(req.params.tipo, req.params.id, req.body, req.file, req.user);
+  res.status(201).json(comentario);
+};

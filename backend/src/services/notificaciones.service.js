@@ -3,6 +3,7 @@ const notificacionesRepository = require("../repositories/notificaciones.reposit
 const usuariosRepository = require("../repositories/usuarios.repository");
 const simitComparendosRepository = require("../repositories/simit-comparendos.repository");
 const mantenimientosRepository = require("../repositories/mantenimientos.repository");
+const notificacionComentariosRepository = require("../repositories/notificacion-comentarios.repository");
 const notifConfig = require("../config/notificaciones.config");
 const emailChannel = require("./notificaciones-email.channel");
 const whatsappChannel = require("./notificaciones-whatsapp.channel");
@@ -500,6 +501,34 @@ async function rechazarNotificacion(notificacionId, currentUser) {
   return resolverNotificacionAprobacion(notificacionId, currentUser, "rechazado");
 }
 
+// ─────────────────── Comentarios sobre una notificacion ───────────────────
+// Se indexan por referencia_tipo/referencia_id (el evento real) y no por el
+// id de la fila de notificaciones (la copia personal de cada destinatario):
+// asi, si Administrador y Operador recibieron la misma alerta, los dos ven
+// el mismo hilo de comentarios en vez de uno cada uno.
+
+async function listarComentarios(referenciaTipo, referenciaId, currentUser) {
+  return notificacionComentariosRepository.findByReferencia(referenciaTipo, referenciaId, currentUser.empresa_id);
+}
+
+async function comentarNotificacion(referenciaTipo, referenciaId, payload, file, currentUser) {
+  const texto = String(payload.comentario || "").trim();
+  if (!texto) {
+    throw new HttpError(400, "El comentario no puede estar vacío");
+  }
+
+  return notificacionComentariosRepository.create({
+    referencia_tipo: referenciaTipo,
+    referencia_id: referenciaId,
+    usuario_id: currentUser?.id ?? null,
+    comentario: texto,
+    foto_url: file ? `/uploads/notificaciones/${file.filename}` : null,
+    foto_nombre: file ? file.originalname : null,
+    foto_mime: file ? file.mimetype : null,
+    empresa_id: currentUser.empresa_id
+  });
+}
+
 module.exports = {
   ROLES_SIN_NOTIFICACION_AUTOMATICA,
   notificar,
@@ -521,5 +550,7 @@ module.exports = {
   reenviarPorWhatsapp,
   aprobarNotificacion,
   rechazarNotificacion,
+  listarComentarios,
+  comentarNotificacion,
   existsRecentByReferencia: notificacionesRepository.existsRecentByReferencia
 };

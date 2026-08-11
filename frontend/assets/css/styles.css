@@ -5117,3 +5117,41 @@ button.record-link {
         gap: 4px;
     }
 }
+
+/* ── Hilo de comentarios sobre una notificacion (sidebar.js) ── */
+
+.notif-comentarios-hilo {
+    max-height: 220px;
+    overflow-y: auto;
+    margin: 10px 0 16px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+}
+
+.notif-comentario-item {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.notif-comentario-item:last-child {
+    border-bottom: none;
+}
+
+.notif-comentario-item p {
+    color: var(--color-ink-soft);
+    font-size: 0.85rem;
+    line-height: 1.35;
+    margin: 2px 0;
+}
+
+.notif-comentario-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 0.82rem;
+}
+
+.notif-comentarios-hilo .dash-empty {
+    padding: 14px 12px;
+}
