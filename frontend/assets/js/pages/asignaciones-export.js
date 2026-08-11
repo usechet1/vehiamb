@@ -71,6 +71,20 @@
         return lineas.length ? lineas : [""];
     }
 
+    // Recorta con "…" en vez de envolver -- usado en NOMBRE, que se quiere
+    // siempre en una sola linea aunque el nombre sea muy largo (a diferencia
+    // de RUTA, que si envuelve con wrapTextCanvas).
+    function truncarTextoCanvas(ctx, text, maxWidth) {
+        const texto = String(text);
+        if (ctx.measureText(texto).width <= maxWidth) return texto;
+
+        let recortado = texto;
+        while (recortado.length > 1 && ctx.measureText(`${recortado}…`).width > maxWidth) {
+            recortado = recortado.slice(0, -1);
+        }
+        return `${recortado}…`;
+    }
+
     function calcularColumnasImagen(tableWidth) {
         // RUTA es la columna de texto libre que mas necesita espacio (las
         // rutas con varios destinos pueden ser mucho mas largas que un
@@ -112,7 +126,15 @@
                 safe(item.telefono),
                 safe(item.vehiculo_placa, "Sin vehículo")
             ];
-            const columnLines = columns.map((column, colIndex) => wrapTextCanvas(ctxMedicion, valores[colIndex], column.width - 8));
+            // NOMBRE (columna 1) nunca se envuelve -- se quiere en una sola
+            // linea aunque sea larga, a diferencia de RUTA que si necesita
+            // envolver cuando trae varios destinos. Si no cabe se recorta
+            // con "…" en vez de desbordarse sobre las columnas vecinas.
+            const columnLines = columns.map((column, colIndex) => (
+                colIndex === 1
+                    ? [truncarTextoCanvas(ctxMedicion, valores[colIndex], column.width - 8)]
+                    : wrapTextCanvas(ctxMedicion, valores[colIndex], column.width - 8)
+            ));
             const maxLines = Math.max(1, ...columnLines.map((lines) => lines.length));
             const altura = Math.max(ROW_HEIGHT, maxLines * ROW_LINE_HEIGHT + ROW_PADDING);
             return { columnLines, altura };
@@ -168,14 +190,15 @@
         ctx.strokeRect(MARGIN_X, y, tableWidth, ROW_HEIGHT);
         ctx.fillStyle = "rgb(24, 32, 43)";
         ctx.font = fuenteCanvas(10, true);
-        ctx.textAlign = "left";
-        columns.forEach((column) => ctx.fillText(column.label, column.x + 4, y + ROW_HEIGHT / 2 + 3));
+        ctx.textAlign = "center";
+        columns.forEach((column) => ctx.fillText(column.label, column.x + column.width / 2, y + ROW_HEIGHT / 2 + 3));
         return y + ROW_HEIGHT;
     }
 
     function dibujarTablaImagen(ctx, startY, columns, filasMedidas, tableWidth) {
         let y = dibujarTablaHeaderImagen(ctx, startY, columns, tableWidth);
         ctx.font = fuenteCanvas(10, false);
+        ctx.textAlign = "center";
 
         filasMedidas.forEach((fila, indice) => {
             ctx.fillStyle = `rgb(${(indice % 2 === 0 ? BLANCO_FILA : ROJO_CLARO_FILA).join(", ")})`;
@@ -185,8 +208,10 @@
 
             ctx.fillStyle = "rgb(24, 32, 43)";
             columns.forEach((column, colIndex) => {
-                fila.columnLines[colIndex].forEach((linea, lineaIndex) => {
-                    ctx.fillText(linea, column.x + 4, y + 13 + lineaIndex * ROW_LINE_HEIGHT);
+                const lineas = fila.columnLines[colIndex];
+                const inicioY = y + fila.altura / 2 - ((lineas.length - 1) * ROW_LINE_HEIGHT) / 2 + 3;
+                lineas.forEach((linea, lineaIndex) => {
+                    ctx.fillText(linea, column.x + column.width / 2, inicioY + lineaIndex * ROW_LINE_HEIGHT);
                 });
             });
 
