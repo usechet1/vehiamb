@@ -95,20 +95,26 @@
 
         const tableWidth = pageWidth - MARGIN_X * 2;
 
-        // Con la pagina en horizontal sobra ancho, asi que RUTA y OBSERVACIONES
-        // -- las dos columnas de texto libre que mas lo necesitan -- se quedan
-        // con la mayor parte, en vez de desperdiciarlo en PLACA como quedaba en
-        // el layout vertical original. OBSERVACIONES toma el sobrante para que
-        // la suma cierre exacta contra el ancho de la tabla con cualquier
-        // tamano de pagina.
-        const anchosFijos = { "#": 30, NOMBRE: 150, RUTA: 220, TELEFONO: 80, PLACA: 75 };
-        const anchoObservaciones = tableWidth - Object.values(anchosFijos).reduce((total, ancho) => total + ancho, 0);
+        // RUTA es la columna de texto libre que mas necesita espacio (las
+        // rutas con varios destinos pueden ser mucho mas largas que un
+        // nombre corto), asi que se queda con el ancho sobrante para que la
+        // suma cierre exacta contra el ancho de la tabla con cualquier
+        // tamano de pagina. OBSERVACIONES no sale en este reporte -- queda
+        // solo en el Excel (ver exportReporteExcel).
+        const anchoNumero = 30;
+        const anchoNombre = 150;
+        const anchoTelefono = 80;
+        const anchoPlaca = 75;
+        const anchoRuta = tableWidth - (anchoNumero + anchoNombre + anchoTelefono + anchoPlaca);
 
-        // Las x se acumulan en un reduce en vez de sumarse a mano en cada
-        // columna: con seis columnas, la cadena de sumas era el tipo de detalle
-        // donde es facil olvidar un termino y correr toda la tabla.
         let x = MARGIN_X;
-        const columns = [...Object.entries(anchosFijos), ["OBSERVACIONES", anchoObservaciones]].map(([label, width]) => {
+        const columns = [
+            ["#", anchoNumero],
+            ["NOMBRE", anchoNombre],
+            ["RUTA", anchoRuta],
+            ["TELEFONO", anchoTelefono],
+            ["PLACA", anchoPlaca]
+        ].map(([label, width]) => {
             const columna = { label, x, width, align: "left" };
             x += width;
             return columna;
@@ -122,8 +128,7 @@
                 safe(item.conductor_nombre, "Sin conductor"),
                 safe(item.ruta_nombre),
                 safe(item.telefono),
-                safe(item.vehiculo_placa, "Sin vehículo"),
-                safe(item.observaciones)
+                safe(item.vehiculo_placa, "Sin vehículo")
             ];
 
             // Las rutas con varios destinos (ver Asignacion de rutas) pueden
@@ -193,9 +198,9 @@
     }
 
     const EXCEL_COLUMN_WIDTHS = [
-        { label: "#", width: 6 },
-        { label: "NOMBRE", width: 26 },
-        { label: "RUTA", width: 34 },
+        { label: "#", width: 2.5 },
+        { label: "NOMBRE", width: 37 },
+        { label: "RUTA", width: 45 },
         { label: "TELEFONO", width: 16 },
         { label: "PLACA", width: 14 },
         { label: "OBSERVACIONES", width: 40 },
@@ -212,9 +217,16 @@
     // otras dos celdas. Estas 4 columnas son exclusivas del Excel -- no
     // existen en la app ni en el PDF (ver ITEMS_HERRAMIENTAS/kit de
     // herramientas para el mismo criterio de "esto no se duplica").
+    const COLUMNA_TELEFONO = 4;
     const COLUMNA_ANTICIPO = 7;
     const COLUMNA_GASTO = 8;
     const COLUMNA_CAMBIO = 9;
+
+    function centrarFila(row) {
+        row.eachCell({ includeEmpty: true }, (cell) => {
+            cell.alignment = { horizontal: "center", vertical: "middle" };
+        });
+    }
 
     async function exportReporteExcel({ fecha, asignaciones }) {
         if (!asignaciones || !asignaciones.length) {
@@ -235,10 +247,17 @@
             columnCount,
             logo: branding?.logo,
             size: 18,
-            align: "center"
+            align: "center",
+            // La columna "#" (A) queda angosta a proposito (ver
+            // EXCEL_COLUMN_WIDTHS), asi que el logo no cabe solo en esa
+            // columna -- se combina con la B (mucho mas ancha) solo en esta
+            // fila de titulo para darle espacio, sin ensanchar la columna A
+            // para el resto de la tabla.
+            logoColumnSpan: 2
         });
 
         const headerRow = excel.addTableHeaderRow(sheet, EXCEL_COLUMN_WIDTHS.map((column) => column.label));
+        centrarFila(headerRow);
 
         asignaciones.forEach((item, indice) => {
             const filaExcel = headerRow.number + 1 + indice;
@@ -259,6 +278,12 @@
                 { band: indice % 2 === 1 }
             );
 
+            centrarFila(row);
+
+            // Telefono como columna de texto (no numero) para que Excel no
+            // marque el numero como "guardado como texto" -- el telefono
+            // nunca se usa en calculos, mostrar el error ahi es ruido.
+            row.getCell(COLUMNA_TELEFONO).numFmt = "@";
             row.getCell(COLUMNA_ANTICIPO).numFmt = "$#,##0";
             row.getCell(COLUMNA_GASTO).numFmt = "$#,##0";
             row.getCell(COLUMNA_CAMBIO).numFmt = "$#,##0";
