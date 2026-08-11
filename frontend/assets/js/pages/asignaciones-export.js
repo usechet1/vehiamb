@@ -249,7 +249,7 @@
             subtitle: `Fecha: ${formatFechaLarga(fecha)}`,
             columnCount,
             logo: branding?.logo,
-            size: 18,
+            size: 28,
             align: "center",
             // La columna "#" (A) queda angosta a proposito (ver
             // EXCEL_COLUMN_WIDTHS), asi que el logo no cabe solo en esa

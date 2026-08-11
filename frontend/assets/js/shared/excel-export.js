@@ -22,6 +22,35 @@ async function createWorkbook() {
     return workbook;
 }
 
+// Aproximacion estandar de Excel para convertir un ancho de columna en
+// "caracteres" (el mismo numero que usa setColumnWidths) a pixeles, para
+// Calibri 11 a 96dpi (la fuente/tamano por defecto de un workbook nuevo).
+// No hace falta que sea exacta al pixel -- solo sirve para centrar el logo
+// dentro de las columnas combinadas, un ajuste visual.
+function pixelesDeAnchoColumna(caracteres) {
+    return Math.round((caracteres || 8.43) * 7 + 5);
+}
+
+// Calcula el "tl.col" (columna + fraccion, 0-based) donde debe empezar la
+// imagen para quedar centrada dentro de las primeras "columnas" columnas del
+// worksheet, dado el ancho ya renderizado de la imagen en pixeles.
+function colOffsetCentrado(worksheet, columnas, anchoImagenPx) {
+    const anchosPx = [];
+    for (let i = 1; i <= columnas; i += 1) {
+        anchosPx.push(pixelesDeAnchoColumna(worksheet.getColumn(i).width));
+    }
+    const anchoTotalPx = anchosPx.reduce((total, ancho) => total + ancho, 0);
+    let offsetPx = Math.max(0, (anchoTotalPx - anchoImagenPx) / 2);
+
+    let colIndex = 0;
+    while (colIndex < anchosPx.length - 1 && offsetPx >= anchosPx[colIndex]) {
+        offsetPx -= anchosPx[colIndex];
+        colIndex += 1;
+    }
+
+    return colIndex + offsetPx / anchosPx[colIndex];
+}
+
 /**
  * Barra de titulo roja de marca, igual al encabezado de los reportes PDF.
  * Si se pasa "logo" (el mismo objeto { dataUrl, width, height } que ya
@@ -96,10 +125,20 @@ function addTitleBar(worksheet, { title, subtitle, columnCount, logo, size = 13,
         const anchoMaximoPx = logoMaxWidthPx;
         const altoMaximoPx = alturaFilaPx - 8;
         const escala = Math.min(anchoMaximoPx / logo.width, altoMaximoPx / logo.height, 1);
+        const anchoImagenPx = logo.width * escala;
+        const altoImagenPx = logo.height * escala;
+
+        // Con una sola columna angosta el logo apenas cabe, asi que se deja
+        // pegado a la izquierda con un margen chico (comportamiento de
+        // siempre). Con varias columnas combinadas (logoColumnSpan > 1) sí
+        // sobra espacio de verdad, y ahi el logo se centra tanto horizontal
+        // como verticalmente dentro de esa area.
+        const colOffset = logoColumnSpan > 1 ? colOffsetCentrado(worksheet, logoColumnSpan, anchoImagenPx) : 0.15;
+        const rowOffset = logoColumnSpan > 1 ? Math.max(0, (alturaFilaPx - altoImagenPx) / 2) / alturaFilaPx : 0.1;
 
         worksheet.addImage(imageId, {
-            tl: { col: 0.15, row: row.number - 1 + 0.1 },
-            ext: { width: logo.width * escala, height: logo.height * escala }
+            tl: { col: colOffset, row: row.number - 1 + rowOffset },
+            ext: { width: anchoImagenPx, height: altoImagenPx }
         });
     }
 
