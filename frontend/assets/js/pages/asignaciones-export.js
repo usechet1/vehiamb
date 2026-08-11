@@ -88,12 +88,11 @@
     function calcularColumnasImagen(tableWidth) {
         // RUTA es la columna de texto libre que mas necesita espacio (las
         // rutas con varios destinos pueden ser mucho mas largas que un
-        // nombre corto), asi que se queda con el ancho sobrante para que la
-        // suma cierre exacta contra el ancho de la tabla. OBSERVACIONES no
-        // sale en este reporte -- queda solo en el Excel (ver
-        // exportReporteExcel).
+        // nombre), pero NOMBRE nunca se envuelve (ver medirFilasImagen) y no
+        // se quiere que se trunque con "..." en el uso normal -- por eso
+        // lleva mas ancho del minimo, a costa del sobrante que se queda RUTA.
         const anchoNumero = 30;
-        const anchoNombre = 150;
+        const anchoNombre = 220;
         const anchoTelefono = 80;
         const anchoPlaca = 75;
         const anchoRuta = tableWidth - (anchoNumero + anchoNombre + anchoTelefono + anchoPlaca);
