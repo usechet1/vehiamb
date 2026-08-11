@@ -29,9 +29,9 @@ async function createWorkbook() {
  * un recuadro blanco a la izquierda del titulo -- igual disposicion que el
  * encabezado del PDF: logo + banda roja al lado, no una encima de otra.
  */
-function addTitleBar(worksheet, { title, subtitle, columnCount, logo, size = 13, align = "left" }) {
+function addTitleBar(worksheet, { title, subtitle, columnCount, logo, size = 13, align = "left", logoColumnSpan = 1 }) {
     const usaLogo = Boolean(logo);
-    const colInicioTitulo = usaLogo ? 2 : 1;
+    const colInicioTitulo = usaLogo ? logoColumnSpan + 1 : 1;
     // 46pt de alto (vs. 26pt sin logo) para que el logo entre con margen --
     // el banner del PDF mide 60pt, pero una fila de Excel tan alta se ve
     // desproporcionada al lado del resto de filas del reporte.
@@ -39,11 +39,15 @@ function addTitleBar(worksheet, { title, subtitle, columnCount, logo, size = 13,
     // extra de alto o el texto queda apretado contra el borde.
     const alturaFila = Math.max(usaLogo ? 46 : 26, size * 2);
 
-    if (usaLogo) {
+    if (usaLogo && logoColumnSpan === 1) {
         // La columna 1 del reporte (ej. "#") suele ser mas angosta que el
         // logo -- una imagen flotante no la ensancha sola, asi que si hace
         // falta se agranda un poco para que el logo no se monte sobre el
-        // titulo de la columna 2.
+        // titulo de la columna siguiente. Si el caller combina varias
+        // columnas para el logo (logoColumnSpan > 1 -- ver
+        // asignaciones-export.js, donde la columna "#" necesita quedar
+        // angosta de verdad) esa combinacion ya da espacio de sobra y no
+        // hace falta ensanchar ninguna columna.
         const columnaLogo = worksheet.getColumn(1);
         const anchoMinimo = 14;
         if (!columnaLogo.width || columnaLogo.width < anchoMinimo) {
@@ -51,8 +55,13 @@ function addTitleBar(worksheet, { title, subtitle, columnCount, logo, size = 13,
         }
     }
 
-    const row = worksheet.addRow(usaLogo ? [null, title] : [title]);
+    const celdasLogo = usaLogo ? Array(logoColumnSpan).fill(null) : [];
+    const row = worksheet.addRow(usaLogo ? [...celdasLogo, title] : [title]);
     row.height = alturaFila;
+
+    if (usaLogo && logoColumnSpan > 1) {
+        worksheet.mergeCells(row.number, 1, row.number, logoColumnSpan);
+    }
 
     if (columnCount > colInicioTitulo) {
         worksheet.mergeCells(row.number, colInicioTitulo, row.number, columnCount);
@@ -68,7 +77,9 @@ function addTitleBar(worksheet, { title, subtitle, columnCount, logo, size = 13,
         : { vertical: "middle", horizontal: "left", indent: 1 };
 
     if (usaLogo) {
-        row.getCell(1).border = CELL_BORDER;
+        for (let col = 1; col <= logoColumnSpan; col += 1) {
+            row.getCell(col).border = CELL_BORDER;
+        }
 
         // ExcelJS solo acepta la parte base64 pura (sin el prefijo
         // "data:image/jpeg;base64,"), a diferencia de jsPDF que sí recibe el
@@ -91,7 +102,10 @@ function addTitleBar(worksheet, { title, subtitle, columnCount, logo, size = 13,
     }
 
     if (subtitle) {
-        const subRow = worksheet.addRow(usaLogo ? [null, subtitle] : [subtitle]);
+        const subRow = worksheet.addRow(usaLogo ? [...celdasLogo, subtitle] : [subtitle]);
+        if (usaLogo && logoColumnSpan > 1) {
+            worksheet.mergeCells(subRow.number, 1, subRow.number, logoColumnSpan);
+        }
         worksheet.mergeCells(subRow.number, colInicioTitulo, subRow.number, columnCount);
         subRow.getCell(colInicioTitulo).font = { italic: true, size: 9, color: { argb: BRAND_MUTED } };
         subRow.getCell(colInicioTitulo).alignment = align === "center"
