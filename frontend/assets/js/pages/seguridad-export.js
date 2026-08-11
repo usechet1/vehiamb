@@ -100,21 +100,21 @@
         return y + ROW_HEIGHT;
     }
 
-    function addTablaItems(doc, startY, items, columnaContenidoLabel) {
+    function addTablaItems(doc, startY, items, columnaContenidoLabel, columnaExtra) {
         const pageWidth = doc.internal.pageSize.getWidth();
         const bottomLimit = doc.internal.pageSize.getHeight() - 90;
         const tableWidth = pageWidth - MARGIN_X * 2;
 
         const anchoEstado = 70;
         const anchoCantidad = 70;
-        const anchoVencimiento = 90;
-        const anchoContenido = tableWidth - (anchoEstado + anchoCantidad + anchoVencimiento);
+        const anchoExtra = 90;
+        const anchoContenido = tableWidth - (anchoEstado + anchoCantidad + anchoExtra);
 
         const columns = [
             { label: columnaContenidoLabel, x: MARGIN_X, width: anchoContenido },
             { label: "ESTADO", x: MARGIN_X + anchoContenido, width: anchoEstado },
             { label: "CANTIDAD", x: MARGIN_X + anchoContenido + anchoEstado, width: anchoCantidad },
-            { label: "VENCIMIENTO", x: MARGIN_X + anchoContenido + anchoEstado + anchoCantidad, width: anchoVencimiento }
+            { label: columnaExtra.label, x: MARGIN_X + anchoContenido + anchoEstado + anchoCantidad, width: anchoExtra }
         ];
 
         let y = addTablaHeader(doc, startY, columns, tableWidth);
@@ -126,7 +126,7 @@
                 safe(item.item_label),
                 esMalo ? "MALO" : "BUENO",
                 item.cantidad !== null && item.cantidad !== undefined ? String(item.cantidad) : "--",
-                item.fecha_vencimiento ? formatFecha(item.fecha_vencimiento) : "--"
+                columnaExtra.getValor(item)
             ];
 
             const columnLines = columns.map((column, colIndex) => doc.splitTextToSize(valores[colIndex], column.width - 8));
@@ -243,10 +243,11 @@
     // Compartida entre botiquin y kit de herramientas: el dibujo del PDF es
     // identico en los dos (mismo encabezado con logo, misma tabla de items,
     // mismo cierre con revisado-por/observaciones), solo cambia el titulo
-    // del banner, el encabezado de la columna de contenido y el nombre del
-    // archivo. Mismo criterio de reuso que normalizarItemsChecklist en
-    // seguridad.service.js.
-    async function exportInspeccionChecklistPdf(inspeccion, { tituloLinea1, tituloLinea2, columnaContenidoLabel, filePrefix }) {
+    // del banner, el encabezado de la columna de contenido, la cuarta
+    // columna (vencimiento en botiquin, codigo en herramientas -- estas no
+    // vencen) y el nombre del archivo. Mismo criterio de reuso que
+    // normalizarItemsChecklist en seguridad.service.js.
+    async function exportInspeccionChecklistPdf(inspeccion, { tituloLinea1, tituloLinea2, columnaContenidoLabel, columnaExtra, filePrefix }) {
         if (!inspeccion || !inspeccion.items?.length) {
             throw new Error("La inspección no tiene ítems para exportar");
         }
@@ -255,7 +256,7 @@
         const branding = await window.VehiAmb.pdfExport.getEmpresaBranding();
 
         const startY = await addEncabezado(doc, branding, inspeccion, tituloLinea1, tituloLinea2);
-        const tablaY = addTablaItems(doc, startY, inspeccion.items, columnaContenidoLabel);
+        const tablaY = addTablaItems(doc, startY, inspeccion.items, columnaContenidoLabel, columnaExtra);
         addCierre(doc, tablaY, inspeccion);
         await addFooter(doc, branding);
 
@@ -267,6 +268,10 @@
             tituloLinea1: "FORMATO INSPECCIÓN DE BOTIQUINES",
             tituloLinea2: "VEHÍCULOS",
             columnaContenidoLabel: "CONTENIDO BOTIQUÍN PRIMEROS AUXILIOS",
+            columnaExtra: {
+                label: "VENCIMIENTO",
+                getValor: (item) => (item.fecha_vencimiento ? formatFecha(item.fecha_vencimiento) : "--")
+            },
             filePrefix: "inspeccion-botiquin"
         });
     }
@@ -276,6 +281,10 @@
             tituloLinea1: "FORMATO INSPECCIÓN DE KIT DE",
             tituloLinea2: "HERRAMIENTAS VEHÍCULOS",
             columnaContenidoLabel: "CONTENIDO KIT DE HERRAMIENTAS",
+            columnaExtra: {
+                label: "CÓDIGO",
+                getValor: (item) => safe(item.codigo)
+            },
             filePrefix: "inspeccion-herramientas"
         });
     }

@@ -546,8 +546,10 @@ clearBotiquinFiltersButton?.addEventListener("click", () => {
 
 // ─────────────────────── Inspecciones de kit de herramientas ───────────────────────
 // Mismo patron que la seccion de botiquin de arriba: catalogo fijo (9
-// herramientas en vez de 20 insumos), mismo checklist bueno/malo +
-// cantidad/vencimiento opcionales, mismo drawer de detalle.
+// herramientas en vez de 20 insumos), mismo checklist bueno/malo + cantidad
+// opcional, mismo drawer de detalle. Las herramientas no vencen, asi que en
+// vez de fecha de vencimiento cada renglon tiene un codigo de inventario
+// opcional (texto libre).
 
 function renderChecklistHerramientas() {
     if (!catalogoHerramientas.length) {
@@ -565,7 +567,7 @@ function renderChecklistHerramientas() {
                 </div>
             </td>
             <td><input type="number" min="0" step="1" class="botiquin-cantidad" data-cantidad="${escapeHtml(item.codigo)}"></td>
-            <td><input type="date" class="botiquin-vencimiento" data-vencimiento="${escapeHtml(item.codigo)}"></td>
+            <td><input type="text" maxlength="60" class="botiquin-codigo" data-codigo="${escapeHtml(item.codigo)}" placeholder="Código"></td>
         </tr>
     `).join("");
 }
@@ -574,13 +576,13 @@ function leerChecklistHerramientas() {
     return catalogoHerramientas.map((item) => {
         const estadoInput = herramientasChecklistBody.querySelector(`input[name="estado_${CSS.escape(item.codigo)}"]:checked`);
         const cantidadInput = herramientasChecklistBody.querySelector(`[data-cantidad="${CSS.escape(item.codigo)}"]`);
-        const vencimientoInput = herramientasChecklistBody.querySelector(`[data-vencimiento="${CSS.escape(item.codigo)}"]`);
+        const codigoInput = herramientasChecklistBody.querySelector(`[data-codigo="${CSS.escape(item.codigo)}"]`);
 
         return {
             item_codigo: item.codigo,
             estado: estadoInput?.value || "bueno",
             cantidad: cantidadInput?.value || null,
-            fecha_vencimiento: vencimientoInput?.value || null
+            codigo: codigoInput?.value || null
         };
     });
 }
@@ -684,7 +686,7 @@ function abrirDrawerHerramientas(inspeccion) {
             <td>${escapeHtml(item.item_label)}</td>
             <td>${item.estado === "malo" ? '<span class="badge-rojo">Malo</span>' : '<span class="badge-verde">Bueno</span>'}</td>
             <td>${item.cantidad ?? "—"}</td>
-            <td>${item.fecha_vencimiento ? formatearFecha(item.fecha_vencimiento) : "—"}</td>
+            <td>${item.codigo ? escapeHtml(item.codigo) : "—"}</td>
         </tr>
     `).join("");
 
@@ -700,7 +702,7 @@ function abrirDrawerHerramientas(inspeccion) {
 
         <div class="table-scroll">
             <table class="import-table">
-                <thead><tr><th>Herramienta</th><th>Estado</th><th>Cantidad</th><th>Vencimiento</th></tr></thead>
+                <thead><tr><th>Herramienta</th><th>Estado</th><th>Cantidad</th><th>Código</th></tr></thead>
                 <tbody>${filas}</tbody>
             </table>
         </div>

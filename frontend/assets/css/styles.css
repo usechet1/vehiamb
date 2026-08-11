@@ -5097,13 +5097,14 @@ button.record-link {
     cursor: pointer;
 }
 
-/* Las columnas de cantidad/vencimiento se mantienen angostas para que la
-   descripción del insumo conserve el ancho, igual que en el formato impreso. */
+/* Las columnas de cantidad/vencimiento/codigo se mantienen angostas para que
+   la descripción del insumo conserve el ancho, igual que en el formato impreso. */
 .botiquin-checklist .botiquin-cantidad {
     width: 90px;
 }
 
-.botiquin-checklist .botiquin-vencimiento {
+.botiquin-checklist .botiquin-vencimiento,
+.botiquin-checklist .botiquin-codigo {
     width: 160px;
 }
 
