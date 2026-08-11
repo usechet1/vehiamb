@@ -4,6 +4,8 @@ const router = express.Router();
 const notificacionesController = require("../controllers/notificaciones.controller");
 const asyncHandler = require("../middlewares/async-handler");
 const requirePermission = require("../middlewares/require-permission");
+const validateUpload = require("../middlewares/validate-upload");
+const uploadNotificacionComentario = require("../middlewares/upload-notificacion-comentario");
 
 // Rutas literales ("/contador", "/leidas") se declaran antes que las rutas con
 // parametro ("/:id") del mismo largo para que Express no las confunda con un id.
@@ -21,5 +23,21 @@ router.delete("/:id", asyncHandler(notificacionesController.eliminar));
 router.post("/:id/aprobar", requirePermission("maintenance.approve"), asyncHandler(notificacionesController.aprobar));
 router.post("/:id/rechazar", requirePermission("maintenance.approve"), asyncHandler(notificacionesController.rechazar));
 router.post("/:id/reenviar-whatsapp", asyncHandler(notificacionesController.reenviarWhatsapp));
+
+// Por referencia_tipo/referencia_id (el evento real), no por el id de la fila
+// de notificaciones -- asi todos los que recibieron la misma alerta ven el
+// mismo hilo de comentarios. Ver la nota en notificaciones.service.js.
+router.get(
+  "/referencia/:tipo/:id/comentarios",
+  requirePermission("notificaciones.comentar"),
+  asyncHandler(notificacionesController.getComentarios)
+);
+router.post(
+  "/referencia/:tipo/:id/comentarios",
+  requirePermission("notificaciones.comentar"),
+  uploadNotificacionComentario.single("foto"),
+  asyncHandler(validateUpload),
+  asyncHandler(notificacionesController.crearComentario)
+);
 
 module.exports = router;

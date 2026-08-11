@@ -398,6 +398,30 @@ window.VehiAmb.api = {
         );
     },
 
+    getComentariosNotificacion(referenciaTipo, referenciaId) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/notificaciones/referencia/${referenciaTipo}/${referenciaId}/comentarios`,
+            undefined,
+            "No se pudieron cargar los comentarios"
+        );
+    },
+
+    // formData ya viene armado por quien llama (comentario + foto opcional) --
+    // no se le pone Content-Type a mano: el navegador arma el
+    // "multipart/form-data; boundary=..." solo cuando el body es un
+    // FormData, y si lo pisamos manualmente rompe el boundary. Mismo
+    // criterio que createDocumento en este mismo archivo.
+    comentarNotificacion(referenciaTipo, referenciaId, formData) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/notificaciones/referencia/${referenciaTipo}/${referenciaId}/comentarios`,
+            {
+                method: "POST",
+                body: formData
+            },
+            "No se pudo guardar el comentario"
+        );
+    },
+
     eliminarNotificacionesLeidas() {
         return requestJson(
             `${window.VehiAmb.API_URL}/notificaciones/leidas`,
