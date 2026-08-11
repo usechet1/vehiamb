@@ -198,8 +198,23 @@
         { label: "RUTA", width: 34 },
         { label: "TELEFONO", width: 16 },
         { label: "PLACA", width: 14 },
-        { label: "OBSERVACIONES", width: 40 }
+        { label: "OBSERVACIONES", width: 40 },
+        { label: "ANTICIPO", width: 14 },
+        { label: "GASTO", width: 14 },
+        { label: "CAMBIO", width: 14 },
+        { label: "RUTERO", width: 10 }
     ];
+
+    // Anticipo/Gasto/Rutero se dejan en blanco a proposito: son datos que el
+    // despachador llena a mano sobre el Excel ya generado, no algo que la
+    // app registre. Cambio si sale calculado (formula de Excel = Anticipo -
+    // Gasto de esa misma fila), para que se recalcule solo al llenar las
+    // otras dos celdas. Estas 4 columnas son exclusivas del Excel -- no
+    // existen en la app ni en el PDF (ver ITEMS_HERRAMIENTAS/kit de
+    // herramientas para el mismo criterio de "esto no se duplica").
+    const COLUMNA_ANTICIPO = 7;
+    const COLUMNA_GASTO = 8;
+    const COLUMNA_CAMBIO = 9;
 
     async function exportReporteExcel({ fecha, asignaciones }) {
         if (!asignaciones || !asignaciones.length) {
@@ -223,10 +238,11 @@
             align: "center"
         });
 
-        excel.addTableHeaderRow(sheet, EXCEL_COLUMN_WIDTHS.map((column) => column.label));
+        const headerRow = excel.addTableHeaderRow(sheet, EXCEL_COLUMN_WIDTHS.map((column) => column.label));
 
         asignaciones.forEach((item, indice) => {
-            excel.addTableDataRow(
+            const filaExcel = headerRow.number + 1 + indice;
+            const row = excel.addTableDataRow(
                 sheet,
                 [
                     indice + 1,
@@ -234,10 +250,18 @@
                     safe(item.ruta_nombre),
                     safe(item.telefono),
                     safe(item.vehiculo_placa, "Sin vehículo"),
-                    safe(item.observaciones, "")
+                    safe(item.observaciones, ""),
+                    "",
+                    "",
+                    { formula: `${excel.columnLetter(COLUMNA_ANTICIPO)}${filaExcel}-${excel.columnLetter(COLUMNA_GASTO)}${filaExcel}`, result: 0 },
+                    ""
                 ],
                 { band: indice % 2 === 1 }
             );
+
+            row.getCell(COLUMNA_ANTICIPO).numFmt = "$#,##0";
+            row.getCell(COLUMNA_GASTO).numFmt = "$#,##0";
+            row.getCell(COLUMNA_CAMBIO).numFmt = "$#,##0";
         });
 
         excel.addFooterRow(sheet, FOOTER_TEXT(branding?.nombreEmpresa), columnCount);
