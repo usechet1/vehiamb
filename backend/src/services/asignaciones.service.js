@@ -46,7 +46,7 @@ async function listarPorFecha(fecha, empresaId) {
   return asignaciones.map(toSafeAsignacion);
 }
 
-async function validarYResolverPayload(payload, empresaId) {
+async function validarYResolverPayload(payload, empresaId, excludeId = null) {
   if (!payload.fecha) {
     throw new HttpError(400, "Debes indicar la fecha de la asignación");
   }
@@ -57,6 +57,15 @@ async function validarYResolverPayload(payload, empresaId) {
   const conductor = await conductoresRepository.findById(payload.conductor_id, empresaId);
   if (!conductor) {
     throw new HttpError(404, "Conductor no encontrado");
+  }
+
+  // Un conductor solo puede tener una ruta asignada por dia -- sin esto, el
+  // mismo conductor quedaba asignado a dos vehiculos distintos el mismo dia
+  // (bug real reportado: aparecia dos veces en el reporte, cada vez con un
+  // vehiculo/ruta diferente).
+  const asignacionExistente = await asignacionesRepository.findByConductorYFecha(conductor.id, payload.fecha, empresaId);
+  if (asignacionExistente && String(asignacionExistente.id) !== String(excludeId)) {
+    throw new HttpError(409, `${conductor.nombres} ${conductor.apellidos} ya tiene una ruta asignada el ${payload.fecha} (vehículo ${asignacionExistente.vehiculo_placa || "sin placa"}). Elimina o edita esa asignación primero.`);
   }
 
   if (!payload.vehiculo_id) {
@@ -121,7 +130,7 @@ async function actualizar(id, payload, currentUser) {
     throw new HttpError(404, "Asignación no encontrada");
   }
 
-  const datos = await validarYResolverPayload({ ...payload, fecha: payload.fecha || existente.fecha }, empresaId);
+  const datos = await validarYResolverPayload({ ...payload, fecha: payload.fecha || existente.fecha }, empresaId, id);
   const asignacion = await asignacionesRepository.update(id, datos, empresaId);
   return toSafeAsignacion(asignacion);
 }
