@@ -987,6 +987,7 @@ async function ensurePostgresTables() {
       usuario_id BIGINT REFERENCES usuarios(id),
       viaje_id BIGINT REFERENCES viajes(id) ON DELETE SET NULL,
       fecha TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      observaciones TEXT,
       creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
@@ -1892,6 +1893,7 @@ if (env.dbClient === "sqlite") {
       ensureColumn("conductores", "excluir_de_costos", "BOOLEAN NOT NULL DEFAULT FALSE"),
       ensureColumn("inspecciones_preventivas", "firma_url", "TEXT"),
       ensureColumn("preoperacionales", "firma_url", "TEXT"),
+      ensureColumn("preoperacionales", "observaciones", "TEXT"),
       ensureColumn("asignaciones_ruta", "destinos", "JSONB"),
       ensureColumn("asignaciones_ruta", "observaciones", "TEXT"),
       ensureColumn("extintores", "libras", "NUMERIC(5,1)"),

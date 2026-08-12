@@ -66,7 +66,7 @@ const ITEMS_HERRAMIENTAS = [
 
 const ITEMS_HERRAMIENTAS_POR_CODIGO = new Map(ITEMS_HERRAMIENTAS.map((item) => [item.codigo, item]));
 
-const ESTADOS_VALIDOS = new Set(["bueno", "malo"]);
+const ESTADOS_VALIDOS = new Set(["bueno", "malo", "no_tiene"]);
 
 const FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -198,7 +198,7 @@ function normalizarItemsChecklist(itemsPayload, itemsPorCodigo, nombreModulo, no
 
     const estado = String(item.estado || "");
     if (!ESTADOS_VALIDOS.has(estado)) {
-      throw new HttpError(400, `Debes marcar bueno o malo para "${catalogoItem.label}"`);
+      throw new HttpError(400, `Debes marcar bueno, malo o no tiene para "${catalogoItem.label}"`);
     }
 
     // La cantidad es opcional (el formato la deja en blanco cuando no aplica),
