@@ -343,14 +343,14 @@ function renderChecklist() {
     botiquinChecklistBody.innerHTML = catalogoBotiquin.map((item) => `
         <tr data-item-codigo="${escapeHtml(item.codigo)}">
             <td>${escapeHtml(item.label)}</td>
-            <td>
+            <td data-label="Estado">
                 <div class="botiquin-estado">
                     <label><input type="radio" name="estado_${escapeHtml(item.codigo)}" value="bueno" checked> Bueno</label>
                     <label><input type="radio" name="estado_${escapeHtml(item.codigo)}" value="malo"> Malo</label>
                 </div>
             </td>
-            <td><input type="number" min="0" step="1" class="botiquin-cantidad" data-cantidad="${escapeHtml(item.codigo)}"></td>
-            <td><input type="date" class="botiquin-vencimiento" data-vencimiento="${escapeHtml(item.codigo)}"></td>
+            <td data-label="Cantidad"><input type="number" min="0" step="1" class="botiquin-cantidad" data-cantidad="${escapeHtml(item.codigo)}"></td>
+            <td data-label="Vencimiento"><input type="date" class="botiquin-vencimiento" data-vencimiento="${escapeHtml(item.codigo)}"></td>
         </tr>
     `).join("");
 }
@@ -594,14 +594,14 @@ function renderChecklistHerramientas() {
     herramientasChecklistBody.innerHTML = catalogoHerramientas.map((item) => `
         <tr data-item-codigo="${escapeHtml(item.codigo)}">
             <td>${escapeHtml(item.label)}</td>
-            <td>
+            <td data-label="Estado">
                 <div class="botiquin-estado">
                     <label><input type="radio" name="estado_${escapeHtml(item.codigo)}" value="bueno" checked> Bueno</label>
                     <label><input type="radio" name="estado_${escapeHtml(item.codigo)}" value="malo"> Malo</label>
                 </div>
             </td>
-            <td><input type="number" min="0" step="1" class="botiquin-cantidad" data-cantidad="${escapeHtml(item.codigo)}"></td>
-            <td><input type="text" maxlength="60" class="botiquin-codigo" data-codigo="${escapeHtml(item.codigo)}" placeholder="Código"></td>
+            <td data-label="Cantidad"><input type="number" min="0" step="1" class="botiquin-cantidad" data-cantidad="${escapeHtml(item.codigo)}"></td>
+            <td data-label="Código"><input type="text" maxlength="60" class="botiquin-codigo" data-codigo="${escapeHtml(item.codigo)}" placeholder="Código"></td>
         </tr>
     `).join("");
 }
