@@ -81,6 +81,12 @@ async function findByUsuarioId(usuarioId, empresaId) {
   return db.get("SELECT * FROM conductores WHERE usuario_id = ? AND empresa_id = ?", [usuarioId, empresaId]);
 }
 
+// Usado para bloquear cedulas duplicadas al crear/editar un conductor -- ver
+// createConductor/updateConductor en conductores.service.js.
+async function findByCedula(cedula, empresaId) {
+  return db.get("SELECT id FROM conductores WHERE cedula = ? AND empresa_id = ?", [cedula, empresaId]);
+}
+
 // Listado liviano (solo lo necesario para comparar identidad) usado por
 // comparendo-conductor-matcher.js al cruzar el nombre/cedula enmascarados de
 // un comparendo SIMIT contra todos los conductores de la empresa.
@@ -138,6 +144,7 @@ module.exports = {
   findAll,
   findById,
   findByUsuarioId,
+  findByCedula,
   findAllParaMatching,
   findActivosCatalogo,
   findActivosSinUsuario,
