@@ -207,7 +207,12 @@ window.VehiAmb.auth = {
             let serverMessage = "";
             try {
                 const data = await response.json();
-                serverMessage = data?.message || "";
+                // El error-handler de la app manda { message }, pero el
+                // limite de intentos (rate-limit.js, POST /login) manda
+                // { error } -- sin este segundo campo, un 429 por demasiados
+                // intentos caia al mensaje generico en vez de avisar que hay
+                // que esperar unos minutos.
+                serverMessage = data?.message || data?.error || "";
             } catch (error) {
                 serverMessage = "";
             }
