@@ -1,6 +1,7 @@
 const preopMensaje = document.getElementById("mensaje");
 const wizardStepPreoperacionalEl = document.getElementById("wizardStepPreoperacional");
 const preopChecklistEl = document.getElementById("preopChecklist");
+const preopObservacionesEl = document.getElementById("preopObservaciones");
 const preopHistorialList = document.getElementById("preopHistorialList");
 
 let preopVehiculoId = "";
@@ -120,6 +121,7 @@ async function guardarPreoperacionalConFirma(firmaBlob) {
     const formData = new FormData();
     formData.append("items", JSON.stringify(items));
     if (preopViajeId) formData.append("viaje_id", preopViajeId);
+    if (preopObservacionesEl?.value.trim()) formData.append("observaciones", preopObservacionesEl.value.trim());
     formData.append("firma", firmaBlob, "firma.png");
 
     await window.VehiAmb.api.crearPreoperacional(preopVehiculoId, formData);
@@ -134,8 +136,9 @@ function renderHistorialDetalle(container, detalle) {
     `).join("");
 
     const firma = `<p><strong>Firma:</strong> ${detalle.firma_url ? `<a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(detalle.firma_url))}" target="_blank" rel="noreferrer">Ver firma del conductor</a>` : "Sin firma"}</p>`;
+    const observaciones = `<p><strong>Observaciones:</strong> ${detalle.observaciones ? escapeHtml(detalle.observaciones) : "Sin observaciones"}</p>`;
 
-    container.innerHTML = firma + items;
+    container.innerHTML = firma + items + observaciones;
 }
 
 function renderHistorial(preoperacionales) {

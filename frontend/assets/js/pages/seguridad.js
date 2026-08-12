@@ -20,6 +20,7 @@ const extintorSubmitButton = document.getElementById("extintorSubmitButton");
 const extintorCancelEditButton = document.getElementById("extintorCancelEditButton");
 const registrarExtintorSection = document.getElementById("registrarExtintorSection");
 const extintoresTablaBody = document.getElementById("extintoresTablaBody");
+const vehiculosSinExtintorList = document.getElementById("vehiculosSinExtintorList");
 const filterExtintorCodigo = document.getElementById("filterExtintorCodigo");
 const filterExtintorPlaca = document.getElementById("filterExtintorPlaca");
 const extintoresFilterSummary = document.getElementById("extintoresFilterSummary");
@@ -82,6 +83,7 @@ const herramientasDrawerClose = document.getElementById("herramientasDrawerClose
 const herramientasDrawerExportButton = document.getElementById("herramientasDrawerExportButton");
 
 let extintoresState = [];
+let vehiculosState = [];
 let catalogoBotiquin = [];
 let inspeccionAbierta = null;
 let catalogoHerramientas = [];
@@ -227,6 +229,35 @@ function renderExtintores() {
     `).join("");
 }
 
+// Un vehiculo puede tener mas de un extintor registrado (varios codigos), asi
+// que "sin extintor" es simplemente "ningun renglon de extintoresState
+// apunta a este vehiculo_id" -- no hace falta tocar el formulario de
+// registro ni el backend, es un calculo derivado de los dos catalogos que ya
+// se cargan en esta pagina.
+function renderVehiculosSinExtintor() {
+    if (!vehiculosSinExtintorList) return;
+
+    const idsConExtintor = new Set(extintoresState.map((extintor) => String(extintor.vehiculo_id)));
+    const sinExtintor = vehiculosState.filter((vehiculo) => !idsConExtintor.has(String(vehiculo.id)));
+
+    if (!sinExtintor.length) {
+        vehiculosSinExtintorList.innerHTML = '<p class="dash-empty">Todos los vehículos tienen al menos un extintor registrado</p>';
+        return;
+    }
+
+    vehiculosSinExtintorList.innerHTML = sinExtintor.map((vehiculo) => `
+        <article class="record-item">
+            <div class="record-top">
+                <div>
+                    <span class="record-title">${escapeHtml(vehiculo.placa)}</span>
+                    <span class="record-sub">${escapeHtml(`${vehiculo.marca || ""} ${vehiculo.modelo || ""}`.trim())}</span>
+                </div>
+                <span class="badge-gris">Sin extintor</span>
+            </div>
+        </article>
+    `).join("");
+}
+
 function resetExtintorForm() {
     extintorForm.reset();
     extintorId.value = "";
@@ -239,6 +270,7 @@ async function cargarExtintores() {
     try {
         extintoresState = await window.VehiAmb.api.getExtintores();
         renderExtintores();
+        renderVehiculosSinExtintor();
     } catch (error) {
         console.error(error);
         extintoresTablaBody.innerHTML = '<tr><td colspan="7" class="dash-empty">No fue posible cargar los extintores</td></tr>';
@@ -347,6 +379,7 @@ function renderChecklist() {
                 <div class="botiquin-estado">
                     <label><input type="radio" name="estado_${escapeHtml(item.codigo)}" value="bueno" checked> Bueno</label>
                     <label><input type="radio" name="estado_${escapeHtml(item.codigo)}" value="malo"> Malo</label>
+                    <label><input type="radio" name="estado_${escapeHtml(item.codigo)}" value="no_tiene"> No tiene</label>
                 </div>
             </td>
             <td data-label="Cantidad"><input type="number" min="0" step="1" class="botiquin-cantidad" data-cantidad="${escapeHtml(item.codigo)}"></td>
@@ -469,7 +502,7 @@ function abrirDrawer(inspeccion) {
     const filas = inspeccion.items.map((item) => `
         <tr>
             <td>${escapeHtml(item.item_label)}</td>
-            <td>${item.estado === "malo" ? '<span class="badge-rojo">Malo</span>' : '<span class="badge-verde">Bueno</span>'}</td>
+            <td>${item.estado === "malo" ? '<span class="badge-rojo">Malo</span>' : item.estado === "no_tiene" ? '<span class="badge-gris">No tiene</span>' : '<span class="badge-verde">Bueno</span>'}</td>
             <td>${item.cantidad ?? "—"}</td>
             <td>${item.fecha_vencimiento ? formatearFecha(item.fecha_vencimiento) : "—"}</td>
         </tr>
@@ -598,6 +631,7 @@ function renderChecklistHerramientas() {
                 <div class="botiquin-estado">
                     <label><input type="radio" name="estado_${escapeHtml(item.codigo)}" value="bueno" checked> Bueno</label>
                     <label><input type="radio" name="estado_${escapeHtml(item.codigo)}" value="malo"> Malo</label>
+                    <label><input type="radio" name="estado_${escapeHtml(item.codigo)}" value="no_tiene"> No tiene</label>
                 </div>
             </td>
             <td data-label="Cantidad"><input type="number" min="0" step="1" class="botiquin-cantidad" data-cantidad="${escapeHtml(item.codigo)}"></td>
@@ -720,7 +754,7 @@ function abrirDrawerHerramientas(inspeccion) {
     const filas = inspeccion.items.map((item) => `
         <tr>
             <td>${escapeHtml(item.item_label)}</td>
-            <td>${item.estado === "malo" ? '<span class="badge-rojo">Malo</span>' : '<span class="badge-verde">Bueno</span>'}</td>
+            <td>${item.estado === "malo" ? '<span class="badge-rojo">Malo</span>' : item.estado === "no_tiene" ? '<span class="badge-gris">No tiene</span>' : '<span class="badge-verde">Bueno</span>'}</td>
             <td>${item.cantidad ?? "—"}</td>
             <td>${item.codigo ? escapeHtml(item.codigo) : "—"}</td>
         </tr>
@@ -873,6 +907,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         window.VehiAmb.ui.show(loader);
 
         const vehiculos = await window.VehiAmb.api.getVehiculosCatalogo();
+        vehiculosState = vehiculos;
         fillVehicleSelect(extintorVehiculo, vehiculos);
         fillVehicleSelect(botiquinVehiculo, vehiculos);
         fillVehicleSelect(herramientasVehiculo, vehiculos);

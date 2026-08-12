@@ -17,7 +17,8 @@ const ITEMS_CHECKLIST = [
   { codigo: "soat", label: "¿El vehículo cuenta con SOAT vigente?" },
   { codigo: "rtm", label: "¿El vehículo cuenta con Revisión Técnico-Mecánica vigente?" },
   { codigo: "conoce_ruta", label: "¿Conoces la ruta y el destino del viaje?" },
-  { codigo: "celular_cargado", label: "¿Tienes tu celular cargado para comunicarte durante el viaje?" }
+  { codigo: "celular_cargado", label: "¿Tienes tu celular cargado para comunicarte durante el viaje?" },
+  { codigo: "limpieza_orden", label: "¿El vehículo se encuentra limpio y organizado tanto por dentro como por fuera?" }
 ];
 
 const ITEMS_POR_CODIGO = new Map(ITEMS_CHECKLIST.map((item) => [item.codigo, item]));
@@ -48,7 +49,8 @@ function toSafePreoperacional(preoperacional) {
     fecha: preoperacional.fecha,
     total_items: Number(preoperacional.total_items || 0),
     total_items_no: Number(preoperacional.total_items_no || 0),
-    firma_url: preoperacional.firma_url
+    firma_url: preoperacional.firma_url,
+    observaciones: preoperacional.observaciones
   };
 }
 
@@ -113,11 +115,14 @@ async function crear(vehiculoId, payload, archivos, currentUser) {
     }
   }
 
+  const observaciones = payload.observaciones ? String(payload.observaciones).trim().slice(0, 1000) : null;
+
   const preoperacional = await preoperacionalesRepository.create({
     vehiculo_id: vehiculoId,
     usuario_id: currentUser?.id ?? null,
     viaje_id: viajeId,
     firma_url: `/uploads/preoperacionales/${firma.filename}`,
+    observaciones,
     empresa_id: empresaId
   });
 

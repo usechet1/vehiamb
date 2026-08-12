@@ -122,9 +122,10 @@
 
         items.forEach((item, indice) => {
             const esMalo = item.estado === "malo";
+            const noTiene = item.estado === "no_tiene";
             const valores = [
                 safe(item.item_label),
-                esMalo ? "MALO" : "BUENO",
+                esMalo ? "MALO" : noTiene ? "NO TIENE" : "BUENO",
                 item.cantidad !== null && item.cantidad !== undefined ? String(item.cantidad) : "--",
                 columnaExtra.getValor(item)
             ];
