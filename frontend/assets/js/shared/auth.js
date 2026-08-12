@@ -178,16 +178,40 @@ window.VehiAmb.auth = {
     },
 
     async login(email, password) {
-        const response = await fetch(`${window.VehiAmb.API_URL}/auth/login`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ email, password })
-        });
+        let response;
+        try {
+            response = await fetch(`${window.VehiAmb.API_URL}/auth/login`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ email, password })
+            });
+        } catch (error) {
+            // fetch() rechaza (no responde nada) cuando el servidor/red no
+            // esta disponible -- antes esto tambien terminaba mostrando
+            // "Correo o contraseña invalidos" mas abajo, culpando a las
+            // credenciales por un problema que no tenia nada que ver con
+            // ellas.
+            throw new Error("No se pudo conectar con el servidor. Verifica tu conexión e intenta de nuevo.");
+        }
 
         if (!response.ok) {
-            throw new Error("Correo o contraseña invalidos");
+            // Antes esto SIEMPRE mostraba "Correo o contraseña invalidos"
+            // sin importar la causa real -- un 500/502/503 (servidor
+            // caido, reiniciando, etc.) se veia identico a una contraseña
+            // mal escrita. Ahora se muestra el mensaje real que manda el
+            // backend cuando lo hay (ej. "Credenciales invalidas" si de
+            // verdad fueron las credenciales), y solo cae al mensaje
+            // generico si el servidor no alcanzo a responder con un JSON.
+            let serverMessage = "";
+            try {
+                const data = await response.json();
+                serverMessage = data?.message || "";
+            } catch (error) {
+                serverMessage = "";
+            }
+            throw new Error(serverMessage || "No fue posible iniciar sesión. Intenta de nuevo.");
         }
 
         const data = await response.json();
