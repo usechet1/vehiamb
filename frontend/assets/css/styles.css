@@ -5122,6 +5122,71 @@ button.record-link {
         flex-direction: column;
         gap: 4px;
     }
+
+    /* El checklist (botiquin/kit de herramientas) tiene 4 columnas de
+       ENTRADA de datos -- a diferencia de una tabla de solo lectura, no se
+       puede resolver ocultando columnas: el usuario necesita llenarlas
+       todas. En vez de depender del scroll horizontal de .table-scroll
+       (facil de no notar en el celular), cada fila se convierte en una
+       tarjeta apilada: se oculta el thead y cada celda muestra su propia
+       etiqueta (data-label, agregado en seguridad.js) arriba del campo. */
+    .botiquin-checklist thead {
+        display: none;
+    }
+
+    .botiquin-checklist,
+    .botiquin-checklist tbody,
+    .botiquin-checklist tr {
+        display: block;
+        width: 100%;
+    }
+
+    .botiquin-checklist tr {
+        margin-bottom: 12px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+    }
+
+    .botiquin-checklist tr:last-child {
+        margin-bottom: 0;
+    }
+
+    .botiquin-checklist td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        width: 100%;
+        white-space: normal;
+        box-sizing: border-box;
+    }
+
+    .botiquin-checklist td:last-child {
+        border-bottom: none;
+    }
+
+    .botiquin-checklist td:first-child {
+        font-weight: 700;
+        background: var(--color-surface-2);
+    }
+
+    .botiquin-checklist td[data-label]::before {
+        content: attr(data-label);
+        flex-shrink: 0;
+        color: var(--color-muted);
+        font-size: 0.68rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .botiquin-checklist .botiquin-cantidad,
+    .botiquin-checklist .botiquin-vencimiento,
+    .botiquin-checklist .botiquin-codigo {
+        width: auto;
+        max-width: 140px;
+    }
 }
 
 /* ── Hilo de comentarios sobre una notificacion (sidebar.js) ── */
