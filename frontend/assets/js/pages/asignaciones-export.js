@@ -120,7 +120,7 @@
         return asignaciones.map((item, indice) => {
             const valores = [
                 String(indice + 1),
-                safe(item.conductor_nombre, "Sin conductor"),
+                safe(item.conductor_nombre_reporte, "Sin conductor"),
                 safe(item.ruta_nombre),
                 safe(item.telefono),
                 safe(item.vehiculo_placa, "Sin vehículo")
@@ -383,7 +383,7 @@
             const filaExcel = headerRow.number + 1 + indice;
             const valoresRuta = [
                 indice + 1,
-                safe(item.conductor_nombre, "Sin conductor"),
+                safe(item.conductor_nombre_reporte, "Sin conductor"),
                 safe(item.ruta_nombre),
                 safe(item.telefono),
                 safe(item.vehiculo_placa, "Sin vehículo")

@@ -12,10 +12,11 @@
     // Si el comparendo ya quedo vinculado a un conductor registrado (match
     // automatico fuerte), se exporta su nombre real sin mascara en vez del
     // dato crudo y enmascarado de SIMIT (mismo criterio que simit.js
-    // nombreInfractorReal()).
+    // nombreInfractorReal(), salvo el orden: los reportes exportados van en
+    // formato Apellidos-Nombres, la pantalla sigue en Nombres-Apellidos).
     function nombreInfractorReal(item) {
         if (item.conductor_id) {
-            return `${item.conductor_nombres || ""} ${item.conductor_apellidos || ""}`.trim() || item.nombre_infractor;
+            return `${item.conductor_apellidos || ""} ${item.conductor_nombres || ""}`.trim() || item.nombre_infractor;
         }
         return item.nombre_infractor;
     }

@@ -136,6 +136,11 @@ async function createConductor(payload, empresaId) {
   const conductor = normalizePayload(payload);
   validateConductor(conductor);
 
+  const existenteConCedula = await conductoresRepository.findByCedula(conductor.cedula, empresaId);
+  if (existenteConCedula) {
+    throw new HttpError(409, `Ya existe un conductor registrado con la cédula ${conductor.cedula}`);
+  }
+
   const password = String(payload.password || "");
   if (password.length < 6) {
     throw new HttpError(400, "La contraseña debe tener al menos 6 caracteres");
@@ -165,6 +170,13 @@ async function updateConductor(id, payload, empresaId) {
   const conductor = normalizePayload(payload);
   validateConductor(conductor);
   conductor.empresa_id = empresaId;
+
+  if (conductor.cedula !== existing.cedula) {
+    const existenteConCedula = await conductoresRepository.findByCedula(conductor.cedula, empresaId);
+    if (existenteConCedula && String(existenteConCedula.id) !== String(id)) {
+      throw new HttpError(409, `Ya existe un conductor registrado con la cédula ${conductor.cedula}`);
+    }
+  }
 
   const password = String(payload.password || "");
   if (password && password.length < 6) {
