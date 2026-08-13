@@ -29,6 +29,7 @@ const entregasRecibidasRoutes = require("./routes/entregas-recibidas.routes");
 const asignacionesRoutes = require("./routes/asignaciones.routes");
 const adminLogsRoutes = require("./routes/admin-logs.routes");
 const seguridadRoutes = require("./routes/seguridad.routes");
+const automationRoutes = require("./routes/automation.routes");
 const { apiLimiter } = require("./middlewares/rate-limit");
 
 const app = express();
@@ -87,6 +88,10 @@ app.use("/api/entregas-recibidas", requireAuth, entregasRecibidasRoutes);
 app.use("/api/asignaciones", requireAuth, asignacionesRoutes);
 app.use("/api/admin-logs", requireAuth, adminLogsRoutes);
 app.use("/api/seguridad", requireAuth, seguridadRoutes);
+// Sin requireAuth: la autenticacion completa de esta rama es
+// requireAutomationKey (montado dentro de automation.routes.js) -- no hay
+// sesion humana en este flujo, lo usa n8n.
+app.use("/api/automation", automationRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

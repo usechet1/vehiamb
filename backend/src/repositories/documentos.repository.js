@@ -48,6 +48,23 @@ async function findById(id, empresaId) {
   return db.get("SELECT * FROM documentos WHERE id = ? AND empresa_id = ?", [id, empresaId]);
 }
 
+// Usado por automation-documentos.service.js para decidir si una llegada de
+// n8n actualiza el documento existente o crea uno nuevo. No hay constraint de
+// unicidad por (vehiculo_id, tipo) hoy, asi que si por algun motivo ya
+// existiera mas de uno se toma el mas reciente.
+async function findByVehicleAndTipo(vehiculoId, tipo, empresaId) {
+  return db.get(
+    `
+      SELECT *
+      FROM documentos
+      WHERE vehiculo_id = ? AND tipo = ? AND empresa_id = ?
+      ORDER BY id DESC
+      LIMIT 1
+    `,
+    [vehiculoId, tipo, empresaId]
+  );
+}
+
 async function create(documento) {
   const placeholders = DOCUMENTO_FIELDS.map(() => "?").join(", ");
   const values = DOCUMENTO_FIELDS.map((field) => documento[field] ?? null);
@@ -90,6 +107,7 @@ module.exports = {
   findAll,
   findByVehicle,
   findById,
+  findByVehicleAndTipo,
   create,
   update,
   remove
