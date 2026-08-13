@@ -1,4 +1,5 @@
 const express = require("express");
+const multer = require("multer");
 const router = express.Router();
 
 const automationController = require("../controllers/automation.controller");
@@ -44,6 +45,41 @@ router.post(
   asyncHandler(renameUpload(construirNombreAutomation)),
   asyncHandler(compressImage),
   asyncHandler(automationController.upsertDocumento)
+);
+
+// A diferencia de /documentos, estos dos solo extraen texto/campos y no
+// guardan nada -- el archivo es insumo temporal, no el documento final, asi
+// que se procesa en memoria (memoryStorage) en vez de escribirse a
+// uploads/documentos, y no hay nada que limpiar despues.
+function uploadEnMemoria(mimetypesPermitidos, mensajeError) {
+  return multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 15 * 1024 * 1024 },
+    fileFilter(req, file, cb) {
+      if (!mimetypesPermitidos.has(file.mimetype)) {
+        return cb(new Error(mensajeError));
+      }
+      cb(null, true);
+    }
+  });
+}
+
+const uploadSoatPdf = uploadEnMemoria(new Set(["application/pdf"]), "El SOAT debe adjuntarse como PDF");
+const uploadTecnomecanicaImagen = uploadEnMemoria(
+  new Set(["image/jpeg", "image/png", "image/webp"]),
+  "La RTM debe adjuntarse como foto (JPG, PNG o WEBP)"
+);
+
+router.post(
+  "/extraer/soat",
+  withMulterErrorHandling(uploadSoatPdf.single("archivo")),
+  asyncHandler(automationController.extraerSoat)
+);
+
+router.post(
+  "/extraer/tecnomecanica",
+  withMulterErrorHandling(uploadTecnomecanicaImagen.single("archivo")),
+  asyncHandler(automationController.extraerTecnomecanica)
 );
 
 module.exports = router;
