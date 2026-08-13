@@ -4,6 +4,7 @@ require("dotenv").config({ quiet: true });
 
 const DEFAULT_DEV_AUTH_SECRET = "vehiamb-dev-secret";
 const DEFAULT_DEV_ADMIN_PASSWORD = "Admin123*";
+const DEFAULT_DEV_AUTOMATION_KEY = "vehiamb-automation-dev-key";
 const nodeEnv = process.env.NODE_ENV || "development";
 
 // En produccion no se acepta el secreto/clave de desarrollo: ambos son
@@ -22,6 +23,22 @@ if (nodeEnv === "production") {
   if (!process.env.SEED_ADMIN_PASSWORD || process.env.SEED_ADMIN_PASSWORD === DEFAULT_DEV_ADMIN_PASSWORD) {
     throw new Error("SEED_ADMIN_PASSWORD debe definirse en produccion con un valor propio (no el de .env.example).");
   }
+
+  if (!process.env.AUTOMATION_API_KEY || process.env.AUTOMATION_API_KEY === DEFAULT_DEV_AUTOMATION_KEY) {
+    throw new Error(
+      "AUTOMATION_API_KEY debe definirse en produccion con un valor propio (no el de .env.example). " +
+      "Generar uno con: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
+    );
+  }
+}
+
+// A diferencia de AUTH_SECRET/SEED_ADMIN_PASSWORD (un valor invalido es un
+// hueco de seguridad, solo se revisa en produccion), un AUTOMATION_EMPRESA_ID
+// invalido rompe silenciosamente cada request de automatizacion sin importar
+// el entorno -- se valida siempre.
+const automationEmpresaId = Number(process.env.AUTOMATION_EMPRESA_ID || 1);
+if (!Number.isInteger(automationEmpresaId) || automationEmpresaId <= 0) {
+  throw new Error("AUTOMATION_EMPRESA_ID debe ser un entero positivo");
 }
 
 const env = {
@@ -36,6 +53,13 @@ const env = {
   seedAdminEmail: process.env.SEED_ADMIN_EMAIL || "admin@vehiamb.local",
   seedAdminPassword: process.env.SEED_ADMIN_PASSWORD || DEFAULT_DEV_ADMIN_PASSWORD,
   seedAdminRole: process.env.SEED_ADMIN_ROLE || "Administrador",
+
+  // Autenticacion maquina-a-maquina para el endpoint de automatizacion de
+  // documentos (ver require-automation-key.js) -- separado del login humano
+  // porque n8n corre desatendido y no deberia tener que re-loguearse cada
+  // ~12h como una persona.
+  automationApiKey: process.env.AUTOMATION_API_KEY || DEFAULT_DEV_AUTOMATION_KEY,
+  automationEmpresaId,
   excelFilePath: process.env.EXCEL_FILE_PATH || "",
   excelRetryAttempts: Number(process.env.EXCEL_RETRY_ATTEMPTS || 3),
   excelRetryDelayMs: Number(process.env.EXCEL_RETRY_DELAY || 5000),
