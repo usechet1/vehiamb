@@ -12,6 +12,9 @@ node_modules/
 # Local uploads
 backend/uploads/
 
+# Modelo de idioma de Tesseract (se descarga solo la primera vez que corre)
+backend/tesseract-cache/
+
 # Respaldos de Postgres (contienen datos reales de clientes)
 backups/
 
