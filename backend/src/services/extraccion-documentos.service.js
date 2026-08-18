@@ -74,20 +74,27 @@ function extraerCamposTecnomecanica(textoOcr) {
 }
 
 // El PDF real de RTM (certificado RUNT) tambien vuelca las dos fechas
-// separadas de sus etiquetas, en una linea propia mas abajo -- a diferencia
-// del SOAT, aca SI coincide el orden (primera fecha = expedicion, segunda =
-// vencimiento), confirmado contra un certificado real. Numero y placa si
-// quedan pegados a su etiqueta, asi que esos se leen igual que en OCR.
+// separadas de sus etiquetas, en una linea propia mas abajo -- pero a
+// diferencia de lo que se penso al principio, el orden en que caen esas dos
+// fechas en el texto NO es confiable (se confirmo contra dos certificados
+// reales que traen el orden invertido entre si). En vez de asumir una
+// posicion fija, se ordenan cronologicamente: expedicion siempre es la mas
+// temprana y vencimiento la mas tardia, que es la unica relacion que un
+// certificado real puede tener entre las dos. Numero y placa si quedan
+// pegados a su etiqueta, asi que esos se leen igual que en OCR.
 function extraerCamposTecnomecanicaPdf(texto) {
   const numero = texto.match(/No\.?\s*(\d{6,10})/);
   const fechas = texto.match(/^(\d{4}\/\d{2}\/\d{2})\s+(\d{4}\/\d{2}\/\d{2})/m);
+  const [fechaExpedicion, fechaVencimiento] = fechas
+    ? [fechas[1], fechas[2]].sort()
+    : [null, null];
   const placa = texto.match(new RegExp(`PLACA:?\\s*${PLACA_REGEX.source}`, "i")) || texto.match(PLACA_REGEX);
 
   return conCamposFaltantes({
     placa: placa ? placa[1] : null,
     numero_documento: numero ? numero[1] : null,
-    fecha_expedicion: convertirFechaConBarras(fechas ? fechas[1] : null),
-    fecha_vencimiento: convertirFechaConBarras(fechas ? fechas[2] : null)
+    fecha_expedicion: convertirFechaConBarras(fechaExpedicion),
+    fecha_vencimiento: convertirFechaConBarras(fechaVencimiento)
   });
 }
 
