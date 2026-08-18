@@ -65,9 +65,9 @@ function uploadEnMemoria(mimetypesPermitidos, mensajeError) {
 }
 
 const uploadSoatPdf = uploadEnMemoria(new Set(["application/pdf"]), "El SOAT debe adjuntarse como PDF");
-const uploadTecnomecanicaImagen = uploadEnMemoria(
-  new Set(["image/jpeg", "image/png", "image/webp"]),
-  "La RTM debe adjuntarse como foto (JPG, PNG o WEBP)"
+const uploadTecnomecanica = uploadEnMemoria(
+  new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]),
+  "La RTM debe adjuntarse como foto (JPG, PNG o WEBP) o PDF"
 );
 
 router.post(
@@ -78,7 +78,7 @@ router.post(
 
 router.post(
   "/extraer/tecnomecanica",
-  withMulterErrorHandling(uploadTecnomecanicaImagen.single("archivo")),
+  withMulterErrorHandling(uploadTecnomecanica.single("archivo")),
   asyncHandler(automationController.extraerTecnomecanica)
 );
 

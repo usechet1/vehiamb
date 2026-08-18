@@ -43,7 +43,11 @@ exports.extraerTecnomecanica = async (req, res, next) => {
     if (!req.file) {
       throw new HttpError(400, "Debes adjuntar el archivo de la RTM");
     }
-    const campos = await extraccionDocumentosService.extraerDesdeTecnomecanicaImagen(req.file.buffer);
+    // Algunos CDA la mandan como PDF (texto real) en vez de foto -- ambos
+    // formatos se aceptan aqui, elige el lector segun lo que haya llegado.
+    const campos = req.file.mimetype === "application/pdf"
+      ? await extraccionDocumentosService.extraerDesdeTecnomecanicaPdf(req.file.buffer)
+      : await extraccionDocumentosService.extraerDesdeTecnomecanicaImagen(req.file.buffer);
     res.status(200).json(campos);
   } catch (error) {
     next(error);
