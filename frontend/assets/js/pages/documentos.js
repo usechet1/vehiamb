@@ -11,6 +11,7 @@ const documentoPropietarioGroup = document.getElementById("documentoPropietarioG
 const documentoPropietario = document.getElementById("documentoPropietario");
 const documentoSeguroAyuda = document.getElementById("documentoSeguroAyuda");
 const documentoArchivoActual = document.getElementById("documentoArchivoActual");
+const documentoArchivo = document.getElementById("documentoArchivo");
 const documentoSubmitButton = document.getElementById("documentoSubmitButton");
 const documentoCancelEditButton = document.getElementById("documentoCancelEditButton");
 const tabDocumentosHistorialButton = document.getElementById("tabDocumentosHistorialButton");
@@ -32,7 +33,13 @@ const loader = document.getElementById("loader");
 const mensaje = document.getElementById("mensaje");
 
 let documentosState = [];
+let vehiculosState = [];
 let vencimientoEditadoManualmente = false;
+
+// Tipos que el motor de extraccion (extraccion-documentos.service.js en el
+// backend) sabe leer -- el resto de tipos (seguro/licencia_transito/otro)
+// siguen funcionando 100% manual, sin ningun cambio.
+const TIPOS_AUTOCOMPLETABLES = ["soat", "tecnomecanica"];
 
 // Tipos con vigencia legal fija de 1 año en Colombia: al escribir la fecha de
 // expedicion se sugiere el vencimiento automaticamente, pero el usuario
@@ -302,6 +309,7 @@ async function cargarDatos() {
         window.VehiAmb.ui.show(loader);
 
         const vehiculos = await window.VehiAmb.api.getVehiculosCatalogo();
+        vehiculosState = vehiculos;
         fillVehicleSelect(documentoSelect, vehiculos);
         fillVehicleSelect(filterDocumentoPlaca, vehiculos, "Todas las placas", "placa");
     } catch (error) {
@@ -437,6 +445,78 @@ documentoForm.addEventListener("submit", async (event) => {
     } finally {
         window.VehiAmb.ui.hide(loader);
     }
+});
+
+// Mismo criterio de comparacion que vehiculosRepository.findByPlaca en el
+// backend (insensible a mayusculas y guiones).
+function normalizarPlaca(placa) {
+    return String(placa || "").toUpperCase().replace(/-/g, "");
+}
+
+// Si el tipo es soat/tecnomecanica, en vez de esperar a que el usuario
+// escriba numero/fechas a mano, se leen del archivo y se guarda solo. Si
+// falto leer algo o la placa del archivo no coincide con el vehiculo ya
+// seleccionado, NO se autoguarda -- se llena lo que si se pudo leer y se le
+// pide al usuario que revise/complete a mano (evita guardar datos
+// incompletos o en el vehiculo equivocado sin que nadie se de cuenta).
+async function intentarAutoCompletarDesdeArchivo(file) {
+    if (!TIPOS_AUTOCOMPLETABLES.includes(documentoTipo.value)) return;
+    if (!documentoSelect.value) {
+        window.VehiAmb.ui.showMessage(mensaje, "Selecciona primero el vehículo para poder autocompletar", "error");
+        documentoArchivo.value = "";
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("tipo", documentoTipo.value);
+    formData.append("archivo", file);
+
+    // El loader se maneja a mano en vez de con try/finally: requestSubmit()
+    // al final dispara el handler de submit, que muestra/oculta el loader
+    // por su cuenta durante el guardado -- si aqui lo ocultaramos en un
+    // finally, se ocultaria de inmediato mientras el guardado sigue en
+    // curso en segundo plano (requestSubmit no espera a que termine).
+    window.VehiAmb.ui.show(loader);
+
+    let campos;
+    try {
+        campos = await window.VehiAmb.api.extraerDatosDocumento(formData);
+    } catch (error) {
+        console.error(error);
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo leer el archivo", "error");
+        documentoArchivo.value = "";
+        window.VehiAmb.ui.hide(loader);
+        return;
+    }
+
+    if (campos.numero_documento) documentoNumero.value = campos.numero_documento;
+    if (campos.fecha_expedicion) documentoFechaExpedicion.value = campos.fecha_expedicion.slice(0, 10);
+    if (campos.fecha_vencimiento) {
+        documentoFechaVencimiento.value = campos.fecha_vencimiento.slice(0, 10);
+        vencimientoEditadoManualmente = true;
+    }
+
+    const camposFaltantes = (campos.campos_faltantes || []).filter((campo) => campo !== "placa");
+    if (camposFaltantes.length) {
+        window.VehiAmb.ui.hide(loader);
+        window.VehiAmb.ui.showMessage(mensaje, `No se pudieron leer todos los datos del archivo (falta: ${camposFaltantes.join(", ")}). Completa el resto y guarda manualmente.`, "error");
+        return;
+    }
+
+    const vehiculoSeleccionado = vehiculosState.find((vehiculo) => String(vehiculo.id) === documentoSelect.value);
+    if (campos.placa && vehiculoSeleccionado && normalizarPlaca(campos.placa) !== normalizarPlaca(vehiculoSeleccionado.placa)) {
+        window.VehiAmb.ui.hide(loader);
+        window.VehiAmb.ui.showMessage(mensaje, `La placa del archivo (${campos.placa}) no coincide con el vehículo seleccionado (${vehiculoSeleccionado.placa}). Verifica que sea el archivo correcto.`, "error");
+        return;
+    }
+
+    window.VehiAmb.ui.hide(loader);
+    documentoForm.requestSubmit();
+}
+
+documentoArchivo.addEventListener("change", (event) => {
+    const file = event.target.files[0];
+    if (file) intentarAutoCompletarDesdeArchivo(file);
 });
 
 documentosFilterForm.addEventListener("submit", (event) => {

@@ -263,6 +263,19 @@ window.VehiAmb.api = {
         );
     },
 
+    // Solo extrae numero/fechas/placa de un SOAT o RTM -- no guarda nada,
+    // eso lo hace createDocumento/updateDocumento con el resultado.
+    extraerDatosDocumento(formData) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/documentos/extraer`,
+            {
+                method: "POST",
+                body: formData
+            },
+            "No se pudo leer el archivo"
+        );
+    },
+
     deleteDocumento(id) {
         return requestJson(
             `${window.VehiAmb.API_URL}/documentos/${id}`,
