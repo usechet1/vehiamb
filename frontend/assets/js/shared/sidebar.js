@@ -535,7 +535,7 @@ async function cargarSidebar() {
                 <button data-page="documentos.html" data-permission="documents.view">Documentos</button>
                 <button data-page="simit.html" data-permission="simit.view">Consulta SIMIT</button>
                 <button data-page="conductores.html" data-permission="conductores.view">Conductores</button>
-                <button data-page="entrega-recibida.html" data-permission="delivery.view">Actas de vehículo</button>
+                <button data-page="entrega-recibida.html" data-permission="delivery.view" disabled>Actas de vehículo</button>
                 <button data-page="asignaciones.html" data-permission="asignaciones.view">Asignación de rutas</button>
                 <button data-page="mi-viaje.html" data-permission="trips.view">Mi último viaje</button>
                 <button data-page="costos.html" data-permission="costs.view">Gastos</button>
