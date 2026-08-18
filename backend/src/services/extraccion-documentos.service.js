@@ -2,8 +2,10 @@ const fs = require("fs");
 const path = require("path");
 const sharp = require("sharp");
 const HttpError = require("../errors/http-error");
-const { PDFParse } = require("pdf-parse");
+const { PDFParse, PasswordException } = require("pdf-parse");
 const Tesseract = require("tesseract.js");
+const vehiculosRepository = require("../repositories/vehiculos.repository");
+const env = require("../config/env");
 
 // tesseract.js descarga el modelo de idioma (spa.traineddata, ~3.4MB) la
 // primera vez que corre -- con cachePath fijo se guarda ahi y se reutiliza
@@ -71,16 +73,69 @@ function extraerCamposTecnomecanica(textoOcr) {
   });
 }
 
-async function extraerDesdeSoatPdf(buffer) {
-  let parser;
+// El PDF real de RTM (certificado RUNT) tambien vuelca las dos fechas
+// separadas de sus etiquetas, en una linea propia mas abajo -- a diferencia
+// del SOAT, aca SI coincide el orden (primera fecha = expedicion, segunda =
+// vencimiento), confirmado contra un certificado real. Numero y placa si
+// quedan pegados a su etiqueta, asi que esos se leen igual que en OCR.
+function extraerCamposTecnomecanicaPdf(texto) {
+  const numero = texto.match(/No\.?\s*(\d{6,10})/);
+  const fechas = texto.match(/^(\d{4}\/\d{2}\/\d{2})\s+(\d{4}\/\d{2}\/\d{2})/m);
+  const placa = texto.match(new RegExp(`PLACA:?\\s*${PLACA_REGEX.source}`, "i")) || texto.match(PLACA_REGEX);
+
+  return conCamposFaltantes({
+    placa: placa ? placa[1] : null,
+    numero_documento: numero ? numero[1] : null,
+    fecha_expedicion: convertirFechaConBarras(fechas ? fechas[1] : null),
+    fecha_vencimiento: convertirFechaConBarras(fechas ? fechas[2] : null)
+  });
+}
+
+async function leerTextoPdf(buffer, password) {
+  const parser = new PDFParse({ data: buffer, password });
   try {
-    parser = new PDFParse({ data: buffer });
     const resultado = await parser.getText();
-    return extraerCamposSoat(resultado.text);
+    return resultado.text;
+  } finally {
+    await parser.destroy();
+  }
+}
+
+async function extraerDesdeSoatPdf(buffer) {
+  try {
+    return extraerCamposSoat(await leerTextoPdf(buffer));
+  } catch (error) {
+    if (!(error instanceof PasswordException)) {
+      throw new HttpError(400, "No fue posible leer el archivo como PDF");
+    }
+  }
+
+  // El PDF viene protegido -- en la practica casi siempre la clave que
+  // ponen las aseguradoras/CDA es la placa del vehiculo, asi que se prueba
+  // la placa de cada vehiculo de la flota como contraseña hasta que una
+  // funcione, en vez de rendirse de una vez.
+  const vehiculos = await vehiculosRepository.findAllSimple(env.automationEmpresaId);
+  for (const vehiculo of vehiculos) {
+    if (!vehiculo.placa) continue;
+    try {
+      return extraerCamposSoat(await leerTextoPdf(buffer, vehiculo.placa));
+    } catch (error) {
+      // Sigue intentando con la siguiente placa.
+    }
+  }
+
+  throw new HttpError(400, "El PDF está protegido con contraseña y no se pudo abrir con ninguna placa de la flota");
+}
+
+// Algunos CDA mandan la RTM como PDF con texto real (certificado generado
+// por RUNT) en vez de una foto -- se reutiliza el mismo lector de texto que
+// SOAT, pero contra extraerCamposTecnomecanicaPdf (ver arriba), que maneja
+// el layout propio de este PDF en vez del de OCR.
+async function extraerDesdeTecnomecanicaPdf(buffer) {
+  try {
+    return extraerCamposTecnomecanicaPdf(await leerTextoPdf(buffer));
   } catch (error) {
     throw new HttpError(400, "No fue posible leer el archivo como PDF");
-  } finally {
-    await parser?.destroy();
   }
 }
 
@@ -109,6 +164,8 @@ async function extraerDesdeTecnomecanicaImagen(buffer) {
 module.exports = {
   extraerCamposSoat,
   extraerCamposTecnomecanica,
+  extraerCamposTecnomecanicaPdf,
   extraerDesdeSoatPdf,
+  extraerDesdeTecnomecanicaPdf,
   extraerDesdeTecnomecanicaImagen
 };
