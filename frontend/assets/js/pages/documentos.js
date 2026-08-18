@@ -16,7 +16,12 @@ const documentoSubmitButton = document.getElementById("documentoSubmitButton");
 const documentoCancelEditButton = document.getElementById("documentoCancelEditButton");
 const tabDocumentosHistorialButton = document.getElementById("tabDocumentosHistorialButton");
 const tabDocumentosRegistrarButton = document.getElementById("tabDocumentosRegistrarButton");
+const tabDocumentosRenovarButton = document.getElementById("tabDocumentosRenovarButton");
 const registrarDocumentoSection = document.getElementById("registrarDocumentoSection");
+const renovarDocumentoSection = document.getElementById("renovarDocumentoSection");
+const renovarVehiculo = document.getElementById("renovarVehiculo");
+const renovarTipo = document.getElementById("renovarTipo");
+const renovarArchivo = document.getElementById("renovarArchivo");
 const documentosRegistradosSection = document.getElementById("documentosRegistradosSection");
 const documentosFilterForm = document.getElementById("documentosFilterForm");
 const documentoSelect = document.getElementById("vehiculoDocumento");
@@ -317,6 +322,7 @@ async function cargarDatos() {
         const vehiculos = await window.VehiAmb.api.getVehiculosCatalogo();
         vehiculosState = vehiculos;
         fillVehicleSelect(documentoSelect, vehiculos);
+        fillVehicleSelect(renovarVehiculo, vehiculos);
         fillVehicleSelect(filterDocumentoPlaca, vehiculos, "Todas las placas", "placa");
     } catch (error) {
         console.error(error);
@@ -340,19 +346,28 @@ async function cargarDatos() {
 }
 
 function switchTab(tab) {
-    const esRegistrar = tab === "registrar";
+    const botones = {
+        historial: tabDocumentosHistorialButton,
+        registrar: tabDocumentosRegistrarButton,
+        renovar: tabDocumentosRenovarButton
+    };
+    const secciones = {
+        historial: documentosRegistradosSection,
+        registrar: registrarDocumentoSection,
+        renovar: renovarDocumentoSection
+    };
 
-    tabDocumentosRegistrarButton.classList.toggle("active", esRegistrar);
-    tabDocumentosHistorialButton.classList.toggle("active", !esRegistrar);
-    tabDocumentosRegistrarButton.setAttribute("aria-selected", String(esRegistrar));
-    tabDocumentosHistorialButton.setAttribute("aria-selected", String(!esRegistrar));
-
-    window.VehiAmb.ui[esRegistrar ? "show" : "hide"](registrarDocumentoSection);
-    window.VehiAmb.ui[esRegistrar ? "hide" : "show"](documentosRegistradosSection);
+    Object.entries(botones).forEach(([nombre, boton]) => {
+        const activo = nombre === tab;
+        boton.classList.toggle("active", activo);
+        boton.setAttribute("aria-selected", String(activo));
+        window.VehiAmb.ui[activo ? "show" : "hide"](secciones[nombre]);
+    });
 }
 
 tabDocumentosHistorialButton.addEventListener("click", () => switchTab("historial"));
 tabDocumentosRegistrarButton.addEventListener("click", () => switchTab("registrar"));
+tabDocumentosRenovarButton.addEventListener("click", () => switchTab("renovar"));
 
 documentoTipo.addEventListener("change", () => {
     actualizarCamposPorTipo();
@@ -506,6 +521,11 @@ async function intentarAutoCompletarDesdeArchivo(file) {
     if (camposFaltantes.length) {
         window.VehiAmb.ui.hide(loader);
         window.VehiAmb.ui.showMessage(mensaje, `No se pudieron leer todos los datos del archivo (falta: ${camposFaltantes.join(", ")}). Completa el resto y guarda manualmente.`, "error");
+        // Los campos que si se leyeron quedaron en el formulario de
+        // "Registrar documento" -- si el disparo vino de la pestana
+        // "Renovar" (mas simple, sin esos campos visibles), se cambia ahi
+        // para que el usuario vea y complete lo que falta.
+        switchTab("registrar");
         return;
     }
 
@@ -513,6 +533,7 @@ async function intentarAutoCompletarDesdeArchivo(file) {
     if (campos.placa && vehiculoSeleccionado && normalizarPlaca(campos.placa) !== normalizarPlaca(vehiculoSeleccionado.placa)) {
         window.VehiAmb.ui.hide(loader);
         window.VehiAmb.ui.showMessage(mensaje, `La placa del archivo (${campos.placa}) no coincide con el vehículo seleccionado (${vehiculoSeleccionado.placa}). Verifica que sea el archivo correcto.`, "error");
+        switchTab("registrar");
         return;
     }
 
@@ -523,6 +544,31 @@ async function intentarAutoCompletarDesdeArchivo(file) {
 documentoArchivo.addEventListener("change", (event) => {
     const file = event.target.files[0];
     if (file) intentarAutoCompletarDesdeArchivo(file);
+});
+
+// "Renovar documento" es un atajo mas simple al mismo flujo: solo pide
+// vehiculo + tipo (soat/tecnomecanica) + archivo. Al elegir el archivo,
+// vuelca esos dos valores al formulario completo (oculto en esta pestana)
+// y reutiliza exactamente la misma logica de autocompletar/autoguardar --
+// sin duplicar la extraccion ni el chequeo de placa.
+renovarArchivo.addEventListener("change", async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!renovarVehiculo.value) {
+        window.VehiAmb.ui.showMessage(mensaje, "Selecciona primero el vehículo para poder renovar", "error");
+        renovarArchivo.value = "";
+        return;
+    }
+
+    documentoId.value = "";
+    documentoSelect.value = renovarVehiculo.value;
+    documentoTipo.value = renovarTipo.value;
+    vencimientoEditadoManualmente = false;
+    actualizarCamposPorTipo();
+
+    await intentarAutoCompletarDesdeArchivo(file);
+    renovarArchivo.value = "";
 });
 
 documentosFilterForm.addEventListener("submit", (event) => {
@@ -560,6 +606,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (!window.VehiAmb.auth.hasPermission("documents.create")) {
         tabDocumentosRegistrarButton?.classList.add("hidden");
+        tabDocumentosRenovarButton?.classList.add("hidden");
     }
 
     cargarDatos();
