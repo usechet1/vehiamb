@@ -35,6 +35,7 @@ const mensaje = document.getElementById("mensaje");
 let documentosState = [];
 let vehiculosState = [];
 let vencimientoEditadoManualmente = false;
+let filtroSoloVencidos = false;
 
 // Tipos que el motor de extraccion (extraccion-documentos.service.js en el
 // backend) sabe leer -- el resto de tipos (seguro/licencia_transito/otro)
@@ -192,10 +193,10 @@ function renderKpisDocumentos(documentos) {
             <div class="kpi-label">Total documentos</div>
             <div class="kpi-value">${documentos.length}</div>
         </div>
-        <div class="kpi-card" style="--kpi-accent: var(--color-primary)">
+        <button type="button" class="kpi-card kpi-card-clickable ${filtroSoloVencidos ? "is-active" : ""}" style="--kpi-accent: var(--color-primary)" data-kpi-filtro="vencidos" title="Ver solo los documentos vencidos">
             <div class="kpi-label">Vencidos</div>
             <div class="kpi-value">${kpis.vencidos}</div>
-        </div>
+        </button>
         <div class="kpi-card" style="--kpi-accent: var(--color-warning)">
             <div class="kpi-label">Por vencer (30 dias)</div>
             <div class="kpi-value">${kpis.porVencer}</div>
@@ -273,6 +274,10 @@ function documentMatchesFilters(item) {
     if (tipo && item.tipo !== tipo) return false;
     if (fechaDesde && (!itemFecha || itemFecha < fechaDesde)) return false;
     if (fechaHasta && (!itemFecha || itemFecha > fechaHasta)) return false;
+    if (filtroSoloVencidos) {
+        const dias = daysUntil(item.fecha_vencimiento);
+        if (dias === null || dias >= 0) return false;
+    }
 
     return true;
 }
@@ -284,7 +289,8 @@ function updateDocumentosFilterSummary(filteredCount) {
         filterDocumentoPlaca.value ||
         filterDocumentoTipo.value ||
         filterDocumentoFechaDesde.value ||
-        filterDocumentoFechaHasta.value
+        filterDocumentoFechaHasta.value ||
+        filtroSoloVencidos
     );
 
     if (!total) {
@@ -533,7 +539,20 @@ documentosFilterForm.addEventListener("submit", (event) => {
 
 clearDocumentosFiltersButton.addEventListener("click", () => {
     documentosFilterForm.reset();
+    filtroSoloVencidos = false;
     applyDocumentosFilters();
+});
+
+// Delegado en el contenedor (no en cada card) porque renderKpisDocumentos
+// reconstruye el HTML de las kpis en cada filtro -- un listener puesto
+// directo en la card se perderia al re-renderizar.
+documentosKpisGrid.addEventListener("click", (event) => {
+    const boton = event.target.closest("[data-kpi-filtro]");
+    if (!boton) return;
+
+    filtroSoloVencidos = !filtroSoloVencidos;
+    applyDocumentosFilters();
+    switchTab("historial");
 });
 
 document.addEventListener("DOMContentLoaded", async () => {

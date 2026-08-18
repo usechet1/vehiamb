@@ -2027,6 +2027,24 @@ label[for="loginPassword"] {
     background: var(--kpi-accent, var(--color-primary));
 }
 
+.kpi-card-clickable {
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.kpi-card-clickable:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
+}
+
+.kpi-card-clickable.is-active {
+    box-shadow: 0 0 0 2px var(--kpi-accent, var(--color-primary)) inset;
+}
+
 .kpi-label {
     color: var(--color-muted);
     font-size: 0.72rem;
