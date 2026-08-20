@@ -491,8 +491,10 @@ async function cargarRepuestosSugeridos() {
         if (requestToken !== sugeridosRequestToken) return;
 
         // El aceite (medido por volumen: GLS/GLN/LTR) es el unico repuesto
-        // sugerido que NO es obligatorio en un cambio de aceite -- los demas
-        // (filtros, siempre en UND) si lo son y no se pueden desmarcar.
+        // sugerido que NO es obligatorio en un cambio de aceite (se puede
+        // desmarcar, a diferencia de los filtros que van en UND) -- pero
+        // todos, obligatorios o no, arrancan seleccionados: son exactamente
+        // los que el excel de configuracion define para este vehiculo.
         const esAceite = String(sugerido.unidad_medida || "").toUpperCase() !== "UND";
         const obligatorio = !esAceite;
 
@@ -505,7 +507,7 @@ async function cargarRepuestosSugeridos() {
                 repuesto_id: sugerido.repuesto_id,
                 cantidad: Number(sugerido.cantidad || 1),
                 valor_unitario: Number(sugerido.valor_promedio || 0),
-                incluido: obligatorio,
+                incluido: true,
                 obligatorio
             });
         } else if (disponibilidad.equivalencias.length) {
@@ -520,7 +522,7 @@ async function cargarRepuestosSugeridos() {
                 motivo_sustitucion: "Sin stock del repuesto principal",
                 cantidad: Number(sugerido.cantidad || 1),
                 valor_unitario: 0,
-                incluido: obligatorio,
+                incluido: true,
                 obligatorio
             });
         } else {
