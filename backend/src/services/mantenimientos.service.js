@@ -1,3 +1,5 @@
+const fs = require("fs/promises");
+const path = require("path");
 const HttpError = require("../errors/http-error");
 const db = require("../database/query");
 const mantenimientosRepository = require("../repositories/mantenimientos.repository");
@@ -18,7 +20,7 @@ const TIPOS_VALIDOS = new Set([
   "otro"
 ]);
 
-const TIPOS_QUE_REQUIEREN_APROBACION = new Set(["correctivo"]);
+const TIPOS_QUE_REQUIEREN_APROBACION = new Set(["correctivo", "cambio_aceite"]);
 const UMBRAL_APROBACION_VALOR = Number(process.env.MAINTENANCE_APPROVAL_THRESHOLD || 500000);
 
 function toBoolean(value) {
@@ -173,6 +175,82 @@ async function getMantenimiento(id, empresaId) {
   return mantenimiento;
 }
 
+async function eliminarArchivoAnterior(url) {
+  if (!url) return;
+  try {
+    await fs.unlink(path.resolve(__dirname, "..", "..", url.replace(/^\//, "")));
+  } catch (error) {
+    // El archivo ya pudo haberse borrado a mano o nunca haberse escrito --
+    // no es un error real del flujo de negocio.
+  }
+}
+
+async function subirSalidaInventario(id, file, empresaId) {
+  const existente = await getMantenimiento(id, empresaId);
+
+  if (existente.tipo !== "cambio_aceite") {
+    throw new HttpError(400, "El documento de salida de inventario solo aplica a cambio de aceite");
+  }
+  if (!file) {
+    throw new HttpError(400, "Debes adjuntar el documento de salida de inventario");
+  }
+
+  const actualizado = await mantenimientosRepository.updateSalidaInventario(
+    id,
+    {
+      url: `/uploads/mantenimientos/${file.filename}`,
+      nombre: file.originalname,
+      mime: file.mimetype
+    },
+    empresaId
+  );
+
+  if (existente.salida_inventario_url) {
+    await eliminarArchivoAnterior(existente.salida_inventario_url);
+  }
+
+  return actualizado;
+}
+
+/**
+ * Unica via de aprobacion para cambio de aceite (no pasa por el
+ * Aprobar/Rechazar de notificaciones, ver evaluarNotificacionesMantenimiento
+ * en notificaciones.service.js): se llama al abrir la etiqueta imprimible,
+ * y exige que el documento de salida de inventario ya este subido -- asi
+ * "cargar el documento e imprimir la etiqueta" es, en los hechos, el tramite
+ * completo de aprobacion.
+ */
+async function confirmarCambioAceite(id, empresaId) {
+  const mantenimiento = await getMantenimiento(id, empresaId);
+
+  if (mantenimiento.tipo !== "cambio_aceite") {
+    throw new HttpError(400, "Este mantenimiento no es un cambio de aceite");
+  }
+  if (!mantenimiento.salida_inventario_url) {
+    throw new HttpError(400, "Debes subir el documento de salida de inventario antes de imprimir la etiqueta");
+  }
+  if (mantenimiento.estado === "aprobado") {
+    return mantenimiento;
+  }
+
+  const actualizado = await mantenimientosRepository.updateEstado(id, "aprobado", empresaId);
+
+  if (actualizado.creado_por_usuario_id) {
+    await notificacionesService.notificar({
+      usuario_id: actualizado.creado_por_usuario_id,
+      tipo: "mantenimiento_aprobado",
+      mensaje: `El cambio de aceite del vehiculo ${actualizado.placa} quedo aprobado (documento de salida de inventario cargado y etiqueta impresa).`,
+      vehiculo_id: actualizado.vehiculo_id,
+      referencia_tipo: "mantenimiento",
+      referencia_id: actualizado.id,
+      accion: { tipo: "ver_mantenimiento", payload: { mantenimiento_id: actualizado.id } },
+      empresa_id: empresaId
+    });
+  }
+
+  return actualizado;
+}
+
 /**
  * Descuenta stock, registra el movimiento y el detalle normalizado para cada
  * repuesto del catalogo usado en el mantenimiento -- todo dentro de la misma
@@ -303,5 +381,7 @@ module.exports = {
   getRepuestosEstructurados,
   getMantenimiento,
   createMantenimiento,
+  subirSalidaInventario,
+  confirmarCambioAceite,
   listUsuariosDisponibles
 };

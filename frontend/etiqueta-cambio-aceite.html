@@ -274,6 +274,24 @@
                     return;
                 }
 
+                if (!mantenimiento.salida_inventario_url) {
+                    estadoCarga.textContent = "Debes subir el documento de salida de inventario antes de imprimir la etiqueta (desde el detalle del mantenimiento).";
+                    return;
+                }
+
+                // Cargar el documento de salida de inventario + ver esta etiqueta ES
+                // el tramite de aprobacion del cambio de aceite (no pasa por el
+                // Aprobar/Rechazar de notificaciones) -- se confirma aca, en vez de
+                // requerir un paso aparte.
+                if (mantenimiento.estado !== "aprobado") {
+                    try {
+                        await window.VehiAmb.api.confirmarCambioAceite(mantenimientoId);
+                    } catch (error) {
+                        estadoCarga.textContent = error.message || "No fue posible confirmar el cambio de aceite.";
+                        return;
+                    }
+                }
+
                 document.getElementById("etqPlaca").textContent = mantenimiento.placa || "SIN PLACA";
                 document.getElementById("etqPlacaReverso").textContent = mantenimiento.placa || "SIN PLACA";
                 document.getElementById("etqFecha").textContent = formatDate(mantenimiento.fecha);

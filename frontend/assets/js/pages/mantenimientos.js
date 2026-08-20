@@ -40,6 +40,8 @@ const nuevoRepuestoCategoriaInput = document.getElementById("nuevoRepuestoCatego
 const nuevoRepuestoValorInput = document.getElementById("nuevoRepuestoValorInput");
 const crearRepuestoButton = document.getElementById("crearRepuestoButton");
 const viewEtiquetaButton = document.getElementById("viewEtiquetaButton");
+const subirSalidaInventarioButton = document.getElementById("subirSalidaInventarioButton");
+const salidaInventarioInput = document.getElementById("salidaInventarioInput");
 const valorManoObraInput = document.getElementById("valorManoObraInput");
 const costoTotalDisplay = document.getElementById("costoTotalDisplay");
 const mntSummaryRepuestosCount = document.getElementById("mntSummaryRepuestosCount");
@@ -983,7 +985,12 @@ async function openMaintenanceDetail(item) {
 
     maintenanceDrawerTitle.textContent = tiposMantenimiento[item.tipo] || item.tipo || "Mantenimiento";
     maintenanceDrawerSubtitle.textContent = `${item.placa || "Sin placa"} - ${vehicleName}`;
-    viewEtiquetaButton.classList.toggle("hidden", item.tipo !== "cambio_aceite");
+    const esCambioAceite = item.tipo === "cambio_aceite";
+    viewEtiquetaButton.classList.toggle("hidden", !esCambioAceite);
+    subirSalidaInventarioButton.classList.toggle("hidden", !esCambioAceite);
+    subirSalidaInventarioButton.textContent = item.salida_inventario_url
+        ? "Reemplazar salida de inventario"
+        : "Subir salida de inventario";
 
     maintenanceDrawerBody.innerHTML = `
         <dl class="detail-list drawer-detail-list">
@@ -1015,6 +1022,17 @@ async function openMaintenanceDetail(item) {
             <h3>Archivos adjuntos</h3>
             ${renderDetailAttachment(item)}
         </section>
+
+        ${esCambioAceite ? `
+            <section class="drawer-section">
+                <h3>Salida de inventario</h3>
+                ${item.salida_inventario_url ? `
+                    <a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(item.salida_inventario_url))}" target="_blank" rel="noreferrer">
+                        ${escapeHtml(item.salida_inventario_nombre) || "Ver documento"}
+                    </a>
+                ` : `<p class="dash-empty detail-empty">Aún no se ha subido el documento de salida de inventario. Súbelo y luego imprime la etiqueta para aprobar este cambio de aceite.</p>`}
+            </section>
+        ` : ""}
     `;
 
     window.VehiAmb.ui.show(maintenanceDrawerBackdrop);
@@ -1034,6 +1052,38 @@ async function openMaintenanceDetail(item) {
 viewEtiquetaButton.addEventListener("click", () => {
     if (!currentDetailItem) return;
     window.open(`etiqueta-cambio-aceite.html?mantenimiento_id=${currentDetailItem.id}`, "_blank", "noreferrer");
+});
+
+subirSalidaInventarioButton.addEventListener("click", () => {
+    if (!currentDetailItem) return;
+    salidaInventarioInput.value = "";
+    salidaInventarioInput.click();
+});
+
+// La aprobacion de un cambio de aceite depende de este documento (ver
+// confirmarCambioAceite en el backend) -- se sube desde el detalle y se
+// vuelve a abrir el drawer ya actualizado para que se vea de una vez.
+salidaInventarioInput.addEventListener("change", async (event) => {
+    const file = event.target.files[0];
+    const mantenimientoId = currentDetailItem?.id;
+    if (!file || !mantenimientoId) return;
+
+    const formData = new FormData();
+    formData.append("salida_inventario", file);
+
+    try {
+        window.VehiAmb.ui.show(loader);
+        await window.VehiAmb.api.subirSalidaInventarioMantenimiento(mantenimientoId, formData);
+        window.VehiAmb.ui.showMessage(mensaje, "Documento de salida de inventario subido correctamente");
+        await cargarDatos();
+        const actualizado = mantenimientosState.find((registro) => String(registro.id) === String(mantenimientoId));
+        if (actualizado) openMaintenanceDetail(actualizado);
+    } catch (error) {
+        console.error(error);
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo subir el documento", "error");
+    } finally {
+        window.VehiAmb.ui.hide(loader);
+    }
 });
 
 function closeDetailDrawer() {

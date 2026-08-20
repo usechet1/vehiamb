@@ -344,11 +344,13 @@
                         <p id="maintenanceDrawerSubtitle">Información completa del registro</p>
                     </div>
                     <div class="detail-drawer-actions">
+                        <button type="button" id="subirSalidaInventarioButton" class="btn-secondary hidden">Subir salida de inventario</button>
                         <button type="button" id="viewEtiquetaButton" class="btn-secondary hidden">Ver etiqueta</button>
                         <button type="button" id="exportMaintenanceButton" class="btn-secondary btn-pdf">Exportar PDF</button>
                         <button type="button" id="exportMaintenanceExcelButton" class="btn-secondary btn-excel">Exportar Excel</button>
                         <button type="button" id="closeMaintenanceDrawer" class="drawer-close" aria-label="Cerrar detalle">×</button>
                     </div>
+                    <input type="file" id="salidaInventarioInput" accept=".pdf,image/png,image/jpeg,image/webp" class="hidden">
                 </div>
                 <div id="maintenanceDrawerBody" class="detail-drawer-body"></div>
             </aside>

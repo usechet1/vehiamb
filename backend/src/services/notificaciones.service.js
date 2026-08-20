@@ -179,7 +179,12 @@ async function evaluarNotificacionesMantenimiento({ mantenimiento, vehiculo, req
   const vehiculoLabel = `${vehiculo.marca} ${vehiculo.modelo} (${vehiculo.placa})`;
   const tareas = [];
 
-  if (requiereAprobacion) {
+  // Cambio de aceite tambien queda "pendiente" (ver
+  // TIPOS_QUE_REQUIEREN_APROBACION en mantenimientos.service.js) pero no se
+  // aprueba con el boton Aprobar/Rechazar de esta notificacion -- se aprueba
+  // solo, sin intervencion manual, al subir el documento de salida de
+  // inventario y ver/imprimir la etiqueta (ver confirmarCambioAceite).
+  if (requiereAprobacion && mantenimiento.tipo !== "cambio_aceite") {
     tareas.push(
       notificarUsuariosConPermiso(APPROVAL_PERMISSION, {
         tipo: "aprobacion_requerida",

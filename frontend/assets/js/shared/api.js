@@ -218,6 +218,27 @@ window.VehiAmb.api = {
         return requestJson(`${window.VehiAmb.API_URL}/mantenimientos/${id}`, undefined, "No se pudo cargar el mantenimiento");
     },
 
+    subirSalidaInventarioMantenimiento(id, formData) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/mantenimientos/${id}/salida-inventario`,
+            {
+                method: "POST",
+                body: formData
+            },
+            "No se pudo subir el documento de salida de inventario"
+        );
+    },
+
+    confirmarCambioAceite(id) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/mantenimientos/${id}/confirmar`,
+            {
+                method: "POST"
+            },
+            "No se pudo confirmar el cambio de aceite"
+        );
+    },
+
     createMantenimiento(payload) {
         return requestJson(
             `${window.VehiAmb.API_URL}/mantenimientos`,

@@ -32,4 +32,19 @@ router.post(
   asyncHandler(mantenimientosController.createMantenimiento)
 );
 
+router.post(
+  "/:id/salida-inventario",
+  requirePermission("maintenance.create"),
+  uploadMantenimiento.single("salida_inventario"),
+  asyncHandler(validateUpload),
+  asyncHandler(compressImage),
+  asyncHandler(mantenimientosController.subirSalidaInventario)
+);
+
+router.post(
+  "/:id/confirmar",
+  requirePermission("maintenance.create"),
+  asyncHandler(mantenimientosController.confirmarCambioAceite)
+);
+
 module.exports = router;
