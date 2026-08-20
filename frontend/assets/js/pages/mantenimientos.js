@@ -28,11 +28,6 @@ const hechoPorList = document.getElementById("hechoPorList");
 const repuestosData = document.getElementById("repuestosData");
 const repuestosEstructuradosData = document.getElementById("repuestosEstructuradosData");
 const repuestoInput = document.getElementById("repuestoInput");
-const repuestoProveedorInput = document.getElementById("repuestoProveedorInput");
-const repuestoCantidadInput = document.getElementById("repuestoCantidadInput");
-const repuestoNotasInput = document.getElementById("repuestoNotasInput");
-const addRepuestoButton = document.getElementById("addRepuestoButton");
-const repuestoSeleccionadoInfo = document.getElementById("repuestoSeleccionadoInfo");
 const repuestoEquivalenciasPicker = document.getElementById("repuestoEquivalenciasPicker");
 const repuestosSugeridosAviso = document.getElementById("repuestosSugeridosAviso");
 const repuestoBusquedaAviso = document.getElementById("repuestoBusquedaAviso");
@@ -49,6 +44,9 @@ const crearRepuestoButton = document.getElementById("crearRepuestoButton");
 const viewEtiquetaButton = document.getElementById("viewEtiquetaButton");
 const valorManoObraInput = document.getElementById("valorManoObraInput");
 const costoTotalDisplay = document.getElementById("costoTotalDisplay");
+const mntSummaryRepuestosCount = document.getElementById("mntSummaryRepuestosCount");
+const mntSummaryRepuestosTotal = document.getElementById("mntSummaryRepuestosTotal");
+const mntStep3BlockingReason = document.getElementById("mntStep3BlockingReason");
 const mantenimientoTipo = document.getElementById("mantenimientoTipo");
 const cambioAceiteFields = document.getElementById("cambioAceiteFields");
 const proximoCambioKmInput = document.getElementById("proximoCambioKmInput");
@@ -270,6 +268,18 @@ function validateKilometrajeBeforeSubmit() {
     return true;
 }
 
+// Se muestra proactivamente junto a los botones de guardar (no solo como
+// toast despues de un intento fallido) -- "que falta para guardar", no solo
+// "no se pudo guardar".
+function actualizarBloqueoStep3() {
+    const bloqueado = mantenimientoTipo.value === "cambio_aceite" && !proximoCambioKmInput.value;
+
+    mntStep3BlockingReason.textContent = bloqueado
+        ? "Este vehículo no tiene intervalo de cambio configurado -- no se puede guardar el cambio de aceite."
+        : "";
+    mntStep3BlockingReason.classList.toggle("hidden", !bloqueado);
+}
+
 function updateCambioAceiteFields() {
     const isCambioAceite = mantenimientoTipo.value === "cambio_aceite";
 
@@ -283,6 +293,7 @@ function updateCambioAceiteFields() {
         repuestosSugeridosAviso.classList.add("hidden");
         repuestosPermitidosVehiculo = null;
         actualizarEstadoBusquedaRepuesto();
+        actualizarBloqueoStep3();
         return;
     }
 
@@ -422,6 +433,8 @@ async function cargarRepuestosSugeridos() {
             proximoCambioKmHelp.textContent = "Este vehículo no tiene un intervalo de cambio configurado. Configúralo desde su ficha.";
         }
     }
+
+    actualizarBloqueoStep3();
 
     // Algunas empresas no usan repuestos sugeridos para cambio de aceite (ver
     // empresas.modulos_deshabilitados): para esas, cambio de aceite se
@@ -592,39 +605,89 @@ function syncRepuestosField() {
 
 function updateCostoTotal() {
     const manoObra = Number(window.VehiAmb.ui.parseFormattedMoneda(valorManoObraInput.value));
-    const totalRepuestos = repuestosState
-        .filter((item) => item.incluido !== false)
-        .reduce((sum, item) => sum + Number(item.valor || 0), 0);
-    costoTotalDisplay.value = formatCurrency(manoObra + totalRepuestos);
+    const repuestosIncluidos = repuestosState.filter((item) => item.incluido !== false);
+    const totalRepuestos = repuestosIncluidos.reduce((sum, item) => sum + Number(item.valor || 0), 0);
+
+    mntSummaryRepuestosCount.textContent = repuestosIncluidos.length;
+    mntSummaryRepuestosTotal.textContent = formatCurrency(totalRepuestos);
+    costoTotalDisplay.textContent = formatCurrency(manoObra + totalRepuestos);
 }
 
 // Cada repuesto (sugerido o agregado a mano) trae un checkbox marcado por
 // defecto ("incluido"): desmarcarlo lo excluye del total y de lo que se
 // guarda, sin borrarlo de la lista -- asi el usuario puede desmarcar/volver a
-// marcar sin perder el item ni tener que buscarlo de nuevo.
+// marcar sin perder el item ni tener que buscarlo de nuevo. Proveedor/notas
+// nunca muestran su ausencia como texto ("Sin proveedor") -- son inputs
+// "fantasma" que solo invitan a llenarse via placeholder. Un obligatorio sin
+// precio se resalta como fila-alerta con el input de valor ahi mismo.
 function renderRepuestosBuilder() {
-    repuestosList.innerHTML = repuestosState.map((item, index) => `
-        <li class="simple-checklist-item${item.incluido === false ? " simple-checklist-item--excluido" : ""}">
-            <label class="simple-checklist-check" title="${item.obligatorio ? "Repuesto obligatorio" : ""}">
+    repuestosList.innerHTML = repuestosState.map((item, index) => {
+        const faltaPrecio = item.obligatorio && !item.valor;
+
+        return `
+        <li class="mnt-repuesto-row${item.incluido === false ? " mnt-repuesto-row--excluido" : ""}${faltaPrecio ? " mnt-repuesto-row--alerta" : ""}">
+            <label class="mnt-repuesto-check" title="${item.obligatorio ? "Repuesto obligatorio" : ""}">
                 <input type="checkbox" data-index="${index}" ${item.incluido !== false ? "checked" : ""} ${item.obligatorio ? "disabled" : ""}>
             </label>
-            <div class="simple-checklist-content">
-                <span class="simple-checklist-label">${item.repuesto}${item.cantidad ? ` × ${item.cantidad}` : ""}${item.obligatorio ? ' <span class="simple-checklist-badge">Obligatorio</span>' : ""}</span>
-                <span class="simple-checklist-detail">${item.proveedor || "Sin proveedor"}</span>
-                <span class="simple-checklist-detail">${item.valor ? formatCurrency(item.valor) : "Sin valor"}</span>
-                <span class="simple-checklist-detail">${item.notas || "Sin notas"}</span>
+            <div class="mnt-repuesto-main">
+                <div class="mnt-repuesto-name">${escapeHtml(item.repuesto)}${item.obligatorio ? ' <span class="simple-checklist-badge">Obligatorio</span>' : ""}</div>
+                <div class="mnt-repuesto-extra">
+                    <input type="text" class="mnt-repuesto-ghost-input" data-field="proveedor" data-index="${index}" placeholder="+ proveedor" value="${escapeHtml(item.proveedor || "")}">
+                    <input type="text" class="mnt-repuesto-ghost-input" data-field="notas" data-index="${index}" placeholder="+ notas" value="${escapeHtml(item.notas || "")}">
+                </div>
+                ${item.motivo_sustitucion ? `<div class="field-help">${escapeHtml(item.motivo_sustitucion)}</div>` : ""}
+                ${faltaPrecio ? `<div class="mnt-repuesto-alerta-texto">Falta el valor de este repuesto obligatorio</div>` : ""}
             </div>
+            <input type="number" class="mnt-repuesto-cantidad" data-index="${index}" value="${item.cantidad || 1}" min="1" step="1" aria-label="Cantidad">
+            <input type="text" inputmode="numeric" class="mnt-repuesto-valor" data-index="${index}" value="${item.valor ? formatCurrency(item.valor) : ""}" placeholder="$ 0" aria-label="Valor">
         </li>
-    `).join("");
+    `;
+    }).join("");
 
     repuestosEmpty.classList.toggle("hidden", repuestosState.length > 0);
     syncRepuestosField();
     updateCostoTotal();
 
-    repuestosList.querySelectorAll(".simple-checklist-check input:not([disabled])").forEach((checkbox) => {
+    repuestosList.querySelectorAll(".mnt-repuesto-check input:not([disabled])").forEach((checkbox) => {
         checkbox.addEventListener("change", () => {
             const index = Number(checkbox.dataset.index);
             repuestosState[index].incluido = checkbox.checked;
+            renderRepuestosBuilder();
+        });
+    });
+
+    repuestosList.querySelectorAll(".mnt-repuesto-ghost-input").forEach((input) => {
+        input.addEventListener("change", () => {
+            const index = Number(input.dataset.index);
+            repuestosState[index][input.dataset.field] = input.value.trim();
+            syncRepuestosField();
+        });
+    });
+
+    repuestosList.querySelectorAll(".mnt-repuesto-cantidad").forEach((input) => {
+        input.addEventListener("change", () => {
+            const index = Number(input.dataset.index);
+            const item = repuestosState[index];
+            const cantidad = Number(input.value) > 0 ? Number(input.value) : 1;
+
+            // Si el valor actual coincide con lo que daba la cantidad
+            // anterior x el unitario, se recalcula con la cantidad nueva --
+            // si el usuario ya habia sobreescrito el precio a mano, se
+            // respeta tal cual y no se pisa.
+            const valorEsperadoAnterior = Number(item.valor_unitario || 0) * Number(item.cantidad || 1);
+            if (item.valor_unitario && Number(item.valor || 0) === valorEsperadoAnterior) {
+                item.valor = Number(item.valor_unitario) * cantidad;
+            }
+            item.cantidad = cantidad;
+            renderRepuestosBuilder();
+        });
+    });
+
+    repuestosList.querySelectorAll(".mnt-repuesto-valor").forEach((input) => {
+        input.addEventListener("input", () => window.VehiAmb.ui.formatearMonedaEnVivo(input));
+        input.addEventListener("change", () => {
+            const index = Number(input.dataset.index);
+            repuestosState[index].valor = Number(window.VehiAmb.ui.parseFormattedMoneda(input.value));
             renderRepuestosBuilder();
         });
     });
@@ -632,10 +695,8 @@ function renderRepuestosBuilder() {
 
 function limpiarSeleccionRepuesto() {
     repuestoSeleccionado = null;
-    repuestoSeleccionadoInfo.classList.add("hidden");
     repuestoEquivalenciasPicker.classList.add("hidden");
     repuestoEquivalenciasPicker.innerHTML = "";
-    addRepuestoButton.disabled = true;
 }
 
 function mostrarEquivalencias(principalNombre, equivalencias) {
@@ -656,8 +717,12 @@ function mostrarEquivalencias(principalNombre, equivalencias) {
     repuestoEquivalenciasPicker.classList.remove("hidden");
 }
 
+// Elegir un resultado del autocomplete ya agrega la fila de una vez (cantidad
+// 1, proveedor/notas vacios) -- los detalles se editan en linea despues,
+// sin un boton "Agregar" ni campos sueltos que llenar antes. La unica pausa
+// es cuando el principal no tiene stock: ahi si hay que elegir un
+// equivalente antes de que se pueda agregar algo.
 async function seleccionarRepuestoDelAutocomplete(repuesto) {
-    repuestoSeleccionado = repuesto;
     repuestoEquivalenciasPicker.classList.add("hidden");
     repuestoEquivalenciasPicker.innerHTML = "";
 
@@ -670,12 +735,8 @@ async function seleccionarRepuestoDelAutocomplete(repuesto) {
 
     const stockDisponible = disponibilidad ? disponibilidad.principal.stock_disponible : Number(repuesto.stock_disponible || 0);
 
-    repuestoSeleccionadoInfo.textContent =
-        `${repuesto.codigo_interno} · ${repuesto.marca || "Sin marca"} · ${formatCurrency(repuesto.valor_promedio)} · ${repuesto.unidad_medida} · Stock: ${stockDisponible}`;
-    repuestoSeleccionadoInfo.classList.remove("hidden");
-    addRepuestoButton.disabled = false;
-
     if (stockDisponible <= 0 && disponibilidad) {
+        repuestoSeleccionado = repuesto;
         // Las equivalencias tambien se restringen al set permitido del
         // vehiculo: un repuesto puede ser equivalente de otro en el catalogo
         // general sin estar configurado para este vehiculo puntual.
@@ -684,15 +745,18 @@ async function seleccionarRepuestoDelAutocomplete(repuesto) {
             ? disponibilidad.equivalencias.filter((eq) => repuestosPermitidosVehiculo.has(eq.id))
             : disponibilidad.equivalencias;
         mostrarEquivalencias(repuesto.nombre, equivalenciasPermitidas);
+        return;
     }
+
+    agregarRepuestoAlBuilder(repuesto, 1);
 }
 
 function agregarRepuestoAlBuilder(repuesto, cantidad, { repuestoSugeridoId, motivoSustitucion } = {}) {
     repuestosState.push({
         repuesto: repuesto.nombre,
-        proveedor: repuestoProveedorInput.value.trim(),
+        proveedor: "",
         valor: Number(repuesto.valor_promedio || 0) * cantidad,
-        notas: repuestoNotasInput.value.trim(),
+        notas: "",
         repuesto_id: repuesto.id,
         repuesto_sugerido_id: repuestoSugeridoId || null,
         motivo_sustitucion: motivoSustitucion || null,
@@ -702,19 +766,9 @@ function agregarRepuestoAlBuilder(repuesto, cantidad, { repuestoSugeridoId, moti
     });
 
     repuestoInput.value = "";
-    repuestoProveedorInput.value = "";
-    repuestoCantidadInput.value = "";
-    repuestoNotasInput.value = "";
     limpiarSeleccionRepuesto();
     renderRepuestosBuilder();
     repuestoInput.focus();
-}
-
-function addRepuesto() {
-    if (!repuestoSeleccionado) return;
-
-    const cantidad = Number(repuestoCantidadInput.value) > 0 ? Number(repuestoCantidadInput.value) : 1;
-    agregarRepuestoAlBuilder(repuestoSeleccionado, cantidad);
 }
 
 // Si la busqueda en el catalogo no encuentra nada, se ofrece crear el
@@ -764,8 +818,7 @@ crearRepuestoButton.addEventListener("click", async () => {
     crearRepuestoButton.disabled = true;
     try {
         const nuevoRepuesto = await window.VehiAmb.api.createRepuesto(payload);
-        const cantidad = Number(repuestoCantidadInput.value) > 0 ? Number(repuestoCantidadInput.value) : 1;
-        agregarRepuestoAlBuilder(nuevoRepuesto, cantidad);
+        agregarRepuestoAlBuilder(nuevoRepuesto, 1);
 
         nuevoRepuestoCodigoInput.value = "";
         nuevoRepuestoNombreInput.value = "";
@@ -785,10 +838,9 @@ repuestoEquivalenciasPicker.addEventListener("click", (event) => {
     const button = event.target.closest(".repuesto-equivalencia-opcion");
     if (!button || !repuestoSeleccionado) return;
 
-    const cantidad = Number(repuestoCantidadInput.value) > 0 ? Number(repuestoCantidadInput.value) : 1;
     agregarRepuestoAlBuilder(
         { id: Number(button.dataset.id), nombre: button.dataset.nombre, valor_promedio: 0 },
-        cantidad,
+        1,
         { repuestoSugeridoId: repuestoSeleccionado.id, motivoSustitucion: `Sin stock de ${repuestoSeleccionado.nombre}` }
     );
 });
@@ -1287,14 +1339,6 @@ exportHistorialExcelButton.addEventListener("click", async () => {
 document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !maintenanceDrawer.classList.contains("hidden")) {
         closeDetailDrawer();
-    }
-});
-
-addRepuestoButton.addEventListener("click", addRepuesto);
-repuestoInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-        event.preventDefault();
-        addRepuesto();
     }
 });
 
