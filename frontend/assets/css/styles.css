@@ -1328,11 +1328,6 @@ label[for="loginPassword"] {
     margin-top: 0;
 }
 
-.mnt-descripcion {
-    min-height: 90px;
-    font-size: 0.95rem;
-}
-
 .mnt-repuesto-search {
     width: 100%;
     min-height: 44px;
