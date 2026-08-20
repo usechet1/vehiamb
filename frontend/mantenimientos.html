@@ -170,22 +170,25 @@
                             </div>
 
                             <div class="wizard-step-panel hidden" id="wizardStep3" data-step-panel="3">
-                                <div class="form-grid hidden" id="cambioAceiteFields">
-                                    <div class="form-group">
-                                        <label>Próximo cambio de aceite (km)</label>
-                                        <input type="text" id="proximoCambioKmInput" readonly disabled>
-                                        <span id="proximoCambioKmHelp" class="field-help"></span>
-                                    </div>
+                                <div class="hidden" id="cambioAceiteFields">
+                                    <h3 class="mnt-section-title mnt-section-title--first">Programación</h3>
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label>Próximo cambio (km)</label>
+                                            <input type="text" id="proximoCambioKmInput" readonly disabled placeholder="Sin intervalo configurado">
+                                            <span id="proximoCambioKmHelp" class="field-help"></span>
+                                        </div>
 
-                                    <div class="form-group">
-                                        <label>Próxima fecha de cambio</label>
-                                        <input type="date" name="proximo_cambio_fecha" id="proximoCambioFechaInput">
+                                        <div class="form-group">
+                                            <label>Próxima fecha</label>
+                                            <input type="date" name="proximo_cambio_fecha" id="proximoCambioFechaInput">
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div class="form-group">
                                     <label>Descripción o detalles</label>
-                                    <textarea name="descripcion" placeholder="Ej: revision de frenos, suspension, luces, niveles y fugas"></textarea>
+                                    <textarea name="descripcion" class="mnt-descripcion" rows="3" placeholder="Ej: revision de frenos, suspension, luces, niveles y fugas"></textarea>
                                 </div>
 
                                 <div class="form-grid-3">
@@ -215,68 +218,60 @@
                                     </label>
                                 </div>
 
-                                <h3 class="form-section-title">Repuestos y costos</h3>
+                                <h3 class="mnt-section-title">Repuestos</h3>
 
-                                <div class="form-group">
-                                    <label>Repuestos utilizados</label>
-                                    <input type="hidden" name="repuestos" id="repuestosData">
-                                    <input type="hidden" name="repuestos_estructurados" id="repuestosEstructuradosData">
-                                    <div id="repuestosSugeridosAviso" class="field-help hidden"></div>
-                                    <div id="repuestoBusquedaAviso" class="field-help hidden"></div>
-                                    <div class="simple-list-builder">
-                                        <div class="simple-list-entry">
-                                            <input type="text" id="repuestoInput" placeholder="Buscar repuesto del catálogo...">
-                                            <input type="text" id="repuestoProveedorInput" placeholder="Proveedor">
-                                            <input type="number" id="repuestoCantidadInput" placeholder="Cantidad (1 por defecto)" min="1" step="1">
-                                            <input type="text" id="repuestoNotasInput" placeholder="Notas del repuesto">
-                                            <button type="button" id="addRepuestoButton" class="btn-secondary" disabled>Agregar</button>
-                                        </div>
-                                        <div id="repuestoSeleccionadoInfo" class="field-help hidden"></div>
-                                        <div id="repuestoEquivalenciasPicker" class="hidden"></div>
+                                <input type="hidden" name="repuestos" id="repuestosData">
+                                <input type="hidden" name="repuestos_estructurados" id="repuestosEstructuradosData">
+                                <div id="repuestosSugeridosAviso" class="field-help hidden"></div>
+                                <div id="repuestoBusquedaAviso" class="field-help hidden"></div>
 
-                                        <div id="repuestoNoEncontradoAviso" class="repuesto-no-encontrado hidden">
-                                            <p class="field-help">No se encontró ese repuesto en el catálogo.</p>
-                                            <button type="button" id="mostrarCrearRepuestoButton" class="btn-secondary">+ Crear repuesto nuevo</button>
-                                        </div>
+                                <input type="text" id="repuestoInput" class="mnt-repuesto-search" placeholder="Buscar repuesto del catálogo para agregarlo...">
+                                <div id="repuestoEquivalenciasPicker" class="hidden"></div>
 
-                                        <div id="repuestoCrearForm" class="simple-list-entry hidden">
-                                            <input type="text" id="nuevoRepuestoCodigoInput" placeholder="Código interno">
-                                            <input type="text" id="nuevoRepuestoNombreInput" placeholder="Nombre del repuesto">
-                                            <select id="nuevoRepuestoCategoriaInput">
-                                                <option value="otros">Otros</option>
-                                                <option value="aceite_motor">Aceite Motor</option>
-                                                <option value="filtro_aceite">Filtro Aceite</option>
-                                                <option value="filtro_aire">Filtro Aire</option>
-                                                <option value="filtro_combustible">Filtro Combustible</option>
-                                                <option value="llantas">Llantas</option>
-                                                <option value="baterias">Baterias</option>
-                                                <option value="lubricantes">Lubricantes</option>
-                                                <option value="refrigerantes">Refrigerantes</option>
-                                                <option value="correas">Correas</option>
-                                                <option value="bombillos">Bombillos</option>
-                                            </select>
-                                            <input type="text" id="nuevoRepuestoValorInput" inputmode="numeric" placeholder="Valor unitario">
-                                            <button type="button" id="crearRepuestoButton" class="btn-secondary" disabled>Crear y agregar</button>
-                                        </div>
+                                <div id="repuestoNoEncontradoAviso" class="repuesto-no-encontrado hidden">
+                                    <p class="field-help">No se encontró ese repuesto en el catálogo.</p>
+                                    <button type="button" id="mostrarCrearRepuestoButton" class="btn-secondary">+ Crear repuesto nuevo</button>
+                                </div>
 
-                                        <div id="repuestosEmpty" class="field-help">Aún no has agregado repuestos.</div>
-                                        <ul id="repuestosList" class="simple-checklist"></ul>
+                                <div id="repuestoCrearForm" class="simple-list-entry hidden">
+                                    <input type="text" id="nuevoRepuestoCodigoInput" placeholder="Código interno">
+                                    <input type="text" id="nuevoRepuestoNombreInput" placeholder="Nombre del repuesto">
+                                    <select id="nuevoRepuestoCategoriaInput">
+                                        <option value="otros">Otros</option>
+                                        <option value="aceite_motor">Aceite Motor</option>
+                                        <option value="filtro_aceite">Filtro Aceite</option>
+                                        <option value="filtro_aire">Filtro Aire</option>
+                                        <option value="filtro_combustible">Filtro Combustible</option>
+                                        <option value="llantas">Llantas</option>
+                                        <option value="baterias">Baterias</option>
+                                        <option value="lubricantes">Lubricantes</option>
+                                        <option value="refrigerantes">Refrigerantes</option>
+                                        <option value="correas">Correas</option>
+                                        <option value="bombillos">Bombillos</option>
+                                    </select>
+                                    <input type="text" id="nuevoRepuestoValorInput" inputmode="numeric" placeholder="Valor unitario">
+                                    <button type="button" id="crearRepuestoButton" class="btn-secondary" disabled>Crear y agregar</button>
+                                </div>
+
+                                <div id="repuestosEmpty" class="field-help">Aún no has agregado repuestos.</div>
+                                <ul id="repuestosList" class="mnt-repuestos-list"></ul>
+
+                                <div class="mnt-summary">
+                                    <div class="mnt-summary-row">
+                                        <span>Repuestos (<span id="mntSummaryRepuestosCount">0</span>)</span>
+                                        <span id="mntSummaryRepuestosTotal" class="mnt-summary-amount">$ 0</span>
+                                    </div>
+                                    <div class="mnt-summary-row">
+                                        <span>Mano de obra</span>
+                                        <input type="text" inputmode="numeric" name="valor_mano_obra" id="valorManoObraInput" class="mnt-summary-input" value="$ 0">
+                                    </div>
+                                    <div class="mnt-summary-row mnt-summary-total">
+                                        <span>Gasto total</span>
+                                        <span id="costoTotalDisplay" class="mnt-summary-amount mnt-summary-amount--total">$ 0</span>
                                     </div>
                                 </div>
 
-                                <div class="form-grid">
-                                    <div class="form-group">
-                                        <label>Valor mano de obra</label>
-                                        <input type="text" inputmode="numeric" name="valor_mano_obra" id="valorManoObraInput" value="$ 0">
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label>Gasto total del mantenimiento</label>
-                                        <input type="text" id="costoTotalDisplay" readonly disabled>
-                                    </div>
-                                </div>
-
-                                <h3 class="form-section-title">Adjuntos</h3>
+                                <h3 class="mnt-section-title">Adjuntos</h3>
 
                                 <div class="form-group">
                                     <label>Soporte del mantenimiento</label>
@@ -285,8 +280,11 @@
                                 </div>
 
                                 <div class="wizard-nav">
-                                    <button type="button" class="btn-secondary" id="wizardStep3Back">Atrás</button>
-                                    <button type="submit" class="btn-primary" id="mantenimientoSubmitButton">Guardar mantenimiento</button>
+                                    <span id="mntStep3BlockingReason" class="field-help field-help-danger hidden"></span>
+                                    <div class="mnt-step3-buttons">
+                                        <button type="button" class="btn-secondary" id="wizardStep3Back">Atrás</button>
+                                        <button type="submit" class="btn-action" id="mantenimientoSubmitButton">Guardar mantenimiento</button>
+                                    </div>
                                 </div>
                             </div>
                         </form>

@@ -26,6 +26,8 @@ html {
     --color-success-bg: #e8f5ee;
     --color-warning: #a15c09;
     --color-warning-bg: #fff3da;
+    --color-action: #2563eb;
+    --color-action-dark: #1d4ed8;
     --radius-sm: 6px;
     --radius-md: 8px;
     --shadow: 0 16px 36px rgba(24, 32, 43, 0.08);
@@ -1304,6 +1306,223 @@ label[for="loginPassword"] {
     height: 22px;
 }
 
+/* Un input para "$0" no necesita mil pixeles de ancho -- el ojo no deberia
+   saltar del label al campo cuando hay medio metro de por medio. */
+#mantenimientoForm {
+    max-width: 900px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* ── Mantenimientos: paso "Detalles" (repuestos, resumen) ────── */
+.mnt-section-title {
+    margin: 24px 0 4px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-ink-soft);
+    font-size: 0.78rem;
+    font-weight: 750;
+}
+
+.mnt-section-title--first {
+    margin-top: 0;
+}
+
+.mnt-descripcion {
+    min-height: 90px;
+    font-size: 0.95rem;
+}
+
+.mnt-repuesto-search {
+    width: 100%;
+    min-height: 44px;
+    padding: 11px 14px;
+    border: 1px solid #cfd7e2;
+    border-radius: var(--radius-sm);
+    background: #fff;
+    color: var(--color-ink);
+    font-size: 0.9rem;
+    outline: 0;
+    transition: var(--transition);
+}
+
+.mnt-repuesto-search:focus {
+    border-color: var(--color-primary);
+}
+
+.mnt-repuestos-list {
+    display: flex;
+    flex-direction: column;
+    list-style: none;
+}
+
+.mnt-repuesto-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 4px;
+    border-bottom: 1px solid var(--color-border);
+    transition: var(--transition);
+}
+
+.mnt-repuesto-row:last-child {
+    border-bottom: none;
+}
+
+/* La tarjeta (fondo + borde) se reserva para el unico caso que si necesita
+   llamar la atencion: un repuesto obligatorio sin precio. Todo lo demas es
+   fila plana con separador hairline. */
+.mnt-repuesto-row--alerta {
+    margin: 2px 0;
+    padding: 10px;
+    border: 1px solid var(--color-warning);
+    border-bottom: 1px solid var(--color-warning);
+    border-radius: var(--radius-sm);
+    background: var(--color-warning-bg);
+}
+
+.mnt-repuesto-row--excluido {
+    opacity: 0.5;
+}
+
+.mnt-repuesto-check {
+    padding-top: 3px;
+}
+
+.mnt-repuesto-main {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.mnt-repuesto-name {
+    color: var(--color-ink);
+    font-size: 0.9rem;
+    font-weight: 650;
+}
+
+.mnt-repuesto-extra {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+/* "Ghost inputs": nunca dicen "Sin proveedor" -- si esta vacio, el
+   placeholder invita a agregarlo; si tiene valor, se ve como texto normal
+   hasta que se le hace foco/hover para editarlo. */
+.mnt-repuesto-ghost-input {
+    flex: 0 1 auto;
+    min-width: 90px;
+    width: auto;
+    padding: 1px 0;
+    border: 0;
+    border-bottom: 1px solid transparent;
+    background: none;
+    color: var(--color-muted);
+    font-size: 0.78rem;
+}
+
+.mnt-repuesto-ghost-input::placeholder {
+    color: #b6bec9;
+}
+
+.mnt-repuesto-ghost-input:hover,
+.mnt-repuesto-ghost-input:focus {
+    border-bottom-color: var(--color-border);
+    color: var(--color-ink-soft);
+    outline: 0;
+}
+
+.mnt-repuesto-alerta-texto {
+    color: var(--color-warning);
+    font-size: 0.78rem;
+    font-weight: 650;
+}
+
+.mnt-repuesto-cantidad {
+    flex-shrink: 0;
+    width: 54px;
+    min-height: 32px;
+    padding: 4px 6px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.mnt-repuesto-valor {
+    flex-shrink: 0;
+    width: 104px;
+    min-height: 32px;
+    padding: 4px 8px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.mnt-repuesto-row--alerta .mnt-repuesto-valor {
+    border-color: var(--color-warning);
+    background: #fff;
+}
+
+.mnt-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 8px;
+    padding: 16px 18px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-2);
+}
+
+.mnt-summary-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--color-ink-soft);
+    font-size: 0.9rem;
+}
+
+.mnt-summary-amount {
+    color: var(--color-ink);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.mnt-summary-input {
+    width: 140px;
+    min-height: 36px;
+    padding: 6px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: #fff;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.mnt-summary-total {
+    padding-top: 10px;
+    border-top: 1px solid var(--color-border);
+    color: var(--color-ink);
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.mnt-summary-amount--total {
+    font-size: 1.5rem;
+    font-weight: 800;
+}
+
+.mnt-step3-buttons {
+    display: flex;
+    gap: 10px;
+}
+
 .btn-primary {
     width: 70%;
     min-height: 46px;
@@ -1319,6 +1538,26 @@ label[for="loginPassword"] {
 
 .btn-primary:hover {
     background: var(--color-primary-dark);
+}
+
+/* Accion constructiva (guardar/confirmar), distinta del rojo institucional
+   -- ese color se reserva para peligro/eliminar, no para guardar algo. */
+.btn-action {
+    width: auto;
+    min-width: 150px;
+    min-height: 46px;
+    padding: 10px 19px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: var(--color-action);
+    color: #fff;
+    font-weight: 750;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-action:hover {
+    background: var(--color-action-dark);
 }
 
 .btn-secondary {
