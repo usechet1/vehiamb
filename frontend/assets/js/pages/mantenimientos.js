@@ -7,6 +7,16 @@ const filterPlaca = document.getElementById("filterPlaca");
 const filterTipo = document.getElementById("filterTipo");
 const filterFechaDesde = document.getElementById("filterFechaDesde");
 const filterFechaHasta = document.getElementById("filterFechaHasta");
+const filterPlacaTrigger = document.getElementById("filterPlacaTrigger");
+const filterPlacaTriggerLabel = document.getElementById("filterPlacaTriggerLabel");
+const filterPlacaPopover = document.getElementById("filterPlacaPopover");
+const filterTipoTrigger = document.getElementById("filterTipoTrigger");
+const filterTipoTriggerLabel = document.getElementById("filterTipoTriggerLabel");
+const filterTipoPopover = document.getElementById("filterTipoPopover");
+const filterFechasTrigger = document.getElementById("filterFechasTrigger");
+const filterFechasTriggerLabel = document.getElementById("filterFechasTriggerLabel");
+const filterFechasPopover = document.getElementById("filterFechasPopover");
+const filtersChips = document.getElementById("filtersChips");
 const filterSummary = document.getElementById("filterSummary");
 const clearFiltersButton = document.getElementById("clearFiltersButton");
 const loader = document.getElementById("loader");
@@ -1141,13 +1151,143 @@ function updateFilterSummary(filteredCount) {
 
     if (!total) {
         filterSummary.textContent = "Aún no hay mantenimientos registrados.";
-        return;
+    } else {
+        filterSummary.textContent = hasFilters
+            ? `Mostrando ${filteredCount} de ${total} mantenimientos.`
+            : `Mostrando todos los mantenimientos (${total}).`;
     }
 
-    filterSummary.textContent = hasFilters
-        ? `Mostrando ${filteredCount} de ${total} mantenimientos.`
-        : `Mostrando todos los mantenimientos (${total}).`;
+    renderFiltersChips();
 }
+
+// Los popovers de Placa/Tipo/Fechas son solo una capa de presentacion sobre
+// los <select>/<input> nativos que ya existen (ocultos) -- se les cambia el
+// .value y se dispara "change", y toda la logica de filtrado/exportacion
+// que ya lee esos elementos sigue funcionando igual, sin tocarla.
+function renderPlacaPopoverOptions() {
+    filterPlacaPopover.innerHTML = Array.from(filterPlaca.options).map((option) => `
+        <button type="button" class="doc-filter-option${option.value === filterPlaca.value ? " is-active" : ""}" data-placa-value="${escapeHtml(option.value)}">${escapeHtml(option.textContent)}</button>
+    `).join("");
+}
+
+function updatePlacaTriggerLabel() {
+    const seleccionado = Array.from(filterPlaca.options).find((option) => option.value === filterPlaca.value);
+    filterPlacaTriggerLabel.textContent = filterPlaca.value ? (seleccionado?.textContent || filterPlaca.value) : "Placa";
+    filterPlacaTrigger.classList.toggle("is-active", Boolean(filterPlaca.value));
+    filterPlacaPopover.querySelectorAll("[data-placa-value]").forEach((boton) => {
+        boton.classList.toggle("is-active", boton.dataset.placaValue === filterPlaca.value);
+    });
+}
+
+function updateTipoTriggerLabel() {
+    filterTipoTriggerLabel.textContent = filterTipo.value ? (tiposMantenimiento[filterTipo.value] || filterTipo.value) : "Tipo";
+    filterTipoTrigger.classList.toggle("is-active", Boolean(filterTipo.value));
+    filterTipoPopover.querySelectorAll("[data-tipo-value]").forEach((boton) => {
+        boton.classList.toggle("is-active", boton.dataset.tipoValue === filterTipo.value);
+    });
+}
+
+function updateFechasTriggerLabel() {
+    const hayFecha = filterFechaDesde.value || filterFechaHasta.value;
+    filterFechasTrigger.classList.toggle("is-active", Boolean(hayFecha));
+}
+
+function renderFiltersChips() {
+    const chips = [];
+
+    if (filterPlaca.value) {
+        const seleccionado = Array.from(filterPlaca.options).find((option) => option.value === filterPlaca.value);
+        chips.push({ id: "placa", label: seleccionado?.textContent || filterPlaca.value });
+    }
+    if (filterTipo.value) {
+        chips.push({ id: "tipo", label: tiposMantenimiento[filterTipo.value] || filterTipo.value });
+    }
+    if (filterFechaDesde.value || filterFechaHasta.value) {
+        const desde = filterFechaDesde.value ? formatDate(filterFechaDesde.value) : "…";
+        const hasta = filterFechaHasta.value ? formatDate(filterFechaHasta.value) : "…";
+        chips.push({ id: "fechas", label: `${desde} → ${hasta}` });
+    }
+
+    filtersChips.classList.toggle("hidden", chips.length === 0);
+    filtersChips.innerHTML = chips.map((chip) => `
+        <span class="pill">${escapeHtml(chip.label)} <button type="button" class="pill-remove" data-remove-chip="${chip.id}" aria-label="Quitar filtro">×</button></span>
+    `).join("");
+}
+
+function cerrarPopoversFiltroHistorial() {
+    filterPlacaPopover.classList.add("hidden");
+    filterTipoPopover.classList.add("hidden");
+    filterFechasPopover.classList.add("hidden");
+}
+
+filterPlacaTrigger.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const estabaAbierto = !filterPlacaPopover.classList.contains("hidden");
+    cerrarPopoversFiltroHistorial();
+    filterPlacaPopover.classList.toggle("hidden", estabaAbierto);
+});
+
+filterTipoTrigger.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const estabaAbierto = !filterTipoPopover.classList.contains("hidden");
+    cerrarPopoversFiltroHistorial();
+    filterTipoPopover.classList.toggle("hidden", estabaAbierto);
+});
+
+filterFechasTrigger.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const estabaAbierto = !filterFechasPopover.classList.contains("hidden");
+    cerrarPopoversFiltroHistorial();
+    filterFechasPopover.classList.toggle("hidden", estabaAbierto);
+});
+
+document.addEventListener("click", (event) => {
+    if (!event.target.closest("#mantenimientosFilterForm .doc-filter-popover-wrap")) cerrarPopoversFiltroHistorial();
+});
+
+filterPlacaPopover.addEventListener("click", (event) => {
+    const opcion = event.target.closest("[data-placa-value]");
+    if (!opcion) return;
+
+    filterPlaca.value = opcion.dataset.placaValue;
+    filterPlaca.dispatchEvent(new Event("change"));
+    updatePlacaTriggerLabel();
+    cerrarPopoversFiltroHistorial();
+});
+
+filterTipoPopover.addEventListener("click", (event) => {
+    const opcion = event.target.closest("[data-tipo-value]");
+    if (!opcion) return;
+
+    filterTipo.value = opcion.dataset.tipoValue;
+    filterTipo.dispatchEvent(new Event("change"));
+    updateTipoTriggerLabel();
+    cerrarPopoversFiltroHistorial();
+});
+
+[filterFechaDesde, filterFechaHasta].forEach((input) => {
+    input.addEventListener("input", updateFechasTriggerLabel);
+});
+
+filtersChips.addEventListener("click", (event) => {
+    const boton = event.target.closest("[data-remove-chip]");
+    if (!boton) return;
+
+    if (boton.dataset.removeChip === "placa") {
+        filterPlaca.value = "";
+        filterPlaca.dispatchEvent(new Event("change"));
+        updatePlacaTriggerLabel();
+    } else if (boton.dataset.removeChip === "tipo") {
+        filterTipo.value = "";
+        filterTipo.dispatchEvent(new Event("change"));
+        updateTipoTriggerLabel();
+    } else if (boton.dataset.removeChip === "fechas") {
+        filterFechaDesde.value = "";
+        filterFechaHasta.value = "";
+        updateFechasTriggerLabel();
+        applyMaintenanceFilters();
+    }
+});
 
 async function applyMaintenanceFilters() {
     const requestToken = ++filtersRequestToken;
@@ -1179,6 +1319,8 @@ async function cargarDatos() {
         vehiculosState = vehiculos;
         fillVehicleSelect(mantenimientoSelect, vehiculos);
         fillVehicleSelect(filterPlaca, vehiculos, "Todas las placas", "placa");
+        renderPlacaPopoverOptions();
+        updatePlacaTriggerLabel();
 
         const vehiculoPreseleccionado = new URLSearchParams(window.location.search).get("vehiculo");
         if (vehiculoPreseleccionado && Array.from(mantenimientoSelect.options).some((option) => option.value === vehiculoPreseleccionado)) {
@@ -1301,6 +1443,9 @@ tabRegistrarButton.addEventListener("click", () => switchTab("registrar"));
 
 clearFiltersButton.addEventListener("click", () => {
     mantenimientosFilterForm.reset();
+    updatePlacaTriggerLabel();
+    updateTipoTriggerLabel();
+    updateFechasTriggerLabel();
     applyMaintenanceFilters();
 });
 

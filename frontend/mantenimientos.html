@@ -278,48 +278,65 @@
                         <p>Últimas revisiones y mantenimientos registrados.</p>
                     </summary>
                     <div class="section-card-body">
-                        <form id="mantenimientosFilterForm" class="filter-form">
-                            <div class="form-grid-4">
-                                <div class="form-group">
-                                    <label>Placa</label>
-                                    <select id="filterPlaca">
-                                        <option value="">Todas las placas</option>
-                                    </select>
+                        <form id="mantenimientosFilterForm" class="doc-filterbar">
+                            <div class="doc-filterbar-row">
+                                <div class="doc-filter-popover-wrap">
+                                    <button type="button" class="doc-filter-trigger" id="filterPlacaTrigger">
+                                        <span id="filterPlacaTriggerLabel">Placa</span>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                                    </button>
+                                    <div class="doc-filter-popover hidden" id="filterPlacaPopover"></div>
+                                </div>
+                                <select id="filterPlaca" class="hidden">
+                                    <option value="">Todas las placas</option>
+                                </select>
+
+                                <div class="doc-filter-popover-wrap">
+                                    <button type="button" class="doc-filter-trigger" id="filterTipoTrigger">
+                                        <span id="filterTipoTriggerLabel">Tipo</span>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                                    </button>
+                                    <div class="doc-filter-popover hidden" id="filterTipoPopover">
+                                        <button type="button" class="doc-filter-option is-active" data-tipo-value="">Todos</button>
+                                        <button type="button" class="doc-filter-option" data-tipo-value="revision">Revisión general</button>
+                                        <button type="button" class="doc-filter-option" data-tipo-value="preventivo">Preventivo</button>
+                                        <button type="button" class="doc-filter-option" data-tipo-value="correctivo">Correctivo</button>
+                                        <button type="button" class="doc-filter-option" data-tipo-value="cambio_aceite">Cambio de aceite</button>
+                                        <button type="button" class="doc-filter-option" data-tipo-value="llantas">Cambio de llantas</button>
+                                        <button type="button" class="doc-filter-option" data-tipo-value="frenos">Frenos</button>
+                                        <button type="button" class="doc-filter-option" data-tipo-value="otro">Otro</button>
+                                    </div>
+                                </div>
+                                <select id="filterTipo" class="hidden">
+                                    <option value="">Todos</option>
+                                    <option value="revision">Revisión general</option>
+                                    <option value="preventivo">Preventivo</option>
+                                    <option value="correctivo">Correctivo</option>
+                                    <option value="cambio_aceite">Cambio de aceite</option>
+                                    <option value="llantas">Cambio de llantas</option>
+                                    <option value="frenos">Frenos</option>
+                                    <option value="otro">Otro</option>
+                                </select>
+
+                                <div class="doc-filter-popover-wrap">
+                                    <button type="button" class="doc-filter-trigger" id="filterFechasTrigger">
+                                        <span id="filterFechasTriggerLabel">Fechas</span>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                                    </button>
+                                    <div class="doc-filter-popover doc-filter-popover-dates hidden" id="filterFechasPopover">
+                                        <label>Desde<input type="date" id="filterFechaDesde"></label>
+                                        <label>Hasta<input type="date" id="filterFechaHasta"></label>
+                                    </div>
                                 </div>
 
-                                <div class="form-group">
-                                    <label>Tipo de mantenimiento</label>
-                                    <select id="filterTipo">
-                                        <option value="">Todos</option>
-                                        <option value="revision">Revisión general</option>
-                                        <option value="preventivo">Preventivo</option>
-                                        <option value="correctivo">Correctivo</option>
-                                        <option value="cambio_aceite">Cambio de aceite</option>
-                                        <option value="llantas">Cambio de llantas</option>
-                                        <option value="frenos">Frenos</option>
-                                        <option value="otro">Otro</option>
-                                    </select>
-                                </div>
-
-                                <div class="form-group">
-                                    <label>Desde</label>
-                                    <input type="date" id="filterFechaDesde">
-                                </div>
-
-                                <div class="form-group">
-                                    <label>Hasta</label>
-                                    <input type="date" id="filterFechaHasta">
-                                </div>
+                                <button type="button" id="clearFiltersButton" class="doc-filter-trigger">Limpiar</button>
+                                <button type="button" id="exportHistorialButton" class="doc-filter-trigger btn-pdf">Exportar PDF</button>
+                                <button type="button" id="exportHistorialExcelButton" class="doc-filter-trigger btn-excel">Exportar Excel</button>
                             </div>
 
-                            <div class="filter-actions">
-                                <span id="filterSummary" class="field-help">Mostrando todos los mantenimientos.</span>
-                                <div class="filter-actions-buttons">
-                                    <button type="button" id="exportHistorialButton" class="btn-secondary btn-pdf">Exportar PDF</button>
-                                    <button type="button" id="exportHistorialExcelButton" class="btn-secondary btn-excel">Exportar Excel</button>
-                                    <button type="button" id="clearFiltersButton" class="btn-secondary">Limpiar filtros</button>
-                                </div>
-                            </div>
+                            <div class="doc-filterbar-chips hidden" id="filtersChips"></div>
+
+                            <span id="filterSummary" class="field-help">Mostrando todos los mantenimientos.</span>
                         </form>
 
                         <div id="mantenimientosList" class="records-list">
