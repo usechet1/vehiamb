@@ -24,12 +24,12 @@
             <div class="kpis-grid" id="mantenimientosKpisGrid"></div>
 
             <div class="tabs" role="tablist">
-                <button type="button" class="tab-button active" id="tabHistorialButton" role="tab" aria-selected="true" data-tab="historial">Historial</button>
-                <button type="button" class="tab-button" id="tabRegistrarButton" role="tab" aria-selected="false" data-tab="registrar">Registrar mantenimiento</button>
+                <button type="button" class="tab-button" id="tabHistorialButton" role="tab" aria-selected="false" data-tab="historial">Historial</button>
+                <button type="button" class="tab-button active" id="tabRegistrarButton" role="tab" aria-selected="true" data-tab="registrar">Registrar mantenimiento</button>
             </div>
 
             <div class="stack">
-                <section class="section-card hidden" id="registrarMantenimientoSection">
+                <section class="section-card" id="registrarMantenimientoSection">
                     <details class="section-card-collapsible" open>
                     <summary class="section-card-head">
                         <h2>Registrar mantenimiento</h2>
@@ -262,7 +262,7 @@
                                     <span id="mntStep3BlockingReason" class="field-help field-help-danger hidden"></span>
                                     <div class="mnt-step3-buttons">
                                         <button type="button" class="btn-secondary" id="wizardStep3Back">Atrás</button>
-                                        <button type="submit" class="btn-action" id="mantenimientoSubmitButton">Guardar mantenimiento</button>
+                                        <button type="submit" class="btn-primary" id="mantenimientoSubmitButton">Guardar mantenimiento</button>
                                     </div>
                                 </div>
                             </div>
@@ -271,7 +271,7 @@
                     </details>
                 </section>
 
-                <section class="section-card" id="historialMantenimientosSection">
+                <section class="section-card hidden" id="historialMantenimientosSection">
                     <details class="section-card-collapsible" open>
                     <summary class="section-card-head">
                         <h2>Historial reciente</h2>

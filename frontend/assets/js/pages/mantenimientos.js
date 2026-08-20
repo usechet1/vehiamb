@@ -1353,7 +1353,9 @@ document.addEventListener("keydown", (event) => {
 document.addEventListener("DOMContentLoaded", async () => {
     await window.VehiAmb.auth.fetchCurrentUser();
 
-    if (!window.VehiAmb.auth.hasPermission("maintenance.create")) {
+    const puedeRegistrar = window.VehiAmb.auth.hasPermission("maintenance.create");
+
+    if (!puedeRegistrar) {
         // Ocultar solo la seccion no alcanza: el boton de la pestaña sigue
         // ahi y switchTab() la vuelve a mostrar al hacer clic (no valida
         // permisos, solo alterna visibilidad). Hay que quitar tambien el
@@ -1362,6 +1364,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         tabRegistrarButton.remove();
         registrarMantenimientoSection.remove();
     }
+
+    // Registrar mantenimiento es la pestaña que se abre de entrada -- el
+    // historial queda a un clic, pero no es lo primero que se ve. Si el rol
+    // no puede registrar, no tiene sentido abrir esa pestaña (ya no existe).
+    switchTab(puedeRegistrar ? "registrar" : "historial");
 
     mantenimientoFecha.value = hoyISO();
     goToWizardStep(1);
