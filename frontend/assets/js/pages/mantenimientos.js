@@ -11,6 +11,16 @@ const filterSummary = document.getElementById("filterSummary");
 const clearFiltersButton = document.getElementById("clearFiltersButton");
 const loader = document.getElementById("loader");
 const mensaje = document.getElementById("mensaje");
+const mantenimientoFecha = document.getElementById("mantenimientoFecha");
+const wizardStep1 = document.getElementById("wizardStep1");
+const wizardStep2 = document.getElementById("wizardStep2");
+const wizardStep3 = document.getElementById("wizardStep3");
+const wizardStep1Next = document.getElementById("wizardStep1Next");
+const wizardStep2Back = document.getElementById("wizardStep2Back");
+const wizardStep3Back = document.getElementById("wizardStep3Back");
+const wizardStepIndicators = document.querySelectorAll("#wizardSteps [data-step-indicator]");
+const wizardStepConnectors = document.querySelectorAll("#wizardSteps .wizard-step-connector");
+const tipoCardGrid = document.getElementById("tipoCardGrid");
 const mantenimientoKilometraje = document.getElementById("mantenimientoKilometraje");
 const kilometrajeHelp = document.getElementById("kilometrajeHelp");
 const autorizadoPorList = document.getElementById("autorizadoPorList");
@@ -153,6 +163,12 @@ function renderKpisMantenimientos(mantenimientos) {
     `;
 }
 
+function hoyISO() {
+    const hoy = new Date();
+    const offset = hoy.getTimezoneOffset();
+    return new Date(hoy.getTime() - offset * 60000).toISOString().slice(0, 10);
+}
+
 function formatCurrency(value) {
     return new Intl.NumberFormat("es-CO", {
         style: "currency",
@@ -272,6 +288,64 @@ function updateCambioAceiteFields() {
 
     cargarRepuestosSugeridos();
 }
+
+function goToWizardStep(step) {
+    [wizardStep1, wizardStep2, wizardStep3].forEach((panel, index) => {
+        panel.classList.toggle("hidden", index + 1 !== step);
+    });
+
+    wizardStepIndicators.forEach((indicator) => {
+        const indicatorStep = Number(indicator.dataset.stepIndicator);
+        indicator.classList.toggle("is-active", indicatorStep === step);
+        indicator.classList.toggle("is-done", indicatorStep < step);
+    });
+
+    wizardStepConnectors.forEach((connector, index) => {
+        connector.classList.toggle("is-done", index + 1 < step);
+    });
+
+    registrarMantenimientoSection.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function validateWizardStep1() {
+    if (!mantenimientoSelect.checkValidity()) {
+        mantenimientoSelect.focus();
+        window.VehiAmb.ui.showMessage(mensaje, "Selecciona un vehículo para continuar", "error");
+        return false;
+    }
+
+    if (!mantenimientoFecha.checkValidity()) {
+        mantenimientoFecha.focus();
+        window.VehiAmb.ui.showMessage(mensaje, "Selecciona una fecha para continuar", "error");
+        return false;
+    }
+
+    return true;
+}
+
+function seleccionarTipoCard(tipo) {
+    mantenimientoTipo.value = tipo;
+    mantenimientoTipo.dispatchEvent(new Event("change"));
+
+    tipoCardGrid.querySelectorAll(".type-card").forEach((card) => {
+        card.classList.toggle("is-selected", card.dataset.tipo === tipo);
+    });
+}
+
+wizardStep1Next.addEventListener("click", () => {
+    if (!validateWizardStep1()) return;
+    goToWizardStep(2);
+});
+
+wizardStep2Back.addEventListener("click", () => goToWizardStep(1));
+wizardStep3Back.addEventListener("click", () => goToWizardStep(2));
+
+tipoCardGrid.addEventListener("click", (event) => {
+    const card = event.target.closest(".type-card");
+    if (!card) return;
+    seleccionarTipoCard(card.dataset.tipo);
+    goToWizardStep(3);
+});
 
 /**
  * Habilita/deshabilita el buscador de repuestos y muestra el aviso
@@ -1025,6 +1099,11 @@ async function cargarDatos() {
 mantenimientoForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
+    // El boton de guardar vive dentro del paso 3, pero el navegador igual
+    // intenta enviar el formulario con Enter desde un campo de un paso
+    // anterior -- sin esto se saltaria la seleccion de tipo (paso 2).
+    if (wizardStep3.classList.contains("hidden")) return;
+
     if (!validateKilometrajeBeforeSubmit()) return;
 
     if (mantenimientoTipo.value === "cambio_aceite" && !proximoCambioKmInput.value) {
@@ -1050,6 +1129,9 @@ mantenimientoForm.addEventListener("submit", async (event) => {
         }
 
         mantenimientoForm.reset();
+        mantenimientoFecha.value = hoyISO();
+        tipoCardGrid.querySelectorAll(".type-card.is-selected").forEach((card) => card.classList.remove("is-selected"));
+        goToWizardStep(1);
         repuestosState = [];
         limpiarSeleccionRepuesto();
         renderRepuestosBuilder();
@@ -1229,6 +1311,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         registrarMantenimientoSection.remove();
     }
 
+    mantenimientoFecha.value = hoyISO();
+    goToWizardStep(1);
     renderRepuestosBuilder();
     updateCostoTotal();
     updateCambioAceiteFields();
