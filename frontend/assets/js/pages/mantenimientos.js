@@ -995,7 +995,7 @@ async function openMaintenanceDetail(item) {
         : "Subir salida de inventario";
 
     maintenanceDrawerBody.innerHTML = `
-        <dl class="detail-list drawer-detail-list">
+        <dl class="detail-list drawer-detail-list mnt-detail-2col">
             ${detailRow("Vehículo", vehicleName)}
             ${detailRow("Placa", item.placa || "Sin placa")}
             ${detailRow("Estado", estadosMantenimiento[item.estado] || item.estado || "Completado")}
