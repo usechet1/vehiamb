@@ -538,13 +538,13 @@ async function cargarRepuestosSugeridos() {
             repuestosState.push({
                 repuesto: elegida.nombre,
                 proveedor: "",
-                valor: 0,
+                valor: Number(elegida.valor_promedio || 0) * Number(sugerido.cantidad || 1),
                 notas: `Sustituye a ${sugerido.nombre} (sin stock)`,
                 repuesto_id: elegida.id,
                 repuesto_sugerido_id: sugerido.repuesto_id,
                 motivo_sustitucion: "Sin stock del repuesto principal",
                 cantidad: Number(sugerido.cantidad || 1),
-                valor_unitario: 0,
+                valor_unitario: Number(elegida.valor_promedio || 0),
                 incluido: true,
                 obligatorio
             });
@@ -732,7 +732,7 @@ function mostrarEquivalencias(principalNombre, equivalencias) {
     repuestoEquivalenciasPicker.innerHTML = `
         <p class="field-help">"${principalNombre}" sin existencias. Repuestos compatibles disponibles:</p>
         ${equivalencias.map((eq) => `
-            <button type="button" class="btn-secondary repuesto-equivalencia-opcion" data-id="${eq.id}" data-nombre="${eq.nombre}">
+            <button type="button" class="btn-secondary repuesto-equivalencia-opcion" data-id="${eq.id}" data-nombre="${eq.nombre}" data-valor-promedio="${eq.valor_promedio || 0}">
                 ✔ ${eq.nombre} (${eq.stock_disponible} unidades)
             </button>
         `).join("")}
@@ -862,7 +862,7 @@ repuestoEquivalenciasPicker.addEventListener("click", (event) => {
     if (!button || !repuestoSeleccionado) return;
 
     agregarRepuestoAlBuilder(
-        { id: Number(button.dataset.id), nombre: button.dataset.nombre, valor_promedio: 0 },
+        { id: Number(button.dataset.id), nombre: button.dataset.nombre, valor_promedio: Number(button.dataset.valorPromedio || 0) },
         1,
         { repuestoSugeridoId: repuestoSeleccionado.id, motivoSustitucion: `Sin stock de ${repuestoSeleccionado.nombre}` }
     );
