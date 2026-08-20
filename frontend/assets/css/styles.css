@@ -3944,18 +3944,8 @@ button.record-link {
     gap: 10px;
 }
 
-.doc-plate-chip {
+.doc-row .plate {
     flex-shrink: 0;
-    padding: 4px 9px;
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    background: var(--color-surface-2);
-    color: var(--color-ink);
-    font-family: "Consolas", "SFMono-Regular", monospace;
-    font-weight: 800;
-    font-size: 0.9rem;
-    letter-spacing: 0.02em;
-    white-space: nowrap;
 }
 
 .doc-row-title {

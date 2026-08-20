@@ -316,7 +316,7 @@ function renderDocumentos(documentos) {
         return `
             <article class="doc-row ${estado === "danger" ? "is-vencido" : ""}">
                 <div class="doc-row-head">
-                    <span class="doc-plate-chip">${escapeHtml(item.placa) || "—"}</span>
+                    <span class="plate">${escapeHtml(item.placa) || "—"}</span>
                     <div class="doc-row-title">
                         <span class="doc-type-label">${escapeHtml(tiposDocumento[item.tipo] || item.tipo)}</span>
                         <span class="doc-number-label">${escapeHtml(item.numero_documento) || "Sin número"}</span>
