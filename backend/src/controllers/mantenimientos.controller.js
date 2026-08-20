@@ -38,3 +38,13 @@ exports.getUsuariosDisponibles = async (req, res) => {
   const usuarios = await mantenimientosService.listUsuariosDisponibles(req.empresaId);
   res.json(usuarios);
 };
+
+exports.subirSalidaInventario = async (req, res) => {
+  const mantenimiento = await mantenimientosService.subirSalidaInventario(req.params.id, req.file, req.empresaId);
+  res.json(mantenimiento);
+};
+
+exports.confirmarCambioAceite = async (req, res) => {
+  const mantenimiento = await mantenimientosService.confirmarCambioAceite(req.params.id, req.empresaId);
+  res.json(mantenimiento);
+};

@@ -101,6 +101,14 @@ async function updateEstado(id, estado, empresaId) {
   return findByIdWithVehiculo(id, empresaId);
 }
 
+async function updateSalidaInventario(id, { url, nombre, mime }, empresaId) {
+  await db.run(
+    "UPDATE mantenimientos SET salida_inventario_url = ?, salida_inventario_nombre = ?, salida_inventario_mime = ? WHERE id = ? AND empresa_id = ?",
+    [url, nombre, mime, id, empresaId]
+  );
+  return findById(id, empresaId);
+}
+
 // "dbClient" es opcional: por defecto usa el modulo de BD normal, pero
 // createMantenimiento en el service lo invoca dentro de una transaccion
 // (withTransaction) cuando hay repuestos que descontar de stock, para que la
@@ -158,5 +166,6 @@ module.exports = {
   create,
   createRepuestoDetalle,
   findRepuestosEstructurados,
-  updateEstado
+  updateEstado,
+  updateSalidaInventario
 };
