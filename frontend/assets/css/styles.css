@@ -1328,6 +1328,19 @@ label[for="loginPassword"] {
     margin-top: 0;
 }
 
+.mnt-input-lg {
+    min-height: 52px !important;
+    padding: 14px !important;
+    font-size: 1.05rem !important;
+}
+
+/* Kilometraje ocupa las 3 columnas cuando es el unico campo visible de la
+   grilla (todo menos cambio de aceite, donde va junto a proximo cambio y
+   proxima fecha). */
+.mnt-span-all {
+    grid-column: 1 / -1;
+}
+
 .mnt-repuesto-search {
     width: 100%;
     min-height: 44px;

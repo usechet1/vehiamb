@@ -50,6 +50,9 @@ const cambioAceiteFields = document.getElementById("cambioAceiteFields");
 const proximoCambioKmInput = document.getElementById("proximoCambioKmInput");
 const proximoCambioKmHelp = document.getElementById("proximoCambioKmHelp");
 const proximoCambioFechaInput = document.getElementById("proximoCambioFechaInput");
+const programacionTitle = document.getElementById("programacionTitle");
+const proximaFechaGroup = document.getElementById("proximaFechaGroup");
+const kilometrajeGroup = document.getElementById("kilometrajeGroup");
 const vehiculoVaradoGroup = document.getElementById("vehiculoVaradoGroup");
 const vehiculoVaradoInput = document.getElementById("vehiculoVaradoInput");
 const manoObraRow = document.getElementById("manoObraRow");
@@ -284,7 +287,10 @@ function actualizarBloqueoStep3() {
 function updateCambioAceiteFields() {
     const isCambioAceite = mantenimientoTipo.value === "cambio_aceite";
 
+    programacionTitle.classList.toggle("hidden", !isCambioAceite);
     cambioAceiteFields.classList.toggle("hidden", !isCambioAceite);
+    proximaFechaGroup.classList.toggle("hidden", !isCambioAceite);
+    kilometrajeGroup.classList.toggle("mnt-span-all", !isCambioAceite);
     proximoCambioFechaInput.required = isCambioAceite;
 
     // "Vehiculo varado" y "Mano de obra" no aplican a un cambio de aceite
