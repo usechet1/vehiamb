@@ -531,7 +531,8 @@ async function cargarRepuestosSugeridos() {
                 cantidad: Number(sugerido.cantidad || 1),
                 valor_unitario: Number(sugerido.valor_promedio || 0),
                 incluido: true,
-                obligatorio
+                obligatorio,
+                cantidadFija: true
             });
         } else if (disponibilidad.equivalencias.length) {
             const elegida = disponibilidad.equivalencias[0];
@@ -546,7 +547,8 @@ async function cargarRepuestosSugeridos() {
                 cantidad: Number(sugerido.cantidad || 1),
                 valor_unitario: Number(elegida.valor_promedio || 0),
                 incluido: true,
-                obligatorio
+                obligatorio,
+                cantidadFija: true
             });
         } else {
             sinStock.push(sugerido.nombre);
@@ -661,7 +663,7 @@ function renderRepuestosBuilder() {
                 ${item.motivo_sustitucion ? `<div class="field-help">${escapeHtml(item.motivo_sustitucion)}</div>` : ""}
                 ${faltaPrecio ? `<div class="mnt-repuesto-alerta-texto">Falta el valor de este repuesto obligatorio</div>` : ""}
             </div>
-            <input type="number" class="mnt-repuesto-cantidad" data-index="${index}" value="${item.cantidad || 1}" min="1" step="1" aria-label="Cantidad">
+            <input type="number" class="mnt-repuesto-cantidad" data-index="${index}" value="${item.cantidad || 1}" min="0.01" step="0.01" aria-label="Cantidad" ${item.cantidadFija ? `readonly title="Cantidad configurada para este vehículo, no editable"` : ""}>
             <input type="text" inputmode="numeric" class="mnt-repuesto-valor" data-index="${index}" value="${item.valor ? formatCurrency(item.valor) : ""}" placeholder="$ 0" aria-label="Valor">
         </li>
     `;

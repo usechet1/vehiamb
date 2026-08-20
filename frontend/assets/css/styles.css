@@ -1460,6 +1460,12 @@ label[for="loginPassword"] {
     font-variant-numeric: tabular-nums;
 }
 
+.mnt-repuesto-cantidad[readonly] {
+    background: var(--color-surface-2);
+    color: var(--color-muted);
+    cursor: not-allowed;
+}
+
 .mnt-repuesto-valor {
     flex-shrink: 0;
     width: 104px;
