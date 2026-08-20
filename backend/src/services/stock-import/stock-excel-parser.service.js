@@ -55,8 +55,12 @@ function parse(validated) {
     }
 
     const stockFisico = roundNumber(row[col("saldo")]);
-    const valorTotal = roundNumber(row[col("valorTotal")]);
-    const valorPromedio = stockFisico > 0 ? Math.round((valorTotal / stockFisico) * 100) / 100 : 0;
+    // "VALOR TOTAL" en la hoja SALDO es, pese al nombre, el costo por unidad
+    // (no el costo de todo el saldo en existencia) -- se usa tal cual, sin
+    // dividir entre SALDO. Antes se calculaba VALOR TOTAL / SALDO, lo que
+    // ademas forzaba el precio a 0 en cualquier fila con SALDO en 0 aunque
+    // la hoja si trajera un precio real.
+    const valorPromedio = roundNumber(row[col("valorTotal")]);
 
     candidates.push({
       filaExcel,
