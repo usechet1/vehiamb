@@ -972,22 +972,17 @@ function renderDetailRepuestos(value) {
 }
 
 function renderRepuestosCatalogo(items) {
-    if (!items.length) return "";
-
     return `
-        <section class="drawer-section">
-            <h3>Repuestos del catalogo</h3>
-            <div class="detail-parts-list">
-                ${items.map((item) => `
-                    <article class="detail-part-item">
-                        <strong>${escapeHtml(item.nombre)} (${escapeHtml(item.codigo_interno)})</strong>
-                        <span>Cantidad: ${item.cantidad} ${escapeHtml(item.unidad_medida)}</span>
-                        <span>${formatCurrency(item.valor_unitario)} c/u · Total: ${formatCurrency(item.valor_total)}</span>
-                        ${item.repuesto_sugerido_id ? `<p>Sustituyo a ${escapeHtml(item.sugerido_nombre || "")} — ${escapeHtml(item.motivo_sustitucion || "")}</p>` : ""}
-                    </article>
-                `).join("")}
-            </div>
-        </section>
+        <div class="detail-parts-list">
+            ${items.map((item) => `
+                <article class="detail-part-item">
+                    <strong>${escapeHtml(item.nombre)} (${escapeHtml(item.codigo_interno)})</strong>
+                    <span>Cantidad: ${item.cantidad} ${escapeHtml(item.unidad_medida)}</span>
+                    <span>${formatCurrency(item.valor_unitario)} c/u · Total: ${formatCurrency(item.valor_total)}</span>
+                    ${item.repuesto_sugerido_id ? `<p>Sustituyo a ${escapeHtml(item.sugerido_nombre || "")} — ${escapeHtml(item.motivo_sustitucion || "")}</p>` : ""}
+                </article>
+            `).join("")}
+        </div>
     `;
 }
 
@@ -1013,22 +1008,13 @@ async function openMaintenanceDetail(item) {
             ${detailRow("Tipo", tiposMantenimiento[item.tipo] || item.tipo)}
             ${detailRow("Valor", formatCurrency(item.valor))}
             ${detailRow("Kilometraje", `${Number(item.kilometraje || 0).toLocaleString("es-CO")} km`)}
-            ${detailRow("Autorizado por", item.autorizado_por || "No registrado")}
-            ${detailRow("Realizado por", item.hecho_por || "No registrado")}
             ${detailRow("Fecha de creación", formatDateTime(item.created_at))}
         </dl>
 
         <section class="drawer-section">
-            <h3>Descripción / trabajo realizado</h3>
-            <p>${escapeHtml(item.descripcion || "Sin detalle de revisión")}</p>
-        </section>
-
-        <section class="drawer-section">
             <h3>Repuestos utilizados</h3>
-            ${renderDetailRepuestos(item.repuestos)}
+            <div id="repuestosUtilizadosSection">${renderDetailRepuestos(item.repuestos)}</div>
         </section>
-
-        <div id="repuestosCatalogoSection"></div>
 
         <section class="drawer-section">
             <h3>Archivos adjuntos</h3>
@@ -1054,10 +1040,12 @@ async function openMaintenanceDetail(item) {
 
     try {
         const repuestosCatalogo = await window.VehiAmb.api.getMantenimientoRepuestos(item.id);
-        const contenedor = document.getElementById("repuestosCatalogoSection");
+        if (!repuestosCatalogo.length) return; // Sin datos de catalogo: se deja el detalle legado ya mostrado.
+
+        const contenedor = document.getElementById("repuestosUtilizadosSection");
         if (contenedor) contenedor.innerHTML = renderRepuestosCatalogo(repuestosCatalogo);
     } catch (error) {
-        // Mantenimientos viejos (o sin repuestos de catalogo) simplemente no muestran esta seccion.
+        // Mantenimientos viejos (o sin repuestos de catalogo) se quedan con el detalle legado ya mostrado.
     }
 }
 
@@ -1119,15 +1107,12 @@ function renderMantenimientos(mantenimientos) {
                 </div>
                 <span class="pill">${formatDate(item.fecha)}</span>
             </div>
-            <p>${escapeHtml(item.descripcion) || "Sin detalle de revisión"}</p>
             <div class="record-meta">
                 <span class="pill">${formatCurrency(item.valor)}</span>
                 <span class="pill">${Number(item.kilometraje || 0).toLocaleString("es-CO")} km</span>
                 ${renderEstadoBadge(item.estado)}
                 ${item.vehiculo_varado ? '<span class="pill">Vehículo varado</span>' : ""}
                 ${renderRepuestosMeta(item.repuestos)}
-                <span class="pill">Autorizado por: ${escapeHtml(item.autorizado_por) || "No registrado"}</span>
-                <span class="pill">Hecho por: ${escapeHtml(item.hecho_por) || "No registrado"}</span>
                 ${item.soporte_url ? '<span class="pill">Soporte adjunto</span>' : ""}
             </div>
             ${renderAttachment(item)}
