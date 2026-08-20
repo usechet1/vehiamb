@@ -1159,6 +1159,151 @@ label[for="loginPassword"] {
     border-radius: var(--radius-sm);
 }
 
+/* ── Wizard (formularios por pasos) ──────────────── */
+.wizard-steps {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.wizard-step-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.wizard-step-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    border: 1.5px solid var(--color-border);
+    background: var(--color-surface-2);
+    color: var(--color-muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    transition: var(--transition);
+}
+
+.wizard-step-label {
+    color: var(--color-muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.wizard-step-indicator.is-active .wizard-step-number {
+    border-color: var(--color-primary);
+    background: var(--color-primary);
+    color: #fff;
+}
+
+.wizard-step-indicator.is-active .wizard-step-label {
+    color: var(--color-ink);
+}
+
+.wizard-step-indicator.is-done .wizard-step-number {
+    border-color: var(--color-success);
+    background: var(--color-success-bg);
+    color: var(--color-success);
+}
+
+.wizard-step-indicator.is-done .wizard-step-label {
+    color: var(--color-ink-soft);
+}
+
+.wizard-step-connector {
+    flex: 1;
+    height: 1.5px;
+    margin: 0 10px;
+    background: var(--color-border);
+    transition: var(--transition);
+}
+
+.wizard-step-connector.is-done {
+    background: var(--color-success);
+}
+
+.wizard-step-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.wizard-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.wizard-nav .btn-primary,
+.wizard-nav .btn-secondary {
+    width: auto;
+    min-width: 150px;
+}
+
+.type-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+}
+
+.type-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 20px 14px;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    color: var(--color-ink-soft);
+    text-align: center;
+    font-size: 0.86rem;
+    font-weight: 650;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.type-card:hover {
+    border-color: var(--color-primary);
+    background: var(--color-surface-2);
+    transform: translateY(-2px);
+}
+
+.type-card.is-selected {
+    border-color: var(--color-primary);
+    background: rgba(178, 31, 45, 0.06);
+    color: var(--color-primary);
+    box-shadow: 0 0 0 1px var(--color-primary) inset;
+}
+
+.type-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--color-surface-2);
+    color: var(--color-primary);
+    transition: var(--transition);
+}
+
+.type-card.is-selected .type-card-icon {
+    background: var(--color-primary);
+    color: #fff;
+}
+
+.type-card-icon svg {
+    width: 22px;
+    height: 22px;
+}
+
 .btn-primary {
     width: 70%;
     min-height: 46px;
