@@ -50,6 +50,9 @@ const cambioAceiteFields = document.getElementById("cambioAceiteFields");
 const proximoCambioKmInput = document.getElementById("proximoCambioKmInput");
 const proximoCambioKmHelp = document.getElementById("proximoCambioKmHelp");
 const proximoCambioFechaInput = document.getElementById("proximoCambioFechaInput");
+const vehiculoVaradoGroup = document.getElementById("vehiculoVaradoGroup");
+const vehiculoVaradoInput = document.getElementById("vehiculoVaradoInput");
+const manoObraRow = document.getElementById("manoObraRow");
 const maintenanceDrawer = document.getElementById("maintenanceDrawer");
 const maintenanceDrawerBackdrop = document.getElementById("maintenanceDrawerBackdrop");
 const closeMaintenanceDrawer = document.getElementById("closeMaintenanceDrawer");
@@ -283,6 +286,18 @@ function updateCambioAceiteFields() {
 
     cambioAceiteFields.classList.toggle("hidden", !isCambioAceite);
     proximoCambioFechaInput.required = isCambioAceite;
+
+    // "Vehiculo varado" y "Mano de obra" no aplican a un cambio de aceite
+    // (es rutina, no deja el vehiculo fuera de servicio ni tiene mano de
+    // obra aparte) -- se ocultan y se resetean para que no quede un valor
+    // viejo guardado sin que se vea en pantalla.
+    vehiculoVaradoGroup.classList.toggle("hidden", isCambioAceite);
+    manoObraRow.classList.toggle("hidden", isCambioAceite);
+    if (isCambioAceite) {
+        vehiculoVaradoInput.checked = false;
+        valorManoObraInput.value = "$ 0";
+        updateCostoTotal();
+    }
 
     if (!isCambioAceite) {
         proximoCambioKmInput.value = "";
