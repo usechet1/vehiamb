@@ -617,8 +617,8 @@ function parseRepuestos(value) {
 
 // El JSON legado (mantenimientos.repuestos) sigue teniendo exactamente estos
 // 4 campos, sin importar los datos internos nuevos que traiga cada item --
-// el render del historial (renderRepuestosMeta/renderDetailRepuestos) no
-// necesita cambiar una linea.
+// el render del detalle (renderDetailRepuestos) no necesita cambiar una
+// linea.
 function syncRepuestosField() {
     const incluidos = repuestosState.filter((item) => item.incluido !== false);
 
@@ -892,23 +892,6 @@ window.VehiAmb.crearRepuestoAutocomplete(repuestoInput, {
     onSinResultados: mostrarAvisoRepuestoNoEncontrado
 });
 
-function renderRepuestosMeta(value) {
-    const repuestos = parseRepuestos(value);
-
-    if (!repuestos.length) {
-        return '<span class="pill">Repuestos: No registrados</span>';
-    }
-
-    return repuestos.map((repuesto) => `
-        <span class="pill">
-            ${escapeHtml(repuesto.repuesto)}
-            ${repuesto.proveedor ? ` - ${escapeHtml(repuesto.proveedor)}` : ""}
-            ${repuesto.valor ? ` - ${formatCurrency(repuesto.valor)}` : ""}
-            ${repuesto.notas ? ` - ${escapeHtml(repuesto.notas)}` : ""}
-        </span>
-    `).join("");
-}
-
 function renderAttachment(item) {
     if (!item.soporte_url) return "";
 
@@ -1112,7 +1095,6 @@ function renderMantenimientos(mantenimientos) {
                 <span class="pill">${Number(item.kilometraje || 0).toLocaleString("es-CO")} km</span>
                 ${renderEstadoBadge(item.estado)}
                 ${item.vehiculo_varado ? '<span class="pill">Vehículo varado</span>' : ""}
-                ${renderRepuestosMeta(item.repuestos)}
                 ${item.soporte_url ? '<span class="pill">Soporte adjunto</span>' : ""}
             </div>
             ${renderAttachment(item)}
