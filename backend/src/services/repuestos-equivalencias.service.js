@@ -87,6 +87,7 @@ async function consultarDisponibilidad(repuestoId, empresaId) {
         codigo_interno: eq.codigo_interno,
         nombre: eq.nombre,
         prioridad: eq.prioridad,
+        valor_promedio: Number(eq.valor_promedio ?? 0),
         stock_disponible: Number(eq.stock_disponible ?? 0)
       }))
       .filter((eq) => eq.stock_disponible > 0)

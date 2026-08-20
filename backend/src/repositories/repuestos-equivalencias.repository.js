@@ -3,7 +3,7 @@ const db = require("../database/query");
 async function findByRepuestoPrincipal(repuestoPrincipalId, empresaId) {
   return db.all(
     `
-      SELECT re.*, r.codigo_interno, r.nombre, r.categoria, r.unidad_medida,
+      SELECT re.*, r.codigo_interno, r.nombre, r.categoria, r.unidad_medida, r.valor_promedio,
              COALESCE(rs.stock_fisico, 0) - COALESCE(rs.stock_comprometido, 0) AS stock_disponible
       FROM repuestos_equivalencias re
       INNER JOIN repuestos r ON r.id = re.repuesto_equivalente_id
