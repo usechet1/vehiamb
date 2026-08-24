@@ -90,6 +90,17 @@ async function crearConCodigoAutomatico(repuesto, intentosRestantes = 3) {
   }
 }
 
+const SORT_COLUMNS_VALIDOS = new Set([
+  "codigo_interno",
+  "nombre",
+  "categoria",
+  "marca",
+  "valor_promedio",
+  "stock_fisico",
+  "stock_minimo",
+  "estado"
+]);
+
 function normalizeListQuery(query = {}) {
   const page = Math.max(1, Number.parseInt(query.page, 10) || 1);
   const limit = PAGE_SIZE_OPTIONS.has(Number(query.limit)) ? Number(query.limit) : DEFAULT_LIMIT;
@@ -98,6 +109,8 @@ function normalizeListQuery(query = {}) {
     categoria: CATEGORIAS_VALIDAS.has(query.categoria) ? query.categoria : null,
     estado: ESTADOS_VALIDOS.has(query.estado) ? query.estado : null,
     search: toTrimmedOrNull(query.search),
+    sort: SORT_COLUMNS_VALIDOS.has(query.sort) ? query.sort : "nombre",
+    order: query.order === "desc" ? "desc" : "asc",
     page,
     limit,
     offset: (page - 1) * limit

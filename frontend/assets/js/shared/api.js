@@ -767,6 +767,8 @@ window.VehiAmb.api = {
         if (filters.categoria) params.set("categoria", filters.categoria);
         if (filters.estado) params.set("estado", filters.estado);
         if (filters.search) params.set("search", filters.search);
+        if (filters.sort) params.set("sort", filters.sort);
+        if (filters.order) params.set("order", filters.order);
         if (filters.page) params.set("page", filters.page);
         if (filters.limit) params.set("limit", filters.limit);
         const query = params.toString();
