@@ -568,7 +568,16 @@ async function cargarRepuestosSugeridos() {
         const esAceite = String(sugerido.unidad_medida || "").toUpperCase() !== "UND";
         const obligatorio = !esAceite;
 
-        if (disponibilidad.principal.stock_disponible > 0) {
+        // No basta con "tiene algo de stock" (> 0): si el principal tiene
+        // menos del que este cambio de aceite necesita (ej. 0.5 disponible
+        // pero se necesitan 2.5), hay que saltar al equivalente en vez de
+        // dejarlo seleccionado con stock insuficiente -- antes esto elegia
+        // el principal con cualquier stock mayor a cero, sin importar si
+        // alcanzaba, y nunca llegaba a ofrecer el equivalente aunque tuviera
+        // de sobra.
+        const cantidadRequerida = Number(sugerido.cantidad || 1);
+
+        if (disponibilidad.principal.stock_disponible >= cantidadRequerida) {
             repuestosState.push({
                 repuesto: sugerido.nombre,
                 proveedor: "",
@@ -582,7 +591,8 @@ async function cargarRepuestosSugeridos() {
                 cantidadFija: true
             });
         } else if (disponibilidad.equivalencias.length) {
-            const elegida = disponibilidad.equivalencias[0];
+            const elegida = disponibilidad.equivalencias.find((eq) => eq.stock_disponible >= cantidadRequerida)
+                || disponibilidad.equivalencias[0];
             repuestosState.push({
                 repuesto: elegida.nombre,
                 proveedor: "",
