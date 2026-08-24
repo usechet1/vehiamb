@@ -116,9 +116,18 @@
         }
 
         .etiqueta-proximo .etiqueta-proximo-valor {
+            display: block;
             font-size: 1.05rem;
             font-weight: 800;
             color: var(--color-ink);
+        }
+
+        .etiqueta-proximo .etiqueta-proximo-fecha {
+            display: block;
+            margin-top: 2px;
+            font-size: 0.74rem;
+            font-weight: 600;
+            color: var(--color-muted);
         }
 
         .etiqueta-section-title {
@@ -202,6 +211,7 @@
                 <div class="etiqueta-proximo">
                     <span class="etiqueta-proximo-label">Próximo cambio</span>
                     <span class="etiqueta-proximo-valor" id="etqProximo">--</span>
+                    <span class="etiqueta-proximo-fecha" id="etqProximoFecha"></span>
                 </div>
             </div>
             <div class="etiqueta-footer" id="etqFooter"></div>
@@ -219,7 +229,7 @@
         </div>
     </div>
     <div class="etiqueta-acciones hidden" id="etiquetaAcciones">
-        <button type="button" onclick="window.print()">Imprimir / Descargar PDF</button>
+        <button type="button" id="etqImprimirButton">Imprimir / Descargar PDF</button>
     </div>
 
     <script src="assets/js/shared/auth.js"></script>
@@ -254,8 +264,17 @@
             }
         }
 
+        // Se aprueba el cambio de aceite (fuera del Aprobar/Rechazar normal de
+        // notificaciones) hasta que de verdad se imprime o se descarga la
+        // etiqueta -- abrir esta pagina solo para previsualizarla no debe
+        // dejarlo aprobado si al final no se llega a usar. Por eso el id se
+        // guarda a nivel de modulo: cargar() solo lee/muestra datos, y el
+        // clic en "Imprimir / Descargar PDF" es el unico que confirma.
+        let mantenimientoIdActual = null;
+
         async function cargar() {
             const mantenimientoId = new URLSearchParams(window.location.search).get("mantenimiento_id");
+            mantenimientoIdActual = mantenimientoId;
             const estadoCarga = document.getElementById("estadoCarga");
 
             if (!mantenimientoId) {
@@ -279,27 +298,17 @@
                     return;
                 }
 
-                // Cargar el documento de salida de inventario + ver esta etiqueta ES
-                // el tramite de aprobacion del cambio de aceite (no pasa por el
-                // Aprobar/Rechazar de notificaciones) -- se confirma aca, en vez de
-                // requerir un paso aparte.
-                if (mantenimiento.estado !== "aprobado") {
-                    try {
-                        await window.VehiAmb.api.confirmarCambioAceite(mantenimientoId);
-                    } catch (error) {
-                        estadoCarga.textContent = error.message || "No fue posible confirmar el cambio de aceite.";
-                        return;
-                    }
-                }
-
                 document.getElementById("etqPlaca").textContent = mantenimiento.placa || "SIN PLACA";
                 document.getElementById("etqPlacaReverso").textContent = mantenimiento.placa || "SIN PLACA";
                 document.getElementById("etqFecha").textContent = formatDate(mantenimiento.fecha);
                 document.getElementById("etqKm").textContent = `${Number(mantenimiento.kilometraje || 0).toLocaleString("es-CO")} km`;
                 document.getElementById("etqResponsable").textContent = mantenimiento.hecho_por || "No registrado";
                 document.getElementById("etqProximo").textContent = mantenimiento.proximo_cambio_km
-                    ? `${Number(mantenimiento.proximo_cambio_km).toLocaleString("es-CO")} km (${formatDate(mantenimiento.proximo_cambio_fecha)})`
+                    ? `${Number(mantenimiento.proximo_cambio_km).toLocaleString("es-CO")} km`
                     : "No calculado";
+                document.getElementById("etqProximoFecha").textContent = mantenimiento.proximo_cambio_km && mantenimiento.proximo_cambio_fecha
+                    ? formatDate(mantenimiento.proximo_cambio_fecha)
+                    : "";
 
                 const relevantes = repuestos.filter((item) => CATEGORIAS_ETIQUETA.has(item.categoria));
                 const lista = document.getElementById("etqRepuestos");
@@ -332,6 +341,30 @@
                 estadoCarga.textContent = error.message || "No fue posible cargar la etiqueta.";
             }
         }
+
+        // Aca es donde realmente se confirma el cambio de aceite: al hacer
+        // clic para imprimir o descargar la etiqueta, no antes. Si la
+        // confirmacion falla no se abre el dialogo de impresion, para no
+        // dejar una etiqueta impresa de un mantenimiento que no quedo
+        // aprobado.
+        document.getElementById("etqImprimirButton").addEventListener("click", async (event) => {
+            const boton = event.currentTarget;
+            if (!mantenimientoIdActual) return;
+
+            boton.disabled = true;
+            const textoOriginal = boton.textContent;
+            boton.textContent = "Confirmando...";
+
+            try {
+                await window.VehiAmb.api.confirmarCambioAceite(mantenimientoIdActual);
+                window.print();
+            } catch (error) {
+                alert(error.message || "No fue posible confirmar el cambio de aceite.");
+            } finally {
+                boton.disabled = false;
+                boton.textContent = textoOriginal;
+            }
+        });
 
         document.addEventListener("DOMContentLoaded", cargar);
     </script>
