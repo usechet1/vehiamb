@@ -87,7 +87,8 @@ async function findByIdWithVehiculo(id, empresaId) {
         m.*,
         v.placa,
         v.marca,
-        v.modelo
+        v.modelo,
+        v.intervalo_cambio_aceite_km
       FROM mantenimientos m
       INNER JOIN vehiculos v ON v.id = m.vehiculo_id
       WHERE m.id = ? AND m.empresa_id = ?

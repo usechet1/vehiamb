@@ -303,10 +303,21 @@
                 document.getElementById("etqFecha").textContent = formatDate(mantenimiento.fecha);
                 document.getElementById("etqKm").textContent = `${Number(mantenimiento.kilometraje || 0).toLocaleString("es-CO")} km`;
                 document.getElementById("etqResponsable").textContent = mantenimiento.hecho_por || "No registrado";
-                document.getElementById("etqProximo").textContent = mantenimiento.proximo_cambio_km
-                    ? `${Number(mantenimiento.proximo_cambio_km).toLocaleString("es-CO")} km`
+
+                // El proximo cambio se recalcula aca (km de este mantenimiento +
+                // intervalo configurado del vehiculo) en vez de mostrar tal cual
+                // el proximo_cambio_km guardado -- ese campo puede haber quedado
+                // mal cargado en registros viejos (ej. guardado como el intervalo
+                // solo, sin sumar el km). Si el vehiculo no tiene intervalo
+                // configurado, se cae de vuelta al valor guardado.
+                const intervalo = Number(mantenimiento.intervalo_cambio_aceite_km || 0);
+                const kmActual = Number(mantenimiento.kilometraje || 0);
+                const proximoKm = intervalo > 0 ? kmActual + intervalo : (Number(mantenimiento.proximo_cambio_km || 0) || null);
+
+                document.getElementById("etqProximo").textContent = proximoKm
+                    ? `${proximoKm.toLocaleString("es-CO")} km`
                     : "No calculado";
-                document.getElementById("etqProximoFecha").textContent = mantenimiento.proximo_cambio_km && mantenimiento.proximo_cambio_fecha
+                document.getElementById("etqProximoFecha").textContent = proximoKm && mantenimiento.proximo_cambio_fecha
                     ? formatDate(mantenimiento.proximo_cambio_fecha)
                     : "";
 
