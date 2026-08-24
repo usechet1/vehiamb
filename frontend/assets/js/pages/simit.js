@@ -1,10 +1,18 @@
 const kpisGrid = document.getElementById("simitKpisGrid");
 const filterForm = document.getElementById("simitFilterForm");
-const filterVehiculo = document.getElementById("filterSimitVehiculo");
-const filterEstado = document.getElementById("filterSimitEstado");
-const filterConductor = document.getElementById("filterSimitConductor");
+const filterBusqueda = document.getElementById("filterSimitBusqueda");
+const filterEstadoTrigger = document.getElementById("filterSimitEstadoTrigger");
+const filterEstadoTriggerLabel = document.getElementById("filterSimitEstadoTriggerLabel");
+const filterEstadoPopover = document.getElementById("filterSimitEstadoPopover");
+const filterConductorTrigger = document.getElementById("filterSimitConductorTrigger");
+const filterConductorTriggerLabel = document.getElementById("filterSimitConductorTriggerLabel");
+const filterConductorPopover = document.getElementById("filterSimitConductorPopover");
+const filterFechasTrigger = document.getElementById("filterSimitFechasTrigger");
+const filterFechasTriggerLabel = document.getElementById("filterSimitFechasTriggerLabel");
+const filterFechasPopover = document.getElementById("filterSimitFechasPopover");
 const filterFechaDesde = document.getElementById("filterSimitFechaDesde");
 const filterFechaHasta = document.getElementById("filterSimitFechaHasta");
+const filterChips = document.getElementById("simitFilterChips");
 const filterSummary = document.getElementById("simitFilterSummary");
 const clearFiltersButton = document.getElementById("clearSimitFiltersButton");
 const flotaList = document.getElementById("simitFlotaList");
@@ -41,6 +49,8 @@ if (!puedeConsultarSimit) {
 
 let flotaState = [];
 let fechaLoteState = null;
+let filtroEstadoValue = "";
+let filtroConductorValue = "";
 let currentDrawerVehiculoId = null;
 // Contexto completo del vehículo actualmente abierto en el drawer (fila de
 // flota, historial de consultas y detalle/comparendos de la última
@@ -371,25 +381,12 @@ function renderRankings(topVehiculos, topInfractores) {
     `;
 }
 
-function fillVehiculoFilterOptions(rows) {
-    const previousValue = filterVehiculo.value;
-    const ordenadas = [...rows].sort((a, b) => (a.placa || "").localeCompare(b.placa || ""));
-
-    filterVehiculo.innerHTML = '<option value="">Todos los vehículos</option>' +
-        ordenadas
-            .map((row) => `<option value="${row.vehiculo_id}">${escapeHtml(row.placa || "Sin placa")} - ${escapeHtml(row.marca || "")} ${escapeHtml(row.modelo || "")}</option>`)
-            .join("");
-
-    if (previousValue && rows.some((row) => String(row.vehiculo_id) === previousValue)) {
-        filterVehiculo.value = previousValue;
-    }
-}
-
 // Opciones del filtro por conductor: solo conductores que aparecen como
 // infractores identificados en la ultima consulta de algun vehiculo (ver
 // comparendo-conductor-matcher.js), no el catalogo completo de conductores.
+// Se renderizan como botones de popover (mismo patron que Tipo en
+// documentos.html), no como <option> nativas.
 function fillConductorFilterOptions(rows) {
-    const previousValue = filterConductor.value;
     const conductores = new Map();
 
     rows.forEach((row) => {
@@ -400,24 +397,51 @@ function fillConductorFilterOptions(rows) {
 
     const ordenados = [...conductores.entries()].sort((a, b) => a[1].localeCompare(b[1]));
 
-    filterConductor.innerHTML = '<option value="">Todos los conductores</option>' +
-        ordenados.map(([id, nombre]) => `<option value="${id}">${escapeHtml(nombre)}</option>`).join("");
-
-    if (previousValue && conductores.has(Number(previousValue))) {
-        filterConductor.value = previousValue;
+    if (filtroConductorValue && !conductores.has(Number(filtroConductorValue))) {
+        filtroConductorValue = "";
     }
+
+    filterConductorPopover.innerHTML = `
+        <button type="button" class="doc-filter-option${filtroConductorValue ? "" : " is-active"}" data-conductor-value="">Todos</button>
+        ${ordenados.map(([id, nombre]) => `
+            <button type="button" class="doc-filter-option${String(id) === filtroConductorValue ? " is-active" : ""}" data-conductor-value="${id}">${escapeHtml(nombre)}</button>
+        `).join("")}
+    `;
+
+    updateConductorTriggerLabel(conductores);
+}
+
+function updateConductorTriggerLabel(conductores) {
+    const nombre = filtroConductorValue ? conductores.get(Number(filtroConductorValue)) : null;
+    filterConductorTriggerLabel.textContent = nombre || "Conductor";
+    filterConductorTrigger.classList.toggle("is-active", Boolean(filtroConductorValue));
+}
+
+function updateEstadoTriggerLabel() {
+    filterEstadoTriggerLabel.textContent = filtroEstadoValue ? estadoLabel(filtroEstadoValue) : "Estado de cartera";
+    filterEstadoTrigger.classList.toggle("is-active", Boolean(filtroEstadoValue));
+    filterEstadoPopover.querySelectorAll("[data-estado-value]").forEach((boton) => {
+        boton.classList.toggle("is-active", boton.dataset.estadoValue === filtroEstadoValue);
+    });
+}
+
+function updateFechasTriggerLabel() {
+    const hayFecha = filterFechaDesde.value || filterFechaHasta.value;
+    filterFechasTrigger.classList.toggle("is-active", Boolean(hayFecha));
 }
 
 function matchesFilters(row) {
-    const vehiculoId = filterVehiculo.value;
-    const estado = filterEstado.value;
-    const conductorId = filterConductor.value;
+    const busqueda = filterBusqueda.value.trim().toLowerCase();
     const fechaDesde = filterFechaDesde.value;
     const fechaHasta = filterFechaHasta.value;
 
-    if (vehiculoId && String(row.vehiculo_id) !== vehiculoId) return false;
-    if (estado && deriveEstadoCartera(row) !== estado) return false;
-    if (conductorId && !(row.conductores || []).some((conductor) => String(conductor.id) === conductorId)) return false;
+    if (busqueda) {
+        const enPlaca = String(row.placa || "").toLowerCase().includes(busqueda);
+        const enMarca = `${row.marca || ""} ${row.modelo || ""}`.toLowerCase().includes(busqueda);
+        if (!enPlaca && !enMarca) return false;
+    }
+    if (filtroEstadoValue && deriveEstadoCartera(row) !== filtroEstadoValue) return false;
+    if (filtroConductorValue && !(row.conductores || []).some((conductor) => String(conductor.id) === filtroConductorValue)) return false;
 
     if (fechaDesde || fechaHasta) {
         if (!row.fecha_consulta) return false;
@@ -429,18 +453,45 @@ function matchesFilters(row) {
     return true;
 }
 
+function hayFiltrosActivos() {
+    return Boolean(filterBusqueda.value.trim() || filtroEstadoValue || filtroConductorValue || filterFechaDesde.value || filterFechaHasta.value);
+}
+
 function updateFilterSummary(filteredCount) {
     const total = flotaState.length;
-    const hasFilters = Boolean(filterVehiculo.value || filterEstado.value || filterConductor.value || filterFechaDesde.value || filterFechaHasta.value);
 
     if (!total) {
         filterSummary.textContent = "Aún no hay vehículos registrados.";
-        return;
+    } else {
+        filterSummary.textContent = hayFiltrosActivos()
+            ? `Mostrando ${filteredCount} de ${total} vehículos.`
+            : `Mostrando todos los vehículos (${total}).`;
     }
 
-    filterSummary.textContent = hasFilters
-        ? `Mostrando ${filteredCount} de ${total} vehículos.`
-        : `Mostrando todos los vehículos (${total}).`;
+    renderFiltersChips();
+}
+
+// Cada filtro activo (menos la busqueda, que ya se ve escrita en el campo)
+// queda como chip removible, igual que en documentos.html.
+function renderFiltersChips() {
+    const chips = [];
+
+    if (filtroEstadoValue) {
+        chips.push({ id: "estado", label: estadoLabel(filtroEstadoValue) });
+    }
+    if (filtroConductorValue) {
+        chips.push({ id: "conductor", label: filterConductorTriggerLabel.textContent });
+    }
+    if (filterFechaDesde.value || filterFechaHasta.value) {
+        const desde = filterFechaDesde.value ? formatDate(filterFechaDesde.value) : "…";
+        const hasta = filterFechaHasta.value ? formatDate(filterFechaHasta.value) : "…";
+        chips.push({ id: "fechas", label: `${desde} → ${hasta}` });
+    }
+
+    filterChips.classList.toggle("hidden", chips.length === 0);
+    filterChips.innerHTML = chips.map((chip) => `
+        <span class="pill">${escapeHtml(chip.label)} <button type="button" class="pill-remove" data-remove-chip="${chip.id}" aria-label="Quitar filtro">×</button></span>
+    `).join("");
 }
 
 function ordenarPorSeveridad(rows) {
@@ -516,7 +567,6 @@ async function cargarFlota() {
         ]);
         flotaState = flota;
         renderSummary(flotaState, valorHistorico, infractorTop);
-        fillVehiculoFilterOptions(flotaState);
         fillConductorFilterOptions(flotaState);
         applyFilters();
     } catch (error) {
@@ -531,7 +581,8 @@ async function cargarFlota() {
 // Filtra el listado de abajo por un estado de cartera especifico (desde un
 // KPI de "Con multas"/"Cobro coactivo"/etc.) y hace scroll hasta el.
 function filtrarPorEstadoYScroll(estado) {
-    filterEstado.value = estado;
+    filtroEstadoValue = estado;
+    updateEstadoTriggerLabel();
     applyFilters();
     flotaList.scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -757,13 +808,96 @@ filterForm.addEventListener("submit", (event) => {
     event.preventDefault();
 });
 
-[filterVehiculo, filterEstado, filterConductor, filterFechaDesde, filterFechaHasta].forEach((input) => {
-    input.addEventListener("input", applyFilters);
-    input.addEventListener("change", applyFilters);
+filterBusqueda.addEventListener("input", applyFilters);
+
+[filterFechaDesde, filterFechaHasta].forEach((input) => {
+    input.addEventListener("input", () => {
+        updateFechasTriggerLabel();
+        applyFilters();
+    });
 });
 
 clearFiltersButton.addEventListener("click", () => {
-    filterForm.reset();
+    filterBusqueda.value = "";
+    filterFechaDesde.value = "";
+    filterFechaHasta.value = "";
+    filtroEstadoValue = "";
+    filtroConductorValue = "";
+    updateEstadoTriggerLabel();
+    fillConductorFilterOptions(flotaState);
+    updateFechasTriggerLabel();
+    applyFilters();
+});
+
+// Popovers de Estado/Conductor/Fechas: mismo patron de abrir-uno-cierra-los-
+// demas y cerrar al hacer clic afuera que documentos.html.
+function cerrarPopoversFiltro() {
+    filterEstadoPopover.classList.add("hidden");
+    filterConductorPopover.classList.add("hidden");
+    filterFechasPopover.classList.add("hidden");
+}
+
+filterEstadoTrigger.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const estabaAbierto = !filterEstadoPopover.classList.contains("hidden");
+    cerrarPopoversFiltro();
+    filterEstadoPopover.classList.toggle("hidden", estabaAbierto);
+});
+
+filterConductorTrigger.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const estabaAbierto = !filterConductorPopover.classList.contains("hidden");
+    cerrarPopoversFiltro();
+    filterConductorPopover.classList.toggle("hidden", estabaAbierto);
+});
+
+filterFechasTrigger.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const estabaAbierto = !filterFechasPopover.classList.contains("hidden");
+    cerrarPopoversFiltro();
+    filterFechasPopover.classList.toggle("hidden", estabaAbierto);
+});
+
+document.addEventListener("click", (event) => {
+    if (!event.target.closest(".doc-filter-popover-wrap")) cerrarPopoversFiltro();
+});
+
+filterEstadoPopover.addEventListener("click", (event) => {
+    const opcion = event.target.closest("[data-estado-value]");
+    if (!opcion) return;
+
+    filtroEstadoValue = opcion.dataset.estadoValue;
+    updateEstadoTriggerLabel();
+    cerrarPopoversFiltro();
+    applyFilters();
+});
+
+filterConductorPopover.addEventListener("click", (event) => {
+    const opcion = event.target.closest("[data-conductor-value]");
+    if (!opcion) return;
+
+    filtroConductorValue = opcion.dataset.conductorValue;
+    fillConductorFilterOptions(flotaState);
+    cerrarPopoversFiltro();
+    applyFilters();
+});
+
+filterChips.addEventListener("click", (event) => {
+    const boton = event.target.closest("[data-remove-chip]");
+    if (!boton) return;
+
+    if (boton.dataset.removeChip === "estado") {
+        filtroEstadoValue = "";
+        updateEstadoTriggerLabel();
+    } else if (boton.dataset.removeChip === "conductor") {
+        filtroConductorValue = "";
+        fillConductorFilterOptions(flotaState);
+    } else if (boton.dataset.removeChip === "fechas") {
+        filterFechaDesde.value = "";
+        filterFechaHasta.value = "";
+        updateFechasTriggerLabel();
+    }
+
     applyFilters();
 });
 
