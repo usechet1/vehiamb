@@ -25,7 +25,11 @@ exports.obtener = async (req, res) => {
 
 exports.obtenerDetalle = async (req, res) => {
   const { page, limit } = parsePage(req.query);
-  const resultado = await stockImportService.obtenerDetalle(req.params.id, { page, limit, accion: req.query.accion }, req.empresaId);
+  const resultado = await stockImportService.obtenerDetalle(
+    req.params.id,
+    { page, limit, accion: req.query.accion, codigo: req.query.codigo },
+    req.empresaId
+  );
   res.json(resultado);
 };
 

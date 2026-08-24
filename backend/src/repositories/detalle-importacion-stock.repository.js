@@ -20,13 +20,18 @@ async function createMany(importacionId, detalles, empresaId) {
   }
 }
 
-async function findByImportacion(importacionId, { page = 1, limit = 50, accion } = {}) {
+async function findByImportacion(importacionId, { page = 1, limit = 50, accion, codigo } = {}) {
   const conditions = ["importacion_id = ?"];
   const values = [importacionId];
 
   if (accion) {
     conditions.push("accion = ?");
     values.push(accion);
+  }
+
+  if (codigo) {
+    conditions.push("codigo_interno ILIKE ?");
+    values.push(`%${codigo}%`);
   }
 
   const whereClause = `WHERE ${conditions.join(" AND ")}`;

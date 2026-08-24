@@ -851,6 +851,7 @@ window.VehiAmb.api = {
     getStockImportacionDetalle(id, filters = {}) {
         const params = new URLSearchParams();
         if (filters.accion) params.set("accion", filters.accion);
+        if (filters.codigo) params.set("codigo", filters.codigo);
         if (filters.page) params.set("page", filters.page);
         if (filters.limit) params.set("limit", filters.limit);
         const query = params.toString();

@@ -23,6 +23,11 @@ const configImportStatusBody = document.getElementById("configImportStatusBody")
 let currentPage = 1;
 let totalPages = 1;
 
+let detalleImportacionId = null;
+let detallePage = 1;
+let detalleTotalPages = 1;
+let detalleBusquedaDebounce = null;
+
 const ESTADO_LABEL = {
     pendiente: "Pendiente",
     en_proceso: "En proceso",
@@ -222,17 +227,77 @@ function renderIncidenciaRow(incidencia) {
     `;
 }
 
+// El buscador y la paginacion de "Registros procesados" viven en su propio
+// contenedor (no se regeneran junto con el resto del drawer) para poder
+// refrescar solo esa tabla sin perder el foco del input mientras se escribe.
+async function cargarDetalleTabla() {
+    const contenedor = document.getElementById("stockImportDetalleResultados");
+    if (!contenedor || !detalleImportacionId) return;
+
+    contenedor.innerHTML = '<p class="dash-empty detail-empty">Cargando...</p>';
+
+    try {
+        const codigo = document.getElementById("stockImportDetalleBusqueda")?.value.trim();
+        const detalle = await window.VehiAmb.api.getStockImportacionDetalle(detalleImportacionId, {
+            codigo: codigo || undefined,
+            page: detallePage,
+            limit: 25
+        });
+
+        detalleTotalPages = detalle.totalPages;
+
+        contenedor.innerHTML = `
+            ${detalle.items.length
+                ? `<div class="table-scroll"><table class="import-table import-table-compact">
+                    <thead><tr><th>Codigo</th><th>Accion</th><th>Fecha</th></tr></thead>
+                    <tbody>
+                        ${detalle.items.map((d) => `
+                            <tr>
+                                <td>${escapeHtml(d.codigo_interno)}</td>
+                                <td>${ACCION_LABEL[d.accion] || d.accion}</td>
+                                <td>${formatDateTime(d.creado_en)}</td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table></div>`
+                : '<p class="dash-empty detail-empty">Sin registros para esa busqueda.</p>'}
+            <div class="filter-actions">
+                <span class="field-help">Página ${detalle.page} de ${detalle.totalPages} · ${detalle.total} registros</span>
+                <div class="pagination-buttons">
+                    <button type="button" id="stockImportDetallePrev" class="btn-secondary" ${detallePage <= 1 ? "disabled" : ""}>Anterior</button>
+                    <button type="button" id="stockImportDetalleNext" class="btn-secondary" ${detallePage >= detalleTotalPages ? "disabled" : ""}>Siguiente</button>
+                </div>
+            </div>
+        `;
+
+        document.getElementById("stockImportDetallePrev")?.addEventListener("click", () => {
+            if (detallePage <= 1) return;
+            detallePage -= 1;
+            cargarDetalleTabla();
+        });
+        document.getElementById("stockImportDetalleNext")?.addEventListener("click", () => {
+            if (detallePage >= detalleTotalPages) return;
+            detallePage += 1;
+            cargarDetalleTabla();
+        });
+    } catch (error) {
+        contenedor.innerHTML = '<p class="dash-empty detail-empty">No fue posible cargar los registros procesados.</p>';
+    }
+}
+
 async function cargarDrawer(importacionId) {
     stockImportDrawerBody.innerHTML = '<p class="dash-empty">Cargando...</p>';
     window.VehiAmb.ui.show(stockImportDrawerBackdrop);
     window.VehiAmb.ui.show(stockImportDrawer);
     stockImportDrawer.setAttribute("aria-hidden", "false");
 
+    detalleImportacionId = importacionId;
+    detallePage = 1;
+
     try {
-        const [importacion, incidencias, detalle] = await Promise.all([
+        const [importacion, incidencias] = await Promise.all([
             window.VehiAmb.api.getStockImportacion(importacionId),
-            window.VehiAmb.api.getStockImportacionIncidencias(importacionId, { limit: 20 }),
-            window.VehiAmb.api.getStockImportacionDetalle(importacionId, { limit: 15 })
+            window.VehiAmb.api.getStockImportacionIncidencias(importacionId, { limit: 20 })
         ]);
 
         stockImportDrawerTitle.textContent = `Importación #${importacion.id}`;
@@ -260,23 +325,21 @@ async function cargarDrawer(importacionId) {
             </section>
 
             <section class="drawer-section">
-                <h3>Registros procesados (últimos ${detalle.items.length} de ${detalle.total})</h3>
-                ${detalle.items.length
-                    ? `<div class="table-scroll"><table class="import-table import-table-compact">
-                        <thead><tr><th>Codigo</th><th>Accion</th><th>Fecha</th></tr></thead>
-                        <tbody>
-                            ${detalle.items.map((d) => `
-                                <tr>
-                                    <td>${escapeHtml(d.codigo_interno)}</td>
-                                    <td>${ACCION_LABEL[d.accion] || d.accion}</td>
-                                    <td>${formatDateTime(d.creado_en)}</td>
-                                </tr>
-                            `).join("")}
-                        </tbody>
-                    </table></div>`
-                    : '<p class="dash-empty detail-empty">Sin registros.</p>'}
+                <h3>Registros procesados</h3>
+                <input type="search" id="stockImportDetalleBusqueda" class="doc-search-input" placeholder="Buscar por código interno...">
+                <div id="stockImportDetalleResultados"></div>
             </section>
         `;
+
+        document.getElementById("stockImportDetalleBusqueda")?.addEventListener("input", (event) => {
+            clearTimeout(detalleBusquedaDebounce);
+            detalleBusquedaDebounce = setTimeout(() => {
+                detallePage = 1;
+                cargarDetalleTabla();
+            }, 300);
+        });
+
+        await cargarDetalleTabla();
     } catch (error) {
         stockImportDrawerBody.innerHTML = '<p class="dash-empty">No fue posible cargar el detalle de la importación</p>';
     }
