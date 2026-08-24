@@ -55,12 +55,15 @@ function parse(validated) {
     }
 
     const stockFisico = roundNumber(row[col("saldo")]);
-    // "VALOR TOTAL" en la hoja SALDO es, pese al nombre, el costo por unidad
-    // (no el costo de todo el saldo en existencia) -- se usa tal cual, sin
-    // dividir entre SALDO. Antes se calculaba VALOR TOTAL / SALDO, lo que
-    // ademas forzaba el precio a 0 en cualquier fila con SALDO en 0 aunque
-    // la hoja si trajera un precio real.
-    const valorPromedio = roundNumber(row[col("valorTotal")]);
+    // "VALOR TOTAL" en la hoja SALDO es el valor total de todas las unidades
+    // en existencia (cantidad x precio unitario), no el precio unitario --
+    // para obtener el valor promedio por unidad hay que dividir entre SALDO.
+    // Cuando SALDO es 0 no hay nada que repartir (division por cero), asi
+    // que se usa VALOR TOTAL tal cual como mejor referencia disponible, en
+    // vez de forzar el precio a 0 en un articulo agotado que si tiene un
+    // precio de referencia cargado en la hoja.
+    const valorTotalCelda = roundNumber(row[col("valorTotal")]);
+    const valorPromedio = stockFisico > 0 ? roundNumber(valorTotalCelda / stockFisico) : valorTotalCelda;
 
     candidates.push({
       filaExcel,
