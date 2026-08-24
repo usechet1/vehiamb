@@ -298,6 +298,29 @@ function actualizarBloqueoStep3() {
     mntStep3BlockingReason.classList.toggle("hidden", !bloqueado);
 }
 
+// La proxima fecha de un cambio de aceite se sugiere sola (fecha del
+// mantenimiento + 3 meses) para no dejar el campo vacio, pero sigue siendo
+// editable -- una vez que el usuario la toca a mano, se deja de recalcular
+// para no pisarle la eleccion.
+let proximaFechaEditadaManualmente = false;
+
+function sumarMeses(fechaISO, meses) {
+    if (!fechaISO) return "";
+    const fecha = new Date(`${fechaISO}T00:00:00`);
+    if (Number.isNaN(fecha.getTime())) return "";
+
+    fecha.setMonth(fecha.getMonth() + meses);
+    const yyyy = fecha.getFullYear();
+    const mm = String(fecha.getMonth() + 1).padStart(2, "0");
+    const dd = String(fecha.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+}
+
+function autocompletarProximaFecha() {
+    if (mantenimientoTipo.value !== "cambio_aceite" || proximaFechaEditadaManualmente) return;
+    proximoCambioFechaInput.value = sumarMeses(mantenimientoFecha.value, 3);
+}
+
 function updateCambioAceiteFields() {
     const isCambioAceite = mantenimientoTipo.value === "cambio_aceite";
 
@@ -317,12 +340,14 @@ function updateCambioAceiteFields() {
         vehiculoVaradoInput.checked = false;
         valorManoObraInput.value = "$ 0";
         updateCostoTotal();
+        autocompletarProximaFecha();
     }
 
     if (!isCambioAceite) {
         proximoCambioKmInput.value = "";
         proximoCambioKmHelp.textContent = "";
         proximoCambioFechaInput.value = "";
+        proximaFechaEditadaManualmente = false;
         repuestosSugeridosAviso.classList.add("hidden");
         repuestosPermitidosVehiculo = null;
         actualizarEstadoBusquedaRepuesto();
@@ -1412,6 +1437,10 @@ valorManoObraInput.addEventListener("input", () => {
     updateCostoTotal();
 });
 mantenimientoTipo.addEventListener("change", updateCambioAceiteFields);
+mantenimientoFecha.addEventListener("input", autocompletarProximaFecha);
+proximoCambioFechaInput.addEventListener("input", () => {
+    proximaFechaEditadaManualmente = true;
+});
 
 mantenimientosFilterForm.addEventListener("submit", (event) => {
     event.preventDefault();
