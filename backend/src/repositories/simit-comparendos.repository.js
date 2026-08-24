@@ -93,13 +93,20 @@ async function actualizarConductor(id, conductorId, empresaId) {
 // nombresCompatibles) antes de decidir si dos filas son la misma persona.
 // Se cuenta DISTINCT numero_comparendo porque cada consulta SIMIT reinserta
 // su propia muestra de filas (ver bulkCreate).
+// Se hace LEFT JOIN a conductores por el conductor_id que ya haya quedado
+// vinculado al registrar cada comparendo (ver comparendo-conductor-matcher.js)
+// -- asi el servicio puede agrupar por identidad real cuando existe, en vez
+// de solo por el nombre enmascarado que entrega el SIMIT.
 async function findConteosInfractores(empresaId) {
   return db.all(
     `
-      SELECT cedula_infractor, nombre_infractor, COUNT(DISTINCT numero_comparendo) AS total_comparendos
-      FROM simit_comparendos
-      WHERE empresa_id = ? AND cedula_infractor IS NOT NULL
-      GROUP BY cedula_infractor, nombre_infractor
+      SELECT sc.conductor_id, c.nombres AS conductor_nombres, c.apellidos AS conductor_apellidos,
+             sc.cedula_infractor, sc.nombre_infractor,
+             COUNT(DISTINCT sc.numero_comparendo) AS total_comparendos
+      FROM simit_comparendos sc
+      LEFT JOIN conductores c ON c.id = sc.conductor_id
+      WHERE sc.empresa_id = ? AND sc.cedula_infractor IS NOT NULL
+      GROUP BY sc.conductor_id, c.nombres, c.apellidos, sc.cedula_infractor, sc.nombre_infractor
     `,
     [empresaId]
   );

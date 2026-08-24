@@ -233,16 +233,42 @@ async function obtenerValorHistorico(empresaId, dias = 30) {
   return simitConsultasRepository.sumValorTotalHaceDias(dias, empresaId);
 }
 
-// Junta, dentro de una misma cedula_infractor, las filas cuyo nombre es una
-// variante compatible entre si (ver nombresCompatibles) -- ej. SIMIT
-// devolviendo "MAI*** ES*** MART****" en una consulta y "MAI*** ES***
-// MART**** QUI****" en otra para la misma persona. Filas con nombres
-// incompatibles bajo la misma cedula (indicio de que dos personas reales
-// distintas comparten el mismo prefijo de cedula enmascarado) quedan como
-// grupos separados, cada una con su propio total.
+// Filas con conductor_id ya vinculado (match fuerte hecho al registrar el
+// comparendo, ver comparendo-conductor-matcher.js) se agrupan directamente
+// por esa identidad real -- no hace falta comparar nombres enmascarados,
+// ya sabemos quien es. Solo las filas SIN vinculo quedan sujetas al
+// agrupamiento tolerante por nombre enmascarado (ver mas abajo), que sigue
+// siendo necesario porque el cedula_infractor que entrega el SIMIT tambien
+// viene parcialmente oculto y puede repetirse entre personas distintas.
 function agruparInfractoresPorIdentidad(conteos) {
-  const porCedula = new Map();
+  const identificados = new Map();
+  const sinIdentificar = [];
+
   conteos.forEach((fila) => {
+    if (!fila.conductor_id) {
+      sinIdentificar.push(fila);
+      return;
+    }
+
+    const existente = identificados.get(fila.conductor_id) || {
+      conductor_id: fila.conductor_id,
+      nombre: `${fila.conductor_nombres || ""} ${fila.conductor_apellidos || ""}`.trim() || fila.nombre_infractor,
+      identificado: true,
+      total_comparendos: 0
+    };
+    existente.total_comparendos += Number(fila.total_comparendos);
+    identificados.set(fila.conductor_id, existente);
+  });
+
+  // Junta, dentro de una misma cedula_infractor, las filas cuyo nombre es una
+  // variante compatible entre si (ver nombresCompatibles) -- ej. SIMIT
+  // devolviendo "MAI*** ES*** MART****" en una consulta y "MAI*** ES***
+  // MART**** QUI****" en otra para la misma persona. Filas con nombres
+  // incompatibles bajo la misma cedula (indicio de que dos personas reales
+  // distintas comparten el mismo prefijo de cedula enmascarado) quedan como
+  // grupos separados, cada una con su propio total.
+  const porCedula = new Map();
+  sinIdentificar.forEach((fila) => {
     const lista = porCedula.get(fila.cedula_infractor) || [];
     lista.push(fila);
     porCedula.set(fila.cedula_infractor, lista);
@@ -268,13 +294,14 @@ function agruparInfractoresPorIdentidad(conteos) {
 
       grupos.push({
         cedula_infractor: base.cedula_infractor,
-        nombre_infractor: nombreRepresentativo.nombre_infractor,
+        nombre: nombreRepresentativo.nombre_infractor,
+        identificado: false,
         total_comparendos: compatibles.reduce((suma, fila) => suma + Number(fila.total_comparendos), 0)
       });
     }
   });
 
-  return grupos.sort((a, b) => b.total_comparendos - a.total_comparendos);
+  return [...identificados.values(), ...grupos].sort((a, b) => b.total_comparendos - a.total_comparendos);
 }
 
 async function obtenerTopInfractores(empresaId, limite = 5) {

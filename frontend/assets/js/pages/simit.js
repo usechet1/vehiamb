@@ -8,6 +8,8 @@ const filterFechaHasta = document.getElementById("filterSimitFechaHasta");
 const filterSummary = document.getElementById("simitFilterSummary");
 const clearFiltersButton = document.getElementById("clearSimitFiltersButton");
 const flotaList = document.getElementById("simitFlotaList");
+const rankingsContainer = document.getElementById("simitRankings");
+const simitSyncNote = document.getElementById("simitSyncNote");
 const actualizarFlotaButton = document.getElementById("actualizarFlotaButton");
 const loader = document.getElementById("loader");
 const mensaje = document.getElementById("mensaje");
@@ -38,6 +40,7 @@ if (!puedeConsultarSimit) {
 }
 
 let flotaState = [];
+let fechaLoteState = null;
 let currentDrawerVehiculoId = null;
 // Contexto completo del vehículo actualmente abierto en el drawer (fila de
 // flota, historial de consultas y detalle/comparendos de la última
@@ -65,10 +68,13 @@ const ESTADO_KPI_LABEL = {
     desconocido: "Consulta con error"
 };
 
+// Cobro coactivo (proceso de embargo/juridico) es la unica severidad que
+// merece el rojo institucional. "Con multas" todavia es pagable con
+// descuento -- mismo tono ambar que "acuerdo de pago", no rojo.
 const ESTADO_PILL_CLASS = {
     nunca_consultado: "pill",
     sin_multas: "pill-success",
-    con_multas: "pill-danger",
+    con_multas: "pill-warning",
     cobro_coactivo: "pill-danger",
     acuerdo_pago: "pill-warning",
     desconocido: "pill"
@@ -187,10 +193,42 @@ function vehiculosDesactualizados(rows, dias = 30) {
     return rows.filter((row) => row.fecha_consulta && new Date(row.fecha_consulta).getTime() < limite).length;
 }
 
+// La hora de "ultima consulta" es casi identica en las 25 filas porque viene
+// de un mismo job nocturno -- es una propiedad del LOTE, no de cada
+// vehiculo. Se calcula una sola vez (la fecha_consulta mas reciente de toda
+// la flota) para mostrarla arriba, en el encabezado de la seccion, en vez de
+// repetirla en cada fila.
+function calcularSincronizacionLote(rows) {
+    const fechas = rows.map((row) => row.fecha_consulta).filter(Boolean).sort();
+    if (!fechas.length) return null;
+    return fechas[fechas.length - 1];
+}
+
+function formatSyncNote(fechaLote) {
+    if (!fechaLote) return "";
+
+    const fecha = new Date(fechaLote);
+    const esHoy = fecha.toDateString() === new Date().toDateString();
+    const hora = fecha.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
+
+    return esHoy ? `· Sincronizado hoy, ${hora}` : `· Última sincronización: ${formatDate(fechaLote)}, ${hora}`;
+}
+
+// Solo las filas que YA tienen consulta pero quedaron fuera del ultimo lote
+// (ej. fallo esa noche, o el vehiculo se agrego despues) necesitan su propia
+// fecha visible, y en ambar -- son la excepcion, no la regla. Los "nunca
+// consultados" no cuentan aqui, ya tienen su propio estado/pill.
+function esConsultaDesactualizada(row, fechaLote) {
+    if (!row.fecha_consulta || !fechaLote) return false;
+    return new Date(row.fecha_consulta).toDateString() !== new Date(fechaLote).toDateString();
+}
+
 // Compara el valor total actual contra el de hace N dias (obtenido del
-// backend, ver getSimitValorHistorico) y arma un texto de tendencia. Un
-// aumento de deuda es una mala noticia (rojo); una disminucion es buena
-// (verde).
+// backend, ver getSimitValorHistorico) y arma un texto de tendencia. Se usa
+// la diferencia absoluta en pesos, no el porcentaje: partir de una base baja
+// (o cero) infla cualquier porcentaje y lo vuelve inutil para leer -- "+$7.2M
+// en 30 dias" se entiende de un vistazo, "+1150%" no. Un aumento de deuda es
+// mala noticia (rojo); una disminucion es buena (verde).
 function formatTendencia(actual, anterior, dias) {
     if (anterior === null || anterior === undefined) return null;
 
@@ -198,12 +236,9 @@ function formatTendencia(actual, anterior, dias) {
     if (diferencia === 0) return { texto: `Sin cambio vs. hace ${dias} días`, clase: "" };
 
     const flecha = diferencia > 0 ? "▲" : "▼";
-    const magnitud = anterior > 0
-        ? `${Math.round((Math.abs(diferencia) / anterior) * 100)}%`
-        : formatCurrency(Math.abs(diferencia));
 
     return {
-        texto: `${flecha} ${magnitud} vs. hace ${dias} días`,
+        texto: `${flecha} ${formatCurrency(Math.abs(diferencia))} vs. hace ${dias} días`,
         clase: diferencia > 0 ? "kpi-sub-bad" : "kpi-sub-good"
     };
 }
@@ -248,6 +283,9 @@ function renderSummary(rows, valorHistorico, infractorTop) {
     const totalComparendos = totalComparendosInfo(rows, conteos);
     const topInfractores = infractorTop || [];
 
+    fechaLoteState = calcularSincronizacionLote(rows);
+    simitSyncNote.textContent = formatSyncNote(fechaLoteState);
+
     kpisGrid.innerHTML = `
         <div class="kpi-card clickable-record" style="--kpi-accent: ${totalComparendos.accent}" data-accion="ranking-comparendos" tabindex="0" role="button" aria-label="Ver vehículos con comparendos">
             <div class="kpi-label">Total comparendos</div>
@@ -262,7 +300,8 @@ function renderSummary(rows, valorHistorico, infractorTop) {
         <div class="kpi-card" style="--kpi-accent: var(--color-success)">
             <div class="kpi-label">Flota al día</div>
             <div class="kpi-value">${alDia.alDia}/${alDia.total}</div>
-            <div class="kpi-sub">${alDia.porcentaje}% sin multas${desactualizados ? ` · ${desactualizados} sin consultar hace +30 días` : ""}</div>
+            <div class="kpi-bar"><div class="kpi-bar-fill" style="width: ${alDia.porcentaje}%"></div></div>
+            ${desactualizados ? `<div class="kpi-sub">${desactualizados} sin consultar hace +30 días</div>` : ""}
         </div>
         ${orden
             .filter((estado) => conteos[estado])
@@ -273,27 +312,60 @@ function renderSummary(rows, valorHistorico, infractorTop) {
                 </div>
             `)
             .join("")}
+    `;
+
+    renderRankings(topVehiculos, topInfractores);
+}
+
+// Rankings van aparte de las tarjetas KPI -- un KPI se lee en un vistazo, un
+// ranking de 5 nombres necesita una lista con barra proporcional para poder
+// comparar magnitudes, no una tarjeta de texto de 11px.
+function renderRankings(topVehiculos, topInfractores) {
+    if (!topVehiculos.length && !topInfractores.length) {
+        rankingsContainer.innerHTML = "";
+        return;
+    }
+
+    const maxVehiculos = Math.max(...topVehiculos.map((v) => Number(v.total_comparendos)), 1);
+    const maxInfractores = Math.max(...topInfractores.map((i) => Number(i.total_comparendos)), 1);
+
+    rankingsContainer.innerHTML = `
         ${topVehiculos.length ? `
-            <div class="kpi-card" style="--kpi-accent: var(--color-primary)">
-                <div class="kpi-label">Top vehículos</div>
-                <div class="kpi-top-list">
+            <div class="simit-ranking-card">
+                <h3>Top vehículos con comparendos</h3>
+                <div class="simit-ranking-list">
                     ${topVehiculos.map((vehiculo, indice) => `
-                        <div class="kpi-top-item clickable-record" data-vehiculo-id="${vehiculo.vehiculo_id}" tabindex="0" role="button" aria-label="Ver detalle SIMIT de ${escapeHtml(vehiculo.placa || "")}">
-                            ${indice + 1}. ${escapeHtml(vehiculo.placa || "Sin placa")} (${vehiculo.total_comparendos})
+                        <div class="simit-ranking-item clickable-record" data-vehiculo-id="${vehiculo.vehiculo_id}" tabindex="0" role="button" aria-label="Ver detalle SIMIT de ${escapeHtml(vehiculo.placa || "")}">
+                            <span class="simit-ranking-rank">${indice + 1}</span>
+                            <div class="simit-ranking-main">
+                                <div class="simit-ranking-row">
+                                    <span class="simit-ranking-label">${escapeHtml(vehiculo.placa || "Sin placa")}</span>
+                                    <span class="simit-ranking-value">${vehiculo.total_comparendos}</span>
+                                </div>
+                                <div class="simit-ranking-bar"><div class="simit-ranking-bar-fill" style="width: ${(Number(vehiculo.total_comparendos) / maxVehiculos * 100).toFixed(0)}%"></div></div>
+                            </div>
                         </div>
                     `).join("")}
                 </div>
-                </div>
+            </div>
         ` : ""}
         ${topInfractores.length ? `
-            <div class="kpi-card kpi-card-wide" style="--kpi-accent: var(--color-primary)">
-                <div class="kpi-label">Top conductores</div>
-                <div class="kpi-top-list kpi-top-list--collapsed" id="topConductoresList">
+            <div class="simit-ranking-card">
+                <h3>Top conductores</h3>
+                <div class="simit-ranking-list">
                     ${topInfractores.map((infractor, indice) => `
-                        <div class="kpi-top-item">${indice + 1}. ${escapeHtml(infractor.nombre_infractor || "Nombre no disponible")} (${infractor.total_comparendos})</div>
+                        <div class="simit-ranking-item">
+                            <span class="simit-ranking-rank">${indice + 1}</span>
+                            <div class="simit-ranking-main">
+                                <div class="simit-ranking-row">
+                                    <span class="simit-ranking-label${infractor.identificado ? "" : " simit-ranking-label--masked"}">${escapeHtml(infractor.nombre || "Nombre no disponible")}</span>
+                                    <span class="simit-ranking-value">${infractor.total_comparendos}</span>
+                                </div>
+                                <div class="simit-ranking-bar"><div class="simit-ranking-bar-fill" style="width: ${(Number(infractor.total_comparendos) / maxInfractores * 100).toFixed(0)}%"></div></div>
+                            </div>
+                        </div>
                     `).join("")}
                 </div>
-                ${topInfractores.length > 5 ? `<button type="button" class="kpi-mini-link" data-accion="toggle-top-conductores">Ver todos (${topInfractores.length})</button>` : ""}
             </div>
         ` : ""}
     `;
@@ -375,8 +447,17 @@ function ordenarPorSeveridad(rows) {
     return [...rows].sort((a, b) => {
         const severidadA = ESTADO_SEVERIDAD[deriveEstadoCartera(a)] ?? 99;
         const severidadB = ESTADO_SEVERIDAD[deriveEstadoCartera(b)] ?? 99;
-        return severidadA - severidadB;
+        if (severidadA !== severidadB) return severidadA - severidadB;
+        // Dentro de la misma severidad, primero donde mas plata hay en juego.
+        return Number(b.valor_total || 0) - Number(a.valor_total || 0);
     });
+}
+
+// Las multas "con_multas"/"cobro_coactivo" son las unicas con algo que hacer
+// de verdad -- ofrecer el atajo a SIMIT ahi es la accion que faltaba en la
+// fila (junto con "ver detalle", que ya cubre el click en toda la tarjeta).
+function tieneAccionDePago(estado) {
+    return estado === "con_multas" || estado === "cobro_coactivo";
 }
 
 function renderFlotaList(rows, { ordenar = true } = {}) {
@@ -389,6 +470,7 @@ function renderFlotaList(rows, { ordenar = true } = {}) {
 
     flotaList.innerHTML = filas.map((row) => {
         const estado = deriveEstadoCartera(row);
+        const desactualizada = esConsultaDesactualizada(row, fechaLoteState);
 
         return `
             <article class="record-item clickable-record" data-vehiculo-id="${row.vehiculo_id}" tabindex="0" role="button" aria-label="Ver detalle SIMIT de ${row.placa || ""}">
@@ -397,18 +479,22 @@ function renderFlotaList(rows, { ordenar = true } = {}) {
                         <span class="record-title">${escapeHtml(row.placa || "Sin placa")}</span>
                         <span class="record-sub">${escapeHtml(row.marca || "")} ${escapeHtml(row.modelo || "")}</span>
                     </div>
-                    <span class="pill ${estadoPillClass(estado)}">${estadoLabel(estado)}</span>
+                    <div class="simit-row-end">
+                        <span class="simit-row-amount${Number(row.valor_total) ? "" : " simit-row-amount--muted"}">${Number(row.valor_total) ? formatCurrency(row.valor_total) : "Sin deuda"}</span>
+                        <span class="pill ${estadoPillClass(estado)}">${estadoLabel(estado)}</span>
+                    </div>
                 </div>
                 <div class="record-meta">
                     <span class="pill">Comparendos: ${row.total_comparendos ?? 0}</span>
-                    <span class="pill">${formatCurrency(row.valor_total)}</span>
-                    <span class="pill">Última consulta: ${formatDateTime(row.fecha_consulta)}</span>
+                    ${desactualizada ? `<span class="simit-row-stale">⚠ Última consulta: ${formatDateTime(row.fecha_consulta)}</span>` : ""}
                 </div>
-                ${puedeConsultarSimit ? `
                 <div class="simit-card-actions">
-                    <button type="button" class="btn-secondary" data-consultar-id="${row.vehiculo_id}">Consultar ahora</button>
+                    <span class="record-link">Ver detalle →</span>
+                    <div class="simit-card-actions-buttons">
+                        ${tieneAccionDePago(estado) ? `<button type="button" class="btn-secondary btn-pagar" data-pagar-placa="${escapeHtml(row.placa || "")}">Pagar en SIMIT ↗</button>` : ""}
+                        ${puedeConsultarSimit ? `<button type="button" class="btn-secondary" data-consultar-id="${row.vehiculo_id}">Consultar ahora</button>` : ""}
+                    </div>
                 </div>
-                ` : ""}
             </article>
         `;
     }).join("");
@@ -688,6 +774,13 @@ if (puedeConsultarSimit) {
 }
 
 flotaList.addEventListener("click", (event) => {
+    const pagarButton = event.target.closest("[data-pagar-placa]");
+    if (pagarButton) {
+        event.stopPropagation();
+        copiarPlacaYAbrirSimit(pagarButton.dataset.pagarPlaca);
+        return;
+    }
+
     const consultarButton = event.target.closest("[data-consultar-id]");
     if (consultarButton) {
         event.stopPropagation();
@@ -751,6 +844,19 @@ kpisGrid.addEventListener("keydown", (event) => {
     openSimitDetail(card.dataset.vehiculoId);
 });
 
+rankingsContainer.addEventListener("click", (event) => {
+    const item = event.target.closest("[data-vehiculo-id]");
+    if (item) openSimitDetail(item.dataset.vehiculoId);
+});
+
+rankingsContainer.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    const item = event.target.closest("[data-vehiculo-id]");
+    if (!item) return;
+    event.preventDefault();
+    openSimitDetail(item.dataset.vehiculoId);
+});
+
 closeSimitDrawer.addEventListener("click", closeDetailDrawer);
 simitDrawerBackdrop.addEventListener("click", closeDetailDrawer);
 document.addEventListener("keydown", (event) => {
@@ -763,9 +869,7 @@ simitDrawerConsultarButton.addEventListener("click", () => {
     if (currentDrawerVehiculoId) consultarVehiculoManual(currentDrawerVehiculoId);
 });
 
-simitDrawerPagarButton.addEventListener("click", async () => {
-    const placa = currentDrawerContext?.row?.placa;
-
+async function copiarPlacaYAbrirSimit(placa) {
     if (placa && navigator.clipboard?.writeText) {
         try {
             await navigator.clipboard.writeText(placa);
@@ -776,6 +880,10 @@ simitDrawerPagarButton.addEventListener("click", async () => {
     }
 
     window.open(SIMIT_PORTAL_URL, "_blank", "noopener,noreferrer");
+}
+
+simitDrawerPagarButton.addEventListener("click", () => {
+    copiarPlacaYAbrirSimit(currentDrawerContext?.row?.placa);
 });
 
 exportSimitPdfButton.addEventListener("click", async () => {
