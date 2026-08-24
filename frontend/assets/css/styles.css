@@ -2550,10 +2550,6 @@ label[for="loginPassword"] {
     margin-bottom: 20px;
 }
 
-.kpi-card-wide {
-    grid-column: span 2;
-}
-
 .kpi-card {
     position: relative;
     background: var(--color-surface);
@@ -2606,31 +2602,6 @@ label[for="loginPassword"] {
     color: var(--color-ink);
 }
 
-.kpi-top-list {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    margin-top: 2px;
-}
-
-.kpi-top-item {
-    font-size: 0.82rem;
-    font-weight: 700;
-    color: var(--color-ink);
-}
-
-.kpi-top-item.clickable-record {
-    cursor: pointer;
-    border-radius: 4px;
-    padding: 1px 4px;
-    margin: 0 -4px;
-}
-
-.kpi-top-item.clickable-record:hover,
-.kpi-top-item.clickable-record:focus-visible {
-    background: var(--color-surface-2);
-}
-
 .kpi-sub {
     color: var(--color-muted);
     font-size: 0.78rem;
@@ -2651,19 +2622,6 @@ label[for="loginPassword"] {
    barra de acento mas gruesa. */
 .kpi-card--critical::before {
     height: 5px;
-}
-
-.kpi-mini-link {
-    display: inline-block;
-    margin-top: 6px;
-    padding: 0;
-    border: 0;
-    background: none;
-    color: var(--color-primary);
-    font-size: 0.78rem;
-    font-weight: 700;
-    text-decoration: underline;
-    cursor: pointer;
 }
 
 @media (max-width: 760px) {
@@ -3491,8 +3449,182 @@ label[for="loginPassword"] {
 
 .simit-card-actions {
     display: flex;
-    justify-content: flex-end;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
     margin-top: 10px;
+}
+
+.simit-card-actions-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.simit-card-actions .record-link {
+    margin-top: 0;
+}
+
+/* ── SIMIT: fila con dinero prioritario y accion de pago ─────── */
+.simit-row-end {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+}
+
+.simit-row-amount {
+    color: var(--color-ink);
+    font-size: 0.98rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.simit-row-amount--muted {
+    color: var(--color-muted);
+    font-weight: 600;
+}
+
+.simit-row-stale {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--color-warning-bg);
+    color: var(--color-warning);
+    font-size: 0.76rem;
+    font-weight: 650;
+}
+
+/* ── SIMIT: barra de proporcion dentro de la tarjeta KPI ─────── */
+.kpi-bar {
+    margin-top: 8px;
+    height: 5px;
+    border-radius: 999px;
+    background: var(--color-surface-2);
+    overflow: hidden;
+}
+
+.kpi-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--kpi-accent, var(--color-primary));
+}
+
+/* ── SIMIT: rankings (top vehiculos / top conductores) ───────── */
+.simit-rankings {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.simit-ranking-card {
+    padding: 14px 16px;
+    border: 0.5px solid var(--color-border);
+    border-radius: 12px;
+    background: var(--color-surface);
+}
+
+.simit-ranking-card h3 {
+    margin: 0 0 10px;
+    color: var(--color-ink);
+    font-size: 0.8rem;
+    font-weight: 750;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.simit-ranking-list {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.simit-ranking-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.simit-ranking-item.clickable-record {
+    cursor: pointer;
+    border-radius: 6px;
+    padding: 3px 4px;
+    margin: -3px -4px;
+    transition: var(--transition);
+}
+
+.simit-ranking-item.clickable-record:hover,
+.simit-ranking-item.clickable-record:focus-visible {
+    background: var(--color-surface-2);
+}
+
+.simit-ranking-rank {
+    flex: 0 0 auto;
+    width: 18px;
+    color: var(--color-muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-align: right;
+}
+
+.simit-ranking-main {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.simit-ranking-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.simit-ranking-label {
+    overflow: hidden;
+    color: var(--color-ink);
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.simit-ranking-label--masked {
+    color: var(--color-muted);
+    font-weight: 600;
+    font-style: italic;
+}
+
+.simit-ranking-value {
+    flex: 0 0 auto;
+    color: var(--color-muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.simit-ranking-bar {
+    margin-top: 4px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--color-surface-2);
+    overflow: hidden;
+}
+
+.simit-ranking-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--color-primary);
+}
+
+.section-card-subnote {
+    color: var(--color-muted);
+    font-weight: 600;
 }
 
 .module-grid {
