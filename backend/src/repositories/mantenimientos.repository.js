@@ -135,6 +135,18 @@ async function existeMantenimientoQueBloqueaEnFecha(vehiculoId, fecha, empresaId
   return Boolean(row);
 }
 
+// Igual criterio que existeMantenimientoQueBloqueaEnFecha, pero trae TODOS
+// los vehiculos bloqueados de una vez (no uno por uno) -- usado por
+// asignaciones.js para marcar en el selector, apenas se elige la fecha,
+// cuales vehiculos ya tienen un mantenimiento programado ese dia, sin
+// esperar a que fallen al guardar.
+async function findVehiculosBloqueadosEnFecha(fecha, empresaId) {
+  return db.all(
+    "SELECT DISTINCT vehiculo_id FROM mantenimientos WHERE empresa_id = ? AND estado = ? AND fecha <= ? AND (vehiculo_varado = ? OR tipo = ?)",
+    [empresaId, "pendiente", fecha, true, "cambio_aceite"]
+  );
+}
+
 async function updateSalidaInventario(id, { url, nombre, mime }, empresaId) {
   await db.run(
     "UPDATE mantenimientos SET salida_inventario_url = ?, salida_inventario_nombre = ?, salida_inventario_mime = ? WHERE id = ? AND empresa_id = ?",
@@ -203,5 +215,6 @@ module.exports = {
   updateEstado,
   updateSalidaInventario,
   existeMantenimientoQueBloquea,
-  existeMantenimientoQueBloqueaEnFecha
+  existeMantenimientoQueBloqueaEnFecha,
+  findVehiculosBloqueadosEnFecha
 };

@@ -47,6 +47,20 @@ async function listarPorFecha(fecha, empresaId) {
   return asignaciones.map(toSafeAsignacion);
 }
 
+// Vehiculos que ya tienen un mantenimiento programado (y todavia pendiente)
+// para esa fecha -- mismo criterio que validarYResolverPayload usa para
+// rechazar el guardado, pero de una vez para todos los vehiculos, asi el
+// selector del formulario los puede marcar apenas se elige la fecha, sin
+// esperar a que el usuario intente guardar y le salga el error.
+async function vehiculosBloqueadosEnFecha(fecha, empresaId) {
+  if (!fecha) {
+    throw new HttpError(400, "Debes indicar la fecha");
+  }
+
+  const rows = await mantenimientosRepository.findVehiculosBloqueadosEnFecha(fecha, empresaId);
+  return rows.map((row) => row.vehiculo_id);
+}
+
 async function validarYResolverPayload(payload, empresaId, excludeId = null) {
   if (!payload.fecha) {
     throw new HttpError(400, "Debes indicar la fecha de la asignación");
@@ -178,6 +192,7 @@ async function eliminar(id, currentUser) {
 module.exports = {
   listarRutas,
   listarPorFecha,
+  vehiculosBloqueadosEnFecha,
   crear,
   actualizar,
   eliminar

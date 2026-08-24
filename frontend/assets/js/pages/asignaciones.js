@@ -151,6 +151,40 @@ async function cargarCatalogos() {
         .join("");
 }
 
+// Vehiculos con un mantenimiento programado (y todavia pendiente) para la
+// fecha elegida quedan deshabilitados en el selector, marcados "(no
+// disponible)" -- asi se ve de una vez al elegir la fecha, sin llenar todo
+// el formulario para que recien ahi el guardado lo rechace (la validacion
+// real sigue estando en el backend, ver asignaciones.service.js
+// validarYResolverPayload -- esto es solo para no hacer perder el tiempo).
+async function actualizarVehiculosBloqueados() {
+    const fecha = asignacionFecha.value;
+
+    Array.from(asignacionVehiculo.options).forEach((option) => {
+        if (option.dataset.label) option.textContent = option.dataset.label;
+        option.disabled = false;
+    });
+
+    if (!fecha) return;
+
+    let vehiculoIds = [];
+    try {
+        ({ vehiculoIds } = await window.VehiAmb.api.getVehiculosBloqueadosEnFecha(fecha));
+    } catch (error) {
+        console.error(error);
+        return;
+    }
+
+    const bloqueados = new Set(vehiculoIds.map(String));
+
+    Array.from(asignacionVehiculo.options).forEach((option) => {
+        if (!option.value || !bloqueados.has(option.value)) return;
+        option.dataset.label = option.textContent;
+        option.textContent = `${option.textContent} (no disponible)`;
+        option.disabled = true;
+    });
+}
+
 // Al elegir un conductor se rellena el telefono con el que ya tiene
 // registrado en su ficha -- se puede editar despues si para esta asignacion
 // puntual aplica otro numero de contacto.
@@ -168,7 +202,10 @@ function resetForm() {
     asignacionSubmitButton.textContent = "Guardar asignación";
     asignacionCancelEditButton.classList.add("hidden");
     resetDestinos();
+    actualizarVehiculosBloqueados();
 }
+
+asignacionFecha.addEventListener("change", actualizarVehiculosBloqueados);
 
 function renderRow(item, indice) {
     return `
@@ -235,6 +272,7 @@ asignacionesFiltroFecha.addEventListener("change", () => {
     cargarAsignaciones();
     if (!asignacionId.value) {
         asignacionFecha.value = asignacionesFiltroFecha.value;
+        actualizarVehiculosBloqueados();
     }
 });
 
@@ -291,6 +329,7 @@ asignacionesTableBody.addEventListener("click", async (event) => {
 
         asignacionId.value = asignacion.id;
         asignacionFecha.value = asignacion.fecha ? String(asignacion.fecha).slice(0, 10) : hoyISO();
+        await actualizarVehiculosBloqueados();
         asignacionConductor.value = asignacion.conductor_id || "";
         asignacionVehiculo.value = asignacion.vehiculo_id || "";
         asignacionTelefono.value = asignacion.telefono || "";
@@ -349,6 +388,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
         await cargarCatalogos();
         resetDestinos();
+        await actualizarVehiculosBloqueados();
     } catch (error) {
         window.VehiAmb.ui.showMessage(mensaje, "No se pudieron cargar conductores/vehículos/rutas", "error");
     }

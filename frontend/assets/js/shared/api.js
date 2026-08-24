@@ -1275,6 +1275,14 @@ window.VehiAmb.api = {
         );
     },
 
+    getVehiculosBloqueadosEnFecha(fecha) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/asignaciones/vehiculos-bloqueados?fecha=${encodeURIComponent(fecha)}`,
+            undefined,
+            "No se pudo revisar la disponibilidad de vehículos"
+        );
+    },
+
     crearAsignacion(payload) {
         return requestJson(
             `${window.VehiAmb.API_URL}/asignaciones`,
