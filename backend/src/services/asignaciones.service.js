@@ -3,6 +3,7 @@ const asignacionesRepository = require("../repositories/asignaciones.repository"
 const rutasRepository = require("../repositories/rutas.repository");
 const conductoresRepository = require("../repositories/conductores.repository");
 const vehiculosRepository = require("../repositories/vehiculos.repository");
+const mantenimientosRepository = require("../repositories/mantenimientos.repository");
 
 function toSafeAsignacion(asignacion) {
   return {
@@ -82,12 +83,31 @@ async function validarYResolverPayload(payload, empresaId, excludeId = null) {
   // de servicio o dado de baja. Al editar una asignacion existente se deja
   // pasar si el vehiculo no cambio (para no bloquear ediciones de otros
   // campos de una asignacion vieja cuyo vehiculo quedo inhabilitado despues).
-  if (vehiculo.estado !== "activo") {
-    const original = excludeId ? await asignacionesRepository.findById(excludeId, empresaId) : null;
-    const vehiculoSinCambios = original && String(original.vehiculo_id) === String(vehiculo.id);
+  const original = excludeId ? await asignacionesRepository.findById(excludeId, empresaId) : null;
+  const vehiculoSinCambios = Boolean(original) && String(original.vehiculo_id) === String(vehiculo.id);
 
-    if (!vehiculoSinCambios) {
-      throw new HttpError(409, `El vehículo ${vehiculo.placa} no está disponible para asignar rutas (estado: ${vehiculo.estado}).`);
+  if (vehiculo.estado !== "activo" && !vehiculoSinCambios) {
+    throw new HttpError(409, `El vehículo ${vehiculo.placa} no está disponible para asignar rutas (estado: ${vehiculo.estado}).`);
+  }
+
+  // Bloqueo especifico del dia: un mantenimiento programado para esa fecha
+  // (o desde antes y todavia pendiente) bloquea el vehiculo ESE dia sin
+  // depender de que vehiculos.estado ya se haya actualizado -- ese estado
+  // solo se reevalua en eventos puntuales (crear/aprobar/confirmar un
+  // mantenimiento), no por un cron diario, asi que un vehiculo programado
+  // para el 30 de agosto debe seguir bloqueado el 30 aunque nadie haya
+  // entrado a la app ese dia. Se salta solo si ni el vehiculo ni la fecha
+  // cambiaron respecto a la asignacion original (edicion de otros campos).
+  // original.fecha viene de Postgres como Date (columna DATE), no como
+  // string -- toISOString().slice(0, 10) para comparar en el mismo formato
+  // "YYYY-MM-DD" que trae payload.fecha (String(Date) da algo tipo "Sat Aug
+  // 26 2026...", que nunca calza).
+  const fechaSinCambios = vehiculoSinCambios && original.fecha.toISOString().slice(0, 10) === String(payload.fecha).slice(0, 10);
+
+  if (!fechaSinCambios) {
+    const bloqueadoEnFecha = await mantenimientosRepository.existeMantenimientoQueBloqueaEnFecha(vehiculo.id, payload.fecha, empresaId);
+    if (bloqueadoEnFecha) {
+      throw new HttpError(409, `El vehículo ${vehiculo.placa} tiene un mantenimiento programado y no está disponible el ${payload.fecha}.`);
     }
   }
 

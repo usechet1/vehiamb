@@ -105,13 +105,32 @@ async function updateEstado(id, estado, empresaId) {
 // Un vehiculo se considera "en reparacion" mientras tenga al menos un
 // mantenimiento pendiente que lo bloquee (marcado vehiculo_varado, o un
 // cambio de aceite todavia sin confirmar -- ver vehiculo-disponibilidad
-// .service.js bloqueaDisponibilidad) -- uno aprobado o rechazado ya no
-// cuenta, y de ahi se decide si el vehiculo puede volver a quedar
-// disponible para asignar rutas.
+// .service.js) Y CUYA FECHA YA LLEGO (fecha <= hoy) -- programar uno de
+// estos mantenimientos para un dia futuro no debe dejar el vehiculo fuera
+// de servicio desde ya, solo a partir del dia en que esta programado. Uno
+// aprobado, rechazado o con fecha futura no cuenta, y de ahi se decide si
+// el vehiculo puede volver a quedar disponible para asignar rutas.
 async function existeMantenimientoQueBloquea(vehiculoId, empresaId) {
   const row = await db.get(
-    "SELECT 1 FROM mantenimientos WHERE vehiculo_id = ? AND empresa_id = ? AND estado = ? AND (vehiculo_varado = ? OR tipo = ?) LIMIT 1",
+    "SELECT 1 FROM mantenimientos WHERE vehiculo_id = ? AND empresa_id = ? AND estado = ? AND fecha <= CURRENT_DATE AND (vehiculo_varado = ? OR tipo = ?) LIMIT 1",
     [vehiculoId, empresaId, "pendiente", true, "cambio_aceite"]
+  );
+  return Boolean(row);
+}
+
+// Igual que existeMantenimientoQueBloquea, pero contra una fecha puntual en
+// vez de CURRENT_DATE -- usado por asignaciones.service.js para bloquear la
+// asignacion de un vehiculo en el dia exacto de un mantenimiento programado,
+// sin depender de que nadie haya entrado a la app ese dia para que
+// vehiculos.estado ya se haya actualizado (el estado solo se reevalua en
+// eventos puntuales: crear/aprobar/confirmar un mantenimiento, no por un
+// cron diario). "fecha <= ?" porque un mantenimiento programado para el 30
+// y que sigue pendiente el 31 tambien bloquea el 31: no se resuelve solo
+// por pasar la fecha.
+async function existeMantenimientoQueBloqueaEnFecha(vehiculoId, fecha, empresaId) {
+  const row = await db.get(
+    "SELECT 1 FROM mantenimientos WHERE vehiculo_id = ? AND empresa_id = ? AND estado = ? AND fecha <= ? AND (vehiculo_varado = ? OR tipo = ?) LIMIT 1",
+    [vehiculoId, empresaId, "pendiente", fecha, true, "cambio_aceite"]
   );
   return Boolean(row);
 }
@@ -183,5 +202,6 @@ module.exports = {
   findRepuestosEstructurados,
   updateEstado,
   updateSalidaInventario,
-  existeMantenimientoQueBloquea
+  existeMantenimientoQueBloquea,
+  existeMantenimientoQueBloqueaEnFecha
 };
