@@ -102,6 +102,19 @@ async function updateEstado(id, estado, empresaId) {
   return findByIdWithVehiculo(id, empresaId);
 }
 
+// Un vehiculo se considera "en reparacion" mientras tenga al menos un
+// mantenimiento marcado como vehiculo_varado todavia pendiente de
+// aprobacion (ver vehiculo-disponibilidad.service.js) -- uno aprobado o
+// rechazado ya no cuenta, y de ahi se decide si el vehiculo puede volver a
+// quedar disponible para asignar rutas.
+async function existeVaradoPendiente(vehiculoId, empresaId) {
+  const row = await db.get(
+    "SELECT 1 FROM mantenimientos WHERE vehiculo_id = ? AND empresa_id = ? AND vehiculo_varado = ? AND estado = ? LIMIT 1",
+    [vehiculoId, empresaId, true, "pendiente"]
+  );
+  return Boolean(row);
+}
+
 async function updateSalidaInventario(id, { url, nombre, mime }, empresaId) {
   await db.run(
     "UPDATE mantenimientos SET salida_inventario_url = ?, salida_inventario_nombre = ?, salida_inventario_mime = ? WHERE id = ? AND empresa_id = ?",
@@ -168,5 +181,6 @@ module.exports = {
   createRepuestoDetalle,
   findRepuestosEstructurados,
   updateEstado,
-  updateSalidaInventario
+  updateSalidaInventario,
+  existeVaradoPendiente
 };
