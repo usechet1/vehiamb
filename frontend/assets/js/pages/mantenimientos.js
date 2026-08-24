@@ -450,6 +450,33 @@ function actualizarEstadoBusquedaRepuesto() {
     }
 }
 
+// "Próximo cambio (km)" se calcula sobre el kilometraje que se esta
+// digitando para ESTE mantenimiento (no el kilometraje_actual guardado en
+// la ficha del vehiculo, que puede estar desactualizado) -- por eso el
+// campo de kilometraje va primero en el formulario y este calculo se
+// recalcula en vivo cada vez que cambia. Si todavia no se ha escrito nada,
+// se usa el kilometraje de la ficha solo como vista previa inicial. El
+// resultado sigue siendo de solo lectura: se corrige configurando el
+// intervalo en la ficha del vehiculo, no escribiendolo aca a mano.
+function actualizarProximoCambioKm(vehiculo) {
+    proximoCambioKmInput.value = "";
+    proximoCambioKmHelp.textContent = "";
+
+    if (!vehiculo) return;
+
+    if (!vehiculo.intervalo_cambio_aceite_km) {
+        proximoCambioKmHelp.textContent = "Este vehículo no tiene un intervalo de cambio configurado. Configúralo desde su ficha.";
+        return;
+    }
+
+    const intervalo = Number(vehiculo.intervalo_cambio_aceite_km);
+    const kmDigitado = window.VehiAmb.ui.parseFormattedNumber(mantenimientoKilometraje.value);
+    const kmBase = kmDigitado > 0 ? kmDigitado : Number(vehiculo.kilometraje_actual || 0);
+
+    proximoCambioKmInput.value = window.VehiAmb.ui.formatearNumeroParaMostrar(Math.round(kmBase + intervalo));
+    proximoCambioKmHelp.textContent = `A los próximos ${intervalo.toLocaleString("es-CO")} km`;
+}
+
 /**
  * Cuando el tipo es "cambio de aceite" y hay un vehiculo seleccionado, trae
  * los repuestos configurados para ese vehiculo (ficha del vehiculo) y los
@@ -474,24 +501,7 @@ async function cargarRepuestosSugeridos() {
         return;
     }
 
-    // El intervalo de cambio siempre se auto-completa (es un dato propio del
-    // vehiculo, ver vehiculos.intervalo_cambio_aceite_km), independiente de
-    // si esta empresa usa repuestos sugeridos. El campo es de solo lectura
-    // (igual que "Gasto total del mantenimiento"): no se recalcula a mano,
-    // se corrige configurando el intervalo en la ficha del vehiculo.
-    proximoCambioKmInput.value = "";
-    proximoCambioKmHelp.textContent = "";
-
-    if (vehiculo) {
-        if (vehiculo.intervalo_cambio_aceite_km) {
-            proximoCambioKmInput.value = window.VehiAmb.ui.formatearNumeroParaMostrar(
-                Math.round(Number(vehiculo.kilometraje_actual || 0) + Number(vehiculo.intervalo_cambio_aceite_km))
-            );
-        } else {
-            proximoCambioKmHelp.textContent = "Este vehículo no tiene un intervalo de cambio configurado. Configúralo desde su ficha.";
-        }
-    }
-
+    actualizarProximoCambioKm(vehiculo);
     actualizarBloqueoStep3();
 
     // Algunas empresas no usan repuestos sugeridos para cambio de aceite (ver
@@ -1431,6 +1441,7 @@ mantenimientoSelect.addEventListener("change", () => {
 mantenimientoKilometraje.addEventListener("input", () => {
     window.VehiAmb.ui.formatearNumeroEnVivo(mantenimientoKilometraje);
     updateKilometrajeValidation();
+    actualizarProximoCambioKm(selectedVehicle());
 });
 valorManoObraInput.addEventListener("input", () => {
     window.VehiAmb.ui.formatearMonedaEnVivo(valorManoObraInput);

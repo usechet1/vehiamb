@@ -172,6 +172,12 @@
                             <div class="wizard-step-panel hidden" id="wizardStep3" data-step-panel="3">
                                 <h3 class="mnt-section-title mnt-section-title--first hidden" id="programacionTitle">Programación</h3>
                                 <div class="form-grid-3">
+                                    <div class="form-group" id="kilometrajeGroup">
+                                        <label>Kilometraje actual</label>
+                                        <input type="text" inputmode="decimal" name="kilometraje" id="mantenimientoKilometraje" class="mnt-input-lg">
+                                        <span id="kilometrajeHelp" class="field-help">Selecciona un vehículo para validar el kilometraje.</span>
+                                    </div>
+
                                     <div class="form-group hidden" id="cambioAceiteFields">
                                         <label>Próximo cambio (km)</label>
                                         <input type="text" id="proximoCambioKmInput" class="mnt-input-lg" readonly disabled placeholder="Sin intervalo configurado">
@@ -181,12 +187,7 @@
                                     <div class="form-group hidden" id="proximaFechaGroup">
                                         <label>Próxima fecha</label>
                                         <input type="date" name="proximo_cambio_fecha" id="proximoCambioFechaInput" class="mnt-input-lg">
-                                    </div>
-
-                                    <div class="form-group" id="kilometrajeGroup">
-                                        <label>Kilometraje actual</label>
-                                        <input type="text" inputmode="decimal" name="kilometraje" id="mantenimientoKilometraje" class="mnt-input-lg">
-                                        <span id="kilometrajeHelp" class="field-help">Selecciona un vehículo para validar el kilometraje.</span>
+                                        <span class="field-help">Estimada a 3 meses del mantenimiento. Puedes editarla.</span>
                                     </div>
                                 </div>
 
