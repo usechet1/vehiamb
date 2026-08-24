@@ -470,7 +470,7 @@ function actualizarProximoCambioKm(vehiculo) {
     }
 
     const intervalo = Number(vehiculo.intervalo_cambio_aceite_km);
-    const kmDigitado = window.VehiAmb.ui.parseFormattedNumber(mantenimientoKilometraje.value);
+    const kmDigitado = Number(window.VehiAmb.ui.parseFormattedNumber(mantenimientoKilometraje.value));
     const kmBase = kmDigitado > 0 ? kmDigitado : Number(vehiculo.kilometraje_actual || 0);
 
     proximoCambioKmInput.value = window.VehiAmb.ui.formatearNumeroParaMostrar(Math.round(kmBase + intervalo));
