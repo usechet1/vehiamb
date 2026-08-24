@@ -3,6 +3,7 @@ const notificacionesRepository = require("../repositories/notificaciones.reposit
 const usuariosRepository = require("../repositories/usuarios.repository");
 const simitComparendosRepository = require("../repositories/simit-comparendos.repository");
 const mantenimientosRepository = require("../repositories/mantenimientos.repository");
+const vehiculoDisponibilidadService = require("./vehiculo-disponibilidad.service");
 const notificacionComentariosRepository = require("../repositories/notificacion-comentarios.repository");
 const notifConfig = require("../config/notificaciones.config");
 const emailChannel = require("./notificaciones-email.channel");
@@ -476,6 +477,10 @@ async function resolverNotificacionAprobacion(notificacionId, currentUser, estad
   }
 
   await notificacionesRepository.markAsRead(notificacionId, currentUser.id);
+
+  if (estadoDestino === "aprobado" && mantenimiento.vehiculo_varado) {
+    await vehiculoDisponibilidadService.reevaluarDisponibilidad(mantenimiento.vehiculo_id, currentUser.empresa_id);
+  }
 
   if (mantenimiento.creado_por_usuario_id) {
     const vehiculoLabel = `${mantenimiento.marca} ${mantenimiento.modelo} (${mantenimiento.placa})`;

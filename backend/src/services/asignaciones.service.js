@@ -76,6 +76,21 @@ async function validarYResolverPayload(payload, empresaId, excludeId = null) {
     throw new HttpError(404, "Vehículo no encontrado");
   }
 
+  // El selector del frontend ya oculta los vehiculos que no estan "activo"
+  // (ver asignaciones.js), pero eso es solo la UI -- esta es la validacion
+  // real que evita asignar por API directa un vehiculo en reparacion, fuera
+  // de servicio o dado de baja. Al editar una asignacion existente se deja
+  // pasar si el vehiculo no cambio (para no bloquear ediciones de otros
+  // campos de una asignacion vieja cuyo vehiculo quedo inhabilitado despues).
+  if (vehiculo.estado !== "activo") {
+    const original = excludeId ? await asignacionesRepository.findById(excludeId, empresaId) : null;
+    const vehiculoSinCambios = original && String(original.vehiculo_id) === String(vehiculo.id);
+
+    if (!vehiculoSinCambios) {
+      throw new HttpError(409, `El vehículo ${vehiculo.placa} no está disponible para asignar rutas (estado: ${vehiculo.estado}).`);
+    }
+  }
+
   const destinos = Array.isArray(payload.destinos) ? payload.destinos : [];
   if (!destinos.length) {
     throw new HttpError(400, "Debes agregar al menos un destino");

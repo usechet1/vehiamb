@@ -9,6 +9,7 @@ const repuestosStockRepository = require("../repositories/repuestos-stock.reposi
 const configuracionInventarioRepository = require("../repositories/configuracion-inventario.repository");
 const usuariosRepository = require("../repositories/usuarios.repository");
 const notificacionesService = require("./notificaciones.service");
+const vehiculoDisponibilidadService = require("./vehiculo-disponibilidad.service");
 
 const TIPOS_VALIDOS = new Set([
   "revision",
@@ -248,6 +249,10 @@ async function confirmarCambioAceite(id, empresaId) {
     });
   }
 
+  if (actualizado.vehiculo_varado) {
+    await vehiculoDisponibilidadService.reevaluarDisponibilidad(actualizado.vehiculo_id, empresaId);
+  }
+
   return actualizado;
 }
 
@@ -363,6 +368,10 @@ async function createMantenimiento(payload, file, currentUser) {
     vehiculo,
     requiereAprobacion
   });
+
+  if (creado.vehiculo_varado && requiereAprobacion) {
+    await vehiculoDisponibilidadService.marcarEnReparacionSiAplica(creado.vehiculo_id, empresaId);
+  }
 
   return { ...creado, advertenciasStock };
 }
