@@ -2748,6 +2748,51 @@ label[for="loginPassword"] {
     color: var(--color-primary);
 }
 
+/* ── Repuestos: header "Nuevo repuesto", columnas ordenables y
+   acciones por fila ─────────────────────────────────────────── */
+.repuestos-nuevo-button {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+}
+
+.sortable-th {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.sortable-th:hover {
+    color: var(--color-ink-soft);
+}
+
+.sortable-th.is-sorted {
+    color: var(--color-primary);
+}
+
+.sortable-th.is-sorted::after {
+    content: "▲";
+    margin-left: 4px;
+    font-size: 0.62rem;
+}
+
+.sortable-th.is-sorted.sort-desc::after {
+    content: "▼";
+}
+
+.repuestos-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.repuestos-row-actions .btn-secondary {
+    min-height: 30px;
+    padding: 5px 9px;
+    font-size: 0.78rem;
+    white-space: nowrap;
+}
+
 .import-run-result {
     margin-top: 14px;
     padding: 12px 14px;

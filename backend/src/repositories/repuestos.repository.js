@@ -33,6 +33,22 @@ const STOCK_COLUMNS = `
   rs.actualizado_en AS stock_actualizado_en
 `;
 
+// Whitelist de columnas ordenables por la UI (el nombre que llega en
+// filters.sort ya viene validado contra esta misma lista en el service, pero
+// se vuelve a mapear aca para nunca interpolar el valor del query param
+// directo en el SQL). stock_fisico/stock_minimo son alias del SELECT (validos
+// en ORDER BY en Postgres), el resto son columnas propias de "r".
+const SORT_COLUMNS = {
+  codigo_interno: "r.codigo_interno",
+  nombre: "r.nombre",
+  categoria: "r.categoria",
+  marca: "r.marca",
+  valor_promedio: "r.valor_promedio",
+  stock_fisico: "stock_fisico",
+  stock_minimo: "stock_minimo",
+  estado: "r.estado"
+};
+
 function buildWhereClause(filters, empresaId) {
   const conditions = ["r.empresa_id = ?"];
   const values = [empresaId];
@@ -63,6 +79,8 @@ async function findAll(filters = {}, empresaId) {
   const { whereClause, values } = buildWhereClause(filters, empresaId);
   const limit = filters.limit || 20;
   const offset = filters.offset || 0;
+  const orderColumn = SORT_COLUMNS[filters.sort] || SORT_COLUMNS.nombre;
+  const orderDir = filters.order === "desc" ? "DESC" : "ASC";
 
   const rowsPromise = db.all(
     `
@@ -70,7 +88,7 @@ async function findAll(filters = {}, empresaId) {
       FROM repuestos r
       ${STOCK_JOIN}
       ${whereClause}
-      ORDER BY r.nombre ASC
+      ORDER BY ${orderColumn} ${orderDir}, r.nombre ASC
       LIMIT ? OFFSET ?
     `,
     [...values, limit, offset]

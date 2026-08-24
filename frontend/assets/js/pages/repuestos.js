@@ -27,10 +27,16 @@ const repuestosFilterForm = document.getElementById("repuestosFilterForm");
 const repuestosSearch = document.getElementById("repuestosSearch");
 const repuestosFiltroCategoria = document.getElementById("repuestosFiltroCategoria");
 const repuestosFiltroEstado = document.getElementById("repuestosFiltroEstado");
+const repuestosTable = document.getElementById("repuestosTable");
 const repuestosTableBody = document.getElementById("repuestosTableBody");
 const repuestosListSummary = document.getElementById("repuestosListSummary");
 const repuestosPrevPage = document.getElementById("repuestosPrevPage");
 const repuestosNextPage = document.getElementById("repuestosNextPage");
+
+const nuevoRepuestoButton = document.getElementById("nuevoRepuestoButton");
+const repuestoDrawer = document.getElementById("repuestoDrawer");
+const repuestoDrawerBackdrop = document.getElementById("repuestoDrawerBackdrop");
+const closeRepuestoDrawer = document.getElementById("closeRepuestoDrawer");
 
 const loader = document.getElementById("loader");
 const mensaje = document.getElementById("mensaje");
@@ -38,6 +44,9 @@ const mensaje = document.getElementById("mensaje");
 let currentPage = 1;
 let totalPages = 1;
 let searchDebounce = null;
+let currentSort = "nombre";
+let currentOrder = "asc";
+let repuestosState = [];
 
 const CATEGORIA_LABEL = {
     aceite_motor: "Aceite Motor",
@@ -105,6 +114,32 @@ function resetForm() {
     repuestoCancelEditButton.classList.add("hidden");
     equivalenciasSection.classList.add("hidden");
 }
+
+function openRepuestoDrawer() {
+    window.VehiAmb.ui.show(repuestoDrawerBackdrop);
+    window.VehiAmb.ui.show(repuestoDrawer);
+    repuestoDrawer.setAttribute("aria-hidden", "false");
+    closeRepuestoDrawer.focus();
+}
+
+function closeRepuestoDrawerFn() {
+    window.VehiAmb.ui.hide(repuestoDrawerBackdrop);
+    window.VehiAmb.ui.hide(repuestoDrawer);
+    repuestoDrawer.setAttribute("aria-hidden", "true");
+}
+
+nuevoRepuestoButton.addEventListener("click", () => {
+    resetForm();
+    openRepuestoDrawer();
+});
+
+closeRepuestoDrawer.addEventListener("click", closeRepuestoDrawerFn);
+repuestoDrawerBackdrop.addEventListener("click", closeRepuestoDrawerFn);
+document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !repuestoDrawer.classList.contains("hidden")) {
+        closeRepuestoDrawerFn();
+    }
+});
 
 repuestoValorPromedio.addEventListener("input", () => {
     window.VehiAmb.ui.formatearMonedaDecimalEnVivo(repuestoValorPromedio);
@@ -188,6 +223,7 @@ equivalenciasList.addEventListener("click", async (event) => {
 
 function renderRow(item) {
     const stockBajo = Number(item.stock_fisico) <= Number(item.stock_minimo) && Number(item.stock_minimo) > 0;
+    const esActivo = item.estado === "activo";
 
     return `
         <tr>
@@ -198,24 +234,44 @@ function renderRow(item) {
             <td>${formatMoney(item.valor_promedio)}</td>
             <td class="${stockBajo ? "import-error-count" : ""}">${formatNumber(item.stock_fisico)}</td>
             <td>${formatNumber(item.stock_minimo)}</td>
-            <td><span class="badge ${item.estado === "activo" ? "badge-verde" : "badge-rojo"}">${item.estado === "activo" ? "Activo" : "Inactivo"}</span></td>
-            <td><button type="button" class="btn-secondary" data-editar-repuesto="${item.id}">Editar</button></td>
+            <td><span class="badge ${esActivo ? "badge-verde" : "badge-rojo"}">${esActivo ? "Activo" : "Inactivo"}</span></td>
+            <td>
+                <div class="repuestos-row-actions">
+                    <button type="button" class="btn-secondary" data-editar-repuesto="${item.id}">Editar</button>
+                    <button type="button" class="btn-secondary" data-toggle-estado="${item.id}">${esActivo ? "Desactivar" : "Activar"}</button>
+                </div>
+            </td>
         </tr>
     `;
+}
+
+// Refleja en los encabezados cual columna esta ordenando ahora mismo (flecha
+// arriba/abajo via CSS ::after, ver .sortable-th.is-sorted) -- asi el usuario
+// ve de un vistazo por que columna esta ordenada la tabla sin abrir nada.
+function actualizarIndicadoresOrden() {
+    repuestosTable.querySelectorAll(".sortable-th").forEach((th) => {
+        const esActual = th.dataset.sort === currentSort;
+        th.classList.toggle("is-sorted", esActual);
+        th.classList.toggle("sort-desc", esActual && currentOrder === "desc");
+    });
 }
 
 async function cargarRepuestos() {
     try {
         repuestosTableBody.innerHTML = '<tr><td colspan="9" class="dash-empty">Cargando...</td></tr>';
+        actualizarIndicadoresOrden();
         const resultado = await window.VehiAmb.api.getRepuestos({
             search: repuestosSearch.value || undefined,
             categoria: repuestosFiltroCategoria.value || undefined,
             estado: repuestosFiltroEstado.value || undefined,
+            sort: currentSort,
+            order: currentOrder,
             page: currentPage,
             limit: 20
         });
 
         totalPages = resultado.totalPages;
+        repuestosState = resultado.items;
 
         repuestosTableBody.innerHTML = resultado.items.length
             ? resultado.items.map(renderRow).join("")
@@ -258,7 +314,44 @@ repuestosNextPage.addEventListener("click", () => {
     cargarRepuestos();
 });
 
+// Reenvia el repuesto tal cual ya lo tenemos en memoria (repuestosState),
+// solo con el estado invertido -- PUT exige el payload completo (ver
+// validateRepuesto en el backend), pero no hace falta volver a pedirlo al
+// servidor: la fila ya trae todos los campos.
+async function alternarEstadoRepuesto(id, button) {
+    const item = repuestosState.find((repuesto) => String(repuesto.id) === String(id));
+    if (!item) return;
+
+    const nuevoEstado = item.estado === "activo" ? "inactivo" : "activo";
+    button.disabled = true;
+
+    const formData = new FormData();
+    formData.append("nombre", item.nombre);
+    formData.append("categoria", item.categoria);
+    formData.append("marca", item.marca || "");
+    formData.append("referencia", item.referencia || "");
+    formData.append("unidad_medida", item.unidad_medida);
+    formData.append("valor_promedio", item.valor_promedio);
+    formData.append("estado", nuevoEstado);
+    formData.append("observaciones", item.observaciones || "");
+
+    try {
+        await window.VehiAmb.api.updateRepuesto(id, formData);
+        window.VehiAmb.ui.showMessage(mensaje, `Repuesto ${nuevoEstado === "activo" ? "activado" : "desactivado"} correctamente`);
+        await cargarRepuestos();
+    } catch (error) {
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo actualizar el estado", "error");
+        button.disabled = false;
+    }
+}
+
 repuestosTableBody.addEventListener("click", async (event) => {
+    const toggleButton = event.target.closest("[data-toggle-estado]");
+    if (toggleButton) {
+        await alternarEstadoRepuesto(toggleButton.dataset.toggleEstado, toggleButton);
+        return;
+    }
+
     const button = event.target.closest("[data-editar-repuesto]");
     if (!button) return;
 
@@ -283,10 +376,25 @@ repuestosTableBody.addEventListener("click", async (event) => {
         repuestoCancelEditButton.classList.remove("hidden");
         equivalenciasSection.classList.remove("hidden");
         await cargarEquivalencias();
-        repuestoForm.scrollIntoView({ behavior: "smooth", block: "start" });
+        openRepuestoDrawer();
     } catch (error) {
         window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo cargar el repuesto", "error");
     }
+});
+
+repuestosTable.querySelector("thead").addEventListener("click", (event) => {
+    const th = event.target.closest(".sortable-th");
+    if (!th) return;
+
+    const columna = th.dataset.sort;
+    if (currentSort === columna) {
+        currentOrder = currentOrder === "asc" ? "desc" : "asc";
+    } else {
+        currentSort = columna;
+        currentOrder = "asc";
+    }
+    currentPage = 1;
+    cargarRepuestos();
 });
 
 repuestoCancelEditButton.addEventListener("click", resetForm);
