@@ -3,13 +3,10 @@ const mantenimientosFilterForm = document.getElementById("mantenimientosFilterFo
 const mantenimientoSelect = document.getElementById("vehiculoMantenimiento");
 const mantenimientosList = document.getElementById("mantenimientosList");
 const mantenimientosKpisGrid = document.getElementById("mantenimientosKpisGrid");
-const filterPlaca = document.getElementById("filterPlaca");
+const filterBusqueda = document.getElementById("filterBusqueda");
 const filterTipo = document.getElementById("filterTipo");
 const filterFechaDesde = document.getElementById("filterFechaDesde");
 const filterFechaHasta = document.getElementById("filterFechaHasta");
-const filterPlacaTrigger = document.getElementById("filterPlacaTrigger");
-const filterPlacaTriggerLabel = document.getElementById("filterPlacaTriggerLabel");
-const filterPlacaPopover = document.getElementById("filterPlacaPopover");
 const filterTipoTrigger = document.getElementById("filterTipoTrigger");
 const filterTipoTriggerLabel = document.getElementById("filterTipoTriggerLabel");
 const filterTipoPopover = document.getElementById("filterTipoPopover");
@@ -78,6 +75,8 @@ const exportMaintenanceButton = document.getElementById("exportMaintenanceButton
 const exportMaintenanceExcelButton = document.getElementById("exportMaintenanceExcelButton");
 const exportHistorialButton = document.getElementById("exportHistorialButton");
 const exportHistorialExcelButton = document.getElementById("exportHistorialExcelButton");
+const exportMenuTrigger = document.getElementById("exportMenuTrigger");
+const exportMenuPopover = document.getElementById("exportMenuPopover");
 const tabHistorialButton = document.getElementById("tabHistorialButton");
 const tabRegistrarButton = document.getElementById("tabRegistrarButton");
 const historialMantenimientosSection = document.getElementById("historialMantenimientosSection");
@@ -85,6 +84,7 @@ const registrarMantenimientoSection = document.getElementById("registrarMantenim
 
 let repuestosState = [];
 let mantenimientosState = [];
+let mantenimientosFiltradosState = [];
 let vehiculosState = [];
 let totalMantenimientosCount = 0;
 let filtersRequestToken = 0;
@@ -114,17 +114,19 @@ const estadosMantenimiento = {
     completado: "Completado"
 };
 
-const badgeClassEstadoMantenimiento = {
-    pendiente: "badge-amarillo",
-    aprobado: "badge-verde",
-    rechazado: "badge-rojo",
-    completado: "badge-verde"
-};
+const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
-function renderEstadoBadge(estado) {
-    const label = estadosMantenimiento[estado] || estado || "Completado";
-    const badgeClass = badgeClassEstadoMantenimiento[estado] || "badge-gris";
-    return `<span class="badge ${badgeClass}">${label}</span>`;
+// Solo "pendiente"/"rechazado" son excepcionales y necesitan una etiqueta con
+// color + una accion real ("Revisar") -- lo normal (completado/aprobado) no
+// necesita destacarse, solo un texto en verde sin fondo.
+function estadoInfo(item) {
+    if (item.estado === "pendiente") {
+        return { badge: true, clase: "pill-warning", texto: "Pendiente de aprobación", accion: "Revisar", esExcepcion: true };
+    }
+    if (item.estado === "rechazado") {
+        return { badge: true, clase: "pill-danger", texto: "Rechazado", accion: "Revisar", esExcepcion: true };
+    }
+    return { badge: false, texto: estadosMantenimiento[item.estado] || "Completado", accion: "Ver detalle", esExcepcion: false };
 }
 
 function calcularKpisMantenimientos(mantenimientos) {
@@ -892,19 +894,6 @@ window.VehiAmb.crearRepuestoAutocomplete(repuestoInput, {
     onSinResultados: mostrarAvisoRepuestoNoEncontrado
 });
 
-function renderAttachment(item) {
-    if (!item.soporte_url) return "";
-
-    const fileUrl = escapeHtml(window.VehiAmb.api.getAssetUrl(item.soporte_url));
-    const fileLabel = escapeHtml(item.soporte_nombre || "Ver adjunto");
-
-    return `
-        <a class="record-link" href="${fileUrl}" target="_blank" rel="noreferrer">
-            ${fileLabel}
-        </a>
-    `;
-}
-
 function renderDetailAttachment(item) {
     if (!item.soporte_url) {
         return '<p class="dash-empty detail-empty">No hay archivos adjuntos.</p>';
@@ -1075,46 +1064,108 @@ function closeDetailDrawer() {
     maintenanceDrawer.setAttribute("aria-hidden", "true");
 }
 
+// El backend ya trae los mantenimientos ordenados por fecha DESC, asi que
+// agrupar por mes es solo detectar cuando cambia el "YYYY-MM" a medida que
+// se recorre la lista -- no hace falta reordenar nada.
+function agruparPorMes(mantenimientos) {
+    const grupos = [];
+    let actual = null;
+
+    for (const item of mantenimientos) {
+        const fechaStr = String(item.fecha || "").slice(0, 10);
+        const clave = fechaStr.slice(0, 7);
+
+        if (!actual || actual.clave !== clave) {
+            const fecha = new Date(`${fechaStr}T00:00:00`);
+            const label = fechaStr && !Number.isNaN(fecha.getTime())
+                ? `${MESES[fecha.getMonth()].charAt(0).toUpperCase()}${MESES[fecha.getMonth()].slice(1)} ${fecha.getFullYear()}`
+                : "Sin fecha";
+            actual = { clave, label, items: [] };
+            grupos.push(actual);
+        }
+        actual.items.push(item);
+    }
+
+    return grupos;
+}
+
 function renderMantenimientos(mantenimientos) {
     if (!mantenimientos.length) {
         mantenimientosList.innerHTML = '<p class="dash-empty">No hay mantenimientos para los filtros seleccionados</p>';
         return;
     }
 
-    mantenimientosList.innerHTML = mantenimientos.map((item) => `
-        <article class="record-item clickable-record" data-maintenance-id="${item.id}" tabindex="0" role="button" aria-label="Ver detalle de mantenimiento ${escapeHtml(item.placa) || ""}">
-            <div class="record-top">
-                <div>
-                    <span class="record-title">${escapeHtml(tiposMantenimiento[item.tipo] || item.tipo)}</span>
-                    <span class="record-sub">${escapeHtml(item.placa) || "Sin placa"} - ${escapeHtml(item.marca) || ""} ${escapeHtml(item.modelo) || ""}</span>
-                </div>
-                <span class="pill">${formatDate(item.fecha)}</span>
+    const grupos = agruparPorMes(mantenimientos);
+
+    mantenimientosList.innerHTML = grupos.map((grupo) => {
+        const totalGrupo = grupo.items.reduce((sum, item) => sum + Number(item.valor || 0), 0);
+
+        return `
+            <div class="mnt-hist-month">
+                <span class="mnt-hist-month-label">${escapeHtml(grupo.label)}</span>
+                <span class="mnt-hist-month-summary">${grupo.items.length} ${grupo.items.length === 1 ? "registro" : "registros"} · ${formatCurrency(totalGrupo)}</span>
             </div>
-            <div class="record-meta">
-                <span class="pill">${formatCurrency(item.valor)}</span>
-                <span class="pill">${Number(item.kilometraje || 0).toLocaleString("es-CO")} km</span>
-                ${renderEstadoBadge(item.estado)}
-                ${item.vehiculo_varado ? '<span class="pill">Vehículo varado</span>' : ""}
-                ${item.soporte_url ? '<span class="pill">Soporte adjunto</span>' : ""}
-            </div>
-            ${renderAttachment(item)}
-        </article>
-    `).join("");
+            ${grupo.items.map((item) => {
+                const estado = estadoInfo(item);
+                const fechaStr = String(item.fecha || "").slice(0, 10);
+                const fecha = new Date(`${fechaStr}T00:00:00`);
+                const fechaValida = fechaStr && !Number.isNaN(fecha.getTime());
+                const vehicleName = `${item.marca || ""} ${item.modelo || ""}`.trim();
+                const km = Number(item.kilometraje || 0);
+
+                return `
+                    <article class="mnt-hist-row" data-maintenance-id="${item.id}" tabindex="0" role="button" aria-label="Ver detalle de mantenimiento ${escapeHtml(item.placa) || ""}">
+                        <div class="mnt-hist-date">
+                            <span class="mnt-hist-date-day">${fechaValida ? fecha.getDate() : "--"}</span>
+                            <span class="mnt-hist-date-month">${fechaValida ? MESES[fecha.getMonth()].slice(0, 3).toUpperCase() : ""}</span>
+                        </div>
+                        <div class="mnt-hist-main">
+                            <div class="mnt-hist-title-row">
+                                <span class="mnt-hist-title">${escapeHtml(tiposMantenimiento[item.tipo] || item.tipo)}</span>
+                                ${estado.badge
+                                    ? `<span class="pill ${estado.clase}">${estado.texto}</span>`
+                                    : `<span class="mnt-hist-status-ok">✓ ${estado.texto}</span>`}
+                                ${item.vehiculo_varado ? '<span class="pill pill-danger">⚠ Varado</span>' : ""}
+                            </div>
+                            <div class="mnt-hist-sub">${escapeHtml(item.placa) || "Sin placa"}${vehicleName ? ` · ${escapeHtml(vehicleName)}` : ""}${km > 0 ? ` · ${km.toLocaleString("es-CO")} km` : ""}</div>
+                        </div>
+                        <div class="mnt-hist-end">
+                            ${item.valor
+                                ? `<span class="mnt-hist-amount">${formatCurrency(item.valor)}</span>`
+                                : `<span class="mnt-hist-amount mnt-hist-amount--muted">Sin costo</span>`}
+                            <span class="mnt-hist-action${estado.esExcepcion ? " mnt-hist-action--revisar" : ""}">${estado.accion}</span>
+                        </div>
+                    </article>
+                `;
+            }).join("")}
+        `;
+    }).join("");
 }
 
 function currentMaintenanceFilters() {
     return {
-        placa: filterPlaca.value.trim(),
         tipo: filterTipo.value,
         fecha_desde: filterFechaDesde.value,
         fecha_hasta: filterFechaHasta.value
     };
 }
 
+// La busqueda por placa/tipo es del lado del cliente (sobre lo que ya trajo
+// el servidor filtrado por tipo/fechas) -- evita depender de un match exacto
+// de placa en el backend y deja escribir cualquiera de los dos.
+function coincideBusqueda(item) {
+    const termino = filterBusqueda.value.trim().toLowerCase();
+    if (!termino) return true;
+
+    const enPlaca = String(item.placa || "").toLowerCase().includes(termino);
+    const enTipo = String(tiposMantenimiento[item.tipo] || item.tipo || "").toLowerCase().includes(termino);
+    return enPlaca || enTipo;
+}
+
 function updateFilterSummary(filteredCount) {
     const total = totalMantenimientosCount;
     const filters = currentMaintenanceFilters();
-    const hasFilters = Boolean(filters.placa || filters.tipo || filters.fecha_desde || filters.fecha_hasta);
+    const hasFilters = Boolean(filterBusqueda.value.trim() || filters.tipo || filters.fecha_desde || filters.fecha_hasta);
 
     if (!total) {
         filterSummary.textContent = "Aún no hay mantenimientos registrados.";
@@ -1127,25 +1178,10 @@ function updateFilterSummary(filteredCount) {
     renderFiltersChips();
 }
 
-// Los popovers de Placa/Tipo/Fechas son solo una capa de presentacion sobre
-// los <select>/<input> nativos que ya existen (ocultos) -- se les cambia el
+// Los popovers de Tipo/Fechas son solo una capa de presentacion sobre los
+// <select>/<input> nativos que ya existen (ocultos) -- se les cambia el
 // .value y se dispara "change", y toda la logica de filtrado/exportacion
 // que ya lee esos elementos sigue funcionando igual, sin tocarla.
-function renderPlacaPopoverOptions() {
-    filterPlacaPopover.innerHTML = Array.from(filterPlaca.options).map((option) => `
-        <button type="button" class="doc-filter-option${option.value === filterPlaca.value ? " is-active" : ""}" data-placa-value="${escapeHtml(option.value)}">${escapeHtml(option.textContent)}</button>
-    `).join("");
-}
-
-function updatePlacaTriggerLabel() {
-    const seleccionado = Array.from(filterPlaca.options).find((option) => option.value === filterPlaca.value);
-    filterPlacaTriggerLabel.textContent = filterPlaca.value ? (seleccionado?.textContent || filterPlaca.value) : "Placa";
-    filterPlacaTrigger.classList.toggle("is-active", Boolean(filterPlaca.value));
-    filterPlacaPopover.querySelectorAll("[data-placa-value]").forEach((boton) => {
-        boton.classList.toggle("is-active", boton.dataset.placaValue === filterPlaca.value);
-    });
-}
-
 function updateTipoTriggerLabel() {
     filterTipoTriggerLabel.textContent = filterTipo.value ? (tiposMantenimiento[filterTipo.value] || filterTipo.value) : "Tipo";
     filterTipoTrigger.classList.toggle("is-active", Boolean(filterTipo.value));
@@ -1162,10 +1198,6 @@ function updateFechasTriggerLabel() {
 function renderFiltersChips() {
     const chips = [];
 
-    if (filterPlaca.value) {
-        const seleccionado = Array.from(filterPlaca.options).find((option) => option.value === filterPlaca.value);
-        chips.push({ id: "placa", label: seleccionado?.textContent || filterPlaca.value });
-    }
     if (filterTipo.value) {
         chips.push({ id: "tipo", label: tiposMantenimiento[filterTipo.value] || filterTipo.value });
     }
@@ -1182,17 +1214,10 @@ function renderFiltersChips() {
 }
 
 function cerrarPopoversFiltroHistorial() {
-    filterPlacaPopover.classList.add("hidden");
     filterTipoPopover.classList.add("hidden");
     filterFechasPopover.classList.add("hidden");
+    exportMenuPopover.classList.add("hidden");
 }
-
-filterPlacaTrigger.addEventListener("click", (event) => {
-    event.stopPropagation();
-    const estabaAbierto = !filterPlacaPopover.classList.contains("hidden");
-    cerrarPopoversFiltroHistorial();
-    filterPlacaPopover.classList.toggle("hidden", estabaAbierto);
-});
 
 filterTipoTrigger.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -1208,18 +1233,15 @@ filterFechasTrigger.addEventListener("click", (event) => {
     filterFechasPopover.classList.toggle("hidden", estabaAbierto);
 });
 
-document.addEventListener("click", (event) => {
-    if (!event.target.closest("#mantenimientosFilterForm .doc-filter-popover-wrap")) cerrarPopoversFiltroHistorial();
+exportMenuTrigger.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const estabaAbierto = !exportMenuPopover.classList.contains("hidden");
+    cerrarPopoversFiltroHistorial();
+    exportMenuPopover.classList.toggle("hidden", estabaAbierto);
 });
 
-filterPlacaPopover.addEventListener("click", (event) => {
-    const opcion = event.target.closest("[data-placa-value]");
-    if (!opcion) return;
-
-    filterPlaca.value = opcion.dataset.placaValue;
-    filterPlaca.dispatchEvent(new Event("change"));
-    updatePlacaTriggerLabel();
-    cerrarPopoversFiltroHistorial();
+document.addEventListener("click", (event) => {
+    if (!event.target.closest(".doc-filter-popover-wrap, .mnt-export-wrap")) cerrarPopoversFiltroHistorial();
 });
 
 filterTipoPopover.addEventListener("click", (event) => {
@@ -1236,15 +1258,17 @@ filterTipoPopover.addEventListener("click", (event) => {
     input.addEventListener("input", updateFechasTriggerLabel);
 });
 
+filterBusqueda.addEventListener("input", () => {
+    mantenimientosFiltradosState = mantenimientosState.filter(coincideBusqueda);
+    renderMantenimientos(mantenimientosFiltradosState);
+    updateFilterSummary(mantenimientosFiltradosState.length);
+});
+
 filtersChips.addEventListener("click", (event) => {
     const boton = event.target.closest("[data-remove-chip]");
     if (!boton) return;
 
-    if (boton.dataset.removeChip === "placa") {
-        filterPlaca.value = "";
-        filterPlaca.dispatchEvent(new Event("change"));
-        updatePlacaTriggerLabel();
-    } else if (boton.dataset.removeChip === "tipo") {
+    if (boton.dataset.removeChip === "tipo") {
         filterTipo.value = "";
         filterTipo.dispatchEvent(new Event("change"));
         updateTipoTriggerLabel();
@@ -1265,8 +1289,9 @@ async function applyMaintenanceFilters() {
         if (requestToken !== filtersRequestToken) return;
 
         mantenimientosState = mantenimientos;
-        renderMantenimientos(mantenimientos);
-        updateFilterSummary(mantenimientos.length);
+        mantenimientosFiltradosState = mantenimientos.filter(coincideBusqueda);
+        renderMantenimientos(mantenimientosFiltradosState);
+        updateFilterSummary(mantenimientosFiltradosState.length);
     } catch (error) {
         if (requestToken !== filtersRequestToken) return;
 
@@ -1285,9 +1310,6 @@ async function cargarDatos() {
         const vehiculos = await window.VehiAmb.api.getVehiculosCatalogo();
         vehiculosState = vehiculos;
         fillVehicleSelect(mantenimientoSelect, vehiculos);
-        fillVehicleSelect(filterPlaca, vehiculos, "Todas las placas", "placa");
-        renderPlacaPopoverOptions();
-        updatePlacaTriggerLabel();
 
         const vehiculoPreseleccionado = new URLSearchParams(window.location.search).get("vehiculo");
         if (vehiculoPreseleccionado && Array.from(mantenimientoSelect.options).some((option) => option.value === vehiculoPreseleccionado)) {
@@ -1388,7 +1410,7 @@ mantenimientosFilterForm.addEventListener("submit", (event) => {
     event.preventDefault();
 });
 
-[filterPlaca, filterTipo, filterFechaDesde, filterFechaHasta].forEach((input) => {
+[filterTipo, filterFechaDesde, filterFechaHasta].forEach((input) => {
     input.addEventListener("input", applyMaintenanceFilters);
     input.addEventListener("change", applyMaintenanceFilters);
 });
@@ -1410,7 +1432,6 @@ tabRegistrarButton.addEventListener("click", () => switchTab("registrar"));
 
 clearFiltersButton.addEventListener("click", () => {
     mantenimientosFilterForm.reset();
-    updatePlacaTriggerLabel();
     updateTipoTriggerLabel();
     updateFechasTriggerLabel();
     applyMaintenanceFilters();
@@ -1477,12 +1498,13 @@ exportMaintenanceExcelButton.addEventListener("click", async () => {
 });
 
 exportHistorialButton.addEventListener("click", async () => {
+    cerrarPopoversFiltroHistorial();
     const originalLabel = exportHistorialButton.textContent;
     exportHistorialButton.disabled = true;
     exportHistorialButton.textContent = "Generando...";
 
     try {
-        await window.VehiAmb.mantenimientos.exportHistorialPdf(mantenimientosState, currentMaintenanceFilters());
+        await window.VehiAmb.mantenimientos.exportHistorialPdf(mantenimientosFiltradosState, currentMaintenanceFilters());
     } catch (error) {
         console.error(error);
         window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo exportar el historial", "error");
@@ -1493,12 +1515,13 @@ exportHistorialButton.addEventListener("click", async () => {
 });
 
 exportHistorialExcelButton.addEventListener("click", async () => {
+    cerrarPopoversFiltroHistorial();
     const originalLabel = exportHistorialExcelButton.textContent;
     exportHistorialExcelButton.disabled = true;
     exportHistorialExcelButton.textContent = "Generando...";
 
     try {
-        await window.VehiAmb.mantenimientos.exportHistorialExcel(mantenimientosState, currentMaintenanceFilters());
+        await window.VehiAmb.mantenimientos.exportHistorialExcel(mantenimientosFiltradosState, currentMaintenanceFilters());
     } catch (error) {
         console.error(error);
         window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo exportar el historial en Excel", "error");

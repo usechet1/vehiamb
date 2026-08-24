@@ -1537,6 +1537,174 @@ label[for="loginPassword"] {
     gap: 10px;
 }
 
+/* ── Mantenimientos: exportar (menu en el header de la seccion) ─ */
+.mnt-export-wrap {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+}
+
+.mnt-export-wrap .doc-filter-popover {
+    right: 0;
+    left: auto;
+    min-width: 170px;
+}
+
+/* ── Mantenimientos: historial reciente (agrupado por mes) ──────
+   La fecha es la columna vertebral: dia grande + mes chico a la
+   izquierda, fija para todas las filas del mes. Solo pendiente/
+   rechazado llevan pill de color; lo normal es texto verde plano. */
+.mnt-hist-month {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 14px 4px 8px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.mnt-hist-month:not(:first-child) {
+    margin-top: 6px;
+}
+
+.mnt-hist-month-label {
+    color: var(--color-ink);
+    font-size: 0.85rem;
+    font-weight: 750;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.mnt-hist-month-summary {
+    color: var(--color-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.mnt-hist-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 6px;
+    border-bottom: 1px solid var(--color-border);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.mnt-hist-row:hover {
+    background: var(--color-surface-2);
+}
+
+.mnt-hist-row:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: -2px;
+}
+
+.mnt-hist-date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    flex: 0 0 auto;
+    line-height: 1.1;
+}
+
+.mnt-hist-date-day {
+    color: var(--color-ink);
+    font-size: 1.15rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.mnt-hist-date-month {
+    color: var(--color-muted);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+
+.mnt-hist-main {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.mnt-hist-title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.mnt-hist-title {
+    color: var(--color-ink);
+    font-size: 0.92rem;
+    font-weight: 700;
+}
+
+.mnt-hist-status-ok {
+    color: var(--color-success);
+    font-size: 0.78rem;
+    font-weight: 650;
+}
+
+.mnt-hist-sub {
+    overflow: hidden;
+    color: var(--color-muted);
+    font-size: 0.82rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mnt-hist-end {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+    flex: 0 0 auto;
+    text-align: right;
+}
+
+.mnt-hist-amount {
+    color: var(--color-ink);
+    font-size: 0.92rem;
+    font-weight: 750;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.mnt-hist-amount--muted {
+    color: var(--color-muted);
+    font-weight: 600;
+}
+
+.mnt-hist-action {
+    color: var(--color-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.mnt-hist-action--revisar {
+    color: var(--color-primary);
+    font-weight: 700;
+}
+
+@media (max-width: 620px) {
+    .mnt-hist-row {
+        gap: 10px;
+    }
+
+    .mnt-hist-title {
+        font-size: 0.88rem;
+    }
+}
+
 .btn-primary {
     width: 70%;
     min-height: 46px;
