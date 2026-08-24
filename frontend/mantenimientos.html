@@ -276,20 +276,21 @@
                     <summary class="section-card-head">
                         <h2>Historial reciente</h2>
                         <p>Últimas revisiones y mantenimientos registrados.</p>
+                        <div class="mnt-export-wrap">
+                            <button type="button" class="btn-secondary" id="exportMenuTrigger">
+                                Exportar
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                            </button>
+                            <div class="doc-filter-popover hidden" id="exportMenuPopover">
+                                <button type="button" class="doc-filter-option" id="exportHistorialButton">Exportar PDF</button>
+                                <button type="button" class="doc-filter-option" id="exportHistorialExcelButton">Exportar Excel</button>
+                            </div>
+                        </div>
                     </summary>
                     <div class="section-card-body">
                         <form id="mantenimientosFilterForm" class="doc-filterbar">
                             <div class="doc-filterbar-row">
-                                <div class="doc-filter-popover-wrap">
-                                    <button type="button" class="doc-filter-trigger" id="filterPlacaTrigger">
-                                        <span id="filterPlacaTriggerLabel">Placa</span>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                                    </button>
-                                    <div class="doc-filter-popover hidden" id="filterPlacaPopover"></div>
-                                </div>
-                                <select id="filterPlaca" class="hidden">
-                                    <option value="">Todas las placas</option>
-                                </select>
+                                <input type="search" id="filterBusqueda" class="doc-search-input" placeholder="Buscar por placa o tipo">
 
                                 <div class="doc-filter-popover-wrap">
                                     <button type="button" class="doc-filter-trigger" id="filterTipoTrigger">
@@ -330,8 +331,6 @@
                                 </div>
 
                                 <button type="button" id="clearFiltersButton" class="doc-filter-trigger">Limpiar</button>
-                                <button type="button" id="exportHistorialButton" class="doc-filter-trigger btn-pdf">Exportar PDF</button>
-                                <button type="button" id="exportHistorialExcelButton" class="doc-filter-trigger btn-excel">Exportar Excel</button>
                             </div>
 
                             <div class="doc-filterbar-chips hidden" id="filtersChips"></div>
@@ -339,7 +338,7 @@
                             <span id="filterSummary" class="field-help">Mostrando todos los mantenimientos.</span>
                         </form>
 
-                        <div id="mantenimientosList" class="records-list">
+                        <div id="mantenimientosList" class="mnt-hist-list">
                             <p class="dash-empty">Cargando...</p>
                         </div>
                     </div>
