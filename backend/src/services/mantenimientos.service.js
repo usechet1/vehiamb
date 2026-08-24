@@ -367,7 +367,7 @@ async function createMantenimiento(payload, file, currentUser) {
     requiereAprobacion
   });
 
-  await vehiculoDisponibilidadService.marcarEnReparacionSiAplica(creado, empresaId);
+  await vehiculoDisponibilidadService.reevaluarDisponibilidad(creado.vehiculo_id, empresaId);
 
   return { ...creado, advertenciasStock };
 }
