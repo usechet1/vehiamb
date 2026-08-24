@@ -35,50 +35,53 @@
 
                     <div id="simitRankings" class="simit-rankings"></div>
 
-                    <form id="simitFilterForm" class="filter-form">
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label>Vehículo</label>
-                                <select id="filterSimitVehiculo">
-                                    <option value="">Todos los vehículos</option>
-                                </select>
+                    <form id="simitFilterForm" class="doc-filterbar">
+                        <div class="doc-filterbar-row">
+                            <input type="search" id="filterSimitBusqueda" class="doc-search-input" placeholder="Buscar por placa, marca o modelo">
+
+                            <div class="doc-filter-popover-wrap">
+                                <button type="button" class="doc-filter-trigger" id="filterSimitEstadoTrigger">
+                                    <span id="filterSimitEstadoTriggerLabel">Estado de cartera</span>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                                </button>
+                                <div class="doc-filter-popover hidden" id="filterSimitEstadoPopover">
+                                    <button type="button" class="doc-filter-option is-active" data-estado-value="">Todos</button>
+                                    <button type="button" class="doc-filter-option" data-estado-value="nunca_consultado">Nunca consultado</button>
+                                    <button type="button" class="doc-filter-option" data-estado-value="sin_multas">Sin multas</button>
+                                    <button type="button" class="doc-filter-option" data-estado-value="con_multas">Con multas</button>
+                                    <button type="button" class="doc-filter-option" data-estado-value="cobro_coactivo">Cobro coactivo</button>
+                                    <button type="button" class="doc-filter-option" data-estado-value="acuerdo_pago">Acuerdo de pago</button>
+                                    <button type="button" class="doc-filter-option" data-estado-value="desconocido">Desconocido / error</button>
+                                </div>
                             </div>
 
-                            <div class="form-group">
-                                <label>Estado de cartera</label>
-                                <select id="filterSimitEstado">
-                                    <option value="">Todos los estados</option>
-                                    <option value="nunca_consultado">Nunca consultado</option>
-                                    <option value="sin_multas">Sin multas</option>
-                                    <option value="con_multas">Con multas</option>
-                                    <option value="cobro_coactivo">Cobro coactivo</option>
-                                    <option value="acuerdo_pago">Acuerdo de pago</option>
-                                    <option value="desconocido">Desconocido / error</option>
-                                </select>
+                            <div class="doc-filter-popover-wrap">
+                                <button type="button" class="doc-filter-trigger" id="filterSimitConductorTrigger">
+                                    <span id="filterSimitConductorTriggerLabel">Conductor</span>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                                </button>
+                                <div class="doc-filter-popover hidden" id="filterSimitConductorPopover">
+                                    <button type="button" class="doc-filter-option is-active" data-conductor-value="">Todos</button>
+                                </div>
                             </div>
 
-                            <div class="form-group">
-                                <label>Conductor</label>
-                                <select id="filterSimitConductor">
-                                    <option value="">Todos los conductores</option>
-                                </select>
+                            <div class="doc-filter-popover-wrap">
+                                <button type="button" class="doc-filter-trigger" id="filterSimitFechasTrigger">
+                                    <span id="filterSimitFechasTriggerLabel">Última consulta</span>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                                </button>
+                                <div class="doc-filter-popover doc-filter-popover-dates hidden" id="filterSimitFechasPopover">
+                                    <label>Desde<input type="date" id="filterSimitFechaDesde"></label>
+                                    <label>Hasta<input type="date" id="filterSimitFechaHasta"></label>
+                                </div>
                             </div>
 
-                            <div class="form-group">
-                                <label>Última consulta desde</label>
-                                <input type="date" id="filterSimitFechaDesde">
-                            </div>
-
-                            <div class="form-group">
-                                <label>Última consulta hasta</label>
-                                <input type="date" id="filterSimitFechaHasta">
-                            </div>
+                            <button type="button" id="clearSimitFiltersButton" class="doc-filter-trigger">Limpiar</button>
                         </div>
 
-                        <div class="filter-actions">
-                            <span id="simitFilterSummary" class="field-help">Cargando vehículos...</span>
-                            <button type="button" id="clearSimitFiltersButton" class="btn-secondary">Limpiar filtros</button>
-                        </div>
+                        <div class="doc-filterbar-chips hidden" id="simitFilterChips"></div>
+
+                        <span id="simitFilterSummary" class="field-help">Cargando vehículos...</span>
                     </form>
 
                     <div id="simitFlotaList" class="records-list">
