@@ -96,19 +96,14 @@ async function validarYResolverPayload(payload, empresaId, excludeId = null) {
   // solo se reevalua en eventos puntuales (crear/aprobar/confirmar un
   // mantenimiento), no por un cron diario, asi que un vehiculo programado
   // para el 30 de agosto debe seguir bloqueado el 30 aunque nadie haya
-  // entrado a la app ese dia. Se salta solo si ni el vehiculo ni la fecha
-  // cambiaron respecto a la asignacion original (edicion de otros campos).
-  // original.fecha viene de Postgres como Date (columna DATE), no como
-  // string -- toISOString().slice(0, 10) para comparar en el mismo formato
-  // "YYYY-MM-DD" que trae payload.fecha (String(Date) da algo tipo "Sat Aug
-  // 26 2026...", que nunca calza).
-  const fechaSinCambios = vehiculoSinCambios && original.fecha.toISOString().slice(0, 10) === String(payload.fecha).slice(0, 10);
-
-  if (!fechaSinCambios) {
-    const bloqueadoEnFecha = await mantenimientosRepository.existeMantenimientoQueBloqueaEnFecha(vehiculo.id, payload.fecha, empresaId);
-    if (bloqueadoEnFecha) {
-      throw new HttpError(409, `El vehículo ${vehiculo.placa} tiene un mantenimiento programado y no está disponible el ${payload.fecha}.`);
-    }
+  // entrado a la app ese dia. A diferencia del chequeo de estado de arriba,
+  // este SIEMPRE se corre, incluso al editar una asignacion sin cambios: es
+  // el caso real que motivo este chequeo -- rutas planificadas con
+  // anticipacion, y el mantenimiento se programa despues, encima de una
+  // asignacion que ya existia.
+  const bloqueadoEnFecha = await mantenimientosRepository.existeMantenimientoQueBloqueaEnFecha(vehiculo.id, payload.fecha, empresaId);
+  if (bloqueadoEnFecha) {
+    throw new HttpError(409, `El vehículo ${vehiculo.placa} tiene un mantenimiento programado y no está disponible el ${payload.fecha}.`);
   }
 
   const destinos = Array.isArray(payload.destinos) ? payload.destinos : [];
