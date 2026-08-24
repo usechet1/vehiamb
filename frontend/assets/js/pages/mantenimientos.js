@@ -1133,7 +1133,14 @@ function renderMantenimientos(mantenimientos) {
                             ${item.valor
                                 ? `<span class="mnt-hist-amount">${formatCurrency(item.valor)}</span>`
                                 : `<span class="mnt-hist-amount mnt-hist-amount--muted">Sin costo</span>`}
-                            <span class="mnt-hist-action${estado.esExcepcion ? " mnt-hist-action--revisar" : ""}">${estado.accion}</span>
+                            <div class="mnt-hist-end-row">
+                                ${item.tipo === "cambio_aceite" ? `
+                                    <button type="button" class="mnt-hist-print" data-etiqueta-id="${item.id}" title="Ver etiqueta" aria-label="Ver etiqueta de cambio de aceite">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                                    </button>
+                                ` : ""}
+                                <span class="mnt-hist-action${estado.esExcepcion ? " mnt-hist-action--revisar" : ""}">${estado.accion}</span>
+                            </div>
                         </div>
                     </article>
                 `;
@@ -1439,6 +1446,13 @@ clearFiltersButton.addEventListener("click", () => {
 
 mantenimientosList.addEventListener("click", (event) => {
     if (event.target.closest("a")) return;
+
+    const etiquetaButton = event.target.closest("[data-etiqueta-id]");
+    if (etiquetaButton) {
+        event.stopPropagation();
+        window.open(`etiqueta-cambio-aceite.html?mantenimiento_id=${etiquetaButton.dataset.etiquetaId}`, "_blank", "noreferrer");
+        return;
+    }
 
     const card = event.target.closest("[data-maintenance-id]");
     if (!card) return;

@@ -1695,6 +1695,38 @@ label[for="loginPassword"] {
     font-weight: 700;
 }
 
+.mnt-hist-end-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.mnt-hist-print {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--color-ink-soft);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.mnt-hist-print:hover,
+.mnt-hist-print:focus-visible {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.mnt-hist-print svg {
+    width: 14px;
+    height: 14px;
+}
+
 @media (max-width: 620px) {
     .mnt-hist-row {
         gap: 10px;
