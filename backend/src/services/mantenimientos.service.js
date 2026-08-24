@@ -249,9 +249,7 @@ async function confirmarCambioAceite(id, empresaId) {
     });
   }
 
-  if (actualizado.vehiculo_varado) {
-    await vehiculoDisponibilidadService.reevaluarDisponibilidad(actualizado.vehiculo_id, empresaId);
-  }
+  await vehiculoDisponibilidadService.reevaluarDisponibilidad(actualizado.vehiculo_id, empresaId);
 
   return actualizado;
 }
@@ -369,9 +367,7 @@ async function createMantenimiento(payload, file, currentUser) {
     requiereAprobacion
   });
 
-  if (creado.vehiculo_varado && requiereAprobacion) {
-    await vehiculoDisponibilidadService.marcarEnReparacionSiAplica(creado.vehiculo_id, empresaId);
-  }
+  await vehiculoDisponibilidadService.marcarEnReparacionSiAplica(creado, empresaId);
 
   return { ...creado, advertenciasStock };
 }
