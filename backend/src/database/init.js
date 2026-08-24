@@ -1525,7 +1525,7 @@ async function seedBodegaYConfigDefault() {
   await db.run(
     `
       INSERT INTO configuracion_inventario (clave, valor, empresa_id)
-      VALUES ('stock_insuficiente_bloquea', 'false', ?)
+      VALUES ('stock_insuficiente_bloquea', 'true', ?)
       ON CONFLICT (empresa_id, clave) DO NOTHING
     `,
     [empresaId]
