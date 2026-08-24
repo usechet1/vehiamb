@@ -10,6 +10,11 @@ exports.getPorFecha = async (req, res) => {
   res.json(asignaciones);
 };
 
+exports.getVehiculosBloqueados = async (req, res) => {
+  const vehiculoIds = await asignacionesService.vehiculosBloqueadosEnFecha(req.query.fecha, req.empresaId);
+  res.json({ vehiculoIds });
+};
+
 exports.crear = async (req, res) => {
   const asignacion = await asignacionesService.crear(req.body, req.user);
   res.status(201).json(asignacion);

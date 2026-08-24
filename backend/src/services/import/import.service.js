@@ -57,12 +57,6 @@ function generarRangoFechas(desde, hasta) {
  * Procesa un unico dia del Excel (ya abierto y validado) y deja el registro
  * de auditoria correspondiente. Nunca relanza el error: si un dia de un
  * rango falla, los demas dias deben poder seguir procesandose.
- *
- * forzar=true salta el atajo de "el archivo no cambio, no reprocesar" -- se
- * usa para recuperar periodos que ya se sincronizaron con una version vieja
- * del codigo de parseo (ej. el bug de fechas dia/mes invertidas) y que de
- * otro modo quedarian con "sin_cambios" para siempre aunque el archivo en
- * disco no vuelva a cambiar.
  */
 async function ejecutarPeriodo({ periodoObjetivo, hash, nombreArchivo, validated, usuarioId, empresaId, forzar = false }) {
   const inicioPeriodo = Date.now();
