@@ -159,38 +159,6 @@ asignacionConductor.addEventListener("change", () => {
     asignacionTelefono.value = conductor?.telefono || "";
 });
 
-// Un vehiculo con mantenimiento registrado justo ese dia no deberia poder
-// asignarse a una ruta ese mismo dia -- se deshabilita la opcion en el
-// select (no solo se avisa) para que no se pueda seleccionar por error.
-async function actualizarVehiculosEnMantenimiento() {
-    const fecha = asignacionFecha.value;
-
-    Array.from(asignacionVehiculo.options).forEach((option) => {
-        if (option.dataset.label) option.textContent = option.dataset.label;
-        option.disabled = false;
-    });
-
-    if (!fecha) return;
-
-    let mantenimientos = [];
-    try {
-        mantenimientos = await window.VehiAmb.api.getMantenimientos({ fecha_desde: fecha, fecha_hasta: fecha });
-    } catch (error) {
-        console.error(error);
-        return;
-    }
-
-    const vehiculosEnMantenimiento = new Set(mantenimientos.map((item) => String(item.vehiculo_id)));
-
-    Array.from(asignacionVehiculo.options).forEach((option) => {
-        if (!option.value || !vehiculosEnMantenimiento.has(option.value)) return;
-        option.dataset.label = option.textContent;
-        option.textContent = `${option.textContent} (en mantenimiento)`;
-        option.disabled = true;
-    });
-}
-
-asignacionFecha.addEventListener("change", actualizarVehiculosEnMantenimiento);
 
 function resetForm() {
     asignacionForm.reset();
@@ -200,7 +168,6 @@ function resetForm() {
     asignacionSubmitButton.textContent = "Guardar asignación";
     asignacionCancelEditButton.classList.add("hidden");
     resetDestinos();
-    actualizarVehiculosEnMantenimiento();
 }
 
 function renderRow(item, indice) {
@@ -268,7 +235,6 @@ asignacionesFiltroFecha.addEventListener("change", () => {
     cargarAsignaciones();
     if (!asignacionId.value) {
         asignacionFecha.value = asignacionesFiltroFecha.value;
-        actualizarVehiculosEnMantenimiento();
     }
 });
 
@@ -326,7 +292,6 @@ asignacionesTableBody.addEventListener("click", async (event) => {
         asignacionId.value = asignacion.id;
         asignacionFecha.value = asignacion.fecha ? String(asignacion.fecha).slice(0, 10) : hoyISO();
         asignacionConductor.value = asignacion.conductor_id || "";
-        await actualizarVehiculosEnMantenimiento();
         asignacionVehiculo.value = asignacion.vehiculo_id || "";
         asignacionTelefono.value = asignacion.telefono || "";
         asignacionObservaciones.value = asignacion.observaciones || "";
@@ -384,7 +349,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
         await cargarCatalogos();
         resetDestinos();
-        await actualizarVehiculosEnMantenimiento();
     } catch (error) {
         window.VehiAmb.ui.showMessage(mensaje, "No se pudieron cargar conductores/vehículos/rutas", "error");
     }
