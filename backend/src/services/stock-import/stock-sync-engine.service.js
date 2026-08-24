@@ -4,10 +4,18 @@ const repuestosStockRepository = require("../../repositories/repuestos-stock.rep
 const incidenciasRepository = require("../../repositories/incidencias-importacion-stock.repository");
 const detalleRepository = require("../../repositories/detalle-importacion-stock.repository");
 
-// El "cambio" de una fila se define por estos campos. codigoInterno queda
-// afuera a proposito: es la identidad del registro (mismo criterio que
-// numero_factura/fecha_factura en el pipeline de facturas).
-const STOCK_HASH_FIELDS = ["nombre", "unidadMedida", "stockFisico", "valorPromedio", "ubicacionOriginal"];
+// El hash solo cubre metadatos (no stockFisico): stock se reconcilia con el
+// Excel SIEMPRE, en cada corrida, sin importar si el resto de la fila
+// cambio -- el Excel es una foto completa del saldo actual, y el stock en la
+// app puede haberse movido desde la ultima corrida por consumo en
+// mantenimientos (ver consumirRepuestos, que permite dejarlo en negativo si
+// "stock_insuficiente_bloquea" esta apagado). Si stockFisico tambien
+// estuviera en el hash, una fila "sin cambios" en el Excel se saltaria por
+// completo y ese consumo nunca se corregiria hasta que algun otro campo
+// cambiara. codigoInterno queda afuera del hash a proposito: es la
+// identidad del registro (mismo criterio que numero_factura/fecha_factura
+// en el pipeline de facturas).
+const STOCK_HASH_FIELDS = ["nombre", "unidadMedida", "valorPromedio", "ubicacionOriginal"];
 
 /**
  * Si el mismo codigo_interno aparece mas de una vez en el archivo, se
@@ -126,25 +134,19 @@ async function procesarLote(candidatesLote, importacionId, bodegaId, contexto, e
 
       const stockRow = stockExistente.get(existente.id);
       const hashAnterior = stockRow?.hash_fila ?? null;
+      const metadataSinCambios = hashAnterior !== null && hashAnterior === hashNuevo;
 
-      if (hashAnterior !== null && hashAnterior === hashNuevo) {
-        detalles.push({
-          repuestoId: existente.id,
-          codigoInterno: candidate.codigoInterno,
-          accion: "omitido",
-          hashAnterior,
-          hashNuevo
-        });
-        omitidos += 1;
-        continue;
+      if (!metadataSinCambios) {
+        await repuestosRepository.updateDatosImportados(existente.id, {
+          nombre: candidate.nombre,
+          unidad_medida: candidate.unidadMedida,
+          valor_promedio: candidate.valorPromedio
+        }, empresaId);
       }
 
-      await repuestosRepository.updateDatosImportados(existente.id, {
-        nombre: candidate.nombre,
-        unidad_medida: candidate.unidadMedida,
-        valor_promedio: candidate.valorPromedio
-      }, empresaId);
-
+      // El stock se reconcilia con el Excel siempre, incluso si el resto de
+      // la fila no cambio (metadataSinCambios) -- ver el comentario de
+      // STOCK_HASH_FIELDS mas arriba.
       await repuestosStockRepository.upsertStock(existente.id, bodegaId, {
         stockFisico: candidate.stockFisico,
         ubicacionOriginal: candidate.ubicacionOriginal,
@@ -152,7 +154,9 @@ async function procesarLote(candidatesLote, importacionId, bodegaId, contexto, e
       }, empresaId);
 
       const stockAnterior = Number(stockRow?.stock_fisico ?? 0);
-      if (stockAnterior !== candidate.stockFisico) {
+      const stockCambio = stockAnterior !== candidate.stockFisico;
+
+      if (stockCambio) {
         await repuestosStockRepository.insertMovimiento({
           repuestoId: existente.id,
           bodegaId,
@@ -165,6 +169,12 @@ async function procesarLote(candidatesLote, importacionId, bodegaId, contexto, e
           usuarioId: null,
           empresaId
         });
+      }
+
+      if (metadataSinCambios && !stockCambio) {
+        detalles.push({ repuestoId: existente.id, codigoInterno: candidate.codigoInterno, accion: "omitido", hashAnterior, hashNuevo });
+        omitidos += 1;
+        continue;
       }
 
       detalles.push({
