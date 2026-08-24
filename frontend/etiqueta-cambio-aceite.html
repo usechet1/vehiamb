@@ -117,7 +117,7 @@
 
         .etiqueta-proximo .etiqueta-proximo-valor {
             display: block;
-            font-size: 1.05rem;
+            font-size: 1.6rem;
             font-weight: 800;
             color: var(--color-ink);
         }
@@ -318,7 +318,7 @@
                     ? `${proximoKm.toLocaleString("es-CO")} km`
                     : "No calculado";
                 document.getElementById("etqProximoFecha").textContent = proximoKm && mantenimiento.proximo_cambio_fecha
-                    ? formatDate(mantenimiento.proximo_cambio_fecha)
+                    ? `Posible fecha de cambio: ${formatDate(mantenimiento.proximo_cambio_fecha)}`
                     : "";
 
                 const relevantes = repuestos.filter((item) => CATEGORIAS_ETIQUETA.has(item.categoria));
