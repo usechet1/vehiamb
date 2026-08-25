@@ -45,23 +45,39 @@
             text-align: center;
         }
 
-        .vehicle-image-meta {
+        /* Lista simple etiqueta/valor -- reemplaza el grid de cajas de
+           .detail-list solo para esta ficha: con 12 campos, una caja por
+           campo era ruido repetido (mismo borde, mismo fondo, mismo texto
+           en mayusculas x12), no informacion. */
+        .vehicle-facts-list {
             display: flex;
-            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .vehicle-facts-list > div {
+            display: flex;
+            align-items: baseline;
             justify-content: space-between;
-            gap: 12px;
+            gap: 16px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--color-border);
         }
 
-        .vehicle-image-meta h3 {
-            color: var(--color-ink);
-            font-size: 1rem;
-            line-height: 1.25;
+        .vehicle-facts-list > div:last-child {
+            border-bottom: 0;
         }
 
-        .vehicle-image-meta p {
-            margin-top: 4px;
+        .vehicle-facts-list dt {
+            flex: 0 0 auto;
             color: var(--color-muted);
-            font-size: 0.82rem;
+            font-size: 0.85rem;
+        }
+
+        .vehicle-facts-list dd {
+            color: var(--color-ink);
+            font-size: 0.92rem;
+            font-weight: 700;
+            text-align: right;
         }
 
         .vehicle-simit-actions {
@@ -191,18 +207,6 @@
             </ol>
 
             <div id="vehicleDetail" class="vehicle-detail-grid hidden">
-                <section class="section-card" id="vehicleDatosSection">
-                    <details class="section-card-collapsible" open>
-                        <summary class="section-card-head">
-                            <h2>Datos del vehículo</h2>
-                            <p>Ficha base de identificación y operación.</p>
-                        </summary>
-                        <div class="section-card-body">
-                            <dl class="detail-list" id="vehicleFacts"></dl>
-                        </div>
-                    </details>
-                </section>
-
                 <section class="section-card" id="vehicleImagenSection">
                     <details class="section-card-collapsible" open>
                         <summary class="section-card-head">
@@ -215,14 +219,19 @@
                                     <img id="vehicleImage" class="hidden" src="" alt="Imagen del vehículo">
                                     <div id="vehicleImagePlaceholder" class="vehicle-image-placeholder">Sin imagen disponible</div>
                                 </div>
-                                <div class="vehicle-image-meta">
-                                    <div>
-                                        <span class="plate" id="vehicleImagePlate">---</span>
-                                        <h3 id="vehicleImageName">---</h3>
-                                        <p id="vehicleImageModel">Modelo no disponible</p>
-                                    </div>
-                                </div>
                             </div>
+                        </div>
+                    </details>
+                </section>
+
+                <section class="section-card" id="vehicleDatosSection">
+                    <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
+                            <h2>Datos del vehículo</h2>
+                            <p>Ficha base de identificación y operación.</p>
+                        </summary>
+                        <div class="section-card-body">
+                            <dl class="vehicle-facts-list" id="vehicleFacts"></dl>
                         </div>
                     </details>
                 </section>
@@ -470,9 +479,6 @@
             const puedeEditarEstado = Boolean(window.VehiAmb?.auth?.hasPermission?.("vehicles.edit"));
             const vehicleImage = document.getElementById("vehicleImage");
             const vehicleImagePlaceholder = document.getElementById("vehicleImagePlaceholder");
-            const vehicleImagePlate = document.getElementById("vehicleImagePlate");
-            const vehicleImageName = document.getElementById("vehicleImageName");
-            const vehicleImageModel = document.getElementById("vehicleImageModel");
             const editVehicleLink = document.getElementById("editVehicleLink");
             const mensaje = document.getElementById("mensaje");
 
@@ -518,12 +524,6 @@
                     window.VehiAmb.ui.hide(vehicleImage);
                     window.VehiAmb.ui.show(vehicleImagePlaceholder);
                 };
-
-                vehicleImagePlate.textContent = vehiculo.placa || "SIN PLACA";
-                vehicleImageName.textContent = title;
-                vehicleImageModel.textContent = vehiculo.modelo
-                    ? `Modelo ${vehiculo.modelo}`
-                    : "Modelo no disponible";
 
                 if (imageSource) {
                     vehicleImage.src = imageSource;

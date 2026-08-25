@@ -45,8 +45,13 @@ async function initConductorWizard() {
 
         nav.querySelectorAll(".wizard-step").forEach((el) => {
             const stepIndex = Number(el.dataset.step) - 1;
-            el.classList.toggle("is-active", stepIndex === currentStep);
+            const esActivo = stepIndex === currentStep;
+            el.classList.toggle("is-active", esActivo);
             el.classList.toggle("is-completado", stepIndex < currentStep);
+            // El nav ahora es scroll horizontal en vez de envolver a una
+            // segunda fila -- sin esto el paso activo podria quedar fuera de
+            // vista si el nav no cabe completo en pantalla.
+            if (esActivo) el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
         });
 
         anteriorBtn.disabled = currentStep === 0;

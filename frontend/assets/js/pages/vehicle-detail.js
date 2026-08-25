@@ -180,18 +180,20 @@ function renderRepuestosMeta(value) {
 }
 
 function renderFacts(vehiculo) {
+    // Orden por importancia (como se identifica un carro primero), no por
+    // orden de columna en la base de datos.
     const facts = [
-        ["Tipo de vehículo", vehiculo.tipo_vehiculo],
-        ["Tipo de carrocería", vehiculo.tipo_carroceria],
         ["Marca", vehiculo.marca],
         ["Línea", vehiculo.modelo],
         ["Modelo", vehiculo.anio],
+        ["Tipo de vehículo", vehiculo.tipo_vehiculo],
+        ["Tipo de carrocería", vehiculo.tipo_carroceria],
         ["Color", vehiculo.color],
         ["Combustible", vehiculo.combustible],
         ["Cilindraje", vehiculo.cilindraje],
         ["Capacidad de carga (kg)", vehiculo.capacidad_carga],
-        ["Número de chasis (VIN)", vehiculo.numero_chasis],
         ["Número de motor", vehiculo.numero_motor],
+        ["Número de chasis (VIN)", vehiculo.numero_chasis],
         ["Creado", formatDate(vehiculo.created_at?.slice(0, 10))]
     ];
 
