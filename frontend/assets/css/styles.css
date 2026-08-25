@@ -2548,12 +2548,15 @@ label[for="loginPassword"] {
     line-height: 1.15;
 }
 
+.conductor-vehiculo-label {
+    margin-top: 6px;
+}
+
 .conductor-ruta-vehiculo {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 10px;
-    margin-top: 10px;
 }
 
 .conductor-ruta-vehiculo .plate {
