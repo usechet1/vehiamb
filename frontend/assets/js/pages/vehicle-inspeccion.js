@@ -4,6 +4,9 @@ const inspeccionHotspotsEl = document.getElementById("inspeccionHotspots");
 const inspeccionPanelEl = document.getElementById("inspeccionPanel");
 const inspeccionResumenEl = document.getElementById("inspeccionResumen");
 const inspeccionProgresoEl = document.getElementById("inspeccionProgreso");
+const inspeccionSheetBackdropEl = document.getElementById("inspeccionSheetBackdrop");
+const inspeccionSheetEl = document.getElementById("inspeccionSheet");
+const inspeccionSheetBodyEl = document.getElementById("inspeccionSheetBody");
 const limpiarInspeccionButton = document.getElementById("limpiarInspeccionButton");
 const inspeccionHistorialList = document.getElementById("inspeccionHistorialList");
 
@@ -14,6 +17,7 @@ let inspeccionMarcados = new Map();
 let inspeccionActivo = null;
 let inspeccionPuedeCrear = false;
 let inspeccionDetalleCache = new Map();
+let inspeccionCierreSheetTimeoutId = null;
 // La firma ya no se captura aqui -- se movio al paso 5 (Finalizar) del
 // wizard del conductor, unica para inspeccion y preoperacional. Este flag
 // evita disparar "inspeccion:completa" mas de una vez mientras el conductor
@@ -79,6 +83,44 @@ function getItemsPlanos() {
     });
 }
 
+// El panel de marcado vive en una hoja que sube desde abajo (no inline en la
+// pagina) para que tocar un punto arriba del diagrama no deje los botones
+// Bien/Mal fuera de la pantalla -- en un checklist de 12 puntos esto pasaba
+// sistematicamente en movil.
+function abrirSheet() {
+    if (!inspeccionSheetEl) return;
+    // Abrir un punto nuevo cancela cualquier cierre-con-retraso pendiente del
+    // punto anterior -- si no, un cierre en camino podia dispararse tarde y
+    // cerrar la hoja del punto que se acaba de abrir.
+    if (inspeccionCierreSheetTimeoutId) {
+        clearTimeout(inspeccionCierreSheetTimeoutId);
+        inspeccionCierreSheetTimeoutId = null;
+    }
+    window.VehiAmb.ui.show(inspeccionSheetBackdropEl);
+    window.VehiAmb.ui.show(inspeccionSheetEl);
+    inspeccionSheetEl.setAttribute("aria-hidden", "false");
+}
+
+function cerrarSheet() {
+    if (!inspeccionSheetEl) return;
+    if (inspeccionCierreSheetTimeoutId) {
+        clearTimeout(inspeccionCierreSheetTimeoutId);
+        inspeccionCierreSheetTimeoutId = null;
+    }
+    window.VehiAmb.ui.hide(inspeccionSheetBackdropEl);
+    window.VehiAmb.ui.hide(inspeccionSheetEl);
+    inspeccionSheetEl.setAttribute("aria-hidden", "true");
+    inspeccionActivo = null;
+    renderHotspots();
+}
+
+inspeccionSheetBackdropEl?.addEventListener("click", cerrarSheet);
+document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && inspeccionSheetEl && !inspeccionSheetEl.classList.contains("hidden")) {
+        cerrarSheet();
+    }
+});
+
 function renderHotspots() {
     inspeccionHotspotsEl.innerHTML = inspeccionCatalogo.map((item) => {
         const estadoClase = item.subItems
@@ -101,13 +143,22 @@ function renderHotspots() {
             inspeccionActivo = el.dataset.codigo;
             renderHotspots();
             renderPanel();
+            abrirSheet();
         });
     });
 }
 
+// Cierra la hoja un momento despues de marcar, no de inmediato -- asi el
+// usuario alcanza a ver el boton quedar seleccionado antes de que
+// desaparezca, en vez de que la hoja se le cierre "de sorpresa".
+function cerrarSheetConRetraso() {
+    if (inspeccionCierreSheetTimeoutId) clearTimeout(inspeccionCierreSheetTimeoutId);
+    inspeccionCierreSheetTimeoutId = setTimeout(cerrarSheet, 260);
+}
+
 function renderPanel() {
     if (!inspeccionActivo) {
-        inspeccionPanelEl.innerHTML = '<p class="dash-empty">Selecciona un punto del diagrama para marcar su estado.</p>';
+        inspeccionSheetBodyEl.innerHTML = "";
         return;
     }
 
@@ -121,11 +172,15 @@ function renderPanel() {
 
     const marcado = inspeccionMarcados.get(item.codigo);
 
-    inspeccionPanelEl.innerHTML = `
-        <h4>${escapeHtml(item.label)}</h4>
-        <div class="inspeccion-panel-actions">
-            <button type="button" class="btn-secondary inspeccion-estado-btn ${marcado?.estado === "bien" ? "is-selected-bien" : ""}" data-estado="bien">Bien</button>
-            <button type="button" class="btn-secondary inspeccion-estado-btn ${marcado?.estado === "mal" ? "is-selected-mal" : ""}" data-estado="mal">Mal</button>
+    inspeccionSheetBodyEl.innerHTML = `
+        <h3 class="inspeccion-sheet-title">${escapeHtml(item.label)}</h3>
+        <div class="inspeccion-sheet-actions">
+            <button type="button" class="inspeccion-sheet-btn is-bien ${marcado?.estado === "bien" ? "is-selected" : ""}" data-estado="bien">
+                <span class="inspeccion-sheet-btn-icon" aria-hidden="true">✓</span> Bien
+            </button>
+            <button type="button" class="inspeccion-sheet-btn is-mal ${marcado?.estado === "mal" ? "is-selected" : ""}" data-estado="mal">
+                <span class="inspeccion-sheet-btn-icon" aria-hidden="true">✕</span> Mal
+            </button>
         </div>
         ${marcado ? `
             <div class="form-group">
@@ -138,10 +193,10 @@ function renderPanel() {
                 ${marcado.fotoNombre ? `<span class="field-help">Archivo: ${escapeHtml(marcado.fotoNombre)}</span>` : ""}
             </div>
             <button type="button" class="record-link" id="inspeccionQuitarButton">Quitar marca</button>
-        ` : '<p class="field-help">Marca Bien o Mal para registrar este ítem.</p>'}
+        ` : ""}
     `;
 
-    inspeccionPanelEl.querySelectorAll(".inspeccion-estado-btn").forEach((btn) => {
+    inspeccionSheetBodyEl.querySelectorAll(".inspeccion-sheet-btn").forEach((btn) => {
         btn.addEventListener("click", () => {
             const existente = inspeccionMarcados.get(item.codigo);
             inspeccionMarcados.set(item.codigo, {
@@ -153,6 +208,7 @@ function renderPanel() {
             renderHotspots();
             renderPanel();
             renderResumen();
+            cerrarSheetConRetraso();
         });
     });
 
@@ -177,6 +233,7 @@ function renderPanel() {
         renderHotspots();
         renderPanel();
         renderResumen();
+        cerrarSheetConRetraso();
     });
 }
 
@@ -186,9 +243,13 @@ function renderPanel() {
 // que adivinar en qué paso del ciclo va. Click sobre el botón ya activo lo
 // vuelve a dejar vacío. El estado guardado sigue siendo "bien"/"mal" (mismo
 // modelo que el resto del checklist), solo cambia cómo se marca en pantalla.
+// A diferencia de un punto suelto, aca hay 9 elementos que marcar en la
+// misma visita -- cerrar la hoja en cada toque obligaria a reabrirla 9
+// veces, asi que esta se queda abierta hasta que el usuario la cierra con
+// el boton "Listo" (o tocando afuera).
 function renderPanelGrupo(item) {
-    inspeccionPanelEl.innerHTML = `
-        <h4>${escapeHtml(item.label)}</h4>
+    inspeccionSheetBodyEl.innerHTML = `
+        <h3 class="inspeccion-sheet-title">${escapeHtml(item.label)}</h3>
         <p class="field-help">Marca si el vehículo tiene o no cada elemento del kit de herramientas y equipo de carretera.</p>
         <div class="inspeccion-checklist-grupo">
             ${item.subItems.map((subItem) => {
@@ -208,9 +269,10 @@ function renderPanelGrupo(item) {
                 `;
             }).join("")}
         </div>
+        <button type="button" class="btn-primary inspeccion-sheet-listo-btn" id="inspeccionSheetListoButton">Listo</button>
     `;
 
-    inspeccionPanelEl.querySelectorAll(".inspeccion-checklist-pill").forEach((btn) => {
+    inspeccionSheetBodyEl.querySelectorAll(".inspeccion-checklist-pill").forEach((btn) => {
         btn.addEventListener("click", () => {
             const codigo = btn.dataset.codigo;
             const estadoActual = inspeccionMarcados.get(codigo)?.estado;
@@ -226,6 +288,8 @@ function renderPanelGrupo(item) {
             renderResumen();
         });
     });
+
+    document.getElementById("inspeccionSheetListoButton")?.addEventListener("click", cerrarSheet);
 }
 
 // Una vez marcados todos los items (sin faltantes), avanza automaticamente
@@ -525,10 +589,13 @@ async function initInspeccion() {
     inspeccionViajeId = new URLSearchParams(window.location.search).get("viaje") || "";
     if (!inspeccionVehiculoId) return;
 
+    // El marcado ahora vive en la hoja (#inspeccionSheet), no en este panel
+    // inline -- se deja oculto para todos los roles.
+    inspeccionPanelEl?.classList.add("hidden");
+
     if (!esConductor) {
         document.querySelector(".inspeccion-diagram-wrap")?.classList.add("hidden");
         document.querySelector(".inspeccion-diagram-legend")?.classList.add("hidden");
-        inspeccionPanelEl.classList.add("hidden");
         inspeccionResumenEl.classList.add("hidden");
         inspeccionProgresoEl?.classList.add("hidden");
         limpiarInspeccionButton.classList.add("hidden");
