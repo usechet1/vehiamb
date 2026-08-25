@@ -298,6 +298,47 @@ function abrirFormularioComentario(hilo = []) {
     });
 }
 
+// Los navegadores bloquean el audio hasta que haya un gesto real del
+// usuario (clic, tecla, etc.) -- por eso el AudioContext se crea recien en
+// el primer clic de la pagina, no al cargarla. Si el sonido intenta sonar
+// antes de ese primer clic (poll automatico nada mas abrir la pagina) se
+// omite en silencio en vez de fallar.
+let notifAudioCtx = null;
+
+function desbloquearAudioNotificaciones() {
+    if (notifAudioCtx) return;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    notifAudioCtx = new AudioContextClass();
+}
+
+document.addEventListener("click", desbloquearAudioNotificaciones, { once: true });
+
+// Timbre corto de dos notas sintetizado con Web Audio API -- sin depender de
+// ningun archivo de audio externo.
+function reproducirSonidoNotificacion() {
+    if (!notifAudioCtx) return;
+    if (notifAudioCtx.state === "suspended") notifAudioCtx.resume();
+
+    const ahora = notifAudioCtx.currentTime;
+    [
+        { freq: 880, inicio: 0, duracion: 0.12 },
+        { freq: 1318.5, inicio: 0.1, duracion: 0.18 }
+    ].forEach(({ freq, inicio, duracion }) => {
+        const osc = notifAudioCtx.createOscillator();
+        const gain = notifAudioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0, ahora + inicio);
+        gain.gain.linearRampToValueAtTime(0.18, ahora + inicio + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, ahora + inicio + duracion);
+        osc.connect(gain);
+        gain.connect(notifAudioCtx.destination);
+        osc.start(ahora + inicio);
+        osc.stop(ahora + inicio + duracion + 0.02);
+    });
+}
+
 async function setupNotificaciones(aside) {
     const bellButton = aside.querySelector("#notifBellButton");
     const panel = aside.querySelector("#notifPanel");
@@ -307,6 +348,10 @@ async function setupNotificaciones(aside) {
     if (!bellButton || !panel || !badge || !body) return;
 
     let filtroActivo = "todas";
+    // null hasta el primer refrescar() exitoso, para no sonar apenas se
+    // carga la pagina -- solo cuando el numero de pendientes sube respecto
+    // al ultimo valor conocido (llego algo nuevo entre un poll y otro).
+    let pendientesAnterior = null;
 
     async function refrescar() {
         try {
@@ -315,6 +360,11 @@ async function setupNotificaciones(aside) {
                 window.VehiAmb.api.getContadorNotificaciones()
             ]);
             renderNotificaciones(notificaciones, body, badge, contador.pendientes);
+
+            if (pendientesAnterior !== null && contador.pendientes > pendientesAnterior) {
+                reproducirSonidoNotificacion();
+            }
+            pendientesAnterior = contador.pendientes;
         } catch (error) {
             console.error("No fue posible cargar las notificaciones:", error);
         }
