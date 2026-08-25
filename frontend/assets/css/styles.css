@@ -603,6 +603,271 @@ label[for="loginPassword"] {
     border-left-width: 4px;
 }
 
+/* ── Centro de notificaciones: toolbar (pestanas, categorias, buscador) ── */
+.notif-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.notif-tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--color-border);
+    margin: -4px -4px 0;
+}
+
+.notif-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 14px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: none;
+    color: var(--color-muted);
+    font-size: 0.86rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.notif-tab:hover {
+    color: var(--color-ink-soft);
+}
+
+.notif-tab.is-active {
+    border-bottom-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.notif-tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 800;
+}
+
+.notif-category-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.notif-toolbar-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.notif-toolbar-row .doc-search-input {
+    flex: 1 1 260px;
+}
+
+.notif-menu-trigger {
+    padding: 9px 12px;
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.notif-filters-popover {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 220px;
+    padding: 10px;
+}
+
+.notif-filters-popover label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: var(--color-ink-soft);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.notif-menu-option--danger {
+    color: var(--color-primary);
+}
+
+/* ── Centro de notificaciones: estado vacio ──────────────────── */
+.notif-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ── Centro de notificaciones: fila (hairline, no tarjeta anidada) ── */
+.notif-list-body {
+    padding-top: 6px;
+}
+
+/* El color del border-left lo pone .notif-prio-* (definido mas arriba, ya
+   trae su propio border-left completo incluido el ancho) -- .notif-row no
+   declara border-left para no competir por especificidad/orden con esas
+   reglas y terminar pisandolas con un valor transparente. */
+.notif-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 6px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.notif-row--leida {
+    opacity: 0.6;
+}
+
+.notif-row-icon {
+    flex: 0 0 auto;
+    font-size: 1.1rem;
+    line-height: 1.4;
+}
+
+.notif-row-main {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.notif-row-title-line {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+
+.notif-dot {
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #305f8f;
+}
+
+.notif-row-title {
+    color: var(--color-ink);
+    font-size: 0.92rem;
+    font-weight: 750;
+}
+
+.notif-row-placa {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 2px 7px;
+    border-radius: 5px;
+    background: var(--color-surface-2);
+    color: var(--color-ink-soft);
+}
+
+.notif-row-message {
+    margin-top: 3px;
+    color: var(--color-muted);
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.notif-row-end {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    text-align: right;
+}
+
+.notif-row-time {
+    color: var(--color-muted);
+    font-size: 0.74rem;
+    white-space: nowrap;
+}
+
+.notif-row-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.notif-row-primary-btn {
+    min-height: 30px;
+    padding: 6px 11px;
+    font-size: 0.78rem;
+    white-space: nowrap;
+}
+
+.notif-row-secondary {
+    display: flex;
+    gap: 3px;
+}
+
+.notif-row-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--color-muted);
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.notif-row-icon-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.notif-row--grupo {
+    cursor: default;
+}
+
+.notif-row--grupo summary {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.notif-row--grupo summary::-webkit-details-marker {
+    display: none;
+}
+
+.notif-row--grupo[open] summary {
+    margin-bottom: 8px;
+    border-bottom: 1px dashed var(--color-border);
+    padding-bottom: 10px;
+}
+
+.notif-row--grupo .notif-grupo-items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-left: 34px;
+}
+
+.notif-row--grupo .notif-grupo-items .notif-row {
+    background: var(--color-surface-2);
+    border-radius: var(--radius-sm);
+    border-bottom: none;
+}
+
 .user-avatar {
     width: 34px;
     height: 34px;
