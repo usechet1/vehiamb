@@ -16,105 +16,75 @@
         <main class="content">
             <div class="page-header">
                 <div>
-                    <h1>Centro de notificaciones</h1>
+                    <h1 id="notifPageTitle">Centro de notificaciones</h1>
                     <p class="page-kicker">Mantenimientos, documentación, incidentes, usuarios y sistema en un solo lugar.</p>
                 </div>
             </div>
 
             <section class="section-card">
-                <details class="section-card-collapsible" open>
-                <summary class="section-card-head">
-                    <h2>Filtros</h2>
-                    <p>Combina filtros y búsqueda para encontrar una notificación específica.</p>
-                </summary>
-                <div class="section-card-body">
-                    <form id="notifFilterForm" class="filter-form">
-                        <div class="form-group">
-                            <label>Buscar</label>
-                            <input type="text" id="notifSearch" placeholder="Placa, título, descripción, usuario o tipo">
-                        </div>
-
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label>Estado</label>
-                                <select id="notifFiltroEstado">
-                                    <option value="">Todos</option>
-                                    <option value="no_leida">No leídas</option>
-                                    <option value="leida">Leídas</option>
-                                    <option value="archivada">Archivadas</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Prioridad</label>
-                                <select id="notifFiltroPrioridad">
-                                    <option value="">Todas</option>
-                                    <option value="critica">Crítica</option>
-                                    <option value="alta">Alta</option>
-                                    <option value="media">Media</option>
-                                    <option value="informativa">Informativa</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label>Categoría</label>
-                                <select id="notifFiltroCategoria">
-                                    <option value="">Todas</option>
-                                    <option value="mantenimiento">Mantenimientos</option>
-                                    <option value="documentacion">Documentación</option>
-                                    <option value="incidente">Incidentes</option>
-                                    <option value="usuario">Usuarios</option>
-                                    <option value="sistema">Sistema</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Vehículo</label>
-                                <select id="notifFiltroVehiculo">
-                                    <option value="">Todos</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label>Desde</label>
-                                <input type="date" id="notifFechaDesde">
-                            </div>
-
-                            <div class="form-group">
-                                <label>Hasta</label>
-                                <input type="date" id="notifFechaHasta">
-                            </div>
-                        </div>
-
-                        <div class="filter-actions">
-                            <span id="notifFilterSummary" class="field-help">Cargando notificaciones...</span>
-                            <button type="button" id="notifClearFiltersButton" class="btn-secondary">Limpiar filtros</button>
-                        </div>
-                    </form>
-                </div>
-                </details>
-            </section>
-
-            <section class="section-card">
-                <details class="section-card-collapsible" open>
-                <summary class="section-card-head">
-                    <h2>Notificaciones</h2>
-                    <div class="notif-bulk-actions">
-                        <button type="button" id="notifMarkAllReadButton" class="btn-secondary">Marcar todas leídas</button>
-                        <button type="button" id="notifDeleteReadButton" class="btn-secondary">Eliminar leídas</button>
-                        <button type="button" id="notifDeleteAllButton" class="btn-secondary">Eliminar todas</button>
+                <div class="section-card-body notif-toolbar">
+                    <div class="notif-tabs" id="notifTabs">
+                        <button type="button" class="notif-tab is-active" data-notif-tab="no_leida">
+                            No leídas <span class="notif-tab-count hidden" id="notifTabCountNoLeidas"></span>
+                        </button>
+                        <button type="button" class="notif-tab" data-notif-tab="">Todas</button>
                     </div>
-                </summary>
-                <div class="section-card-body">
-                    <div id="notifCenterList" class="records-list notif-center-list">
+
+                    <div class="notif-category-chips hidden" id="notifCategoryChips"></div>
+
+                    <div class="notif-toolbar-row">
+                        <input type="search" id="notifSearch" class="doc-search-input" placeholder="Buscar por placa, título, usuario o tipo">
+
+                        <div class="doc-filter-popover-wrap">
+                            <button type="button" class="doc-filter-trigger" id="notifFiltrosTrigger">
+                                <span>Filtros</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                            </button>
+                            <div class="doc-filter-popover notif-filters-popover hidden" id="notifFiltrosPopover">
+                                <label>Prioridad
+                                    <select id="notifFiltroPrioridad">
+                                        <option value="">Todas</option>
+                                        <option value="critica">Crítica</option>
+                                        <option value="alta">Alta</option>
+                                        <option value="media">Media</option>
+                                        <option value="informativa">Informativa</option>
+                                    </select>
+                                </label>
+                                <label>Estado
+                                    <select id="notifFiltroEstadoExtra">
+                                        <option value="">Según la pestaña</option>
+                                        <option value="leida">Leídas</option>
+                                        <option value="archivada">Archivadas</option>
+                                    </select>
+                                </label>
+                                <label>Vehículo
+                                    <select id="notifFiltroVehiculo">
+                                        <option value="">Todos</option>
+                                    </select>
+                                </label>
+                                <label>Desde<input type="date" id="notifFechaDesde"></label>
+                                <label>Hasta<input type="date" id="notifFechaHasta"></label>
+                            </div>
+                        </div>
+
+                        <div class="doc-filter-popover-wrap">
+                            <button type="button" class="doc-filter-trigger notif-menu-trigger" id="notifMenuTrigger" aria-label="Más acciones">⋮</button>
+                            <div class="doc-filter-popover hidden" id="notifMenuPopover">
+                                <button type="button" class="doc-filter-option" id="notifMarkAllReadButton">Marcar todas leídas</button>
+                                <button type="button" class="doc-filter-option" id="notifDeleteReadButton">Eliminar leídas</button>
+                                <button type="button" class="doc-filter-option notif-menu-option--danger" id="notifDeleteAllButton">Eliminar todas</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-filterbar-chips hidden" id="notifFiltersChips"></div>
+                </div>
+
+                <div class="section-card-body notif-list-body">
+                    <div id="notifCenterList" class="notif-center-list">
                         <p class="dash-empty">Cargando...</p>
                     </div>
                 </div>
-                </details>
             </section>
 
             <div id="loader" class="loader hidden">
