@@ -3,6 +3,7 @@ const vehicleInspeccionSection = document.getElementById("vehicleInspeccionSecti
 const inspeccionHotspotsEl = document.getElementById("inspeccionHotspots");
 const inspeccionPanelEl = document.getElementById("inspeccionPanel");
 const inspeccionResumenEl = document.getElementById("inspeccionResumen");
+const inspeccionProgresoEl = document.getElementById("inspeccionProgreso");
 const limpiarInspeccionButton = document.getElementById("limpiarInspeccionButton");
 const inspeccionHistorialList = document.getElementById("inspeccionHistorialList");
 
@@ -245,7 +246,52 @@ async function evaluarCompletitudInspeccion() {
     document.dispatchEvent(new CustomEvent("inspeccion:completa"));
 }
 
+// Fijo arriba de la seccion, visible desde antes de marcar el primer punto
+// (a diferencia de #inspeccionResumen, que solo aparece una vez hay algo
+// marcado) -- sin esto no hay forma de saber cuanto falta ni de saber que
+// ya se termino, y las inspecciones quedaban incompletas sin que nadie se
+// diera cuenta.
+function renderProgreso() {
+    if (!inspeccionProgresoEl) return;
+
+    const totalItems = getTotalItemsCount();
+    const totalMarcados = inspeccionMarcados.size;
+    const faltantes = totalItems - totalMarcados;
+    const pct = totalItems ? Math.round((totalMarcados / totalItems) * 100) : 0;
+
+    inspeccionProgresoEl.innerHTML = `
+        <div class="inspeccion-progreso-top">
+            <span class="inspeccion-progreso-label">${totalMarcados} de ${totalItems} revisados</span>
+            <button type="button" id="inspeccionSiguienteButton" class="btn-secondary" ${faltantes === 0 ? "disabled" : ""}>
+                Siguiente sin marcar →
+            </button>
+        </div>
+        <div class="inspeccion-progreso-track">
+            <div class="inspeccion-progreso-fill${pct === 100 ? " is-completo" : ""}" style="width:${pct}%"></div>
+        </div>
+    `;
+
+    document.getElementById("inspeccionSiguienteButton")?.addEventListener("click", irASiguienteSinMarcar);
+}
+
+// Primer item del catalogo (o primer sub-item del kit) que todavia no tiene
+// marca -- lo activa igual que un click sobre el punto del diagrama y lo
+// deja a la vista, para no tener que ir buscando a ojo cual quedo pendiente.
+function irASiguienteSinMarcar() {
+    const siguiente = inspeccionCatalogo.find((item) => item.subItems
+        ? item.subItems.some((subItem) => !inspeccionMarcados.has(subItem.codigo))
+        : !inspeccionMarcados.has(item.codigo));
+    if (!siguiente) return;
+
+    inspeccionActivo = siguiente.codigo;
+    renderHotspots();
+    renderPanel();
+    document.querySelector(".inspeccion-diagram-wrap")?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
 function renderResumen() {
+    renderProgreso();
+
     const totalMarcados = inspeccionMarcados.size;
     const totalMal = [...inspeccionMarcados.values()].filter((item) => item.estado === "mal").length;
     const totalItems = getTotalItemsCount();
@@ -484,6 +530,7 @@ async function initInspeccion() {
         document.querySelector(".inspeccion-diagram-legend")?.classList.add("hidden");
         inspeccionPanelEl.classList.add("hidden");
         inspeccionResumenEl.classList.add("hidden");
+        inspeccionProgresoEl?.classList.add("hidden");
         limpiarInspeccionButton.classList.add("hidden");
 
         const descripcionEl = document.getElementById("inspeccionSectionDescripcion");
