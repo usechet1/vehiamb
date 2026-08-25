@@ -2564,11 +2564,6 @@ label[for="loginPassword"] {
     font-size: 1.1rem;
 }
 
-.conductor-vehiculo-modelo {
-    color: var(--color-muted);
-    font-size: 0.88rem;
-}
-
 .conductor-vehiculo-buscar {
     width: 100%;
     min-height: 42px;
