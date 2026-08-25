@@ -171,6 +171,7 @@ function renderPanel() {
     }
 
     const marcado = inspeccionMarcados.get(item.codigo);
+    const esMal = marcado?.estado === "mal";
 
     inspeccionSheetBodyEl.innerHTML = `
         <h3 class="inspeccion-sheet-title">${escapeHtml(item.label)}</h3>
@@ -178,20 +179,23 @@ function renderPanel() {
             <button type="button" class="inspeccion-sheet-btn is-bien ${marcado?.estado === "bien" ? "is-selected" : ""}" data-estado="bien">
                 <span class="inspeccion-sheet-btn-icon" aria-hidden="true">✓</span> Bien
             </button>
-            <button type="button" class="inspeccion-sheet-btn is-mal ${marcado?.estado === "mal" ? "is-selected" : ""}" data-estado="mal">
+            <button type="button" class="inspeccion-sheet-btn is-mal ${esMal ? "is-selected" : ""}" data-estado="mal">
                 <span class="inspeccion-sheet-btn-icon" aria-hidden="true">✕</span> Mal
             </button>
         </div>
         ${marcado ? `
             <div class="form-group">
-                <label>Comentario (opcional)</label>
-                <textarea id="inspeccionComentarioInput" rows="2" placeholder="Detalle del hallazgo...">${escapeHtml(marcado.comentario || "")}</textarea>
+                <label>Comentario ${esMal ? "*" : "(opcional)"}</label>
+                <textarea id="inspeccionComentarioInput" rows="2" placeholder="Detalle del hallazgo..." ${esMal ? "required" : ""}>${escapeHtml(marcado.comentario || "")}</textarea>
+                ${esMal ? '<p class="field-help">Cuenta qué encontraste mal antes de guardar.</p>' : ""}
+                <p class="field-help field-help-danger hidden" id="inspeccionComentarioError">Escribe un comentario antes de guardar.</p>
             </div>
             <div class="form-group">
                 <label>Foto (opcional)</label>
                 <input type="file" id="inspeccionFotoInput" accept="image/png,image/jpeg,image/webp">
                 ${marcado.fotoNombre ? `<span class="field-help">Archivo: ${escapeHtml(marcado.fotoNombre)}</span>` : ""}
             </div>
+            ${esMal ? '<button type="button" class="btn-primary inspeccion-sheet-listo-btn" id="inspeccionGuardarButton">Guardar</button>' : ""}
             <button type="button" class="record-link" id="inspeccionQuitarButton">Quitar marca</button>
         ` : ""}
     `;
@@ -208,7 +212,10 @@ function renderPanel() {
             renderHotspots();
             renderPanel();
             renderResumen();
-            cerrarSheetConRetraso();
+            // "Bien" no necesita mas datos, se cierra sola. "Mal" se queda
+            // abierta para pedir la descripcion del hallazgo -- antes se
+            // cerraba igual y no dejaba tiempo de escribir nada.
+            if (btn.dataset.estado === "bien") cerrarSheetConRetraso();
         });
     });
 
@@ -216,6 +223,9 @@ function renderPanel() {
     comentarioInput?.addEventListener("input", () => {
         const entrada = inspeccionMarcados.get(item.codigo);
         if (entrada) entrada.comentario = comentarioInput.value;
+        if (comentarioInput.value.trim()) {
+            document.getElementById("inspeccionComentarioError")?.classList.add("hidden");
+        }
     });
 
     const fotoInput = document.getElementById("inspeccionFotoInput");
@@ -226,6 +236,15 @@ function renderPanel() {
         entrada.fotoFile = file;
         entrada.fotoNombre = file?.name || null;
         renderPanel();
+    });
+
+    document.getElementById("inspeccionGuardarButton")?.addEventListener("click", () => {
+        if (!comentarioInput?.value.trim()) {
+            document.getElementById("inspeccionComentarioError")?.classList.remove("hidden");
+            comentarioInput?.focus();
+            return;
+        }
+        cerrarSheet();
     });
 
     document.getElementById("inspeccionQuitarButton")?.addEventListener("click", () => {
