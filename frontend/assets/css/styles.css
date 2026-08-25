@@ -2424,6 +2424,14 @@ label[for="loginPassword"] {
     gap: 16px;
 }
 
+/* .dash-header trae su propio margin-bottom (pensado para separarse de las
+   tarjetas de metricas del dashboard admin); aqui el gap del flex ya separa
+   el saludo de la tarjeta de ruta, asi que ese margen extra solo se suma y
+   deja un hueco de mas entre "Buenos dias, Nombre" y "Tu ruta de hoy". */
+.conductor-home .dash-header {
+    margin-bottom: 0;
+}
+
 /* Envuelve los pasos 1 y 2 del flujo manual (elegir vehiculo/destino) para
    poder ocultarlos juntos cuando ya hay una ruta asignada para hoy -- mismo
    gap que .conductor-home para que no se pierda el espaciado entre pasos. */
@@ -2514,14 +2522,9 @@ label[for="loginPassword"] {
     margin-top: 10px;
 }
 
-.conductor-placa-chip {
-    padding: 6px 12px;
-    border-radius: var(--radius-sm);
-    background: var(--color-ink);
-    color: #fff;
-    font-size: 1.05rem;
-    font-weight: 800;
-    letter-spacing: 0.05em;
+.conductor-ruta-vehiculo .plate {
+    min-height: 34px;
+    font-size: 1.1rem;
 }
 
 .conductor-vehiculo-modelo {
