@@ -861,5 +861,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         tabDocumentosRenovarButton?.classList.add("hidden");
     }
 
-    cargarDatos();
+    await cargarDatos();
+
+    // Llegada desde la ficha de un vehiculo ("Renovar"/"Agregar documento" en
+    // vehiculo.html) -- precarga la busqueda con la placa para no obligar a
+    // volver a escribirla.
+    const buscarParam = new URLSearchParams(window.location.search).get("buscar");
+    if (buscarParam) {
+        filterDocumentoBusqueda.value = buscarParam;
+        applyDocumentosFilters();
+    }
 });
