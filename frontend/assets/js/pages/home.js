@@ -25,6 +25,13 @@ function escapeHtml(value) {
         .replaceAll("'", "&#039;");
 }
 
+function saludoSegunHora() {
+    const hora = new Date().getHours();
+    if (hora < 12) return "Buenos días";
+    if (hora < 19) return "Buenas tardes";
+    return "Buenas noches";
+}
+
 function formatDate(value) {
     if (!value) return "Sin fecha";
 
@@ -714,8 +721,9 @@ function inicializarConductorAsignacionHoy(asignacion) {
     document.getElementById("conductorAsignacionCard").classList.remove("hidden");
     document.getElementById("conductorAsignacionRuta").textContent = asignacion.ruta_nombre || "Sin nombre";
 
-    const vehiculoLabel = `${asignacion.vehiculo.placa || ""} · ${asignacion.vehiculo.marca || ""} ${asignacion.vehiculo.modelo || ""}`.trim();
-    document.getElementById("conductorAsignacionVehiculo").textContent = vehiculoLabel;
+    document.getElementById("conductorAsignacionPlaca").textContent = asignacion.vehiculo.placa || "";
+    document.getElementById("conductorAsignacionModelo").textContent =
+        `${asignacion.vehiculo.marca || ""} ${asignacion.vehiculo.modelo || ""}`.trim();
 
     const iniciarBtn = document.getElementById("conductorAsignacionIniciarBtn");
     const mensaje = document.getElementById("conductorAsignacionMensaje");
@@ -791,7 +799,9 @@ async function inicializarConductorHome(user) {
     document.getElementById("conductorHome").classList.remove("hidden");
 
     const primerNombre = String(user?.nombre || "").trim().split(" ")[0];
-    document.getElementById("conductorSaludo").textContent = primerNombre ? `¡Hola, ${primerNombre}!` : "¡Hola!";
+    document.getElementById("conductorSaludo").textContent = primerNombre
+        ? `${saludoSegunHora()}, ${primerNombre}`
+        : saludoSegunHora();
 
     window.VehiAmb.api.getMisViajesRecientes()
         .then(pintarViajesRecientes)
