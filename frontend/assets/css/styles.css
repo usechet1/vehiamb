@@ -5837,6 +5837,58 @@ button.record-link {
    DENTRO de inspeccion-content, debajo del panel/resumen: asi el bloque de
    la derecha completo (panel+resumen + historial) compite en alto con el
    diagrama en vez de dejarlo huerfano. */
+/* Fijo arriba de la seccion (antes del diagrama), visible desde 0 marcados
+   -- a diferencia de .inspeccion-resumen, que solo aparece una vez hay algo
+   marcado y ademas queda al lado/debajo del panel, facil de perder de
+   vista mientras se hace scroll. */
+.inspeccion-progreso {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 18px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.inspeccion-progreso-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.inspeccion-progreso-label {
+    color: var(--color-ink);
+    font-weight: 800;
+    font-size: 0.95rem;
+}
+
+.inspeccion-progreso-top .btn-secondary {
+    width: auto;
+    min-height: 34px;
+    padding: 6px 12px;
+    font-size: 0.82rem;
+}
+
+.inspeccion-progreso-track {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--color-surface-2);
+    overflow: hidden;
+}
+
+.inspeccion-progreso-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--color-primary);
+    transition: width 0.3s ease;
+}
+
+.inspeccion-progreso-fill.is-completo {
+    background: var(--color-success);
+}
+
 .inspeccion-layout {
     display: flex;
     gap: 24px;
