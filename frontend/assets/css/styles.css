@@ -2729,56 +2729,77 @@ label[for="loginPassword"] {
     font-size: 0.8rem;
 }
 
+/* Es un indicador de progreso (no se puede tocar para saltar de paso -- eso
+   solo lo hacen los botones Anterior/Siguiente), asi que nowrap + scroll
+   horizontal en vez de envolver: con 5 pasos, envolver deja una segunda
+   fila desalineada con la primera, que es peor que tener que deslizar. */
 .conductor-wizard-nav {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+    flex-wrap: nowrap;
+    align-items: center;
     margin-bottom: 20px;
-    padding: 0;
+    padding: 4px 2px;
     list-style: none;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .wizard-step {
     display: flex;
+    flex: 0 0 auto;
     align-items: center;
-    gap: 8px;
-    padding: 8px 14px;
-    border: 1px solid var(--color-border);
-    border-radius: 999px;
-    background: var(--color-surface);
+    gap: 7px;
     color: var(--color-muted);
-    font-size: 0.82rem;
-    font-weight: 750;
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.wizard-step:not(:first-child)::before {
+    content: "";
+    flex: 0 0 auto;
+    width: 20px;
+    height: 1.5px;
+    margin: 0 8px;
+    background: var(--color-border);
+}
+
+.wizard-step.is-completado:not(:first-child)::before {
+    background: var(--color-success);
 }
 
 .wizard-step-num {
     display: inline-flex;
+    flex: 0 0 auto;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
-    background: var(--color-surface-2);
-    color: inherit;
-    font-size: 0.72rem;
+    border: 2px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-muted);
+    font-size: 0.75rem;
+    font-weight: 800;
+    transition: var(--transition);
 }
 
 .wizard-step.is-active {
-    border-color: var(--color-primary);
-    color: var(--color-primary);
+    color: var(--color-ink);
 }
 
 .wizard-step.is-active .wizard-step-num {
+    border-color: var(--color-primary);
     background: var(--color-primary);
     color: #fff;
 }
 
 .wizard-step.is-completado {
-    border-color: var(--color-success);
-    color: var(--color-success);
+    color: var(--color-ink-soft);
 }
 
 .wizard-step.is-completado .wizard-step-num {
+    border-color: var(--color-success);
     background: var(--color-success);
     color: #fff;
 }
@@ -3784,7 +3805,7 @@ label[for="loginPassword"] {
 }
 
 .vehicle-detail-grid {
-    grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+    grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.2fr);
     margin-bottom: 20px;
 }
 
