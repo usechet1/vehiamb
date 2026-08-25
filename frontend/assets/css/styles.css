@@ -833,7 +833,12 @@ label[for="loginPassword"] {
     color: var(--color-primary);
 }
 
+/* .notif-row--grupo hereda display:flex de .notif-row (fila), pero aqui el
+   <details> tiene dos hijos -- summary y .notif-grupo-items -- que deben ir
+   uno debajo del otro, no lado a lado. Sin esta linea el summary y la lista
+   de items se repartian el ancho como dos columnas, ilegible en movil. */
 .notif-row--grupo {
+    flex-direction: column;
     cursor: default;
 }
 
@@ -866,6 +871,35 @@ label[for="loginPassword"] {
     background: var(--color-surface-2);
     border-radius: var(--radius-sm);
     border-bottom: none;
+}
+
+/* En movil no hay ancho para tener el mensaje a la izquierda y la hora +
+   acciones apiladas en columna a la derecha -- se bajan a una barra horizontal
+   debajo del mensaje, y la indentacion de los items agrupados se reduce para
+   no comerse el poco espacio que hay. */
+@media (max-width: 620px) {
+    .notif-row,
+    .notif-row--grupo summary {
+        flex-wrap: wrap;
+    }
+
+    .notif-row-end {
+        flex: 1 1 100%;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 4px;
+        text-align: left;
+    }
+
+    .notif-row-actions {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .notif-row--grupo .notif-grupo-items {
+        padding-left: 14px;
+    }
 }
 
 .user-avatar {
