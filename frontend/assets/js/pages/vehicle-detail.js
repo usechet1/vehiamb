@@ -12,6 +12,7 @@ const vehicleKm = document.getElementById("vehicleKm");
 const vehicleFacts = document.getElementById("vehicleFacts");
 const maintenanceList = document.getElementById("vehicleMaintenanceList");
 const documentList = document.getElementById("vehicleDocumentList");
+const documentosResumen = document.getElementById("vehicleVencimientosResumen");
 const vehicleViajesSection = document.getElementById("vehicleViajesSection");
 const vehicleViajesList = document.getElementById("vehicleViajesList");
 const vehicleSimitSection = document.getElementById("vehicleSimitSection");
@@ -47,6 +48,18 @@ const tiposDocumento = {
     licencia_transito: "Licencia de tránsito",
     otro: "Otro"
 };
+
+// Tipos que todo vehiculo deberia tener registrados -- "otro" queda fuera
+// por ser un catalogo libre, no tiene sentido pedirlo como "faltante".
+const TIPOS_DOCUMENTO_REQUERIDOS = ["soat", "tecnomecanica", "seguro", "licencia_transito"];
+
+// Mismo catalogo que documentos.js: tipos que el motor de extraccion sabe
+// leer solo al subir el archivo.
+const TIPOS_AUTOCOMPLETABLES = ["soat", "tecnomecanica"];
+
+const ICON_CLIP = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>';
+const ICON_REFRESH = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>';
+const ICON_UPLOAD = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>';
 
 const ESTADO_SIMIT_LABELS = {
     nunca_consultado: "Nunca consultado",
@@ -120,6 +133,43 @@ function daysUntil(value) {
     if (Number.isNaN(target.getTime())) return null;
 
     return Math.ceil((target.getTime() - today.getTime()) / 86400000);
+}
+
+// Mismo criterio que documentos.js: un solo lugar para decidir que es
+// "vencido"/"por vencer"/"vigente", reutilizado por el pill y la barra.
+function estadoVigencia(item) {
+    const dias = daysUntil(item.fecha_vencimiento);
+
+    if (dias === null) return { dias, estado: "neutral", texto: "Sin fecha" };
+    if (dias < 0) return { dias, estado: "danger", texto: `Vencido hace ${Math.abs(dias)} días` };
+    if (dias <= 30) return { dias, estado: "warning", texto: `Vence en ${dias} días` };
+    return { dias, estado: "success", texto: `Vence en ${dias} días` };
+}
+
+function formatDateRange(item) {
+    if (item.tipo === "licencia_transito") {
+        const titular = [item.propietario_tipo_identificacion, item.propietario_numero_identificacion]
+            .filter(Boolean).join(" ");
+        const nombre = item.propietario_nombre ? ` · ${item.propietario_nombre}` : "";
+        return `Expedición: ${formatDate(item.fecha_expedicion)}${titular ? ` · Propietario: ${titular}${nombre}` : ""}`;
+    }
+
+    if (!item.fecha_expedicion) return `Vencimiento: ${formatDate(item.fecha_vencimiento)}`;
+
+    return `${formatDate(item.fecha_expedicion)} → ${formatDate(item.fecha_vencimiento)}`;
+}
+
+function vigenciaBarInfo(item) {
+    if (!item.fecha_expedicion || !item.fecha_vencimiento) return null;
+
+    const inicio = new Date(`${String(item.fecha_expedicion).slice(0, 10)}T00:00:00`).getTime();
+    const fin = new Date(`${String(item.fecha_vencimiento).slice(0, 10)}T00:00:00`).getTime();
+    if (Number.isNaN(inicio) || Number.isNaN(fin) || fin <= inicio) return null;
+
+    const { dias, estado } = estadoVigencia(item);
+    const pct = dias < 0 ? 100 : Math.max(0, Math.min(100, ((Date.now() - inicio) / (fin - inicio)) * 100));
+
+    return { pct, estado };
 }
 
 function parseRepuestos(value) {
@@ -237,47 +287,116 @@ function renderMantenimientos(mantenimientos) {
     `).join("");
 }
 
+// "1 por vencer · 1 vigente" en vez de la descripcion generica -- es
+// literalmente de que trata este paso, ahorra tener que leer cada fila.
+function resumenDocumentos(documentos, faltantes) {
+    let vencidos = 0;
+    let porVencer = 0;
+    let vigentes = 0;
+
+    documentos.forEach((item) => {
+        const { dias } = estadoVigencia(item);
+        if (dias === null) return;
+        if (dias < 0) vencidos += 1;
+        else if (dias <= 30) porVencer += 1;
+        else vigentes += 1;
+    });
+
+    const partes = [];
+    if (vencidos) partes.push(`${vencidos} vencido${vencidos === 1 ? "" : "s"}`);
+    if (porVencer) partes.push(`${porVencer} por vencer`);
+    if (faltantes.length) partes.push(`${faltantes.length} sin registrar`);
+    if (vigentes) partes.push(`${vigentes} vigente${vigentes === 1 ? "" : "s"}`);
+
+    return partes.length ? partes.join(" · ") : "RTM, SOAT, seguros y documentos futuros.";
+}
+
+function renderDocumentoExistente(item, puedeEditar, placaBusqueda) {
+    const { estado, texto } = estadoVigencia(item);
+    const pillClass = estado === "danger" ? "pill-danger" : estado === "warning" ? "pill-warning" : "";
+    const barra = vigenciaBarInfo(item);
+
+    const acciones = [];
+    if (item.archivo_url) {
+        acciones.push(`
+            <a class="doc-action-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(item.archivo_url))}" target="_blank" rel="noreferrer">
+                ${ICON_CLIP}${escapeHtml(item.archivo_nombre) || "Ver documento"}
+            </a>
+        `);
+    }
+    // Sobre lo urgente (vencido/por vencer) la respuesta no es solo colorear
+    // en ambar -- se ofrece la accion de renovar ahi mismo, no solo el aviso.
+    if (puedeEditar && (estado === "danger" || estado === "warning")) {
+        acciones.push(`<a class="doc-action-link" href="documentos.html?buscar=${placaBusqueda}">${ICON_REFRESH}Renovar</a>`);
+    }
+
+    return `
+        <article class="doc-row ${estado === "danger" ? "is-vencido" : ""}">
+            <div class="doc-row-head">
+                <div class="doc-row-title">
+                    <span class="doc-type-label">${escapeHtml(tiposDocumento[item.tipo] || item.tipo)}</span>
+                    <span class="doc-number-label">${escapeHtml(item.numero_documento) || "Sin número"}</span>
+                </div>
+                ${estado === "success"
+                    ? '<span class="doc-vigente-ok">✓ Vigente</span>'
+                    : `<span class="pill ${pillClass}">${texto}</span>`}
+            </div>
+            ${item.tipo === "seguro" ? `<p class="field-help field-help-danger">Llama al #324 para atención de siniestros viales.</p>` : ""}
+            ${barra ? `<div class="doc-vigencia-track"><div class="doc-vigencia-fill doc-vigencia-${barra.estado}" style="width:${barra.pct}%"></div></div>` : ""}
+            <div class="doc-row-foot">
+                <span class="doc-date-range">${formatDateRange(item)}</span>
+                ${acciones.length ? `<div class="doc-row-actions">${acciones.join("")}</div>` : ""}
+            </div>
+        </article>
+    `;
+}
+
+// Un documento que nunca se registro es mas grave que uno por vencer (no hay
+// ni fecha que avisar), asi que se muestra con el mismo peso visual que uno
+// vencido -- no queda invisible.
+function renderDocumentoFaltante(tipo, puedeEditar, placaBusqueda) {
+    return `
+        <article class="doc-row is-vencido">
+            <div class="doc-row-head">
+                <div class="doc-row-title">
+                    <span class="doc-type-label">${escapeHtml(tiposDocumento[tipo] || tipo)}</span>
+                </div>
+                <span class="pill pill-danger">No registrado</span>
+            </div>
+            <div class="doc-row-foot">
+                <span class="doc-date-range">Sin documento cargado</span>
+                ${puedeEditar ? `<div class="doc-row-actions"><a class="doc-action-link" href="documentos.html?buscar=${placaBusqueda}">${ICON_UPLOAD}Agregar</a></div>` : ""}
+            </div>
+        </article>
+    `;
+}
+
 function renderDocumentos(documentos) {
-    if (!documentos.length) {
+    const puedeEditar = Boolean(window.VehiAmb.auth?.hasPermission?.("documents.create"));
+    const placaBusqueda = encodeURIComponent(currentVehiculo?.placa || "");
+
+    const tiposPresentes = new Set(documentos.map((item) => item.tipo));
+    const faltantes = TIPOS_DOCUMENTO_REQUERIDOS.filter((tipo) => !tiposPresentes.has(tipo));
+
+    documentosResumen.textContent = resumenDocumentos(documentos, faltantes);
+
+    if (!documentos.length && !faltantes.length) {
         documentList.innerHTML = '<p class="dash-empty">Este vehículo aún no tiene vencimientos agendados</p>';
         return;
     }
 
-    documentList.innerHTML = documentos.map((item) => {
-        const days = daysUntil(item.fecha_vencimiento);
-        const pillClass = days !== null && days < 0
-            ? "pill-danger"
-            : days !== null && days <= 30
-                ? "pill-warning"
-                : "";
-        const statusText = days === null
-            ? "Sin fecha"
-            : days < 0
-                ? `Vencido hace ${Math.abs(days)} días`
-                : `Vence en ${days} días`;
+    // Faltante y vencido pesan igual (ambos: "no hay documento valido hoy"),
+    // luego por vencer, luego vigente -- no el orden en que llegaron del API.
+    const PRIORIDAD_ESTADO = { danger: 0, faltante: 0, warning: 1, success: 2, neutral: 3 };
+    const filas = [
+        ...documentos.map((item) => ({ esFaltante: false, item, estado: estadoVigencia(item).estado })),
+        ...faltantes.map((tipo) => ({ esFaltante: true, tipo, estado: "faltante" }))
+    ].sort((a, b) => PRIORIDAD_ESTADO[a.estado] - PRIORIDAD_ESTADO[b.estado]);
 
-        return `
-            <article class="record-item">
-                <div class="record-top">
-                    <div>
-                        <span class="record-title">${escapeHtml(tiposDocumento[item.tipo] || item.tipo)}${item.tipo === "seguro" ? ' <span class="field-help field-help-danger">· Llama al #324 para atención de siniestros viales.</span>' : ""}</span>
-                        <span class="record-sub">${escapeHtml(item.numero_documento) || "Sin número de documento"}</span>
-                    </div>
-                    <span class="pill ${pillClass}">${statusText}</span>
-                </div>
-                <div class="record-meta">
-                    <span class="pill">Expedición: ${formatDate(item.fecha_expedicion)}</span>
-                    <span class="pill">Vencimiento: ${formatDate(item.fecha_vencimiento)}</span>
-                    ${item.archivo_url ? '<span class="pill">Adjunto disponible</span>' : ""}
-                </div>
-                ${item.archivo_url ? `
-                    <a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(item.archivo_url))}" target="_blank" rel="noreferrer">
-                        ${escapeHtml(item.archivo_nombre) || "Ver documento"}
-                    </a>
-                ` : ""}
-            </article>
-        `;
-    }).join("");
+    documentList.innerHTML = filas.map((fila) => fila.esFaltante
+        ? renderDocumentoFaltante(fila.tipo, puedeEditar, placaBusqueda)
+        : renderDocumentoExistente(fila.item, puedeEditar, placaBusqueda)
+    ).join("");
 }
 
 function renderViajes(viajes) {

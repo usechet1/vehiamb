@@ -4922,6 +4922,18 @@ button.record-link {
     background: var(--color-success);
 }
 
+/* A proposito NO es un .pill -- un documento vigente por meses no necesita
+   la misma etiqueta que uno vencido o por vencer, o la etiqueta deja de
+   avisar. Un check y una palabra bastan. */
+.doc-vigente-ok {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--color-success);
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
 .doc-row-foot {
     display: flex;
     flex-wrap: wrap;
