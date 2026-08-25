@@ -722,8 +722,6 @@ function inicializarConductorAsignacionHoy(asignacion) {
     document.getElementById("conductorAsignacionRuta").textContent = asignacion.ruta_nombre || "Sin nombre";
 
     document.getElementById("conductorAsignacionPlaca").textContent = asignacion.vehiculo.placa || "";
-    document.getElementById("conductorAsignacionModelo").textContent =
-        `${asignacion.vehiculo.marca || ""} ${asignacion.vehiculo.modelo || ""}`.trim();
 
     const iniciarBtn = document.getElementById("conductorAsignacionIniciarBtn");
     const mensaje = document.getElementById("conductorAsignacionMensaje");
