@@ -171,12 +171,13 @@
                     <p id="vehicleCode">Código interno: --</p>
                 </div>
                 <div class="vehicle-hero-status">
-                    <select id="vehicleStatusSelect" class="vehicle-status-select badge badge-verde" aria-label="Estado del vehículo">
+                    <select id="vehicleStatusSelect" class="vehicle-status-select badge badge-verde hidden" aria-label="Estado del vehículo">
                         <option value="activo">Activo</option>
                         <option value="reparacion">En reparación</option>
                         <option value="fuera_servicio">Fuera de servicio</option>
                         <option value="dado_de_baja">Dado de baja</option>
                     </select>
+                    <span id="vehicleStatusBadge" class="badge badge-verde hidden"></span>
                     <span id="vehicleKm" class="pill">-- km</span>
                 </div>
             </section>
@@ -465,6 +466,8 @@
     <script>
         (function () {
             const statusSelect = document.getElementById("vehicleStatusSelect");
+            const statusBadge = document.getElementById("vehicleStatusBadge");
+            const puedeEditarEstado = Boolean(window.VehiAmb?.auth?.hasPermission?.("vehicles.edit"));
             const vehicleImage = document.getElementById("vehicleImage");
             const vehicleImagePlaceholder = document.getElementById("vehicleImagePlaceholder");
             const vehicleImagePlate = document.getElementById("vehicleImagePlate");
@@ -535,12 +538,29 @@
                 window.VehiAmb.ui.show(vehicleImagePlaceholder);
             }
 
+            // El estado operativo (Activo / En reparacion / etc.) solo lo puede
+            // cambiar quien tiene "vehicles.edit" -- Conductor, por ejemplo, no.
+            // Para el resto se muestra como texto plano (badge), no como un
+            // <select> que sugiere que se puede tocar (el backend igual lo
+            // bloquearia, pero no debe ni parecer editable).
+            if (puedeEditarEstado) {
+                statusSelect?.classList.remove("hidden");
+            } else {
+                statusBadge?.classList.remove("hidden");
+            }
+
             function updateStatusSelect(value) {
                 const estadoInfo = ESTADO_BADGES[value] || ESTADO_BADGES.activo;
 
                 statusSelect.value = value;
                 Object.values(ESTADO_BADGES).forEach((info) => statusSelect.classList.remove(info.clase));
                 statusSelect.classList.add(estadoInfo.clase);
+
+                if (statusBadge) {
+                    statusBadge.textContent = estadoInfo.label;
+                    Object.values(ESTADO_BADGES).forEach((info) => statusBadge.classList.remove(info.clase));
+                    statusBadge.classList.add(estadoInfo.clase);
+                }
             }
 
             statusSelect?.addEventListener("change", async (event) => {
