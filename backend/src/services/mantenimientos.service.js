@@ -259,14 +259,17 @@ async function confirmarCambioAceite(id, empresaId) {
  * repuesto del catalogo usado en el mantenimiento -- todo dentro de la misma
  * transaccion que crea el mantenimiento (atomico: si algo falla, no queda
  * stock descontado sin mantenimiento, ni mantenimiento sin su descuento).
- * Nunca bloquea por stock insuficiente salvo que
- * configuracion_inventario.stock_insuficiente_bloquea = 'true' (hoy siempre
- * 'false' -- solo se acumulan advertencias).
+ * Bloquea por stock insuficiente salvo que
+ * configuracion_inventario.stock_insuficiente_bloquea = 'false' -- el
+ * default (tanto el de la fila si no existe, como el que trae toda empresa
+ * nueva) es bloquear. Si hay stock insuficiente para cualquier repuesto,
+ * lanza y el throw dentro de la transaccion revierte todo -- no queda ni el
+ * mantenimiento ni ningun descuento a medias.
  */
 async function consumirRepuestos(mantenimientoId, repuestosEstructurados, currentUser, empresaId, trx) {
   const advertencias = [];
   const bodega = await repuestosStockRepository.findBodegaPrincipal(empresaId, trx);
-  const bloquear = await configuracionInventarioRepository.getBooleano("stock_insuficiente_bloquea", empresaId, false);
+  const bloquear = await configuracionInventarioRepository.getBooleano("stock_insuficiente_bloquea", empresaId, true);
 
   for (const item of repuestosEstructurados) {
     const repuesto = await repuestosRepository.findById(item.repuesto_id, empresaId);
