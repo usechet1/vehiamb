@@ -748,12 +748,15 @@ function inicializarConductorAsignacionHoy(asignacion) {
 // la inspeccion del vehiculo para ella, se le ofrece hacerla de una vez --
 // asi no le toca hacer inspeccion + preoperacional + firma la misma
 // madrugada de la ruta. No crea ningun viaje (el viaje todavia no existe),
-// solo manda a vehiculo.html en modo "preinspeccion".
+// solo manda a vehiculo.html en modo "preinspeccion". Devuelve si la
+// tarjeta quedo visible -- inicializarConductorHome la usa para no mostrar
+// tambien la seleccion manual (ya tiene ruta, no tiene sentido ofrecerle
+// armar un viaje aparte).
 function inicializarConductorPreinspeccion(asignacion) {
-    if (!asignacion?.vehiculo || asignacion.inspeccion_completada) return;
+    if (!asignacion?.vehiculo || asignacion.inspeccion_completada) return false;
 
     const card = document.getElementById("conductorPreinspeccionCard");
-    if (!card) return;
+    if (!card) return false;
 
     document.getElementById("conductorPreinspeccionRuta").textContent = asignacion.ruta_nombre || "Sin nombre";
     document.getElementById("conductorPreinspeccionPlaca").textContent = asignacion.vehiculo.placa || "";
@@ -762,6 +765,7 @@ function inicializarConductorPreinspeccion(asignacion) {
     link.href = `vehiculo.html?id=${asignacion.vehiculo.id}&asignacion=${asignacion.id}&modo=preinspeccion`;
 
     card.classList.remove("hidden");
+    return true;
 }
 
 // Flujo manual de siempre: el conductor elige vehiculo y destino a mano
@@ -834,8 +838,9 @@ async function inicializarConductorHome(user) {
         window.VehiAmb.api.getAsignacionManana()
     ]);
 
+    let tienePreinspeccionPendiente = false;
     if (asignacionMananaResult.status === "fulfilled") {
-        inicializarConductorPreinspeccion(asignacionMananaResult.value);
+        tienePreinspeccionPendiente = inicializarConductorPreinspeccion(asignacionMananaResult.value);
     } else {
         console.error(asignacionMananaResult.reason);
     }
@@ -847,6 +852,11 @@ async function inicializarConductorHome(user) {
         inicializarConductorAsignacionHoy(asignacion);
         return;
     }
+
+    // La seleccion manual (armar un viaje sobre la marcha) solo tiene
+    // sentido cuando el conductor no tiene ninguna ruta -- ni hoy, ni
+    // mañana pendiente de inspeccionar.
+    if (tienePreinspeccionPendiente) return;
 
     await inicializarConductorSeleccionManual();
 }
