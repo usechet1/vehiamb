@@ -2560,8 +2560,9 @@ label[for="loginPassword"] {
 }
 
 .conductor-ruta-vehiculo .plate {
-    min-height: 34px;
-    font-size: 1.1rem;
+    min-height: 46px;
+    padding: 6px 16px;
+    font-size: 1.7rem;
 }
 
 .conductor-vehiculo-buscar {

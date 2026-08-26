@@ -61,6 +61,7 @@ const HOTSPOT_ICONOS = {
     aceite: "🛢️",
     kit_herramientas: "🧰",
     luces: "💡",
+    luces_traseras: "💡",
     extintor: "🧯",
     botiquin: "➕"
 };
