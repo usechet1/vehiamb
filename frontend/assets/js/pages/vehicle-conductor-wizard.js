@@ -8,7 +8,7 @@
 // esos <div> contenedores y nunca toca el "hidden" de las secciones
 // individuales -- asi no hay condicion de carrera con sus cargas asincronas.
 const WIZARD_STEPS = [
-    { label: "Vehículo", sections: ["vehicleDatosSection", "vehicleImagenSection", "vehicleViajesSection"] },
+    { label: "Vehículo", sections: ["vehicleDatosSection", "vehicleImagenSection"] },
     { label: "Vencimientos", sections: ["vehicleVencimientosSection"] },
     { label: "Inspección", sections: ["vehicleInspeccionSection"] },
     { label: "Preoperacional", sections: ["wizardStepPreoperacional"] },
@@ -27,6 +27,11 @@ async function initConductorWizard() {
     if (!nav || !actions || !anteriorBtn || !siguienteBtn) return;
 
     document.getElementById("vehicleMantenimientosSection")?.classList.add("hidden");
+    // "Ultimos viajes" tampoco es parte de ningun paso del wizard -- igual
+    // que Mantenimientos, vehicle-detail.js lo desoculta solo (el conductor
+    // tiene permiso trips.view), asi que hay que ocultarlo explicitamente
+    // aca o quedaria visible en todos los pasos.
+    document.getElementById("vehicleViajesSection")?.classList.add("hidden");
     // El conductor no gestiona la flota: el encabezado superior (volver,
     // titulo, acciones) es redundante con el vehicle-hero de abajo, que ya
     // muestra placa, codigo, estado y km. Solo se deja la fecha.
