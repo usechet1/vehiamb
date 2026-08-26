@@ -2,7 +2,6 @@ const inspeccionMensaje = document.getElementById("mensaje");
 const vehicleInspeccionSection = document.getElementById("vehicleInspeccionSection");
 const inspeccionHotspotsEl = document.getElementById("inspeccionHotspots");
 const inspeccionPanelEl = document.getElementById("inspeccionPanel");
-const inspeccionResumenEl = document.getElementById("inspeccionResumen");
 const inspeccionProgresoEl = document.getElementById("inspeccionProgreso");
 const inspeccionSheetBackdropEl = document.getElementById("inspeccionSheetBackdrop");
 const inspeccionSheetEl = document.getElementById("inspeccionSheet");
@@ -68,19 +67,6 @@ const HOTSPOT_ICONOS = {
 
 function getTotalItemsCount() {
     return inspeccionCatalogo.reduce((total, item) => total + (item.subItems ? item.subItems.length : 1), 0);
-}
-
-// Lista plana de todos los items marcables (hotspots sueltos + cada
-// elemento del kit de herramientas), usada para saber por su nombre cuales
-// faltan por marcar -- el kit vive detras de un solo punto del diagrama y
-// es facil olvidar alguno de sus 9 elementos.
-function getItemsPlanos() {
-    return inspeccionCatalogo.flatMap((item) => {
-        if (item.subItems) {
-            return item.subItems.map((subItem) => ({ codigo: subItem.codigo, label: `${item.label}: ${subItem.label}` }));
-        }
-        return [{ codigo: item.codigo, label: item.label }];
-    });
 }
 
 // El panel de marcado vive en una hoja que sube desde abajo (no inline en la
@@ -330,10 +316,9 @@ async function evaluarCompletitudInspeccion() {
 }
 
 // Fijo arriba de la seccion, visible desde antes de marcar el primer punto
-// (a diferencia de #inspeccionResumen, que solo aparece una vez hay algo
-// marcado) -- sin esto no hay forma de saber cuanto falta ni de saber que
-// ya se termino, y las inspecciones quedaban incompletas sin que nadie se
-// diera cuenta.
+// -- sin esto no hay forma de saber cuanto falta ni de saber que ya se
+// termino, y las inspecciones quedaban incompletas sin que nadie se diera
+// cuenta.
 function renderProgreso() {
     if (!inspeccionProgresoEl) return;
 
@@ -372,29 +357,13 @@ function irASiguienteSinMarcar() {
     document.querySelector(".inspeccion-diagram-wrap")?.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
+// El detalle (cuantos marcados, cuales faltan, si hay algo en mal estado) se
+// quito de aca -- ya lo cubre la barra de progreso fija de arriba, que
+// ademas tiene el boton "Siguiente sin marcar". Esta funcion queda solo
+// para recalcular esa barra y revisar si la inspeccion ya quedo completa.
 function renderResumen() {
     renderProgreso();
-
-    const totalMarcados = inspeccionMarcados.size;
-    const totalMal = [...inspeccionMarcados.values()].filter((item) => item.estado === "mal").length;
-    const totalItems = getTotalItemsCount();
-    const faltantes = totalItems - totalMarcados;
-
-    if (!totalMarcados) {
-        inspeccionResumenEl.innerHTML = "";
-        return;
-    }
-
-    const itemsFaltantes = faltantes ? getItemsPlanos().filter((item) => !inspeccionMarcados.has(item.codigo)) : [];
-
-    inspeccionResumenEl.innerHTML = `
-        <span class="pill">${totalMarcados} de ${totalItems} marcados</span>
-        ${faltantes ? `<span class="pill pill-warning">${faltantes} sin marcar</span>` : ""}
-        ${totalMal ? `<span class="pill pill-danger">${totalMal} en mal estado</span>` : '<span class="pill pill-success">Todo bien</span>'}
-        ${itemsFaltantes.length ? `<p class="field-help inspeccion-faltantes-detalle">Falta marcar: ${itemsFaltantes.map((item) => escapeHtml(item.label)).join(", ")}.</p>` : ""}
-    `;
-
-    evaluarCompletitudInspeccion();
+    if (inspeccionMarcados.size) evaluarCompletitudInspeccion();
 }
 
 async function resetInspeccion({ confirmar = false } = {}) {
@@ -615,7 +584,6 @@ async function initInspeccion() {
     if (!esConductor) {
         document.querySelector(".inspeccion-diagram-wrap")?.classList.add("hidden");
         document.querySelector(".inspeccion-diagram-legend")?.classList.add("hidden");
-        inspeccionResumenEl.classList.add("hidden");
         inspeccionProgresoEl?.classList.add("hidden");
         limpiarInspeccionButton.classList.add("hidden");
 
