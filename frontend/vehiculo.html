@@ -198,13 +198,7 @@
                 </div>
             </section>
 
-            <ol id="conductorWizardNav" class="conductor-wizard-nav hidden">
-                <li class="wizard-step" data-step="1"><span class="wizard-step-num">1</span> Vehículo</li>
-                <li class="wizard-step" data-step="2"><span class="wizard-step-num">2</span> Vencimientos</li>
-                <li class="wizard-step" data-step="3"><span class="wizard-step-num">3</span> Inspección</li>
-                <li class="wizard-step" data-step="4"><span class="wizard-step-num">4</span> Preoperacional</li>
-                <li class="wizard-step" data-step="5"><span class="wizard-step-num">5</span> Finalizar</li>
-            </ol>
+            <ol id="conductorWizardNav" class="conductor-wizard-nav hidden"></ol>
 
             <div id="vehicleDetail" class="vehicle-detail-grid hidden">
                 <section class="section-card" id="vehicleImagenSection">
@@ -420,26 +414,30 @@
                     <p>Responde antes de salir. Si marcas "No" en alguna pregunta, cuéntanos por qué.</p>
                 </div>
                 <div class="section-card-body">
-                    <div class="preop-checklist" id="preopChecklist"></div>
+                    <div id="preopBloqueadoAviso" class="dash-empty hidden">Disponible desde las 5:00am del día de la ruta.</div>
 
-                    <div class="form-group">
-                        <label for="preopObservaciones">Observaciones (opcional)</label>
-                        <textarea id="preopObservaciones" rows="3" maxlength="1000" placeholder="¿Algo más que debamos saber sobre el vehículo o el viaje?"></textarea>
-                    </div>
+                    <div id="preopContenido">
+                        <div class="preop-checklist" id="preopChecklist"></div>
 
-                    <details class="inspeccion-historial">
-                        <summary><h3>Historial de preoperacionales</h3></summary>
-                        <div id="preopHistorialList" class="records-list">
-                            <p class="dash-empty">Cargando...</p>
+                        <div class="form-group">
+                            <label for="preopObservaciones">Observaciones (opcional)</label>
+                            <textarea id="preopObservaciones" rows="3" maxlength="1000" placeholder="¿Algo más que debamos saber sobre el vehículo o el viaje?"></textarea>
                         </div>
-                    </details>
+
+                        <details class="inspeccion-historial">
+                            <summary><h3>Historial de preoperacionales</h3></summary>
+                            <div id="preopHistorialList" class="records-list">
+                                <p class="dash-empty">Cargando...</p>
+                            </div>
+                        </details>
+                    </div>
                 </div>
             </section>
 
             <section class="section-card hidden" id="wizardStepFinalizar">
                 <div class="section-card-head">
-                    <h2>Finalizar</h2>
-                    <p>Ya completaste la inspección y el preoperacional. Firma para confirmar e iniciar el viaje.</p>
+                    <h2 id="finalizarTitulo">Finalizar</h2>
+                    <p id="finalizarDescripcion">Ya completaste la inspección y el preoperacional. Firma para confirmar e iniciar el viaje.</p>
                 </div>
                 <div class="section-card-body">
                     <div class="firma-pad-box" id="finalizarFirmaBox">

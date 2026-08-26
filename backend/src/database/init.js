@@ -1893,6 +1893,7 @@ if (env.dbClient === "sqlite") {
       ensureColumn("simit_comparendos", "conductor_id", "BIGINT REFERENCES conductores(id) ON DELETE SET NULL"),
       ensureColumn("simit_comparendos", "numero_infraccion", "TEXT"),
       ensureColumn("inspecciones_preventivas", "viaje_id", "BIGINT REFERENCES viajes(id) ON DELETE SET NULL"),
+      ensureColumn("inspecciones_preventivas", "asignacion_id", "BIGINT REFERENCES asignaciones_ruta(id) ON DELETE SET NULL"),
       ensureColumn("entregas_recibidas", "fotos_generales_json", "TEXT"),
       ensureColumn("conductores", "nombres", "TEXT"),
       ensureColumn("conductores", "apellidos", "TEXT"),

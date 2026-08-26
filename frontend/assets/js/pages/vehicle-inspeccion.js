@@ -11,6 +11,7 @@ const inspeccionHistorialList = document.getElementById("inspeccionHistorialList
 
 let inspeccionVehiculoId = "";
 let inspeccionViajeId = "";
+let inspeccionAsignacionId = "";
 let inspeccionCatalogo = [];
 let inspeccionMarcados = new Map();
 let inspeccionActivo = null;
@@ -454,6 +455,9 @@ async function guardarInspeccionConFirma(firmaBlob) {
     if (inspeccionViajeId) {
         formData.append("viaje_id", inspeccionViajeId);
     }
+    if (inspeccionAsignacionId) {
+        formData.append("asignacion_id", inspeccionAsignacionId);
+    }
 
     const ubicacion = await obtenerUbicacion();
     if (ubicacion) {
@@ -576,6 +580,7 @@ async function initInspeccion() {
     inspeccionPuedeCrear = esConductor && Boolean(window.VehiAmb.auth?.hasPermission?.("inspections.create"));
     inspeccionVehiculoId = new URLSearchParams(window.location.search).get("id") || "";
     inspeccionViajeId = new URLSearchParams(window.location.search).get("viaje") || "";
+    inspeccionAsignacionId = new URLSearchParams(window.location.search).get("asignacion") || "";
     if (!inspeccionVehiculoId) return;
 
     // El marcado ahora vive en la hoja (#inspeccionSheet), no en este panel

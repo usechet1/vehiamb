@@ -9,7 +9,7 @@ const itemsRepository = require("../repositories/inspeccion-items.repository");
 const preoperacionalesRepository = require("../repositories/preoperacionales.repository");
 const preoperacionalItemsRepository = require("../repositories/preoperacional-items.repository");
 const asignacionesRepository = require("../repositories/asignaciones.repository");
-const { hoyIso } = require("../utils/fecha-negocio");
+const { hoyIso, mananaIso } = require("../utils/fecha-negocio");
 
 // Documentos relevantes para un control de transito en carretera. "otro" se
 // deja afuera a proposito -- ahi cae de todo (misceláneo) y no es lo primero
@@ -145,26 +145,29 @@ async function obtenerUltimoViajeControl(currentUser) {
   };
 }
 
-// Asignacion de "Asignacion de rutas" vigente hoy (calendario de Bogota)
-// para el conductor logueado -- permite que la pantalla de inicio del
-// conductor (home.js inicializarConductorHome) muestre directamente su
-// vehiculo/ruta del dia en vez de que tenga que elegirlos a mano. Devuelve
-// null si el conductor no esta vinculado a un usuario, si no hay asignacion
-// para hoy, o si la asignacion no tiene vehiculo cargado -- en cualquiera de
-// esos casos el frontend cae al flujo manual de siempre.
-async function obtenerAsignacionHoy(currentUser) {
+// Asignacion de "Asignacion de rutas" (calendario de Bogota) para el
+// conductor logueado, para una fecha puntual (hoy o mañana) -- permite que
+// la pantalla de inicio del conductor (home.js inicializarConductorHome)
+// muestre directamente su vehiculo/ruta en vez de que tenga que elegirlos a
+// mano. Devuelve null si el conductor no esta vinculado a un usuario, si no
+// hay asignacion para esa fecha, o si la asignacion no tiene vehiculo
+// cargado -- en cualquiera de esos casos el frontend cae al flujo manual de
+// siempre. Tambien agrega si ya existe una inspeccion preparada de antemano
+// para esa asignacion (ver inspecciones.service.js, modo "preinspeccion").
+async function resolverAsignacionParaFecha(currentUser, fecha) {
   const conductor = await conductoresRepository.findByUsuarioId(currentUser.id, currentUser.empresa_id);
   if (!conductor) return null;
 
-  const asignacion = await asignacionesRepository.findByConductorYFecha(
-    conductor.id,
-    hoyIso(),
-    currentUser.empresa_id
-  );
+  const asignacion = await asignacionesRepository.findByConductorYFecha(conductor.id, fecha, currentUser.empresa_id);
   if (!asignacion || !asignacion.vehiculo_id) return null;
 
+  const inspeccionPrevia = await inspeccionesRepository.findByAsignacionId(asignacion.id, currentUser.empresa_id);
+
   return {
+    id: asignacion.id,
+    fecha: asignacion.fecha,
     ruta_nombre: asignacion.ruta_nombre,
+    inspeccion_completada: Boolean(inspeccionPrevia),
     vehiculo: {
       id: asignacion.vehiculo_id,
       placa: asignacion.vehiculo_placa,
@@ -173,6 +176,17 @@ async function obtenerAsignacionHoy(currentUser) {
       imagen_url: asignacion.vehiculo_imagen_url
     }
   };
+}
+
+async function obtenerAsignacionHoy(currentUser) {
+  return resolverAsignacionParaFecha(currentUser, hoyIso());
+}
+
+// Ruta asignada para el dia siguiente -- permite que el conductor prepare la
+// inspeccion del vehiculo la tarde/noche anterior (ver home.js, tarjeta
+// "Prepara tu inspeccion de mañana").
+async function obtenerAsignacionManana(currentUser) {
+  return resolverAsignacionParaFecha(currentUser, mananaIso());
 }
 
 // Viajes recientes de toda la empresa (todos los conductores), para el rol
@@ -293,5 +307,6 @@ module.exports = {
   listarRecientesEmpresa,
   obtenerUltimoViajeControl,
   obtenerAsignacionHoy,
+  obtenerAsignacionManana,
   obtenerResumen
 };
