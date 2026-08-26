@@ -735,13 +735,33 @@ function inicializarConductorAsignacionHoy(asignacion) {
                 vehiculo_id: asignacion.vehiculo.id,
                 destino: asignacion.ruta_nombre
             });
-            window.location.href = `vehiculo.html?id=${asignacion.vehiculo.id}&viaje=${viaje.id}`;
+            window.location.href = `vehiculo.html?id=${asignacion.vehiculo.id}&viaje=${viaje.id}&asignacion=${asignacion.id}`;
         } catch (error) {
             mensaje.textContent = error.message || "No se pudo registrar el viaje";
             mensaje.classList.remove("hidden");
             iniciarBtn.disabled = false;
         }
     });
+}
+
+// Si el conductor tiene una ruta asignada para MAÑANA y todavia no preparo
+// la inspeccion del vehiculo para ella, se le ofrece hacerla de una vez --
+// asi no le toca hacer inspeccion + preoperacional + firma la misma
+// madrugada de la ruta. No crea ningun viaje (el viaje todavia no existe),
+// solo manda a vehiculo.html en modo "preinspeccion".
+function inicializarConductorPreinspeccion(asignacion) {
+    if (!asignacion?.vehiculo || asignacion.inspeccion_completada) return;
+
+    const card = document.getElementById("conductorPreinspeccionCard");
+    if (!card) return;
+
+    document.getElementById("conductorPreinspeccionRuta").textContent = asignacion.ruta_nombre || "Sin nombre";
+    document.getElementById("conductorPreinspeccionPlaca").textContent = asignacion.vehiculo.placa || "";
+
+    const link = document.getElementById("conductorPreinspeccionLink");
+    link.href = `vehiculo.html?id=${asignacion.vehiculo.id}&asignacion=${asignacion.id}&modo=preinspeccion`;
+
+    card.classList.remove("hidden");
 }
 
 // Flujo manual de siempre: el conductor elige vehiculo y destino a mano
@@ -809,12 +829,19 @@ async function inicializarConductorHome(user) {
                 '<p class="dash-empty">No fue posible cargar tus últimos viajes</p>';
         });
 
-    let asignacion = null;
-    try {
-        asignacion = await window.VehiAmb.api.getAsignacionHoy();
-    } catch (error) {
-        console.error(error);
+    const [asignacionHoyResult, asignacionMananaResult] = await Promise.allSettled([
+        window.VehiAmb.api.getAsignacionHoy(),
+        window.VehiAmb.api.getAsignacionManana()
+    ]);
+
+    if (asignacionMananaResult.status === "fulfilled") {
+        inicializarConductorPreinspeccion(asignacionMananaResult.value);
+    } else {
+        console.error(asignacionMananaResult.reason);
     }
+
+    const asignacion = asignacionHoyResult.status === "fulfilled" ? asignacionHoyResult.value : null;
+    if (asignacionHoyResult.status === "rejected") console.error(asignacionHoyResult.reason);
 
     if (asignacion?.vehiculo) {
         inicializarConductorAsignacionHoy(asignacion);

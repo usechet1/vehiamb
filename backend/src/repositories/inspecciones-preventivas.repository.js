@@ -1,6 +1,6 @@
 const db = require("../database/query");
 
-const CREATE_FIELDS = ["vehiculo_id", "usuario_id", "viaje_id", "observaciones", "latitud", "longitud", "ubicacion_precision", "firma_url", "empresa_id"];
+const CREATE_FIELDS = ["vehiculo_id", "usuario_id", "viaje_id", "asignacion_id", "observaciones", "latitud", "longitud", "ubicacion_precision", "firma_url", "empresa_id"];
 
 async function create(inspeccion, dbClient = db) {
   const values = CREATE_FIELDS.map((field) => inspeccion[field] ?? null);
@@ -72,4 +72,20 @@ async function findByViajeId(viajeId, empresaId) {
   );
 }
 
-module.exports = { create, findById, findByVehiculo, findByViajeId };
+// Inspeccion preparada de antemano (dia anterior a la ruta) para una
+// asignacion puntual -- usada en Inicio para saber si ya no hace falta
+// pedirla, y en el wizard del dia de la ruta para saltar el paso 3.
+async function findByAsignacionId(asignacionId, empresaId) {
+  return db.get(
+    `
+      SELECT ip.*
+      FROM inspecciones_preventivas ip
+      WHERE ip.asignacion_id = ? AND ip.empresa_id = ?
+      ORDER BY ip.id DESC
+      LIMIT 1
+    `,
+    [asignacionId, empresaId]
+  );
+}
+
+module.exports = { create, findById, findByVehiculo, findByViajeId, findByAsignacionId };

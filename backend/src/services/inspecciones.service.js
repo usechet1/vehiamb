@@ -3,6 +3,7 @@ const vehiculosRepository = require("../repositories/vehiculos.repository");
 const inspeccionesRepository = require("../repositories/inspecciones-preventivas.repository");
 const itemsRepository = require("../repositories/inspeccion-items.repository");
 const viajesRepository = require("../repositories/viajes.repository");
+const asignacionesRepository = require("../repositories/asignaciones.repository");
 const notificacionesService = require("./notificaciones.service");
 
 // Catalogo fijo del checklist "radiografia". x/y son coordenadas porcentuales
@@ -173,10 +174,23 @@ async function crear(vehiculoId, payload, archivos, currentUser) {
     }
   }
 
+  // Mismo criterio best-effort que viaje_id: si el conductor prepara la
+  // inspeccion el dia anterior a la ruta (ver home.js, modo "preinspeccion"),
+  // todavia no existe un viaje -- se ata a la asignacion de ruta del dia en
+  // vez de eso, sin bloquear el guardado si no coincide o no llega.
+  let asignacionId = null;
+  if (payload.asignacion_id) {
+    const asignacion = await asignacionesRepository.findById(payload.asignacion_id, empresaId);
+    if (asignacion && String(asignacion.vehiculo_id) === String(vehiculoId)) {
+      asignacionId = asignacion.id;
+    }
+  }
+
   const inspeccion = await inspeccionesRepository.create({
     vehiculo_id: vehiculoId,
     usuario_id: currentUser?.id ?? null,
     viaje_id: viajeId,
+    asignacion_id: asignacionId,
     observaciones: payload.observaciones ? String(payload.observaciones).trim().slice(0, 1000) : null,
     latitud,
     longitud,

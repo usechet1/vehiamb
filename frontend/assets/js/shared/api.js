@@ -1226,6 +1226,14 @@ window.VehiAmb.api = {
         );
     },
 
+    getAsignacionManana() {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/viajes/asignacion-manana`,
+            undefined,
+            "No se pudo cargar tu asignación de mañana"
+        );
+    },
+
     getViajesRecientesEmpresa(filters = {}) {
         const params = new URLSearchParams();
         if (filters.fecha_desde) params.set("fecha_desde", filters.fecha_desde);
