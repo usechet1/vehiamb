@@ -606,9 +606,32 @@ async function cargarRepuestosSugeridos() {
                 valor_unitario: Number(elegida.valor_promedio || 0),
                 incluido: true,
                 obligatorio,
-                cantidadFija: true
+                cantidadFija: true,
+                // Ni el equivalente elegido alcanza (se usa igual, es el
+                // "menos malo" disponible) -- se marca para que se vea en el
+                // builder y quede claro por que el backend va a rechazar el
+                // guardado hasta que haya stock suficiente.
+                sinStock: elegida.stock_disponible < cantidadRequerida
             });
         } else {
+            // Sin ningun equivalente configurado: antes esto se descartaba
+            // en silencio y el mantenimiento se guardaba sin este repuesto,
+            // sin que nada lo bloqueara. Ahora se deja el principal en la
+            // lista igual, marcado sin stock, para que se vea y para que el
+            // backend lo rechace (en vez de desaparecer sin dejar rastro).
+            repuestosState.push({
+                repuesto: sugerido.nombre,
+                proveedor: "",
+                valor: Number(sugerido.valor_promedio || 0) * Number(sugerido.cantidad || 1),
+                notas: "",
+                repuesto_id: sugerido.repuesto_id,
+                cantidad: Number(sugerido.cantidad || 1),
+                valor_unitario: Number(sugerido.valor_promedio || 0),
+                incluido: true,
+                obligatorio,
+                cantidadFija: true,
+                sinStock: true
+            });
             sinStock.push(sugerido.nombre);
         }
     }
@@ -616,7 +639,7 @@ async function cargarRepuestosSugeridos() {
     renderRepuestosBuilder();
 
     if (sinStock.length) {
-        repuestosSugeridosAviso.textContent = `No existen repuestos compatibles disponibles para: ${sinStock.join(", ")}.`;
+        repuestosSugeridosAviso.textContent = `Sin repuesto compatible disponible para: ${sinStock.join(", ")}. Queda marcado "Sin stock" abajo -- no podrás guardar hasta resolverlo.`;
         repuestosSugeridosAviso.classList.remove("hidden");
     } else {
         repuestosSugeridosAviso.classList.add("hidden");
@@ -708,18 +731,19 @@ function renderRepuestosBuilder() {
         const faltaPrecio = item.obligatorio && !item.valor;
 
         return `
-        <li class="mnt-repuesto-row${item.incluido === false ? " mnt-repuesto-row--excluido" : ""}${faltaPrecio ? " mnt-repuesto-row--alerta" : ""}">
+        <li class="mnt-repuesto-row${item.incluido === false ? " mnt-repuesto-row--excluido" : ""}${(faltaPrecio || item.sinStock) ? " mnt-repuesto-row--alerta" : ""}">
             <label class="mnt-repuesto-check" title="${item.obligatorio ? "Repuesto obligatorio" : ""}">
                 <input type="checkbox" data-index="${index}" ${item.incluido !== false ? "checked" : ""} ${item.obligatorio ? "disabled" : ""}>
             </label>
             <div class="mnt-repuesto-main">
-                <div class="mnt-repuesto-name">${escapeHtml(item.repuesto)}${item.obligatorio ? ' <span class="simple-checklist-badge">Obligatorio</span>' : ""}</div>
+                <div class="mnt-repuesto-name">${escapeHtml(item.repuesto)}${item.obligatorio ? ' <span class="simple-checklist-badge">Obligatorio</span>' : ""}${item.sinStock ? ' <span class="pill pill-danger">Sin stock</span>' : ""}</div>
                 <div class="mnt-repuesto-extra">
                     <input type="text" class="mnt-repuesto-ghost-input" data-field="proveedor" data-index="${index}" placeholder="+ proveedor" value="${escapeHtml(item.proveedor || "")}">
                     <input type="text" class="mnt-repuesto-ghost-input" data-field="notas" data-index="${index}" placeholder="+ notas" value="${escapeHtml(item.notas || "")}">
                 </div>
                 ${item.motivo_sustitucion ? `<div class="field-help">${escapeHtml(item.motivo_sustitucion)}</div>` : ""}
                 ${faltaPrecio ? `<div class="mnt-repuesto-alerta-texto">Falta el valor de este repuesto obligatorio</div>` : ""}
+                ${item.sinStock ? `<div class="mnt-repuesto-alerta-texto">No hay stock suficiente -- no podrás guardar hasta que haya disponible o cambies el repuesto.</div>` : ""}
             </div>
             <input type="number" class="mnt-repuesto-cantidad" data-index="${index}" value="${item.cantidad || 1}" min="0.01" step="0.01" aria-label="Cantidad" ${item.cantidadFija ? `readonly title="Cantidad configurada para este vehículo, no editable"` : ""}>
             <input type="text" inputmode="numeric" class="mnt-repuesto-valor" data-index="${index}" value="${item.valor ? formatCurrency(item.valor) : ""}" placeholder="$ 0" aria-label="Valor">
