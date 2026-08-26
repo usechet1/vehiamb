@@ -23,7 +23,7 @@ const ITEMS_CHECKLIST = [
   { codigo: "llanta_ti", label: "Llanta trasera izquierda", x: 20, y: 72 },
   { codigo: "llanta_td", label: "Llanta trasera derecha", x: 80, y: 72 },
   { codigo: "llanta_repuesto", label: "Llanta de repuesto", x: 50, y: 94 },
-  { codigo: "aceite", label: "Nivel de aceite", x: 50, y: 16 },
+  { codigo: "aceite", label: "Nivel de líquidos", x: 50, y: 16 },
   {
     codigo: "kit_herramientas",
     label: "Kit de herramientas",
@@ -41,7 +41,8 @@ const ITEMS_CHECKLIST = [
       { codigo: "kit_linterna", label: "Linterna" }
     ]
   },
-  { codigo: "luces", label: "Luces", x: 50, y: 6 },
+  { codigo: "luces", label: "Luces delanteras", x: 50, y: 6 },
+  { codigo: "luces_traseras", label: "Luces traseras", x: 70, y: 90 },
   { codigo: "extintor", label: "Extintor", x: 30, y: 50 },
   { codigo: "botiquin", label: "Botiquín de primeros auxilios", x: 70, y: 50 }
 ];
