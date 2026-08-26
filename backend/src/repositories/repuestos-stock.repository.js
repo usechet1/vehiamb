@@ -32,6 +32,23 @@ async function decrementarStock(repuestoId, bodegaId, cantidad, dbClient) {
   );
 }
 
+// Reverso de decrementarStock -- usado al eliminar un mantenimiento que ya
+// habia consumido stock, para devolverlo. Mismo motivo por el que
+// decrementarStock resta directo (no valida contra negativos): si el stock
+// ya se movio por otro lado desde entonces, igual hay que devolver
+// exactamente lo que este mantenimiento habia consumido.
+async function incrementarStock(repuestoId, bodegaId, cantidad, dbClient) {
+  return dbClient.get(
+    `
+      UPDATE repuestos_stock
+      SET stock_fisico = stock_fisico + ?, actualizado_en = NOW()
+      WHERE repuesto_id = ? AND bodega_id = ?
+      RETURNING *
+    `,
+    [cantidad, repuestoId, bodegaId]
+  );
+}
+
 async function findByRepuestoIds(repuestoIds, empresaId) {
   const unicos = [...new Set(repuestoIds.filter(Boolean))];
   if (!unicos.length) return new Map();
@@ -94,6 +111,7 @@ module.exports = {
   findByRepuestoIds,
   findByRepuestoIdForUpdate,
   decrementarStock,
+  incrementarStock,
   upsertStock,
   insertMovimiento
 };

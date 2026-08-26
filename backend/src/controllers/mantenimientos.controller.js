@@ -48,3 +48,8 @@ exports.confirmarCambioAceite = async (req, res) => {
   const mantenimiento = await mantenimientosService.confirmarCambioAceite(req.params.id, req.empresaId);
   res.json(mantenimiento);
 };
+
+exports.deleteMantenimiento = async (req, res) => {
+  await mantenimientosService.deleteMantenimiento(req.params.id, req.user);
+  res.status(204).send();
+};
