@@ -2488,38 +2488,6 @@ label[for="loginPassword"] {
     box-shadow: var(--shadow);
 }
 
-/* Recordatorio secundario -- no compite con la tarjeta de la ruta de hoy
-   (esa es la accion principal), por eso mismo padding pero sin el peso
-   visual grande de destino/placa. */
-.conductor-card-preinspeccion {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-}
-
-.conductor-preinspeccion-info {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    min-width: 0;
-}
-
-.conductor-preinspeccion-detalle {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--color-ink);
-    font-weight: 700;
-    font-size: 0.92rem;
-}
-
-.conductor-card-preinspeccion .btn-secondary {
-    width: auto;
-    flex: 0 0 auto;
-}
-
 .conductor-card-step {
     display: flex;
     align-items: flex-start;
