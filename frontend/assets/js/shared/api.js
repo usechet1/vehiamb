@@ -239,6 +239,14 @@ window.VehiAmb.api = {
         );
     },
 
+    deleteMantenimiento(id) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/mantenimientos/${id}`,
+            { method: "DELETE" },
+            "No se pudo eliminar el mantenimiento"
+        );
+    },
+
     createMantenimiento(payload) {
         return requestJson(
             `${window.VehiAmb.API_URL}/mantenimientos`,

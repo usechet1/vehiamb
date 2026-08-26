@@ -73,6 +73,7 @@ const maintenanceDrawerSubtitle = document.getElementById("maintenanceDrawerSubt
 const maintenanceDrawerBody = document.getElementById("maintenanceDrawerBody");
 const exportMaintenanceButton = document.getElementById("exportMaintenanceButton");
 const exportMaintenanceExcelButton = document.getElementById("exportMaintenanceExcelButton");
+const deleteMaintenanceButton = document.getElementById("deleteMaintenanceButton");
 const exportHistorialButton = document.getElementById("exportHistorialButton");
 const exportHistorialExcelButton = document.getElementById("exportHistorialExcelButton");
 const exportMenuTrigger = document.getElementById("exportMenuTrigger");
@@ -1015,6 +1016,7 @@ async function openMaintenanceDetail(item) {
     subirSalidaInventarioButton.textContent = item.salida_inventario_url
         ? "Reemplazar salida de inventario"
         : "Subir salida de inventario";
+    deleteMaintenanceButton.classList.toggle("hidden", !window.VehiAmb.auth?.hasPermission?.("maintenance.delete"));
 
     maintenanceDrawerBody.innerHTML = `
         <dl class="detail-list drawer-detail-list mnt-detail-2col">
@@ -1558,6 +1560,31 @@ exportMaintenanceExcelButton.addEventListener("click", async () => {
     } finally {
         exportMaintenanceExcelButton.disabled = false;
         exportMaintenanceExcelButton.textContent = originalLabel;
+    }
+});
+
+deleteMaintenanceButton.addEventListener("click", async () => {
+    if (!currentDetailItem) return;
+
+    const confirmado = await window.VehiAmb.ui.confirm({
+        title: "Eliminar mantenimiento",
+        message: "Si consumió repuestos, el stock se devuelve. Esta acción no se puede deshacer.",
+        confirmText: "Eliminar"
+    });
+    if (!confirmado) return;
+
+    deleteMaintenanceButton.disabled = true;
+
+    try {
+        await window.VehiAmb.api.deleteMantenimiento(currentDetailItem.id);
+        window.VehiAmb.ui.showMessage(mensaje, "Mantenimiento eliminado correctamente");
+        closeDetailDrawer();
+        await cargarDatos();
+    } catch (error) {
+        console.error(error);
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo eliminar el mantenimiento", "error");
+    } finally {
+        deleteMaintenanceButton.disabled = false;
     }
 });
 

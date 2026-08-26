@@ -47,4 +47,6 @@ router.post(
   asyncHandler(mantenimientosController.confirmarCambioAceite)
 );
 
+router.delete("/:id", requirePermission("maintenance.delete"), asyncHandler(mantenimientosController.deleteMantenimiento));
+
 module.exports = router;

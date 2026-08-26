@@ -204,6 +204,14 @@ async function findRepuestosEstructurados(mantenimientoId, empresaId) {
   );
 }
 
+// mantenimiento_repuestos tiene ON DELETE CASCADE hacia mantenimientos, asi
+// que borra solo tambien sus filas de detalle -- el reverso de stock (ver
+// mantenimientos.service.js#deleteMantenimiento) se hace ANTES de llamar
+// esto, leyendo ese detalle mientras todavia existe.
+async function remove(id, empresaId, dbClient = db) {
+  await dbClient.run("DELETE FROM mantenimientos WHERE id = ? AND empresa_id = ?", [id, empresaId]);
+}
+
 module.exports = {
   findAll,
   findByVehicle,
@@ -216,5 +224,6 @@ module.exports = {
   updateSalidaInventario,
   existeMantenimientoQueBloquea,
   existeMantenimientoQueBloqueaEnFecha,
-  findVehiculosBloqueadosEnFecha
+  findVehiculosBloqueadosEnFecha,
+  remove
 };

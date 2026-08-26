@@ -375,6 +375,56 @@ async function createMantenimiento(payload, file, currentUser) {
   return { ...creado, advertenciasStock };
 }
 
+// Solo Administrador (ver PERMISOS_NUEVOS_POR_ROL en database/init.js,
+// permiso maintenance.delete). Si el mantenimiento habia consumido
+// repuestos, ese stock se devuelve dentro de la misma transaccion -- si no,
+// eliminar un mantenimiento dejaria el stock permanentemente descontado sin
+// ningun registro que lo explique.
+async function deleteMantenimiento(id, currentUser) {
+  const empresaId = currentUser.empresa_id;
+  const mantenimiento = await mantenimientosRepository.findById(id, empresaId);
+  if (!mantenimiento) {
+    throw new HttpError(404, "Mantenimiento no encontrado");
+  }
+
+  const repuestosConsumidos = await mantenimientosRepository.findRepuestosEstructurados(id, empresaId);
+
+  await db.withTransaction(async (trx) => {
+    if (repuestosConsumidos.length) {
+      const bodega = await repuestosStockRepository.findBodegaPrincipal(empresaId, trx);
+
+      for (const item of repuestosConsumidos) {
+        const stockRow = await repuestosStockRepository.incrementarStock(item.repuesto_id, bodega.id, item.cantidad, trx);
+
+        await repuestosStockRepository.insertMovimiento(
+          {
+            repuestoId: item.repuesto_id,
+            bodegaId: bodega.id,
+            tipoMovimiento: "entrada",
+            cantidad: item.cantidad,
+            stockResultante: Number(stockRow?.stock_fisico ?? 0),
+            motivo: `Reverso por eliminación del mantenimiento #${id}`,
+            referenciaTipo: "mantenimiento",
+            referenciaId: id,
+            usuarioId: currentUser?.id ?? null,
+            empresaId
+          },
+          trx
+        );
+      }
+    }
+
+    // mantenimiento_repuestos se borra solo (ON DELETE CASCADE) al borrar
+    // esta fila -- ya se leyo su detalle arriba para el reverso de stock.
+    await mantenimientosRepository.remove(id, empresaId, trx);
+  });
+
+  await eliminarArchivoAnterior(mantenimiento.soporte_url);
+  await eliminarArchivoAnterior(mantenimiento.salida_inventario_url);
+
+  await vehiculoDisponibilidadService.reevaluarDisponibilidad(mantenimiento.vehiculo_id, empresaId);
+}
+
 // "Autorizado por"/"Hecho por" siguen siendo texto libre en mantenimientos
 // (no una FK) -- esto solo alimenta el <select> del formulario con los
 // usuarios activos de la empresa para que se elija un nombre consistente en
@@ -391,5 +441,6 @@ module.exports = {
   createMantenimiento,
   subirSalidaInventario,
   confirmarCambioAceite,
-  listUsuariosDisponibles
+  listUsuariosDisponibles,
+  deleteMantenimiento
 };
