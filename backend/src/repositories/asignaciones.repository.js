@@ -41,7 +41,7 @@ async function create(asignacion) {
 }
 
 async function update(id, asignacion, empresaId) {
-  const campos = ["conductor_id", "vehiculo_id", "ruta_id", "destinos", "telefono", "observaciones"];
+  const campos = ["fecha", "conductor_id", "vehiculo_id", "ruta_id", "destinos", "telefono", "observaciones"];
   const assignments = campos.map((field) => `${field} = ?`).join(", ");
   const values = campos.map((field) =>
     field === "destinos" ? serializarDestinos(asignacion.destinos) : asignacion[field] ?? null
