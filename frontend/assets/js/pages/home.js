@@ -848,7 +848,15 @@ async function inicializarConductorHome(user) {
     const asignacion = asignacionHoyResult.status === "fulfilled" ? asignacionHoyResult.value : null;
     if (asignacionHoyResult.status === "rejected") console.error(asignacionHoyResult.reason);
 
+    // "Tus ultimos viajes" solo tiene sentido cuando el conductor arma el
+    // viaje el mismo dia (no sabe de antemano que vehiculo/ruta le toca, el
+    // historial le da contexto) -- con una ruta ya asignada (hoy o mañana)
+    // esa info ya esta arriba, en la tarjeta grande, y el historial abajo
+    // solo estorba.
+    const viajesPanel = document.querySelector(".conductor-viajes-panel");
+
     if (asignacion?.vehiculo) {
+        viajesPanel?.classList.add("hidden");
         inicializarConductorAsignacionHoy(asignacion);
         return;
     }
@@ -856,7 +864,10 @@ async function inicializarConductorHome(user) {
     // La seleccion manual (armar un viaje sobre la marcha) solo tiene
     // sentido cuando el conductor no tiene ninguna ruta -- ni hoy, ni
     // mañana pendiente de inspeccionar.
-    if (tienePreinspeccionPendiente) return;
+    if (tienePreinspeccionPendiente) {
+        viajesPanel?.classList.add("hidden");
+        return;
+    }
 
     await inicializarConductorSeleccionManual();
 }
