@@ -345,18 +345,9 @@ async function alternarEstadoRepuesto(id, button) {
     }
 }
 
-repuestosTableBody.addEventListener("click", async (event) => {
-    const toggleButton = event.target.closest("[data-toggle-estado]");
-    if (toggleButton) {
-        await alternarEstadoRepuesto(toggleButton.dataset.toggleEstado, toggleButton);
-        return;
-    }
-
-    const button = event.target.closest("[data-editar-repuesto]");
-    if (!button) return;
-
+async function abrirEdicionRepuesto(id) {
     try {
-        const repuesto = await window.VehiAmb.api.getRepuesto(button.dataset.editarRepuesto);
+        const repuesto = await window.VehiAmb.api.getRepuesto(id);
 
         repuestoId.value = repuesto.id;
         repuestoCodigoInterno.value = repuesto.codigo_interno;
@@ -380,6 +371,19 @@ repuestosTableBody.addEventListener("click", async (event) => {
     } catch (error) {
         window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo cargar el repuesto", "error");
     }
+}
+
+repuestosTableBody.addEventListener("click", async (event) => {
+    const toggleButton = event.target.closest("[data-toggle-estado]");
+    if (toggleButton) {
+        await alternarEstadoRepuesto(toggleButton.dataset.toggleEstado, toggleButton);
+        return;
+    }
+
+    const button = event.target.closest("[data-editar-repuesto]");
+    if (!button) return;
+
+    await abrirEdicionRepuesto(button.dataset.editarRepuesto);
 });
 
 repuestosTable.querySelector("thead").addEventListener("click", (event) => {
@@ -442,4 +446,10 @@ repuestoForm.addEventListener("submit", async (event) => {
 document.addEventListener("DOMContentLoaded", () => {
     resetForm();
     cargarRepuestos();
+
+    // Llegada desde una notificacion ("Ver repuesto") -- abre de una vez el
+    // formulario de edicion de ese repuesto puntual (se pide directo a la
+    // API por id, no depende de que cargarRepuestos ya haya terminado).
+    const repuestoIdParam = new URLSearchParams(window.location.search).get("repuesto_id");
+    if (repuestoIdParam) abrirEdicionRepuesto(repuestoIdParam);
 });

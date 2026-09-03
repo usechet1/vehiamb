@@ -465,6 +465,15 @@ label[for="loginPassword"] {
     opacity: 0.55;
 }
 
+.notif-item--clickable {
+    cursor: pointer;
+}
+
+.notif-item--clickable:hover,
+.notif-item--clickable:focus-visible {
+    background: var(--color-surface-2);
+}
+
 .notif-item-actions {
     display: flex;
     gap: 8px;

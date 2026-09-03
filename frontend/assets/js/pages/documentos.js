@@ -491,13 +491,7 @@ documentoFechaVencimiento.addEventListener("input", () => {
     vencimientoEditadoManualmente = true;
 });
 
-documentosList.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-editar-documento]");
-    if (!button) return;
-
-    const item = documentosState.find((doc) => String(doc.id) === button.dataset.editarDocumento);
-    if (!item) return;
-
+function abrirEdicionDocumento(item) {
     documentoId.value = item.id;
     documentoSelect.value = item.vehiculo_id;
     documentoTipo.value = item.tipo;
@@ -522,6 +516,16 @@ documentosList.addEventListener("click", (event) => {
     documentoCancelEditButton.classList.remove("hidden");
     switchTab("registrar");
     documentoForm.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+documentosList.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-editar-documento]");
+    if (!button) return;
+
+    const item = documentosState.find((doc) => String(doc.id) === button.dataset.editarDocumento);
+    if (!item) return;
+
+    abrirEdicionDocumento(item);
 });
 
 documentoCancelEditButton.addEventListener("click", resetForm);
@@ -870,5 +874,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (buscarParam) {
         filterDocumentoBusqueda.value = buscarParam;
         applyDocumentosFilters();
+    }
+
+    // Llegada desde una notificacion ("Renovar documento") -- abre de una
+    // vez el formulario de edicion de ese documento puntual.
+    const documentoIdParam = new URLSearchParams(window.location.search).get("documento_id");
+    if (documentoIdParam && window.VehiAmb.auth.hasPermission("documents.create")) {
+        const item = documentosState.find((doc) => String(doc.id) === documentoIdParam);
+        if (item) abrirEdicionDocumento(item);
     }
 });

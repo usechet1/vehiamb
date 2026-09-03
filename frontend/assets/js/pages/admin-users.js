@@ -407,6 +407,11 @@ async function initAdminUsers() {
         renderUsersKpis();
         applyUserFilters();
         renderRolePermissions();
+
+        // Llegada desde una notificacion ("Ver usuario") -- abre de una vez
+        // el formulario de edicion de ese usuario puntual.
+        const usuarioIdParam = new URLSearchParams(window.location.search).get("usuario_id");
+        if (usuarioIdParam) editUser(usuarioIdParam);
     } catch (error) {
         console.error(error);
         window.VehiAmb.ui.showMessage(mensaje, error.message || "No fue posible cargar la administración", "error");

@@ -1049,4 +1049,11 @@ exportSimitExcelButton.addEventListener("click", async () => {
     }
 });
 
-document.addEventListener("DOMContentLoaded", cargarFlota);
+document.addEventListener("DOMContentLoaded", async () => {
+    await cargarFlota();
+
+    // Llegada desde una notificacion ("Ver comparendos") -- abre de una vez
+    // el detalle SIMIT de ese vehiculo puntual.
+    const vehiculoIdParam = new URLSearchParams(window.location.search).get("vehiculo_id");
+    if (vehiculoIdParam) openSimitDetail(vehiculoIdParam);
+});

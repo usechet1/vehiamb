@@ -149,8 +149,17 @@ function renderNotifItem(notificacion, { dentroDeGrupo = false } = {}) {
         ? `${notificacion.vehiculo.placa || ""} ${notificacion.vehiculo.marca || ""} ${notificacion.vehiculo.modelo || ""}`.trim()
         : "";
 
+    // El item entero es clickeable hacia accion.url (no solo el boton "Ver
+    // ..."), asi la notificacion lleva directo a donde se gestiona, sin
+    // obligar a acertarle al link chiquito. Los botones de accion (Aprobar,
+    // Comentar, Eliminar, el propio link) siguen interceptando el clic antes
+    // -- ver el handler delegado en setupNotificaciones.
+    const cardAttrs = accion
+        ? ` data-notif-card-url="${escapeHtml(accion.url)}" data-notif-card-id="${notificacion.id}" data-notif-card-leida="${noLeida}" role="button" tabindex="0" aria-label="${escapeHtml(accion.label)}: ${escapeHtml(notificacion.titulo)}"`
+        : "";
+
     return `
-        <article class="notif-item ${prioridad.className}${noLeida ? "" : " notif-item--leido"}"${dentroDeGrupo ? ' data-notif-child="true"' : ""}>
+        <article class="notif-item ${prioridad.className}${noLeida ? "" : " notif-item--leido"}${accion ? " notif-item--clickable" : ""}"${dentroDeGrupo ? ' data-notif-child="true"' : ""}${cardAttrs}>
             <div class="notif-item-head">
                 <span class="notif-item-tag">${categoria.icono} ${escapeHtml(categoria.label)}</span>
                 <span class="notif-item-prioridad" title="Prioridad ${escapeHtml(prioridad.label)}">${prioridad.icono}</span>
@@ -396,7 +405,22 @@ async function setupNotificaciones(aside) {
         }
 
         const actionButton = event.target.closest("[data-notif-action]");
-        if (!actionButton) return;
+        if (!actionButton) {
+            // Clic en cualquier parte del item que no sea un boton de accion
+            // (titulo, mensaje, meta) -- navega a donde se gestiona la
+            // notificacion, igual que el link "Ver ...". Si estaba sin leer
+            // se marca leida de una vez, sin esperar la respuesta (ya se
+            // esta saliendo de la pagina).
+            const card = event.target.closest("[data-notif-card-url]");
+            if (card) {
+                if (card.dataset.notifCardLeida === "true") {
+                    window.VehiAmb.api.marcarNotificacionLeida(card.dataset.notifCardId).catch(() => {});
+                }
+                panel.classList.add("hidden");
+                window.location.href = card.dataset.notifCardUrl;
+            }
+            return;
+        }
 
         event.preventDefault();
         const { notifAction, notifId, notifReferenciaTipo, notifReferenciaId } = actionButton.dataset;
@@ -452,6 +476,18 @@ async function setupNotificaciones(aside) {
             console.error(error);
             actionButton.disabled = false;
         }
+    });
+
+    // Soporte de teclado para el item completo (role="button" tabindex="0"
+    // puesto en renderNotifItem) -- un click sintetico reutiliza el mismo
+    // handler de arriba en vez de duplicar la logica de navegar/marcar leida.
+    body.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        const card = event.target.closest("[data-notif-card-url]");
+        if (!card || event.target.closest("[data-notif-action], a[data-notif-nav]")) return;
+
+        event.preventDefault();
+        card.click();
     });
 
     await refrescar();
