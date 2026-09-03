@@ -90,15 +90,6 @@ const ESTADO_PILL_CLASS = {
     desconocido: "pill"
 };
 
-// Orden de severidad para la lista: lo mas urgente de resolver primero.
-const ESTADO_SEVERIDAD = {
-    cobro_coactivo: 0,
-    con_multas: 1,
-    acuerdo_pago: 2,
-    desconocido: 3,
-    nunca_consultado: 4,
-    sin_multas: 5
-};
 
 // Cobro coactivo implica proceso de embargo/jurídico (lo más grave: hay que
 // distinguirlo visualmente de "con multas", que aun no llega a ese punto) --
@@ -494,13 +485,15 @@ function renderFiltersChips() {
     `).join("");
 }
 
-function ordenarPorSeveridad(rows) {
+// Orden por defecto de la lista: la consulta mas reciente primero. Los
+// vehiculos que nunca se han consultado (fecha_consulta null) quedan al
+// final, sin importar que tan urgente sea su estado.
+function ordenarPorFechaReciente(rows) {
     return [...rows].sort((a, b) => {
-        const severidadA = ESTADO_SEVERIDAD[deriveEstadoCartera(a)] ?? 99;
-        const severidadB = ESTADO_SEVERIDAD[deriveEstadoCartera(b)] ?? 99;
-        if (severidadA !== severidadB) return severidadA - severidadB;
-        // Dentro de la misma severidad, primero donde mas plata hay en juego.
-        return Number(b.valor_total || 0) - Number(a.valor_total || 0);
+        if (!a.fecha_consulta && !b.fecha_consulta) return 0;
+        if (!a.fecha_consulta) return 1;
+        if (!b.fecha_consulta) return -1;
+        return new Date(b.fecha_consulta) - new Date(a.fecha_consulta);
     });
 }
 
@@ -517,7 +510,7 @@ function renderFlotaList(rows, { ordenar = true } = {}) {
         return;
     }
 
-    const filas = ordenar ? ordenarPorSeveridad(rows) : rows;
+    const filas = ordenar ? ordenarPorFechaReciente(rows) : rows;
 
     flotaList.innerHTML = filas.map((row) => {
         const estado = deriveEstadoCartera(row);
@@ -588,7 +581,7 @@ function filtrarPorEstadoYScroll(estado) {
 }
 
 // Vista temporal: ordena el listado por total_comparendos descendente en
-// vez de por severidad de estado, para ver de un vistazo cuales vehiculos
+// vez de por fecha de consulta, para ver de un vistazo cuales vehiculos
 // concentran mas comparendos. Se pierde al tocar cualquier filtro (vuelve
 // al orden normal via applyFilters).
 function mostrarRankingComparendos() {
