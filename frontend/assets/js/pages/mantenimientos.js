@@ -1746,5 +1746,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderRepuestosBuilder();
     updateCostoTotal();
     updateCambioAceiteFields();
-    cargarDatos();
+    await cargarDatos();
+
+    // Llegada desde una notificacion ("Ver mantenimiento") -- abre de una
+    // vez el detalle del mantenimiento puntual en vez de dejar al usuario a
+    // buscarlo a mano en el historial.
+    const mantenimientoIdParam = new URLSearchParams(window.location.search).get("mantenimiento_id");
+    if (mantenimientoIdParam) {
+        const item = mantenimientosState.find((m) => String(m.id) === mantenimientoIdParam);
+        if (item) {
+            switchTab("historial");
+            openMaintenanceDetail(item);
+        }
+    }
 });

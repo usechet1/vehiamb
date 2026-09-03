@@ -32,19 +32,23 @@ const ACCIONES = {
     },
     ver_mantenimiento: {
         label: "Ver mantenimiento",
-        url: () => "mantenimientos.html"
+        url: (payload) => `mantenimientos.html?mantenimiento_id=${payload?.mantenimiento_id}`
     },
     renovar_documento: {
         label: "Renovar documento",
-        url: () => "documentos.html"
+        url: (payload) => `documentos.html?documento_id=${payload?.documento_id}`
     },
     ver_usuario: {
         label: "Ver usuario",
-        url: () => "admin-usuarios.html"
+        url: (payload) => `admin-usuarios.html?usuario_id=${payload?.usuario_id}`
     },
     ver_repuesto: {
         label: "Ver repuesto",
-        url: () => "repuestos.html"
+        url: (payload) => `repuestos.html?repuesto_id=${payload?.repuesto_id}`
+    },
+    ver_simit: {
+        label: "Ver comparendos",
+        url: (payload) => `simit.html?vehiculo_id=${payload?.vehiculo_id}`
     }
 };
 
