@@ -24,6 +24,8 @@ const controlConductorLicencias = document.getElementById("controlConductorLicen
 const controlDocumentosGrid = document.getElementById("controlDocumentosGrid");
 const offlineBanner = document.getElementById("offlineBanner");
 const offlineBannerFecha = document.getElementById("offlineBannerFecha");
+const conductorViajesRecientesSection = document.getElementById("conductorViajesRecientesSection");
+const conductorViajesRecientesList = document.getElementById("conductorViajesRecientesList");
 const loader = document.getElementById("loader");
 const mensaje = document.getElementById("mensaje");
 
@@ -213,13 +215,13 @@ function renderConductor(conductor) {
         : '<p class="dash-empty">Este conductor no tiene licencias registradas.</p>';
 }
 
-function renderViajesEmpresa(viajes) {
+function renderViajesList(viajes, contenedor, vacioHtml) {
     if (!viajes.length) {
-        viajesEmpresaList.innerHTML = '<p class="dash-empty">Todavía no hay viajes registrados por los conductores.</p>';
+        contenedor.innerHTML = vacioHtml;
         return;
     }
 
-    viajesEmpresaList.innerHTML = viajes.map((viaje) => `
+    contenedor.innerHTML = viajes.map((viaje) => `
         <article class="record-item">
             <div class="record-top">
                 <div>
@@ -232,7 +234,7 @@ function renderViajesEmpresa(viajes) {
         </article>
     `).join("");
 
-    viajesEmpresaList.querySelectorAll(".btn-ver-resumen").forEach((btn) => {
+    contenedor.querySelectorAll(".btn-ver-resumen").forEach((btn) => {
         btn.addEventListener("click", () => openViajeResumen(btn.dataset.viajeId));
     });
 }
@@ -299,9 +301,11 @@ function renderViajeDrawerBody(resumen) {
     // Reutiliza el mismo permiso/tabla del hilo de comentarios de
     // notificaciones (referencia_tipo/referencia_id generico) -- ver
     // notificaciones.service.js. Se decidio que solo Administrador/Operador
-    // puedan dejar anotacion (mismo set de roles que ya tiene ese permiso),
-    // el resto de roles con acceso a este drawer solo puede leer el hilo.
+    // puedan dejar anotacion (mismo set de roles que ya tiene ese permiso).
+    // El Conductor tambien ve el hilo, pero en solo lectura (sin permiso
+    // notificaciones.comentar) -- ver cargarComentariosHiloSoloLectura.
     const puedeComentar = window.VehiAmb.auth.hasPermission("notificaciones.comentar");
+    const esConductor = window.VehiAmb.auth.getUser()?.rol === "Conductor";
     return `
         <section class="drawer-section">
             <h3>Vehículo</h3>
@@ -339,21 +343,23 @@ function renderViajeDrawerBody(resumen) {
             <div class="control-doc-grid">${renderDocumentosHtml(documentos || [])}</div>
         </section>
 
-        ${puedeComentar ? `
+        ${(puedeComentar || esConductor) ? `
             <section class="drawer-section">
                 <h3>Comentarios</h3>
                 <div id="viajeComentariosHilo" class="notif-comentarios-hilo">
                     <p class="dash-empty">Cargando comentarios...</p>
                 </div>
-                <div class="form-group">
-                    <label>Nuevo comentario</label>
-                    <textarea id="viajeComentarioTexto" rows="2" maxlength="500" placeholder="Responde a una novedad de este viaje..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Foto (opcional)</label>
-                    <input type="file" id="viajeComentarioFoto" accept="image/png,image/jpeg,image/webp">
-                </div>
-                <button type="button" id="viajeComentarioEnviar" class="btn-primary">Enviar</button>
+                ${puedeComentar ? `
+                    <div class="form-group">
+                        <label>Nuevo comentario</label>
+                        <textarea id="viajeComentarioTexto" rows="2" maxlength="500" placeholder="Responde a una novedad de este viaje..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Foto (opcional)</label>
+                        <input type="file" id="viajeComentarioFoto" accept="image/png,image/jpeg,image/webp">
+                    </div>
+                    <button type="button" id="viajeComentarioEnviar" class="btn-primary">Enviar</button>
+                ` : ""}
             </section>
         ` : ""}
     `;
@@ -361,13 +367,13 @@ function renderViajeDrawerBody(resumen) {
 
 let comentariosViajeRequestToken = 0;
 
-async function cargarComentariosHilo(viajeId) {
+async function cargarComentariosHiloConFetch(fetchFn) {
     const requestToken = ++comentariosViajeRequestToken;
     const hiloEl = document.getElementById("viajeComentariosHilo");
     if (!hiloEl) return;
 
     try {
-        const comentarios = await window.VehiAmb.api.getComentariosNotificacion("viaje", viajeId);
+        const comentarios = await fetchFn();
         if (requestToken !== comentariosViajeRequestToken) return;
         hiloEl.innerHTML = renderComentariosHilo(comentarios);
     } catch (error) {
@@ -375,6 +381,17 @@ async function cargarComentariosHilo(viajeId) {
         console.error(error);
         hiloEl.innerHTML = '<p class="dash-empty">No se pudieron cargar los comentarios.</p>';
     }
+}
+
+// Administrador/Operador: lee y escribe por /notificaciones/referencia/viaje/:id.
+function cargarComentariosHilo(viajeId) {
+    return cargarComentariosHiloConFetch(() => window.VehiAmb.api.getComentariosNotificacion("viaje", viajeId));
+}
+
+// Conductor: mismo hilo, pero por /viajes/:id/comentarios (solo lectura,
+// el backend valida que el viaje sea suyo -- ver viajes.service.js).
+function cargarComentariosHiloSoloLectura(viajeId) {
+    return cargarComentariosHiloConFetch(() => window.VehiAmb.api.getComentariosViaje(viajeId));
 }
 
 // El boton se crea una sola vez por apertura del drawer (renderViajeDrawerBody
@@ -442,12 +459,15 @@ async function openViajeResumen(viajeId) {
         viajeDrawerTitle.textContent = `${resumen.vehiculo?.placa || resumen.viaje.vehiculo_placa || "Vehículo"}`;
         viajeDrawerSubtitle.textContent = `${resumen.viaje.usuario_nombre || "Conductor no registrado"} · ${formatFechaHora(resumen.viaje.creado_en)}`;
         viajeDrawerBody.innerHTML = renderViajeDrawerBody(resumen);
-        // La seccion de comentarios ni siquiera se renderiza sin este mismo
-        // permiso (ver renderViajeDrawerBody) -- se repite el chequeo aca
-        // para no pedirle el hilo a una API que va a responder 403.
+        // La seccion de comentarios ni siquiera se renderiza para quien no
+        // entra en ninguno de estos dos casos (ver renderViajeDrawerBody) --
+        // se repite el chequeo aca para no pedirle el hilo a una API que va
+        // a responder 403.
         if (window.VehiAmb.auth.hasPermission("notificaciones.comentar")) {
             cargarComentariosHilo(resumen.viaje.id);
             setupComentarioForm(resumen.viaje.id);
+        } else if (window.VehiAmb.auth.getUser()?.rol === "Conductor") {
+            cargarComentariosHiloSoloLectura(resumen.viaje.id);
         }
     } catch (error) {
         console.error(error);
@@ -489,7 +509,7 @@ async function cargarViajesEmpresa() {
 
         viajesEmpresaSection.classList.remove("hidden");
         viajesEmpresaState = viajes || [];
-        renderViajesEmpresa(viajesEmpresaState);
+        renderViajesList(viajesEmpresaState, viajesEmpresaList, '<p class="dash-empty">Todavía no hay viajes registrados por los conductores.</p>');
         updateViajesFiltroSummary(viajesEmpresaState.length);
     } catch (error) {
         if (requestToken !== viajesEmpresaRequestToken) return;
@@ -499,6 +519,22 @@ async function cargarViajesEmpresa() {
         updateViajesFiltroSummary(0);
     } finally {
         if (requestToken === viajesEmpresaRequestToken) window.VehiAmb.ui.hide(loader);
+    }
+}
+
+// Lista propia del Conductor (getMisViajesRecientes ya viene acotada a su
+// usuario en el backend) para que pueda abrir cada viaje y leer los
+// comentarios que le haya dejado el equipo -- sin filtros ni exportar, a
+// diferencia de la lista de empresa, que es para Administrador/Operador.
+async function cargarConductorViajesRecientes() {
+    try {
+        const viajes = await window.VehiAmb.api.getMisViajesRecientes();
+        conductorViajesRecientesSection.classList.remove("hidden");
+        renderViajesList(viajes || [], conductorViajesRecientesList, '<p class="dash-empty">Todavía no has registrado ningún viaje.</p>');
+    } catch (error) {
+        console.error(error);
+        conductorViajesRecientesSection.classList.remove("hidden");
+        conductorViajesRecientesList.innerHTML = '<p class="dash-empty">No fue posible cargar tus últimos viajes</p>';
     }
 }
 
@@ -647,6 +683,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (currentUser?.rol === "Conductor") {
         cargarUltimoViaje(currentUser.id);
+        cargarConductorViajesRecientes();
         return;
     }
 

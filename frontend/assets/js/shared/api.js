@@ -1279,6 +1279,18 @@ window.VehiAmb.api = {
         return requestJson(`${window.VehiAmb.API_URL}/viajes`, undefined, "No se pudo cargar el historial de viajes");
     },
 
+    // Solo lectura -- a diferencia de getComentariosNotificacion/comentarNotificacion
+    // (permiso notificaciones.comentar, Administrador/Operador), esta ruta la puede
+    // pedir cualquiera con trips.view, incluido un Conductor sobre sus propios
+    // viajes (el backend valida el dueño). No hay POST equivalente aca a propósito.
+    getComentariosViaje(viajeId) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/viajes/${viajeId}/comentarios`,
+            undefined,
+            "No se pudieron cargar los comentarios"
+        );
+    },
+
     getRutasCatalogo() {
         return requestJson(`${window.VehiAmb.API_URL}/asignaciones/rutas`, undefined, "No se pudo cargar el catálogo de rutas");
     },
