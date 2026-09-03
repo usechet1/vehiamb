@@ -37,6 +37,11 @@ exports.getRecientesEmpresa = async (req, res) => {
 };
 
 exports.getResumen = async (req, res) => {
-  const resumen = await viajesService.obtenerResumen(req.params.viajeId, req.empresaId);
+  const resumen = await viajesService.obtenerResumen(req.params.viajeId, req.user);
   res.json(resumen);
+};
+
+exports.getComentarios = async (req, res) => {
+  const comentarios = await viajesService.listarComentariosViaje(req.params.viajeId, req.user);
+  res.json(comentarios);
 };

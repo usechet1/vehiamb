@@ -9,6 +9,7 @@ const itemsRepository = require("../repositories/inspeccion-items.repository");
 const preoperacionalesRepository = require("../repositories/preoperacionales.repository");
 const preoperacionalItemsRepository = require("../repositories/preoperacional-items.repository");
 const asignacionesRepository = require("../repositories/asignaciones.repository");
+const notificacionComentariosRepository = require("../repositories/notificacion-comentarios.repository");
 const { hoyIso, mananaIso } = require("../utils/fecha-negocio");
 
 // Documentos relevantes para un control de transito en carretera. "otro" se
@@ -217,13 +218,20 @@ async function listarRecientesEmpresa(empresaId, { fechaDesde, fechaHasta } = {}
 // (Administrador/Operador): vehiculo, conductor, documentos vigentes e
 // inspeccion preventiva (si el conductor la lleno al iniciar el viaje). Todo
 // en una sola consulta para no forzar al usuario a salir a la hoja de vida
-// del vehiculo solo para ver este detalle.
-async function obtenerResumen(viajeId, empresaId) {
-  const viaje = await viajesRepository.findById(viajeId, empresaId);
+// del vehiculo solo para ver este detalle. Un Conductor tambien puede pedir
+// este resumen (para revisar sus propios viajes en "Mi ultimo viaje"), pero
+// solo del suyo -- trips.view por si solo no distingue de quien es el viaje,
+// asi que la restriccion de dueño se hace aca.
+async function obtenerResumen(viajeId, currentUser) {
+  const viaje = await viajesRepository.findById(viajeId, currentUser.empresa_id);
   if (!viaje) {
     throw new HttpError(404, "Viaje no encontrado");
   }
+  if (currentUser.rol === "Conductor" && String(viaje.usuario_id) !== String(currentUser.id)) {
+    throw new HttpError(403, "No tienes permiso para ver este viaje");
+  }
 
+  const empresaId = currentUser.empresa_id;
   const [vehiculo, documentos, conductor, inspeccion, preoperacional] = await Promise.all([
     vehiculosRepository.findById(viaje.vehiculo_id, empresaId),
     documentosRepository.findByVehicle(viaje.vehiculo_id, empresaId),
@@ -300,6 +308,24 @@ async function obtenerResumen(viajeId, empresaId) {
   };
 }
 
+// Hilo de comentarios de un viaje, en solo lectura para quien lo pide --
+// escribir sigue yendo por /notificaciones/referencia/viaje/:id/comentarios
+// (permiso notificaciones.comentar, Administrador/Operador). Reutiliza la
+// misma tabla generica por referencia_tipo/referencia_id, con la misma
+// restriccion de dueño que obtenerResumen para que un Conductor solo vea el
+// hilo de sus propios viajes.
+async function listarComentariosViaje(viajeId, currentUser) {
+  const viaje = await viajesRepository.findById(viajeId, currentUser.empresa_id);
+  if (!viaje) {
+    throw new HttpError(404, "Viaje no encontrado");
+  }
+  if (currentUser.rol === "Conductor" && String(viaje.usuario_id) !== String(currentUser.id)) {
+    throw new HttpError(403, "No tienes permiso para ver este viaje");
+  }
+
+  return notificacionComentariosRepository.findByReferencia("viaje", viajeId, currentUser.empresa_id);
+}
+
 module.exports = {
   crear,
   listarRecientes,
@@ -308,5 +334,6 @@ module.exports = {
   obtenerUltimoViajeControl,
   obtenerAsignacionHoy,
   obtenerAsignacionManana,
-  obtenerResumen
+  obtenerResumen,
+  listarComentariosViaje
 };

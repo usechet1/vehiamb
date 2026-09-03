@@ -12,6 +12,7 @@ router.get("/asignacion-manana", requirePermission("trips.view"), asyncHandler(v
 router.get("/vehiculo/:vehiculoId", requirePermission("trips.view"), asyncHandler(viajesController.getPorVehiculo));
 router.get("/recientes-empresa", requirePermission("trips.view"), asyncHandler(viajesController.getRecientesEmpresa));
 router.get("/:viajeId/resumen", requirePermission("trips.view"), asyncHandler(viajesController.getResumen));
+router.get("/:viajeId/comentarios", requirePermission("trips.view"), asyncHandler(viajesController.getComentarios));
 router.post("/", requirePermission("trips.create"), asyncHandler(viajesController.crear));
 
 module.exports = router;
