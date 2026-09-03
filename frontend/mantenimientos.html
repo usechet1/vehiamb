@@ -170,6 +170,17 @@
                             </div>
 
                             <div class="wizard-step-panel hidden" id="wizardStep3" data-step-panel="3">
+                                <div class="form-group">
+                                    <label>Descripción</label>
+                                    <div class="mnt-textarea-voice-wrap">
+                                        <textarea name="descripcion" id="mantenimientoDescripcion" rows="3" maxlength="1000" placeholder="Describe el trabajo realizado..."></textarea>
+                                        <button type="button" id="descripcionVozButton" class="mnt-voice-button" title="Dictar por voz" aria-label="Dictar descripción por voz">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+                                        </button>
+                                    </div>
+                                    <span id="descripcionVozHelp" class="field-help field-help-danger hidden"></span>
+                                </div>
+
                                 <h3 class="mnt-section-title mnt-section-title--first hidden" id="programacionTitle">Programación</h3>
                                 <div class="form-grid-3">
                                     <div class="form-group" id="kilometrajeGroup">

@@ -104,16 +104,17 @@ async function validarYResolverPayload(payload, empresaId, excludeId = null) {
     throw new HttpError(409, `El vehículo ${vehiculo.placa} no está disponible para asignar rutas (estado: ${vehiculo.estado}).`);
   }
 
-  // Bloqueo especifico del dia: un mantenimiento programado para esa fecha
-  // (o desde antes y todavia pendiente) bloquea el vehiculo ESE dia sin
-  // depender de que vehiculos.estado ya se haya actualizado -- ese estado
-  // solo se reevalua en eventos puntuales (crear/aprobar/confirmar un
-  // mantenimiento), no por un cron diario, asi que un vehiculo programado
-  // para el 30 de agosto debe seguir bloqueado el 30 aunque nadie haya
-  // entrado a la app ese dia. A diferencia del chequeo de estado de arriba,
-  // este SIEMPRE se corre, incluso al editar una asignacion sin cambios: es
-  // el caso real que motivo este chequeo -- rutas planificadas con
-  // anticipacion, y el mantenimiento se programa despues, encima de una
+  // Bloqueo especifico del dia: un mantenimiento (de cualquier tipo)
+  // programado EXACTAMENTE para esa fecha, o uno "pendiente" (sin resolver)
+  // desde esa fecha o antes, bloquea el vehiculo ESE dia -- deliberadamente
+  // sin tocar ni depender de vehiculos.estado (ver el comentario de
+  // existeMantenimientoQueBloquea en el repositorio: ese campo solo refleja
+  // bloqueos abiertos/indefinidos, nunca uno de un solo dia, para no dejar
+  // el vehiculo marcado "en reparacion" para CUALQUIER fecha futura solo por
+  // una revision puntual de hoy). A diferencia del chequeo de estado de
+  // arriba, este SIEMPRE se corre, incluso al editar una asignacion sin
+  // cambios: es el caso real que motivo este chequeo -- rutas planificadas
+  // con anticipacion, y el mantenimiento se programa despues, encima de una
   // asignacion que ya existia.
   const bloqueadoEnFecha = await mantenimientosRepository.existeMantenimientoQueBloqueaEnFecha(vehiculo.id, payload.fecha, empresaId);
   if (bloqueadoEnFecha) {

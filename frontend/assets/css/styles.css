@@ -1633,6 +1633,54 @@ label[for="loginPassword"] {
     font-size: 1.05rem !important;
 }
 
+.mnt-textarea-voice-wrap {
+    position: relative;
+}
+
+.mnt-textarea-voice-wrap textarea {
+    width: 100%;
+    padding-right: 44px;
+    resize: vertical;
+}
+
+.mnt-voice-button {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    background: #fff;
+    color: var(--color-ink-soft);
+    cursor: pointer;
+}
+
+.mnt-voice-button svg {
+    width: 16px;
+    height: 16px;
+}
+
+.mnt-voice-button:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.mnt-voice-button.is-recording {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #fff;
+    animation: mnt-voice-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes mnt-voice-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(178, 31, 45, 0.35); }
+    50% { box-shadow: 0 0 0 6px rgba(178, 31, 45, 0); }
+}
+
 /* Kilometraje ocupa las 3 columnas cuando es el unico campo visible de la
    grilla (todo menos cambio de aceite, donde va junto a proximo cambio y
    proxima fecha). */

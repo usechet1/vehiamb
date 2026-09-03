@@ -30,6 +30,9 @@ const wizardStepConnectors = document.querySelectorAll("#wizardSteps .wizard-ste
 const tipoCardGrid = document.getElementById("tipoCardGrid");
 const mantenimientoKilometraje = document.getElementById("mantenimientoKilometraje");
 const kilometrajeHelp = document.getElementById("kilometrajeHelp");
+const mantenimientoDescripcion = document.getElementById("mantenimientoDescripcion");
+const descripcionVozButton = document.getElementById("descripcionVozButton");
+const descripcionVozHelp = document.getElementById("descripcionVozHelp");
 const repuestosData = document.getElementById("repuestosData");
 const repuestosEstructuradosData = document.getElementById("repuestosEstructuradosData");
 const repuestoInput = document.getElementById("repuestoInput");
@@ -114,6 +117,65 @@ const estadosMantenimiento = {
     rechazado: "Rechazado",
     completado: "Completado"
 };
+
+// Dictado por voz para la descripcion del mantenimiento -- Web Speech API,
+// sin libreria externa. Solo Chrome/Edge la traen bajo el prefijo webkit; si
+// ningun navegador la expone, el boton se oculta en vez de fallar al hacer
+// clic.
+function setupDictadoVoz(button, textarea, helpEl) {
+    const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!button || !textarea || !SpeechRecognitionClass) {
+        button?.classList.add("hidden");
+        return;
+    }
+
+    const recognition = new SpeechRecognitionClass();
+    recognition.lang = "es-CO";
+    recognition.interimResults = false;
+    recognition.continuous = false;
+
+    let escuchando = false;
+
+    recognition.addEventListener("result", (event) => {
+        const texto = event.results[0][0].transcript.trim();
+        if (!texto) return;
+        const separador = textarea.value.trim() ? " " : "";
+        textarea.value = `${textarea.value}${separador}${texto}`;
+        textarea.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
+    recognition.addEventListener("error", (event) => {
+        if (!helpEl) return;
+        helpEl.textContent = event.error === "not-allowed"
+            ? "Se necesita permiso del micrófono para dictar."
+            : "No se pudo reconocer el audio, intenta de nuevo.";
+        helpEl.classList.remove("hidden");
+    });
+
+    recognition.addEventListener("end", () => {
+        escuchando = false;
+        button.classList.remove("is-recording");
+    });
+
+    button.addEventListener("click", () => {
+        if (escuchando) {
+            recognition.stop();
+            return;
+        }
+
+        helpEl?.classList.add("hidden");
+        try {
+            recognition.start();
+            escuchando = true;
+            button.classList.add("is-recording");
+        } catch (error) {
+            // Ya habia una sesion de reconocimiento activa -- se ignora, el
+            // usuario solo tiene que volver a hacer clic.
+        }
+    });
+}
+
+setupDictadoVoz(descripcionVozButton, mantenimientoDescripcion, descripcionVozHelp);
 
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
@@ -1053,6 +1115,13 @@ async function openMaintenanceDetail(item) {
             ${detailRow("Kilometraje", `${Number(item.kilometraje || 0).toLocaleString("es-CO")} km`)}
             ${detailRow("Fecha de creación", formatDateTime(item.created_at))}
         </dl>
+
+        ${item.descripcion ? `
+            <section class="drawer-section">
+                <h3>Descripción</h3>
+                <p>${escapeHtml(item.descripcion)}</p>
+            </section>
+        ` : ""}
 
         <section class="drawer-section">
             <h3>Repuestos utilizados</h3>
