@@ -274,8 +274,34 @@ function renderPreoperacionalHtml(preoperacional) {
     `;
 }
 
+function renderComentarioItem(comentario) {
+    return `
+        <div class="notif-comentario-item">
+            <div class="notif-comentario-meta">
+                <strong>${escapeHtml(comentario.usuario_nombre) || "Usuario"}</strong>
+                <span class="notif-item-time">${formatFechaHora(comentario.creado_en)}</span>
+            </div>
+            <p>${escapeHtml(comentario.comentario)}</p>
+            ${comentario.foto_url ? `<a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(comentario.foto_url))}" target="_blank" rel="noreferrer">Ver foto adjunta</a>` : ""}
+        </div>
+    `;
+}
+
+function renderComentariosHilo(comentarios) {
+    if (!comentarios.length) {
+        return '<p class="dash-empty">Todavía no hay comentarios para este viaje.</p>';
+    }
+    return comentarios.map(renderComentarioItem).join("");
+}
+
 function renderViajeDrawerBody(resumen) {
     const { vehiculo, viaje, conductor, documentos, inspeccion, preoperacional } = resumen;
+    // Reutiliza el mismo permiso/tabla del hilo de comentarios de
+    // notificaciones (referencia_tipo/referencia_id generico) -- ver
+    // notificaciones.service.js. Se decidio que solo Administrador/Operador
+    // puedan dejar anotacion (mismo set de roles que ya tiene ese permiso),
+    // el resto de roles con acceso a este drawer solo puede leer el hilo.
+    const puedeComentar = window.VehiAmb.auth.hasPermission("notificaciones.comentar");
     return `
         <section class="drawer-section">
             <h3>Vehículo</h3>
@@ -312,7 +338,79 @@ function renderViajeDrawerBody(resumen) {
             <h3>Documentos del vehículo</h3>
             <div class="control-doc-grid">${renderDocumentosHtml(documentos || [])}</div>
         </section>
+
+        ${puedeComentar ? `
+            <section class="drawer-section">
+                <h3>Comentarios</h3>
+                <div id="viajeComentariosHilo" class="notif-comentarios-hilo">
+                    <p class="dash-empty">Cargando comentarios...</p>
+                </div>
+                <div class="form-group">
+                    <label>Nuevo comentario</label>
+                    <textarea id="viajeComentarioTexto" rows="2" maxlength="500" placeholder="Responde a una novedad de este viaje..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Foto (opcional)</label>
+                    <input type="file" id="viajeComentarioFoto" accept="image/png,image/jpeg,image/webp">
+                </div>
+                <button type="button" id="viajeComentarioEnviar" class="btn-primary">Enviar</button>
+            </section>
+        ` : ""}
     `;
+}
+
+let comentariosViajeRequestToken = 0;
+
+async function cargarComentariosHilo(viajeId) {
+    const requestToken = ++comentariosViajeRequestToken;
+    const hiloEl = document.getElementById("viajeComentariosHilo");
+    if (!hiloEl) return;
+
+    try {
+        const comentarios = await window.VehiAmb.api.getComentariosNotificacion("viaje", viajeId);
+        if (requestToken !== comentariosViajeRequestToken) return;
+        hiloEl.innerHTML = renderComentariosHilo(comentarios);
+    } catch (error) {
+        if (requestToken !== comentariosViajeRequestToken) return;
+        console.error(error);
+        hiloEl.innerHTML = '<p class="dash-empty">No se pudieron cargar los comentarios.</p>';
+    }
+}
+
+// El boton se crea una sola vez por apertura del drawer (renderViajeDrawerBody
+// reemplaza todo #viajeDrawerBody via innerHTML) -- por eso el listener se
+// engancha aca, aparte de cargarComentariosHilo, que se vuelve a llamar tras
+// cada envio y solo toca el contenido del hilo, nunca el boton.
+function setupComentarioForm(viajeId) {
+    const enviarBtn = document.getElementById("viajeComentarioEnviar");
+    if (!enviarBtn) return;
+
+    enviarBtn.addEventListener("click", async () => {
+        const textoInput = document.getElementById("viajeComentarioTexto");
+        const fotoInput = document.getElementById("viajeComentarioFoto");
+        const texto = textoInput.value.trim();
+        if (!texto) {
+            textoInput.focus();
+            return;
+        }
+
+        enviarBtn.disabled = true;
+        try {
+            const formData = new FormData();
+            formData.append("comentario", texto);
+            if (fotoInput.files[0]) formData.append("foto", fotoInput.files[0]);
+
+            await window.VehiAmb.api.comentarNotificacion("viaje", viajeId, formData);
+            textoInput.value = "";
+            fotoInput.value = "";
+            await cargarComentariosHilo(viajeId);
+        } catch (error) {
+            console.error(error);
+            window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo guardar el comentario", "error");
+        } finally {
+            enviarBtn.disabled = false;
+        }
+    });
 }
 
 async function obtenerResumenViaje(viajeId) {
@@ -344,6 +442,13 @@ async function openViajeResumen(viajeId) {
         viajeDrawerTitle.textContent = `${resumen.vehiculo?.placa || resumen.viaje.vehiculo_placa || "Vehículo"}`;
         viajeDrawerSubtitle.textContent = `${resumen.viaje.usuario_nombre || "Conductor no registrado"} · ${formatFechaHora(resumen.viaje.creado_en)}`;
         viajeDrawerBody.innerHTML = renderViajeDrawerBody(resumen);
+        // La seccion de comentarios ni siquiera se renderiza sin este mismo
+        // permiso (ver renderViajeDrawerBody) -- se repite el chequeo aca
+        // para no pedirle el hilo a una API que va a responder 403.
+        if (window.VehiAmb.auth.hasPermission("notificaciones.comentar")) {
+            cargarComentariosHilo(resumen.viaje.id);
+            setupComentarioForm(resumen.viaje.id);
+        }
     } catch (error) {
         console.error(error);
         viajeDrawerBody.innerHTML = '<p class="dash-empty">No se pudo cargar el resumen del viaje</p>';
