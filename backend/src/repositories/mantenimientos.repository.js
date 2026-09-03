@@ -102,35 +102,39 @@ async function updateEstado(id, estado, empresaId) {
   return findByIdWithVehiculo(id, empresaId);
 }
 
-// Un vehiculo se considera "en reparacion" mientras tenga al menos un
-// mantenimiento pendiente que lo bloquee (marcado vehiculo_varado, o un
-// cambio de aceite todavia sin confirmar -- ver vehiculo-disponibilidad
-// .service.js) Y CUYA FECHA YA LLEGO (fecha <= hoy) -- programar uno de
-// estos mantenimientos para un dia futuro no debe dejar el vehiculo fuera
-// de servicio desde ya, solo a partir del dia en que esta programado. Uno
-// aprobado, rechazado o con fecha futura no cuenta, y de ahi se decide si
-// el vehiculo puede volver a quedar disponible para asignar rutas.
+// Reevalua si el vehiculo COMO UN TODO deberia quedar marcado "en
+// reparacion" (vehiculos.estado, ver vehiculo-disponibilidad.service.js) --
+// a proposito solo mira mantenimientos "pendientes" (sin resolver, de
+// cualquier tipo: correctivo, cambio de aceite sin confirmar, o cualquier
+// otro que haya requerido aprobacion por su valor), nunca uno de un solo dia
+// ya completado. Un mantenimiento pendiente es un bloqueo abierto (no se
+// sabe hasta cuando), asi que tiene sentido que deje el vehiculo entero
+// fuera de servicio; uno de un solo dia (ver existeMantenimientoQueBloqueaEnFecha
+// abajo) solo debe bloquear ESE dia puntual, nunca los demas -- por eso NO
+// se refleja aca: si tambien marcara vehiculos.estado = "reparacion", el
+// chequeo de arriba en asignaciones.service.js (vehiculo.estado !== "activo")
+// bloquearia por error cualquier fecha futura hasta el proximo evento que
+// reevalue el mantenimiento, no solo el dia real del mantenimiento.
 async function existeMantenimientoQueBloquea(vehiculoId, empresaId) {
   const row = await db.get(
-    "SELECT 1 FROM mantenimientos WHERE vehiculo_id = ? AND empresa_id = ? AND estado = ? AND fecha <= CURRENT_DATE AND (vehiculo_varado = ? OR tipo = ?) LIMIT 1",
-    [vehiculoId, empresaId, "pendiente", true, "cambio_aceite"]
+    "SELECT 1 FROM mantenimientos WHERE vehiculo_id = ? AND empresa_id = ? AND estado = ? AND fecha <= CURRENT_DATE LIMIT 1",
+    [vehiculoId, empresaId, "pendiente"]
   );
   return Boolean(row);
 }
 
-// Igual que existeMantenimientoQueBloquea, pero contra una fecha puntual en
-// vez de CURRENT_DATE -- usado por asignaciones.service.js para bloquear la
-// asignacion de un vehiculo en el dia exacto de un mantenimiento programado,
-// sin depender de que nadie haya entrado a la app ese dia para que
-// vehiculos.estado ya se haya actualizado (el estado solo se reevalua en
-// eventos puntuales: crear/aprobar/confirmar un mantenimiento, no por un
-// cron diario). "fecha <= ?" porque un mantenimiento programado para el 30
-// y que sigue pendiente el 31 tambien bloquea el 31: no se resuelve solo
-// por pasar la fecha.
+// Bloqueo especifico de UN DIA puntual, sin tocar vehiculos.estado: bloquea
+// si hay un mantenimiento (de cualquier tipo, sin importar su estado)
+// programado exactamente para esa fecha, o uno "pendiente" (sin resolver)
+// desde esa fecha o antes -- ver el comentario de existeMantenimientoQueBloquea
+// arriba sobre por que esto vive separado del chequeo de vehiculos.estado.
+// Usado por asignaciones.service.js para bloquear la asignacion de un
+// vehiculo en el dia exacto de un mantenimiento programado, sin depender de
+// que vehiculos.estado ya se haya actualizado.
 async function existeMantenimientoQueBloqueaEnFecha(vehiculoId, fecha, empresaId) {
   const row = await db.get(
-    "SELECT 1 FROM mantenimientos WHERE vehiculo_id = ? AND empresa_id = ? AND estado = ? AND fecha <= ? AND (vehiculo_varado = ? OR tipo = ?) LIMIT 1",
-    [vehiculoId, empresaId, "pendiente", fecha, true, "cambio_aceite"]
+    "SELECT 1 FROM mantenimientos WHERE vehiculo_id = ? AND empresa_id = ? AND (fecha = ? OR (estado = ? AND fecha <= ?)) LIMIT 1",
+    [vehiculoId, empresaId, fecha, "pendiente", fecha]
   );
   return Boolean(row);
 }
@@ -142,8 +146,8 @@ async function existeMantenimientoQueBloqueaEnFecha(vehiculoId, fecha, empresaId
 // esperar a que fallen al guardar.
 async function findVehiculosBloqueadosEnFecha(fecha, empresaId) {
   return db.all(
-    "SELECT DISTINCT vehiculo_id FROM mantenimientos WHERE empresa_id = ? AND estado = ? AND fecha <= ? AND (vehiculo_varado = ? OR tipo = ?)",
-    [empresaId, "pendiente", fecha, true, "cambio_aceite"]
+    "SELECT DISTINCT vehiculo_id FROM mantenimientos WHERE empresa_id = ? AND (fecha = ? OR (estado = ? AND fecha <= ?))",
+    [empresaId, fecha, "pendiente", fecha]
   );
 }
 

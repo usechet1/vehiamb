@@ -11,12 +11,16 @@ const ESTADO_EN_REPARACION = "reparacion";
 
 // Reevalua si el vehiculo deberia estar "en reparacion" (fuera del selector
 // de asignaciones, ver asignaciones.service.js) segun si le queda algun
-// mantenimiento que lo bloquee -- marcado "vehiculo varado" (tipicamente
-// correctivo), o un cambio de aceite todavia sin confirmar (ver
-// confirmarCambioAceite en mantenimientos.service.js) -- Y CUYA FECHA YA
-// LLEGO. Programar uno de estos mantenimientos para un dia futuro no debe
-// dejar el vehiculo fuera de servicio desde ya: eso lo decide
-// existeMantenimientoQueBloquea (fecha <= hoy) en el repositorio, no aca.
+// mantenimiento sin resolver ("pendiente", de cualquier tipo -- tipicamente
+// correctivo o cambio de aceite sin confirmar, ver confirmarCambioAceite en
+// mantenimientos.service.js) desde hoy o antes. Programar un mantenimiento
+// para un dia futuro no debe dejar el vehiculo fuera de servicio desde ya:
+// eso lo decide existeMantenimientoQueBloquea (fecha <= hoy) en el
+// repositorio, no aca. A proposito NO entra aca un mantenimiento de un solo
+// dia ya completado (ej. una revision de hoy) -- ese bloqueo es puntual de
+// ese dia (ver existeMantenimientoQueBloqueaEnFecha) y no debe dejar el
+// vehiculo entero marcado "en reparacion" para siempre hasta el proximo
+// evento que reevalue este estado.
 //
 // Bidireccional: si corresponde bloquear y el vehiculo esta "activo", lo
 // pasa a "reparacion"; si ya no corresponde y esta en "reparacion", lo
