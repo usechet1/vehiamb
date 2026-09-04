@@ -205,9 +205,11 @@ async function listarRecientesEmpresa(empresaId, { fechaDesde, fechaHasta } = {}
     return {
       ...toSafeViaje(viaje),
       preoperacional_realizado: viaje.preoperacional_id !== null && viaje.preoperacional_id !== undefined,
+      preoperacional_fecha: viaje.preoperacional_fecha || null,
       preoperacional_items: preoperacionalItems,
       preoperacional_items_mal: preoperacionalItems.filter((item) => item.respuesta === "no").length,
       inspeccion_realizada: viaje.inspeccion_id !== null && viaje.inspeccion_id !== undefined,
+      inspeccion_fecha: viaje.inspeccion_fecha || null,
       inspeccion_items: inspeccionItems,
       inspeccion_items_mal: inspeccionItems.filter((item) => item.estado === "mal").length
     };
