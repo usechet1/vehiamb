@@ -4,11 +4,6 @@ const rutasRepository = require("../repositories/rutas.repository");
 const conductoresRepository = require("../repositories/conductores.repository");
 const vehiculosRepository = require("../repositories/vehiculos.repository");
 const mantenimientosRepository = require("../repositories/mantenimientos.repository");
-const viajesRepository = require("../repositories/viajes.repository");
-const inspeccionesRepository = require("../repositories/inspecciones-preventivas.repository");
-const inspeccionItemsRepository = require("../repositories/inspeccion-items.repository");
-const preoperacionalesRepository = require("../repositories/preoperacionales.repository");
-const preoperacionalItemsRepository = require("../repositories/preoperacional-items.repository");
 
 function toSafeAsignacion(asignacion) {
   return {
@@ -195,76 +190,11 @@ async function eliminar(id, currentUser) {
   await asignacionesRepository.remove(id, empresaId);
 }
 
-// La inspeccion preventiva puede haberse hecho de antemano sobre la
-// asignacion misma (modo "preinspeccion", ver home.js) o al iniciar el viaje
-// ese mismo dia; el preoperacional SIEMPRE se ata a un viaje, nunca a una
-// asignacion (ver schema: preoperacionales no tiene columna asignacion_id).
-// Como "viajes" no tiene FK directa a asignaciones_ruta, el viaje real del
-// conductor ese dia se busca una sola vez por usuario+vehiculo+fecha (ver
-// viajesRepository.findByUsuarioVehiculoYFecha) y se reusa para resolver los
-// dos, en vez de asumir que si hubo preinspeccion no hizo falta iniciar viaje.
-async function resolverInspeccionYPreoperacional(asignacion, fecha, empresaId) {
-  let inspeccion = await inspeccionesRepository.findByAsignacionId(asignacion.id, empresaId);
-  let preoperacional = null;
-
-  if (asignacion.conductor_usuario_id && asignacion.vehiculo_id) {
-    const viaje = await viajesRepository.findByUsuarioVehiculoYFecha(
-      asignacion.conductor_usuario_id,
-      asignacion.vehiculo_id,
-      fecha,
-      empresaId
-    );
-
-    if (viaje) {
-      if (!inspeccion) {
-        inspeccion = await inspeccionesRepository.findByViajeId(viaje.id, empresaId);
-      }
-      preoperacional = await preoperacionalesRepository.findByViajeId(viaje.id, empresaId);
-    }
-  }
-
-  const [inspeccionItems, preoperacionalItems] = await Promise.all([
-    inspeccion ? inspeccionItemsRepository.findByInspeccion(inspeccion.id, empresaId) : [],
-    preoperacional ? preoperacionalItemsRepository.findByPreoperacional(preoperacional.id, empresaId) : []
-  ]);
-
-  return {
-    inspeccion: inspeccion
-      ? { fecha: inspeccion.fecha, observaciones: inspeccion.observaciones, items: inspeccionItems }
-      : null,
-    preoperacional: preoperacional
-      ? { fecha: preoperacional.fecha, observaciones: preoperacional.observaciones, items: preoperacionalItems }
-      : null
-  };
-}
-
-// Reporte diario para exportar a PDF (ver asignaciones-export.js): por cada
-// asignacion del dia, ademas de los datos de siempre, resuelve la hora y el
-// detalle item por item de la inspeccion preventiva y el preoperacional del
-// conductor -- null si todavia no los registro.
-async function obtenerReporteDiario(fecha, empresaId) {
-  if (!fecha) {
-    throw new HttpError(400, "Debes indicar la fecha del reporte");
-  }
-
-  const asignaciones = await asignacionesRepository.findByFecha(fecha, empresaId);
-
-  const conductores = await Promise.all(
-    asignaciones.map(async (asignacion) => ({
-      ...toSafeAsignacion(asignacion),
-      ...(await resolverInspeccionYPreoperacional(asignacion, fecha, empresaId))
-    }))
-  );
-
-  return { fecha, conductores };
-}
-
 module.exports = {
   listarRutas,
   listarPorFecha,
   vehiculosBloqueadosEnFecha,
   crear,
   actualizar,
-  eliminar,
-  obtenerReporteDiario
+  eliminar
 };

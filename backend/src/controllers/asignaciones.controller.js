@@ -15,11 +15,6 @@ exports.getVehiculosBloqueados = async (req, res) => {
   res.json({ vehiculoIds });
 };
 
-exports.getReporteDiario = async (req, res) => {
-  const reporte = await asignacionesService.obtenerReporteDiario(req.query.fecha, req.empresaId);
-  res.json(reporte);
-};
-
 exports.crear = async (req, res) => {
   const asignacion = await asignacionesService.crear(req.body, req.user);
   res.status(201).json(asignacion);
