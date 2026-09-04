@@ -121,4 +121,32 @@ async function findRecientesPorEmpresa(empresaId, { fechaDesde, fechaHasta, limi
   );
 }
 
-module.exports = { create, findById, findRecientesPorUsuario, findRecientesPorVehiculo, findRecientesPorEmpresa };
+// Viaje que corresponde a una asignacion de ruta puntual, correlacionado por
+// usuario+vehiculo+fecha porque "viajes" no tiene una FK directa a
+// asignaciones_ruta (la asignacion es el plan; el viaje es lo que el
+// conductor efectivamente registro al salir, si es que salio). Usado por el
+// reporte diario de asignaciones (ver asignaciones.service.js) para saber si
+// el conductor completo el preoperacional de su ruta -- ese solo se ata a un
+// viaje, nunca a una asignacion (a diferencia de la inspeccion preventiva,
+// que si puede hacerse de antemano sobre la asignacion misma).
+async function findByUsuarioVehiculoYFecha(usuarioId, vehiculoId, fecha, empresaId) {
+  return db.get(
+    `
+      SELECT * FROM viajes
+      WHERE usuario_id = ? AND vehiculo_id = ? AND empresa_id = ?
+        AND creado_en >= ? AND creado_en <= ?
+      ORDER BY creado_en DESC
+      LIMIT 1
+    `,
+    [usuarioId, vehiculoId, empresaId, `${fecha} 00:00:00`, `${fecha} 23:59:59`]
+  );
+}
+
+module.exports = {
+  create,
+  findById,
+  findRecientesPorUsuario,
+  findRecientesPorVehiculo,
+  findRecientesPorEmpresa,
+  findByUsuarioVehiculoYFecha
+};

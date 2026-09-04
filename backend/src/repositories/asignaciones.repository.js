@@ -15,6 +15,7 @@ const SELECT_JOIN = `
     ar.*,
     c.nombres AS conductor_nombres,
     c.apellidos AS conductor_apellidos,
+    c.usuario_id AS conductor_usuario_id,
     v.placa AS vehiculo_placa,
     v.marca AS vehiculo_marca,
     v.modelo AS vehiculo_modelo,
