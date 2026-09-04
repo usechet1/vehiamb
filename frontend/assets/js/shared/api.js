@@ -1311,14 +1311,6 @@ window.VehiAmb.api = {
         );
     },
 
-    getAsignacionesReporteDiario(fecha) {
-        return requestJson(
-            `${window.VehiAmb.API_URL}/asignaciones/reporte?fecha=${encodeURIComponent(fecha)}`,
-            undefined,
-            "No se pudo cargar el detalle de inspecciones y preoperacionales"
-        );
-    },
-
     crearAsignacion(payload) {
         return requestJson(
             `${window.VehiAmb.API_URL}/asignaciones`,

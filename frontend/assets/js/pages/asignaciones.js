@@ -17,7 +17,6 @@ const asignacionesFiltroFecha = document.getElementById("asignacionesFiltroFecha
 const asignacionesTableBody = document.getElementById("asignacionesTableBody");
 const asignacionesExportarImagenButton = document.getElementById("asignacionesExportarImagenButton");
 const asignacionesExportarExcelButton = document.getElementById("asignacionesExportarExcelButton");
-const asignacionesExportarPdfButton = document.getElementById("asignacionesExportarPdfButton");
 
 const loader = document.getElementById("loader");
 const mensaje = document.getElementById("mensaje");
@@ -264,23 +263,6 @@ asignacionesExportarExcelButton.addEventListener("click", async () => {
         window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo generar el Excel", "error");
     } finally {
         asignacionesExportarExcelButton.disabled = false;
-    }
-});
-
-// El reporte de imagen/Excel ya trae "asignacionesActuales" en memoria, pero
-// el PDF necesita ademas la hora e items de inspeccion/preoperacional de
-// cada conductor -- eso solo lo trae el endpoint de reporte, se pide recien
-// al exportar (no en cada cambio de fecha) porque es mas pesado que el
-// listado normal.
-asignacionesExportarPdfButton.addEventListener("click", async () => {
-    asignacionesExportarPdfButton.disabled = true;
-    try {
-        const reporte = await window.VehiAmb.api.getAsignacionesReporteDiario(asignacionesFiltroFecha.value);
-        await window.VehiAmb.asignacionesExport.exportReportePdf(reporte);
-    } catch (error) {
-        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo generar el PDF", "error");
-    } finally {
-        asignacionesExportarPdfButton.disabled = false;
     }
 });
 
