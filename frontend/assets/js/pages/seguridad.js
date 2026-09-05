@@ -113,6 +113,25 @@ function diasRestantes(fechaVencimiento) {
     return Math.round((vencimiento - hoy) / (1000 * 60 * 60 * 24));
 }
 
+function formatearMesAnio(valor) {
+    if (!valor) return "—";
+    const [anio, mes] = String(valor).slice(0, 7).split("-");
+    if (!anio || !mes) return "—";
+
+    return `${mes}/${anio}`;
+}
+
+// El input es type="month" (solo AAAA-MM): se guarda como el ultimo dia de
+// ese mes para que "vence hoy"/dias restantes en badgeVencimiento sigan
+// contando hasta el cierre del mes, no desde su primer dia.
+function finDeMesISO(mesAnio) {
+    const [anio, mes] = String(mesAnio || "").split("-").map(Number);
+    if (!anio || !mes) return null;
+
+    const ultimoDia = new Date(anio, mes, 0).getDate();
+    return `${anio}-${String(mes).padStart(2, "0")}-${String(ultimoDia).padStart(2, "0")}`;
+}
+
 function badgeVencimiento(fechaVencimiento) {
     const dias = diasRestantes(fechaVencimiento);
     if (dias === null) return '<span class="badge-gris">Sin fecha</span>';
@@ -219,7 +238,7 @@ function renderExtintores() {
             <td>${escapeHtml(extintor.placa)} <span class="field-help">${escapeHtml(`${extintor.marca || ""} ${extintor.modelo || ""}`.trim())}</span></td>
             <td>${escapeHtml(extintor.codigo)}</td>
             <td>${extintor.libras ? `${Number(extintor.libras)} lb` : "—"}</td>
-            <td>${formatearFecha(extintor.fecha_vencimiento)}</td>
+            <td>${formatearMesAnio(extintor.fecha_vencimiento)}</td>
             <td>${badgeVencimiento(extintor.fecha_vencimiento)}</td>
             <td class="table-actions">
                 ${puedeCrear() ? `<button type="button" class="btn-secondary" data-editar-extintor="${extintor.id}">Editar</button>` : ""}
@@ -284,7 +303,7 @@ extintorForm?.addEventListener("submit", async (event) => {
         vehiculo_id: extintorVehiculo.value,
         codigo: extintorCodigo.value.trim(),
         libras: extintorLibras.value,
-        fecha_vencimiento: extintorFechaVencimiento.value
+        fecha_vencimiento: finDeMesISO(extintorFechaVencimiento.value)
     };
 
     try {
@@ -320,7 +339,7 @@ extintoresTablaBody?.addEventListener("click", async (event) => {
         extintorVehiculo.value = extintor.vehiculo_id;
         extintorCodigo.value = extintor.codigo || "";
         extintorLibras.value = extintor.libras ?? "";
-        extintorFechaVencimiento.value = String(extintor.fecha_vencimiento || "").slice(0, 10);
+        extintorFechaVencimiento.value = String(extintor.fecha_vencimiento || "").slice(0, 7);
         extintorFormTitle.textContent = "Editar extintor";
         extintorSubmitButton.textContent = "Actualizar extintor";
         window.VehiAmb.ui.show(extintorCancelEditButton);
