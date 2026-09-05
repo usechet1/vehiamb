@@ -39,6 +39,12 @@ function formatFechaCorta(value) {
     return new Date(String(value).slice(0, 10) + "T00:00:00").toLocaleDateString("es-CO", { day: "2-digit", month: "short" });
 }
 
+function hoyISO() {
+    const hoy = new Date();
+    const offset = hoy.getTimezoneOffset();
+    return new Date(hoy.getTime() - offset * 60000).toISOString().slice(0, 10);
+}
+
 function formatDuracion(ms) {
     if (ms === null || ms === undefined) return "--";
     if (ms < 1000) return `${ms} ms`;
@@ -707,5 +713,7 @@ notificacionesTableBody.addEventListener("click", (event) => {
 
 document.addEventListener("DOMContentLoaded", () => {
     actualizarTabsUI();
+    metricasDesde.value = hoyISO();
+    registroDesde.value = hoyISO();
     cargarMetricas();
 });
