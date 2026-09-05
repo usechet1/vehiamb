@@ -209,7 +209,7 @@
         layout.row("Placa", item.placa);
         layout.row("Fecha", window.VehiAmb.pdfExport.formatDateForPdf(item.fecha));
         layout.row("Tipo de mantenimiento", tiposMantenimiento[item.tipo] || item.tipo);
-        layout.row("Estado del vehículo", item.vehiculo_varado ? "Varado / en taller" : "Disponible");
+        layout.row("Estado del vehículo", item.vehiculo_varado ? "En taller" : "Disponible");
 
         layout.spacer();
         layout.sectionTitle("Detalle del mantenimiento");
@@ -280,7 +280,7 @@
         excel.addLabelValueRow(sheet, "Placa", safe(item.placa));
         excel.addLabelValueRow(sheet, "Fecha", excel.formatDateForExcel(item.fecha));
         excel.addLabelValueRow(sheet, "Tipo de mantenimiento", safe(tiposMantenimiento[item.tipo] || item.tipo));
-        excel.addLabelValueRow(sheet, "Estado del vehículo", item.vehiculo_varado ? "Varado / en taller" : "Disponible");
+        excel.addLabelValueRow(sheet, "Estado del vehículo", item.vehiculo_varado ? "En taller" : "Disponible");
         sheet.addRow([]);
 
         excel.addSectionHeader(sheet, "Detalle del mantenimiento", EXCEL_COLUMN_COUNT);

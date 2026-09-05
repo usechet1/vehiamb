@@ -195,20 +195,20 @@ function estadoInfo(item) {
 
 function calcularKpisMantenimientos(mantenimientos) {
     const mesActual = new Date().toISOString().slice(0, 7);
-    const vehiculosVistos = new Set();
+    const vehiculosEnTaller = new Set();
     let pendientes = 0;
-    let varados = 0;
     let esteMes = 0;
     let gastoEsteMes = 0;
 
     for (const item of mantenimientos) {
-        if (item.estado === "pendiente") pendientes += 1;
+        if (item.estado === "pendiente") {
+            pendientes += 1;
 
-        // mantenimientos ya viene ordenado fecha DESC, id DESC: la primera
-        // vez que aparece un vehiculo_id es su mantenimiento mas reciente.
-        if (!vehiculosVistos.has(item.vehiculo_id)) {
-            vehiculosVistos.add(item.vehiculo_id);
-            if (item.vehiculo_varado) varados += 1;
+            // Solo cuenta como "en taller" mientras el mantenimiento que lo
+            // marco siga pendiente -- una vez se aprueba/rechaza, el vehiculo
+            // ya quedo resuelto aunque ese registro conserve vehiculo_varado
+            // en true como snapshot historico de cuando se creo.
+            if (item.vehiculo_varado) vehiculosEnTaller.add(item.vehiculo_id);
         }
 
         if (String(item.fecha || "").slice(0, 7) === mesActual) {
@@ -217,7 +217,7 @@ function calcularKpisMantenimientos(mantenimientos) {
         }
     }
 
-    return { pendientes, varados, esteMes, gastoEsteMes };
+    return { pendientes, enTaller: vehiculosEnTaller.size, esteMes, gastoEsteMes };
 }
 
 function renderKpisMantenimientos(mantenimientos) {
@@ -229,8 +229,8 @@ function renderKpisMantenimientos(mantenimientos) {
             <div class="kpi-value">${kpis.pendientes}</div>
         </div>
         <div class="kpi-card" style="--kpi-accent: var(--color-primary)">
-            <div class="kpi-label">Vehículos varados</div>
-            <div class="kpi-value">${kpis.varados}</div>
+            <div class="kpi-label">Vehículos en taller</div>
+            <div class="kpi-value">${kpis.enTaller}</div>
         </div>
         <div class="kpi-card" style="--kpi-accent: var(--color-success)">
             <div class="kpi-label">Mantenimientos este mes</div>
@@ -1269,7 +1269,7 @@ function renderMantenimientos(mantenimientos) {
                                 ${estado.badge
                                     ? `<span class="pill ${estado.clase}">${estado.texto}</span>`
                                     : `<span class="mnt-hist-status-ok">✓ ${estado.texto}</span>`}
-                                ${item.vehiculo_varado ? '<span class="pill pill-danger">⚠ Varado</span>' : ""}
+                                ${item.vehiculo_varado && item.estado === "pendiente" ? '<span class="pill pill-danger">⚠ En taller</span>' : ""}
                                 ${puedeAprobarFila ? `<button type="button" class="btn-primary mnt-hist-approve" data-approve-id="${item.id}">Aprobar</button>` : ""}
                             </div>
                             <div class="mnt-hist-sub">${escapeHtml(item.placa) || "Sin placa"}${vehicleName ? ` · ${escapeHtml(vehicleName)}` : ""}${km > 0 ? ` · ${km.toLocaleString("es-CO")} km` : ""}</div>
