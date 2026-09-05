@@ -189,6 +189,7 @@ const PERMISSIONS = [
   ["vehicles.view", "Vehiculos", "Ver vehiculos"],
   ["vehicles.create", "Vehiculos", "Crear vehiculos"],
   ["vehicles.edit", "Vehiculos", "Editar vehiculos"],
+  ["vehicles.edit_estado", "Vehiculos", "Cambiar el estado operativo del vehiculo"],
   ["vehicles.delete", "Vehiculos", "Eliminar vehiculos"],
   ["vehicles.repuestos_sugeridos", "Vehiculos", "Configurar y usar repuestos sugeridos para cambio de aceite"],
   ["maintenance.view", "Mantenimientos", "Ver mantenimientos"],
@@ -241,6 +242,38 @@ const ROLE_PERMISSIONS = {
     "dashboard.view",
     "vehicles.view",
     "vehicles.edit",
+    "vehicles.repuestos_sugeridos",
+    "maintenance.view",
+    "maintenance.create",
+    "documents.view",
+    "documents.create",
+    "documents.alertas_vencimiento",
+    "simit.view",
+    "costs.view",
+    "inventory.view",
+    "inventory.manage",
+    "inspections.view",
+    "inspections.create",
+    "inspections.alertas_hallazgos",
+    "preoperacional.view",
+    "preoperacional.create",
+    "trips.view",
+    "conductores.view",
+    "conductores.manage",
+    "delivery.view",
+    "delivery.create",
+    "asignaciones.view",
+    "asignaciones.create"
+  ],
+  // Rango entre Operador y Administrador: mismos permisos que Operador, mas
+  // la capacidad exclusiva (junto con Administrador) de aprobar/rechazar
+  // mantenimientos pendientes y de cambiar el estado operativo del vehiculo
+  // (vehicles.edit_estado, ver PERMISOS_NUEVOS_POR_ROL mas abajo).
+  Lider: [
+    "dashboard.view",
+    "vehicles.view",
+    "vehicles.edit",
+    "vehicles.edit_estado",
     "vehicles.repuestos_sugeridos",
     "maintenance.view",
     "maintenance.create",
@@ -386,7 +419,8 @@ const PERMISOS_NUEVOS_POR_ROL = {
   "seguridad.create": ["Administrador", "Operador"],
   "seguridad.delete": ["Administrador"],
   "notificaciones.comentar": ["Administrador", "Operador"],
-  "maintenance.delete": ["Administrador"]
+  "maintenance.delete": ["Administrador"],
+  "vehicles.edit_estado": ["Administrador", "Lider"]
 };
 
 async function grantPermisosNuevos() {
@@ -426,7 +460,10 @@ const PERMISOS_REVOCADOS_POR_ROL = {
   "inventory.import": ["Operador", "Consulta"],
   // Operador conserva vehicles.edit (puede seguir editando vehiculos
   // existentes) pero pierde la posibilidad de crear uno nuevo.
-  "vehicles.create": ["Operador"]
+  "vehicles.create": ["Operador"],
+  // Aprobar/rechazar mantenimientos pendientes ahora es exclusivo de Lider y
+  // Administrador; Operador lo tenia antes y lo pierde.
+  "maintenance.approve": ["Operador"]
 };
 
 async function revocarPermisosObsoletos() {

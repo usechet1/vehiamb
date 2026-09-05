@@ -480,7 +480,7 @@
         (function () {
             const statusSelect = document.getElementById("vehicleStatusSelect");
             const statusBadge = document.getElementById("vehicleStatusBadge");
-            const puedeEditarEstado = Boolean(window.VehiAmb?.auth?.hasPermission?.("vehicles.edit"));
+            const puedeEditarEstado = Boolean(window.VehiAmb?.auth?.hasPermission?.("vehicles.edit_estado"));
             const vehicleImage = document.getElementById("vehicleImage");
             const vehicleImagePlaceholder = document.getElementById("vehicleImagePlaceholder");
             const editVehicleLink = document.getElementById("editVehicleLink");
@@ -543,10 +543,11 @@
             }
 
             // El estado operativo (Activo / En reparacion / etc.) solo lo puede
-            // cambiar quien tiene "vehicles.edit" -- Conductor, por ejemplo, no.
-            // Para el resto se muestra como texto plano (badge), no como un
-            // <select> que sugiere que se puede tocar (el backend igual lo
-            // bloquearia, pero no debe ni parecer editable).
+            // cambiar quien tiene "vehicles.edit_estado" (Lider/Administrador).
+            // Para el resto (Conductor, Operador, Consulta) se muestra como
+            // texto plano (badge), no como un <select> que sugiere que se
+            // puede tocar (el backend igual lo bloquearia, pero no debe ni
+            // parecer editable).
             if (puedeEditarEstado) {
                 statusSelect?.classList.remove("hidden");
             } else {

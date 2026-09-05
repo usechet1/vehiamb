@@ -5331,6 +5331,18 @@ button.record-link {
     color: var(--color-success);
 }
 
+/* Boton "Aprobar" inline junto a los pills de estado de una fila de
+   mantenimiento -- .btn-primary por defecto es un boton de ancho de
+   formulario (70%, 46px alto), demasiado grande para convivir con un pill. */
+.mnt-hist-approve.btn-primary {
+    width: auto;
+    min-height: 24px;
+    padding: 3px 12px;
+    margin: 0;
+    font-size: 0.76rem;
+    border-radius: 999px;
+}
+
 @media (max-width: 1100px) {
     .dash-cards {
         grid-template-columns: repeat(2, minmax(150px, 1fr));

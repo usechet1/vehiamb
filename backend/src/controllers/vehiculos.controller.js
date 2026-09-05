@@ -26,6 +26,13 @@ exports.createVehiculo = async (req, res) => {
 };
 
 exports.updateVehiculo = async (req, res) => {
+  // Cambiar el estado operativo del vehiculo es exclusivo de quien tiene
+  // vehicles.edit_estado (Lider/Administrador) -- si no lo tiene, se ignora
+  // cualquier "estado" que venga en el body y el service conserva el actual.
+  if (!req.user?.permisos?.includes("vehicles.edit_estado")) {
+    delete req.body.estado;
+  }
+
   const vehiculo = await vehiculosService.updateVehiculo(req.params.id, req.body, req.file, req.empresaId);
   res.json(vehiculo);
 };

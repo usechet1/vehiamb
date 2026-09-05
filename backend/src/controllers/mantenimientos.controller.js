@@ -1,4 +1,5 @@
 const mantenimientosService = require("../services/mantenimientos.service");
+const notificacionesService = require("../services/notificaciones.service");
 
 exports.getMantenimientos = async (req, res) => {
   const { tipo, placa, fecha_desde: fechaDesde, fecha_hasta: fechaHasta } = req.query;
@@ -52,4 +53,14 @@ exports.confirmarCambioAceite = async (req, res) => {
 exports.deleteMantenimiento = async (req, res) => {
   await mantenimientosService.deleteMantenimiento(req.params.id, req.user);
   res.status(204).send();
+};
+
+exports.aprobarMantenimiento = async (req, res) => {
+  const mantenimiento = await notificacionesService.aprobarMantenimiento(req.params.id, req.user);
+  res.json(mantenimiento);
+};
+
+exports.rechazarMantenimiento = async (req, res) => {
+  const mantenimiento = await notificacionesService.rechazarMantenimiento(req.params.id, req.user);
+  res.json(mantenimiento);
 };

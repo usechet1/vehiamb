@@ -461,26 +461,21 @@ async function reenviarPorWhatsapp(id, currentUser) {
   await whatsappChannel(await conDetalleComparendosCompleto(notificacion));
 }
 
-async function resolverNotificacionAprobacion(notificacionId, currentUser, estadoDestino) {
-  const notificacion = await notificacionesRepository.findById(notificacionId, currentUser.empresa_id);
-  if (!notificacion) {
-    throw new HttpError(404, "Notificación no encontrada");
-  }
-
-  if (notificacion.tipo !== "aprobacion_requerida" || notificacion.referencia_tipo !== "mantenimiento") {
-    throw new HttpError(400, "La notificación no corresponde a una aprobación de mantenimiento");
-  }
-
-  const mantenimiento = await mantenimientosRepository.updateEstado(notificacion.referencia_id, estadoDestino, currentUser.empresa_id);
+// Nucleo compartido por el flujo de aprobacion via notificaciones y por el
+// boton directo "Aprobar" del resumen de mantenimientos (ver
+// mantenimientos.routes.js /:id/aprobar|rechazar) -- ambos entran aca
+// identificando el mantenimiento por su propio id, no por una notificacion.
+// Reevalua disponibilidad SIEMPRE (antes solo se hacia si se aprobaba Y
+// vehiculo_varado, lo que dejaba el vehiculo atascado en "reparacion" al
+// rechazar un pendiente, o al aprobar uno pendiente por tipo/valor sin ser
+// varado).
+async function resolverAprobacionMantenimiento(mantenimientoId, currentUser, estadoDestino) {
+  const mantenimiento = await mantenimientosRepository.updateEstado(mantenimientoId, estadoDestino, currentUser.empresa_id);
   if (!mantenimiento) {
     throw new HttpError(404, "Mantenimiento no encontrado");
   }
 
-  await notificacionesRepository.markAsRead(notificacionId, currentUser.id);
-
-  if (estadoDestino === "aprobado" && mantenimiento.vehiculo_varado) {
-    await vehiculoDisponibilidadService.reevaluarDisponibilidad(mantenimiento.vehiculo_id, currentUser.empresa_id);
-  }
+  await vehiculoDisponibilidadService.reevaluarDisponibilidad(mantenimiento.vehiculo_id, currentUser.empresa_id);
 
   if (mantenimiento.creado_por_usuario_id) {
     const vehiculoLabel = `${mantenimiento.marca} ${mantenimiento.modelo} (${mantenimiento.placa})`;
@@ -503,12 +498,36 @@ async function resolverNotificacionAprobacion(notificacionId, currentUser, estad
   return mantenimiento;
 }
 
+async function resolverNotificacionAprobacion(notificacionId, currentUser, estadoDestino) {
+  const notificacion = await notificacionesRepository.findById(notificacionId, currentUser.empresa_id);
+  if (!notificacion) {
+    throw new HttpError(404, "Notificación no encontrada");
+  }
+
+  if (notificacion.tipo !== "aprobacion_requerida" || notificacion.referencia_tipo !== "mantenimiento") {
+    throw new HttpError(400, "La notificación no corresponde a una aprobación de mantenimiento");
+  }
+
+  const mantenimiento = await resolverAprobacionMantenimiento(notificacion.referencia_id, currentUser, estadoDestino);
+  await notificacionesRepository.markAsRead(notificacionId, currentUser.id);
+
+  return mantenimiento;
+}
+
 async function aprobarNotificacion(notificacionId, currentUser) {
   return resolverNotificacionAprobacion(notificacionId, currentUser, "aprobado");
 }
 
 async function rechazarNotificacion(notificacionId, currentUser) {
   return resolverNotificacionAprobacion(notificacionId, currentUser, "rechazado");
+}
+
+async function aprobarMantenimiento(mantenimientoId, currentUser) {
+  return resolverAprobacionMantenimiento(mantenimientoId, currentUser, "aprobado");
+}
+
+async function rechazarMantenimiento(mantenimientoId, currentUser) {
+  return resolverAprobacionMantenimiento(mantenimientoId, currentUser, "rechazado");
 }
 
 // ─────────────────── Comentarios sobre una notificacion ───────────────────
@@ -560,6 +579,8 @@ module.exports = {
   reenviarPorWhatsapp,
   aprobarNotificacion,
   rechazarNotificacion,
+  aprobarMantenimiento,
+  rechazarMantenimiento,
   listarComentarios,
   comentarNotificacion,
   existsRecentByReferencia: notificacionesRepository.existsRecentByReferencia
