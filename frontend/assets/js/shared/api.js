@@ -247,6 +247,14 @@ window.VehiAmb.api = {
         );
     },
 
+    aprobarMantenimiento(id) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/mantenimientos/${id}/aprobar`,
+            { method: "POST" },
+            "No se pudo aprobar el mantenimiento"
+        );
+    },
+
     createMantenimiento(payload) {
         return requestJson(
             `${window.VehiAmb.API_URL}/mantenimientos`,

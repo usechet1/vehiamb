@@ -77,6 +77,7 @@ const maintenanceDrawerBody = document.getElementById("maintenanceDrawerBody");
 const exportMaintenanceButton = document.getElementById("exportMaintenanceButton");
 const exportMaintenanceExcelButton = document.getElementById("exportMaintenanceExcelButton");
 const deleteMaintenanceButton = document.getElementById("deleteMaintenanceButton");
+const approveMaintenanceButton = document.getElementById("approveMaintenanceButton");
 const exportHistorialButton = document.getElementById("exportHistorialButton");
 const exportHistorialExcelButton = document.getElementById("exportHistorialExcelButton");
 const exportMenuTrigger = document.getElementById("exportMenuTrigger");
@@ -1103,6 +1104,8 @@ async function openMaintenanceDetail(item) {
         ? "Reemplazar salida de inventario"
         : "Subir salida de inventario";
     deleteMaintenanceButton.classList.toggle("hidden", !window.VehiAmb.auth?.hasPermission?.("maintenance.delete"));
+    const puedeAprobar = item.estado === "pendiente" && Boolean(window.VehiAmb.auth?.hasPermission?.("maintenance.approve"));
+    approveMaintenanceButton.classList.toggle("hidden", !puedeAprobar);
 
     maintenanceDrawerBody.innerHTML = `
         <dl class="detail-list drawer-detail-list mnt-detail-2col">
@@ -1252,6 +1255,7 @@ function renderMantenimientos(mantenimientos) {
                 const fechaValida = fechaStr && !Number.isNaN(fecha.getTime());
                 const vehicleName = `${item.marca || ""} ${item.modelo || ""}`.trim();
                 const km = Number(item.kilometraje || 0);
+                const puedeAprobarFila = item.estado === "pendiente" && Boolean(window.VehiAmb.auth?.hasPermission?.("maintenance.approve"));
 
                 return `
                     <article class="mnt-hist-row" data-maintenance-id="${item.id}" tabindex="0" role="button" aria-label="Ver detalle de mantenimiento ${escapeHtml(item.placa) || ""}">
@@ -1266,6 +1270,7 @@ function renderMantenimientos(mantenimientos) {
                                     ? `<span class="pill ${estado.clase}">${estado.texto}</span>`
                                     : `<span class="mnt-hist-status-ok">✓ ${estado.texto}</span>`}
                                 ${item.vehiculo_varado ? '<span class="pill pill-danger">⚠ Varado</span>' : ""}
+                                ${puedeAprobarFila ? `<button type="button" class="btn-primary mnt-hist-approve" data-approve-id="${item.id}">Aprobar</button>` : ""}
                             </div>
                             <div class="mnt-hist-sub">${escapeHtml(item.placa) || "Sin placa"}${vehicleName ? ` · ${escapeHtml(vehicleName)}` : ""}${km > 0 ? ` · ${km.toLocaleString("es-CO")} km` : ""}</div>
                         </div>
@@ -1599,6 +1604,14 @@ mantenimientosList.addEventListener("click", (event) => {
         return;
     }
 
+    const approveButton = event.target.closest("[data-approve-id]");
+    if (approveButton) {
+        event.stopPropagation();
+        const item = mantenimientosState.find((maintenance) => String(maintenance.id) === String(approveButton.dataset.approveId));
+        if (item) aprobarMantenimientoConConfirmacion(item, approveButton);
+        return;
+    }
+
     const card = event.target.closest("[data-maintenance-id]");
     if (!card) return;
 
@@ -1679,6 +1692,39 @@ deleteMaintenanceButton.addEventListener("click", async () => {
     } finally {
         deleteMaintenanceButton.disabled = false;
     }
+});
+
+// Compartida entre el boton "Aprobar" inline de cada fila del listado y el
+// del detalle -- ambos deben mostrar la misma confirmacion y refrescar el
+// listado de la misma forma una vez el backend aprueba el mantenimiento (ver
+// POST /mantenimientos/:id/aprobar).
+async function aprobarMantenimientoConConfirmacion(item, botonDisparador) {
+    const confirmado = await window.VehiAmb.ui.confirm({
+        title: "Aprobar mantenimiento",
+        message: `¿Desea aprobar/confirmar el mantenimiento al vehículo ${item.placa || ""}?`,
+        confirmText: "Confirmar",
+        cancelText: "Cancelar"
+    });
+    if (!confirmado) return;
+
+    if (botonDisparador) botonDisparador.disabled = true;
+
+    try {
+        await window.VehiAmb.api.aprobarMantenimiento(item.id);
+        window.VehiAmb.ui.showMessage(mensaje, "Mantenimiento aprobado correctamente");
+        if (currentDetailItem && String(currentDetailItem.id) === String(item.id)) closeDetailDrawer();
+        await cargarDatos();
+    } catch (error) {
+        console.error(error);
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo aprobar el mantenimiento", "error");
+    } finally {
+        if (botonDisparador) botonDisparador.disabled = false;
+    }
+}
+
+approveMaintenanceButton.addEventListener("click", () => {
+    if (!currentDetailItem) return;
+    aprobarMantenimientoConConfirmacion(currentDetailItem, approveMaintenanceButton);
 });
 
 exportHistorialButton.addEventListener("click", async () => {

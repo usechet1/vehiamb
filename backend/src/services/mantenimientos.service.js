@@ -349,7 +349,9 @@ async function createMantenimiento(payload, file, currentUser) {
   await validateMantenimiento(mantenimiento, vehiculo);
 
   const requiereAprobacion =
-    TIPOS_QUE_REQUIEREN_APROBACION.has(mantenimiento.tipo) || mantenimiento.valor > UMBRAL_APROBACION_VALOR;
+    TIPOS_QUE_REQUIEREN_APROBACION.has(mantenimiento.tipo) ||
+    mantenimiento.valor > UMBRAL_APROBACION_VALOR ||
+    mantenimiento.vehiculo_varado;
   mantenimiento.estado = requiereAprobacion ? "pendiente" : "completado";
 
   let advertenciasStock = [];

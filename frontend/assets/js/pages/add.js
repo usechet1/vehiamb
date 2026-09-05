@@ -19,6 +19,16 @@ const cancelButton = document.getElementById("cancelButton");
 const vehicleId = new URLSearchParams(window.location.search).get("id");
 const isEditMode = Boolean(vehicleId);
 
+// Cambiar el estado operativo del vehiculo es exclusivo de quien tiene
+// "vehicles.edit_estado" (Lider/Administrador) -- para el resto se deshabilita
+// el campo (se sigue viendo el valor actual, pero no se puede tocar ni
+// enviar). El backend igual lo bloquearia (ver vehiculos.controller.js), esto
+// es solo para que la UI no sugiera que se puede editar.
+const selectEstado = document.getElementById("select-estado");
+if (selectEstado && !window.VehiAmb?.auth?.hasPermission?.("vehicles.edit_estado")) {
+    selectEstado.disabled = true;
+}
+
 const ANIO_MIN = 1950;
 const ANIO_REGEX = /^\d{4}$/;
 

@@ -47,8 +47,8 @@ router.put(
   asyncHandler(vehiculosController.updateVehiculo)
 );
 
-// PATCH cambio rapido de estado del vehículo
-router.patch("/:id/estado", requirePermission("vehicles.edit"), asyncHandler(vehiculosController.updateEstadoVehiculo));
+// PATCH cambio rapido de estado del vehículo (exclusivo de Lider/Administrador)
+router.patch("/:id/estado", requirePermission("vehicles.edit_estado"), asyncHandler(vehiculosController.updateEstadoVehiculo));
 
 // DELETE vehículo por id
 router.delete("/:id", requirePermission("vehicles.delete"), asyncHandler(vehiculosController.deleteVehiculo));
