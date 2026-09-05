@@ -124,17 +124,32 @@ async function existeMantenimientoQueBloquea(vehiculoId, empresaId) {
 }
 
 // Bloqueo especifico de UN DIA puntual, sin tocar vehiculos.estado: bloquea
-// si hay un mantenimiento (de cualquier tipo, sin importar su estado)
-// programado exactamente para esa fecha, o uno "pendiente" (sin resolver)
-// desde esa fecha o antes -- ver el comentario de existeMantenimientoQueBloquea
-// arriba sobre por que esto vive separado del chequeo de vehiculos.estado.
-// Usado por asignaciones.service.js para bloquear la asignacion de un
-// vehiculo en el dia exacto de un mantenimiento programado, sin depender de
-// que vehiculos.estado ya se haya actualizado.
+// si hay un mantenimiento programado exactamente para esa fecha (salvo que ya
+// se haya resuelto como "aprobado"/"rechazado" -- ver mas abajo por que), o
+// uno "pendiente" (sin resolver) desde esa fecha o antes -- ver el
+// comentario de existeMantenimientoQueBloquea arriba sobre por que esto vive
+// separado del chequeo de vehiculos.estado. Usado por asignaciones.service.js
+// para bloquear la asignacion de un vehiculo en el dia exacto de un
+// mantenimiento programado, sin depender de que vehiculos.estado ya se haya
+// actualizado.
+//
+// "aprobado"/"rechazado" quedan afuera del bloqueo por fecha exacta a
+// proposito: son los dos estados finales del tramite de aprobacion (ver
+// resolverAprobacionMantenimiento en notificaciones.service.js), y el pedido
+// del usuario fue que el vehiculo quede disponible para asignar rutas de
+// inmediato al aprobar/rechazar, incluso el mismo dia del mantenimiento --
+// no solo desde el dia siguiente. "completado" (revision/preventivo del dia,
+// que nunca pasa por aprobacion) si sigue bloqueando su propio dia: ese
+// vehiculo realmente estuvo en el taller esa fecha.
 async function existeMantenimientoQueBloqueaEnFecha(vehiculoId, fecha, empresaId) {
   const row = await db.get(
-    "SELECT 1 FROM mantenimientos WHERE vehiculo_id = ? AND empresa_id = ? AND (fecha = ? OR (estado = ? AND fecha <= ?)) LIMIT 1",
-    [vehiculoId, empresaId, fecha, "pendiente", fecha]
+    `
+      SELECT 1 FROM mantenimientos
+      WHERE vehiculo_id = ? AND empresa_id = ?
+        AND ((fecha = ? AND estado NOT IN (?, ?)) OR (estado = ? AND fecha <= ?))
+      LIMIT 1
+    `,
+    [vehiculoId, empresaId, fecha, "aprobado", "rechazado", "pendiente", fecha]
   );
   return Boolean(row);
 }
@@ -146,8 +161,12 @@ async function existeMantenimientoQueBloqueaEnFecha(vehiculoId, fecha, empresaId
 // esperar a que fallen al guardar.
 async function findVehiculosBloqueadosEnFecha(fecha, empresaId) {
   return db.all(
-    "SELECT DISTINCT vehiculo_id FROM mantenimientos WHERE empresa_id = ? AND (fecha = ? OR (estado = ? AND fecha <= ?))",
-    [empresaId, fecha, "pendiente", fecha]
+    `
+      SELECT DISTINCT vehiculo_id FROM mantenimientos
+      WHERE empresa_id = ?
+        AND ((fecha = ? AND estado NOT IN (?, ?)) OR (estado = ? AND fecha <= ?))
+    `,
+    [empresaId, fecha, "aprobado", "rechazado", "pendiente", fecha]
   );
 }
 
