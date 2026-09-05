@@ -6709,6 +6709,17 @@ button.record-link {
     cursor: pointer;
 }
 
+/* .form-group input (mas arriba) esta pensado para campos de texto/fecha y
+   les pone width:100%/min-height:44px/padding -- como este checklist vive
+   dentro de un .form-group, esas reglas tambien caian sobre estos radios y
+   los inflaban a un tamaño y padding enormes en vez del circulo nativo
+   compacto que corresponde a un grupo de 3 opciones en linea. */
+.botiquin-estado input[type="radio"] {
+    width: auto;
+    min-height: 0;
+    padding: 0;
+}
+
 /* Las columnas de cantidad/vencimiento/codigo se mantienen angostas para que
    la descripción del insumo conserve el ancho, igual que en el formato impreso. */
 .botiquin-checklist .botiquin-cantidad {
