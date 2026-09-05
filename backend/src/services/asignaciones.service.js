@@ -104,9 +104,11 @@ async function validarYResolverPayload(payload, empresaId, excludeId = null) {
     throw new HttpError(409, `El vehículo ${vehiculo.placa} no está disponible para asignar rutas (estado: ${vehiculo.estado}).`);
   }
 
-  // Bloqueo especifico del dia: un mantenimiento (de cualquier tipo)
-  // programado EXACTAMENTE para esa fecha, o uno "pendiente" (sin resolver)
-  // desde esa fecha o antes, bloquea el vehiculo ESE dia -- deliberadamente
+  // Bloqueo especifico del dia: un mantenimiento programado EXACTAMENTE para
+  // esa fecha y aun no resuelto como aprobado/rechazado, o uno "pendiente"
+  // (sin resolver) desde esa fecha o antes, bloquea el vehiculo ESE dia --
+  // ver existeMantenimientoQueBloqueaEnFecha en el repositorio para el
+  // detalle de por que aprobado/rechazado quedan afuera. Deliberadamente
   // sin tocar ni depender de vehiculos.estado (ver el comentario de
   // existeMantenimientoQueBloquea en el repositorio: ese campo solo refleja
   // bloqueos abiertos/indefinidos, nunca uno de un solo dia, para no dejar
