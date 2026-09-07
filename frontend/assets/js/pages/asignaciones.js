@@ -131,6 +131,18 @@ function hoyISO() {
     return new Date(hoy.getTime() - offset * 60000).toISOString().slice(0, 10);
 }
 
+// Un vehiculo que no esta "activo" (en reparacion, fuera de servicio o dado
+// de baja) nunca deberia poder asignarse a una ruta -- pero en vez de
+// sacarlo del selector (lo que lo hacia parecer que no existiera, incluso
+// para un conductor sin ninguna otra ruta asignada), se deja visible y
+// deshabilitado con su motivo, igual que ya se hacia con el bloqueo puntual
+// por fecha (ver actualizarVehiculosBloqueados).
+const ESTADOS_VEHICULO_LABEL = {
+    reparacion: "En reparación",
+    fuera_servicio: "Fuera de servicio",
+    dado_de_baja: "Dado de baja"
+};
+
 async function cargarCatalogos() {
     const [conductores, vehiculos, departamentos] = await Promise.all([
         window.VehiAmb.api.getConductoresCatalogo(),
@@ -146,8 +158,11 @@ async function cargarCatalogos() {
         .join("");
 
     asignacionVehiculo.innerHTML = '<option value="">Selecciona...</option>' + vehiculos
-        .filter((v) => v.estado === "activo")
-        .map((v) => `<option value="${v.id}">${escapeHtml(v.placa)}</option>`)
+        .map((v) => {
+            const disponible = v.estado === "activo";
+            const texto = disponible ? v.placa : `${v.placa} (${ESTADOS_VEHICULO_LABEL[v.estado] || "No disponible"})`;
+            return `<option value="${v.id}" data-estado="${escapeHtml(v.estado || "")}"${disponible ? "" : " disabled"}>${escapeHtml(texto)}</option>`;
+        })
         .join("");
 }
 
@@ -160,7 +175,11 @@ async function cargarCatalogos() {
 async function actualizarVehiculosBloqueados() {
     const fecha = asignacionFecha.value;
 
+    // Solo se resetean los vehiculos "activo" -- uno en reparacion/fuera de
+    // servicio/dado de baja (marcado ya deshabilitado en cargarCatalogos)
+    // debe seguir deshabilitado sin importar la fecha elegida.
     Array.from(asignacionVehiculo.options).forEach((option) => {
+        if (option.dataset.estado !== "activo") return;
         if (option.dataset.label) option.textContent = option.dataset.label;
         option.disabled = false;
     });
@@ -178,7 +197,7 @@ async function actualizarVehiculosBloqueados() {
     const bloqueados = new Set(vehiculoIds.map(String));
 
     Array.from(asignacionVehiculo.options).forEach((option) => {
-        if (!option.value || !bloqueados.has(option.value)) return;
+        if (!option.value || option.dataset.estado !== "activo" || !bloqueados.has(option.value)) return;
         option.dataset.label = option.textContent;
         option.textContent = `${option.textContent} (no disponible)`;
         option.disabled = true;
