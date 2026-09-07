@@ -1250,6 +1250,19 @@ label[for="loginPassword"] {
     gap: 10px;
 }
 
+/* Misma fila que la lista de usuarios, pero es la unica identidad del
+   drawer -- sin filas alrededor compitiendo por atencion, el avatar puede
+   ser mas grande que el de esa lista (34px) sin verse fuera de lugar. */
+.conductor-identity .user-avatar {
+    width: 52px;
+    height: 52px;
+    font-size: 1.05rem;
+}
+
+.conductor-identity .record-title {
+    font-size: 1rem;
+}
+
 .form-card {
     width: min(100%, 680px);
     padding: 28px;

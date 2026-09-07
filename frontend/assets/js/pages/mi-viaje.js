@@ -363,7 +363,7 @@ function renderViajeDrawerBody(resumen) {
         <section class="drawer-section">
             <h3>Conductor</h3>
             ${conductor ? `
-                <div class="user-list-identity">
+                <div class="user-list-identity conductor-identity">
                     <div class="user-avatar">
                         ${conductor.foto_url
                             ? `<img src="${escapeHtml(window.VehiAmb.api.getAssetUrl(conductor.foto_url))}" alt="" style="object-position: ${escapeHtml(conductor.foto_posicion || "50% 50%")}">`
