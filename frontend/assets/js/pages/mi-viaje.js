@@ -354,7 +354,14 @@ function renderViajeDrawerBody(resumen) {
                 <dl class="detail-list drawer-detail-list">
                     <div><dt>Nombre</dt><dd>${escapeHtml(conductor.nombres)} ${escapeHtml(conductor.apellidos)}</dd></div>
                     <div><dt>Cédula</dt><dd>${escapeHtml(conductor.cedula) || "--"}</dd></div>
-                    <div><dt>Licencias</dt><dd>${(conductor.licencias || []).map((licencia) => escapeHtml(licencia.categoria)).join(", ") || "--"}</dd></div>
+                    <div>
+                        <dt>Foto</dt>
+                        <dd>
+                            ${conductor.foto_url
+                                ? `<img class="drawer-conductor-foto" src="${escapeHtml(window.VehiAmb.api.getAssetUrl(conductor.foto_url))}" alt="Foto de ${escapeHtml(conductor.nombres)} ${escapeHtml(conductor.apellidos)}" style="object-position: ${escapeHtml(conductor.foto_posicion || "50% 50%")}">`
+                                : `<span class="drawer-conductor-foto drawer-conductor-foto-vacia">Sin foto</span>`}
+                        </dd>
+                    </div>
                 </dl>
             ` : '<p class="dash-empty">Este conductor no tiene ficha registrada.</p>'}
         </section>

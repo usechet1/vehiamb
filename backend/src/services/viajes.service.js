@@ -10,6 +10,7 @@ const preoperacionalesRepository = require("../repositories/preoperacionales.rep
 const preoperacionalItemsRepository = require("../repositories/preoperacional-items.repository");
 const asignacionesRepository = require("../repositories/asignaciones.repository");
 const notificacionComentariosRepository = require("../repositories/notificacion-comentarios.repository");
+const usuariosRepository = require("../repositories/usuarios.repository");
 const { hoyIso, mananaIso } = require("../utils/fecha-negocio");
 
 // Documentos relevantes para un control de transito en carretera. "otro" se
@@ -243,10 +244,11 @@ async function obtenerResumen(viajeId, currentUser) {
   }
 
   const empresaId = currentUser.empresa_id;
-  const [vehiculo, documentos, conductor, inspeccion, preoperacional] = await Promise.all([
+  const [vehiculo, documentos, conductor, usuarioConductor, inspeccion, preoperacional] = await Promise.all([
     vehiculosRepository.findById(viaje.vehiculo_id, empresaId),
     documentosRepository.findByVehicle(viaje.vehiculo_id, empresaId),
     conductoresRepository.findByUsuarioId(viaje.usuario_id, empresaId),
+    usuariosRepository.findById(viaje.usuario_id, empresaId),
     inspeccionesRepository.findByViajeId(viajeId, empresaId),
     preoperacionalesRepository.findByViajeId(viajeId, empresaId)
   ]);
@@ -283,6 +285,8 @@ async function obtenerResumen(viajeId, currentUser) {
           nombres: conductor.nombres,
           apellidos: conductor.apellidos,
           cedula: conductor.cedula,
+          foto_url: usuarioConductor?.foto_url || null,
+          foto_posicion: usuarioConductor?.foto_posicion || "50% 50%",
           licencias: licencias.map((licencia) => ({
             categoria: licencia.categoria,
             fecha_vencimiento: licencia.fecha_vencimiento

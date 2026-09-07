@@ -5460,6 +5460,26 @@ button.record-link {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.drawer-conductor-foto {
+    display: block;
+    width: 100%;
+    height: 84px;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+}
+
+.drawer-conductor-foto-vacia {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-surface);
+    border: 1px dashed var(--color-border);
+    color: var(--color-muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: none;
+}
+
 .drawer-section {
     display: grid;
     gap: 10px;
