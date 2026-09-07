@@ -205,7 +205,10 @@ function formatDateRange(item) {
 // casi LLENA -- lectura invertida a lo que se espera de un vistazo. Ahora
 // una barra llena significa "le quedan 365 dias o mas" y se va vaciando a
 // medida que se acerca el vencimiento, asi que una barra corta ya avisa que
-// hay que renovarlo pronto.
+// hay que renovarlo pronto. Ya vencido es un caso aparte: dias/365 daria un
+// numero negativo (barra vacia, invisible) justo cuando mas urgente es
+// verlo -- se fuerza a 100% en rojo (doc-vigencia-danger) como señal fuerte
+// de "vencido", no una lectura literal de dias restantes.
 function vigenciaBarInfo(item) {
     if (!item.fecha_expedicion || !item.fecha_vencimiento) return null;
 
@@ -214,7 +217,7 @@ function vigenciaBarInfo(item) {
     if (Number.isNaN(inicio) || Number.isNaN(fin) || fin <= inicio) return null;
 
     const { dias, estado } = estadoVigencia(item);
-    const pct = Math.max(0, Math.min(100, (dias / 365) * 100));
+    const pct = dias < 0 ? 100 : Math.max(0, Math.min(100, (dias / 365) * 100));
 
     return { pct, estado };
 }
