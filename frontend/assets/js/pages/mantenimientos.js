@@ -1068,8 +1068,7 @@ function proximoCambioAceiteInfo(item) {
 
     if (!proximoKm) return "No calculado";
 
-    const fechaTexto = item.proximo_cambio_fecha ? ` (posible fecha: ${formatDate(item.proximo_cambio_fecha)})` : "";
-    return `${proximoKm.toLocaleString("es-CO")} km${fechaTexto}`;
+    return `${proximoKm.toLocaleString("es-CO")} km`;
 }
 
 function renderDetailRepuestos(value) {
