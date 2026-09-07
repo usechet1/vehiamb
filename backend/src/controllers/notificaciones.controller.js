@@ -39,13 +39,30 @@ exports.eliminar = async (req, res) => {
   res.json({ ok: true });
 };
 
+// Mismos filtros que getNotificaciones (menos "agrupar", que es puramente de
+// presentacion) -- lo que se elimina es exactamente lo que la pantalla
+// esta mostrando en ese momento, filtro incluido.
+function filtrosDeQuery(query) {
+  return {
+    prioridad: query.prioridad,
+    categoria: query.categoria,
+    vehiculo_id: query.vehiculo_id,
+    fecha_desde: query.fecha_desde,
+    fecha_hasta: query.fecha_hasta,
+    search: query.search
+  };
+}
+
 exports.eliminarLeidas = async (req, res) => {
-  await notificacionesService.eliminarLeidas(req.user.id);
+  await notificacionesService.eliminarLeidas(req.user.id, req.empresaId, filtrosDeQuery(req.query));
   res.json({ ok: true });
 };
 
 exports.eliminarTodas = async (req, res) => {
-  await notificacionesService.eliminarTodas(req.user.id);
+  await notificacionesService.eliminarTodas(req.user.id, req.empresaId, {
+    ...filtrosDeQuery(req.query),
+    estado: req.query.estado
+  });
   res.json({ ok: true });
 };
 

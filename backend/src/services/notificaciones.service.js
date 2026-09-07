@@ -341,8 +341,8 @@ function agruparNotificaciones(items) {
       tipo,
       categoria: defaults.categoria,
       prioridad: prioridadMasAlta,
-      titulo: `${grupo.length} vehiculos: ${defaults.titulo.toLowerCase()}`,
-      mensaje: `${grupo.length} vehiculos tienen una notificacion de "${defaults.titulo.toLowerCase()}". Expande para ver el detalle.`,
+      titulo: `${grupo.length} notificaciones: ${defaults.titulo.toLowerCase()}`,
+      mensaje: `Hay ${grupo.length} notificaciones de "${defaults.titulo.toLowerCase()}". Expande para ver el detalle.`,
       estado: "no_leida",
       fecha_creacion: grupo[0].fecha_creacion,
       items: grupo
@@ -394,12 +394,12 @@ async function eliminarNotificacion(id, usuarioId) {
   return notificacionesRepository.remove(id, usuarioId);
 }
 
-async function eliminarLeidas(usuarioId) {
-  return notificacionesRepository.removeLeidas(usuarioId);
+async function eliminarLeidas(usuarioId, empresaId, filters = {}) {
+  return notificacionesRepository.removeLeidas(usuarioId, empresaId, filters);
 }
 
-async function eliminarTodas(usuarioId) {
-  return notificacionesRepository.removeTodas(usuarioId);
+async function eliminarTodas(usuarioId, empresaId, filters = {}) {
+  return notificacionesRepository.removeTodas(usuarioId, empresaId, filters);
 }
 
 // Notificaciones de SIMIT creadas ANTES de que se agregara

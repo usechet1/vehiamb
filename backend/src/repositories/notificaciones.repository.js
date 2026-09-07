@@ -133,12 +133,41 @@ async function remove(id, usuarioId) {
   return db.run("DELETE FROM notificaciones WHERE id = ? AND usuario_id = ?", [id, usuarioId]);
 }
 
-async function removeLeidas(usuarioId) {
-  return db.run("DELETE FROM notificaciones WHERE usuario_id = ? AND estado = 'leida'", [usuarioId]);
+// Mismos filtros que el listado (buildWhereClause), asi "Eliminar
+// leidas"/"Eliminar todas" borran exactamente lo que el usuario esta viendo
+// en ese momento (ej. filtrado por categoria "Inspecciones") y no el total
+// sin filtrar. El DELETE va por subquery de ids (en vez de un DELETE con
+// JOIN) porque buildWhereClause arma el WHERE pensando en el SELECT con
+// JOIN a vehiculos (necesita "v.placa" para el buscador) -- este patron es
+// portable sin depender de la sintaxis de JOIN en DELETE de cada motor.
+async function removeLeidas(usuarioId, empresaId, filters = {}) {
+  const { whereClause, values } = buildWhereClause(usuarioId, empresaId, { ...filters, estado: "leida" });
+
+  return db.run(
+    `
+      DELETE FROM notificaciones WHERE id IN (
+        SELECT n.id FROM notificaciones n
+        LEFT JOIN vehiculos v ON v.id = n.vehiculo_id
+        ${whereClause}
+      )
+    `,
+    values
+  );
 }
 
-async function removeTodas(usuarioId) {
-  return db.run("DELETE FROM notificaciones WHERE usuario_id = ?", [usuarioId]);
+async function removeTodas(usuarioId, empresaId, filters = {}) {
+  const { whereClause, values } = buildWhereClause(usuarioId, empresaId, filters);
+
+  return db.run(
+    `
+      DELETE FROM notificaciones WHERE id IN (
+        SELECT n.id FROM notificaciones n
+        LEFT JOIN vehiculos v ON v.id = n.vehiculo_id
+        ${whereClause}
+      )
+    `,
+    values
+  );
 }
 
 async function countPendientes(usuarioId) {

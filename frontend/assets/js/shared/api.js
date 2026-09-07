@@ -51,6 +51,26 @@ async function requestJson(url, options, errorMessage) {
     return response.json();
 }
 
+// Filtros compartidos entre getNotificaciones (listado) y
+// eliminarNotificacionesLeidas/eliminarTodasNotificaciones (para que "Eliminar
+// leidas"/"Eliminar todas" borren exactamente lo que la pantalla esta
+// mostrando en ese momento, filtro incluido) -- "estado" queda fuera porque
+// eliminarNotificacionesLeidas lo fuerza del lado del backend, no lo toma de
+// aca.
+function buildNotifFiltrosQuery(filters) {
+    const params = new URLSearchParams();
+
+    if (filters.estado) params.set("estado", filters.estado);
+    if (filters.prioridad) params.set("prioridad", filters.prioridad);
+    if (filters.categoria) params.set("categoria", filters.categoria);
+    if (filters.vehiculo_id) params.set("vehiculo_id", filters.vehiculo_id);
+    if (filters.fecha_desde) params.set("fecha_desde", filters.fecha_desde);
+    if (filters.fecha_hasta) params.set("fecha_hasta", filters.fecha_hasta);
+    if (filters.search) params.set("search", filters.search);
+
+    return params;
+}
+
 window.VehiAmb.api = {
     getAssetUrl(path) {
         if (!path) return "";
@@ -400,15 +420,7 @@ window.VehiAmb.api = {
     },
 
     getNotificaciones(filters = {}) {
-        const params = new URLSearchParams();
-
-        if (filters.estado) params.set("estado", filters.estado);
-        if (filters.prioridad) params.set("prioridad", filters.prioridad);
-        if (filters.categoria) params.set("categoria", filters.categoria);
-        if (filters.vehiculo_id) params.set("vehiculo_id", filters.vehiculo_id);
-        if (filters.fecha_desde) params.set("fecha_desde", filters.fecha_desde);
-        if (filters.fecha_hasta) params.set("fecha_hasta", filters.fecha_hasta);
-        if (filters.search) params.set("search", filters.search);
+        const params = buildNotifFiltrosQuery(filters);
         if (filters.agrupar === false) params.set("agrupar", "false");
 
         const query = params.toString();
@@ -488,17 +500,21 @@ window.VehiAmb.api = {
         );
     },
 
-    eliminarNotificacionesLeidas() {
+    eliminarNotificacionesLeidas(filters = {}) {
+        const query = buildNotifFiltrosQuery(filters).toString();
+
         return requestJson(
-            `${window.VehiAmb.API_URL}/notificaciones/leidas`,
+            `${window.VehiAmb.API_URL}/notificaciones/leidas${query ? `?${query}` : ""}`,
             { method: "DELETE" },
             "No se pudieron eliminar las notificaciones leidas"
         );
     },
 
-    eliminarTodasNotificaciones() {
+    eliminarTodasNotificaciones(filters = {}) {
+        const query = buildNotifFiltrosQuery(filters).toString();
+
         return requestJson(
-            `${window.VehiAmb.API_URL}/notificaciones/todas`,
+            `${window.VehiAmb.API_URL}/notificaciones/todas${query ? `?${query}` : ""}`,
             { method: "DELETE" },
             "No se pudieron eliminar las notificaciones"
         );

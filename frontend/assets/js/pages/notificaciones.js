@@ -47,6 +47,19 @@ function currentFilters() {
     };
 }
 
+// Igual que currentFilters(), pero sin notifTabActivo: la pestaña "No
+// leídas" por defecto no debe hacer que "Eliminar todas" borre solo las no
+// leídas sin que el usuario lo haya pedido explicitamente -- si quiere
+// acotarlo por estado, esta el filtro "Estado" del popover (notifFiltroEstadoExtra),
+// que si se respeta aca. hayFiltrosOBusquedaActivos() (usado para el texto
+// de confirmacion) tampoco mira la pestaña, por la misma razon.
+function currentDeleteAllFilters() {
+    return {
+        ...currentFilters(),
+        estado: notifFiltroEstadoExtra.value || undefined
+    };
+}
+
 // "Filtros" (prioridad/estado extra/vehiculo/fechas) son distintos de la
 // pestana activa y la categoria -- esos dos ya se ven marcados en su propio
 // control (tab activa / chip activa), no hace falta duplicarlos como chip
@@ -392,24 +405,33 @@ notifMarkAllReadButton.addEventListener("click", async () => {
 notifDeleteReadButton.addEventListener("click", async () => {
     cerrarPopoversNotif();
     try {
-        await window.VehiAmb.api.eliminarNotificacionesLeidas();
+        await window.VehiAmb.api.eliminarNotificacionesLeidas(currentFilters());
         await Promise.all([cargarResumen(), cargarNotificaciones()]);
     } catch (error) {
         window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudieron eliminar las notificaciones", "error");
     }
 });
 
+// "Eliminar todas" borra exactamente lo que la pantalla esta mostrando en
+// ese momento (ver buildNotifFiltrosQuery en api.js) -- si hay un filtro o
+// busqueda activos, el titulo/mensaje de confirmacion lo deja claro para no
+// hacer creer que se va a borrar el historial completo.
 notifDeleteAllButton.addEventListener("click", async () => {
     cerrarPopoversNotif();
+    const filtros = currentDeleteAllFilters();
+    const hayFiltro = hayFiltrosOBusquedaActivos();
+
     const confirmado = await window.VehiAmb.ui.confirm({
-        title: "Eliminar todas las notificaciones",
-        message: "¿Eliminar todas tus notificaciones, leídas y no leídas? Esta acción no se puede deshacer.",
-        confirmText: "Eliminar todas"
+        title: hayFiltro ? "Eliminar notificaciones filtradas" : "Eliminar todas las notificaciones",
+        message: hayFiltro
+            ? "¿Eliminar las notificaciones que coinciden con el filtro actual? Esta acción no se puede deshacer."
+            : "¿Eliminar todas tus notificaciones, leídas y no leídas? Esta acción no se puede deshacer.",
+        confirmText: hayFiltro ? "Eliminar filtradas" : "Eliminar todas"
     });
     if (!confirmado) return;
 
     try {
-        await window.VehiAmb.api.eliminarTodasNotificaciones();
+        await window.VehiAmb.api.eliminarTodasNotificaciones(filtros);
         await Promise.all([cargarResumen(), cargarNotificaciones()]);
     } catch (error) {
         window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudieron eliminar las notificaciones", "error");
