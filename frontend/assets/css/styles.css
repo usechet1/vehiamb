@@ -5121,7 +5121,7 @@ button.record-link {
 
 .doc-number-label {
     color: var(--color-muted);
-    font-size: 0.8rem;
+    font-size: 0.72rem;
     font-variant-numeric: tabular-nums;
 }
 
@@ -5172,7 +5172,7 @@ button.record-link {
 
 .doc-date-range {
     color: var(--color-muted);
-    font-size: 0.82rem;
+    font-size: 0.85rem;
     font-variant-numeric: tabular-nums;
 }
 
@@ -5180,6 +5180,27 @@ button.record-link {
     display: flex;
     align-items: center;
     gap: 2px;
+}
+
+.doc-row-menu-wrap {
+    position: relative;
+}
+
+/* El trigger vive al final de la fila de acciones -- el popover se abre
+   hacia la izquierda (right:0) para no salirse del borde derecho. */
+.doc-row-menu-wrap .doc-filter-popover {
+    top: calc(100% + 4px);
+    right: 0;
+    left: auto;
+    min-width: 140px;
+}
+
+.doc-filter-option-danger {
+    color: var(--color-primary);
+}
+
+.doc-filter-option-danger:hover {
+    background: #fff0f2;
 }
 
 .doc-action-link {
@@ -5200,11 +5221,6 @@ button.record-link {
 
 .doc-action-link:hover {
     background: var(--color-surface-2);
-    color: var(--color-primary);
-}
-
-.doc-action-danger:hover {
-    background: #fff0f2;
     color: var(--color-primary);
 }
 

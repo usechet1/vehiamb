@@ -143,17 +143,18 @@ const tiposDocumento = {
     otro: "Otro"
 };
 
+const MESES_ABREV = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+
+// Formato propio (no toLocaleDateString) porque el locale es-CO agrega
+// "de" entre cada parte ("15 de ago. de 2025"), mas ancho del que necesita
+// un rango expedicion->vencimiento repetido en cada fila.
 function formatDate(value) {
     if (!value) return "Sin fecha";
 
     const date = new Date(`${String(value).slice(0, 10)}T00:00:00`);
     if (Number.isNaN(date.getTime())) return "Sin fecha";
 
-    return date.toLocaleDateString("es-CO", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric"
-    });
+    return `${String(date.getDate()).padStart(2, "0")} ${MESES_ABREV[date.getMonth()]} ${date.getFullYear()}`;
 }
 
 function daysUntil(value) {
@@ -175,11 +176,10 @@ function estadoVigencia(item) {
     const dias = daysUntil(item.fecha_vencimiento);
 
     if (dias === null) return { dias, estado: "neutral", texto: "Sin fecha" };
+    // "danger" (rojo) queda reservado para lo YA vencido -- una infraccion
+    // en curso. Lo que aun no vence, por cercano que este, es una alerta
+    // (warning/ambar): son cosas distintas y no deberian verse igual.
     if (dias < 0) return { dias, estado: "danger", texto: `Vencido hace ${Math.abs(dias)} días` };
-    // Ultimos 3 dias antes del vencimiento: mismo color "danger" que ya
-    // vencido, para que se note que es mas urgente que un simple "por
-    // vencer" (warning) generico.
-    if (dias <= 3) return { dias, estado: "danger", texto: `Vence en ${dias} días` };
     if (dias <= 30) return { dias, estado: "warning", texto: `Vence en ${dias} días` };
     return { dias, estado: "success", texto: `Vence en ${dias} días` };
 }
@@ -209,8 +209,9 @@ function formatDateRange(item) {
 // casi LLENA -- lectura invertida a lo que se espera de un vistazo. Ahora
 // una barra llena significa "le quedan 365 dias o mas" y se va vaciando a
 // medida que se acerca el vencimiento, asi que una barra corta ya avisa que
-// hay que renovarlo pronto (y en rojo -- ver estadoVigencia -- en los
-// ultimos 3 dias). Ya vencido queda con la barra vacia (dias negativo).
+// hay que renovarlo pronto. El rojo (ver estadoVigencia) queda solo para lo
+// ya vencido, no para lo que esta por vencer. Ya vencido queda con la barra
+// vacia (dias negativo).
 function vigenciaBarInfo(item) {
     if (!item.fecha_expedicion || !item.fecha_vencimiento) return null;
 
@@ -319,10 +320,20 @@ function renderDocumentos(documentos) {
             acciones.push(`<button type="button" class="doc-action-link" data-subir-documento="${item.id}">${ICON_UPLOAD}Subir</button>`);
         }
         if (puedeEditar) {
-            acciones.push(`<button type="button" class="doc-action-link" data-editar-documento="${item.id}" aria-label="Editar">${ICON_EDIT}</button>`);
+            acciones.push(`<button type="button" class="doc-action-link" data-editar-documento="${item.id}">${ICON_EDIT}Editar</button>`);
         }
+        // "Eliminar" va detras de un menu de tres puntos (no como icono suelto
+        // junto a "Editar") porque borra el registro de un documento legal --
+        // un clic de mas no deberia poder disparar esa accion.
         if (puedeEliminar) {
-            acciones.push(`<button type="button" class="doc-action-link doc-action-danger" data-eliminar-documento="${item.id}" aria-label="Eliminar">${ICON_TRASH}</button>`);
+            acciones.push(`
+                <div class="doc-row-menu-wrap">
+                    <button type="button" class="doc-action-link" data-row-menu-toggle aria-haspopup="true" aria-expanded="false" aria-label="Más acciones">⋮</button>
+                    <div class="doc-filter-popover doc-row-menu-popover hidden">
+                        <button type="button" class="doc-filter-option doc-filter-option--icon doc-filter-option-danger" data-eliminar-documento="${item.id}">${ICON_TRASH}Eliminar</button>
+                    </div>
+                </div>
+            `);
         }
 
         return `
@@ -541,6 +552,29 @@ documentosList.addEventListener("click", (event) => {
 });
 
 documentoCancelEditButton.addEventListener("click", resetForm);
+
+// Menu de tres puntos de cada fila (hoy solo contiene "Eliminar"): mismo
+// patron abrir-uno-cierra-los-demas y cerrar-al-hacer-clic-afuera que los
+// popovers de Tipo/Fechas, pero delegado porque las filas se re-renderizan.
+documentosList.addEventListener("click", (event) => {
+    const toggle = event.target.closest("[data-row-menu-toggle]");
+    if (!toggle) return;
+    event.stopPropagation();
+
+    const popover = toggle.nextElementSibling;
+    const estabaAbierto = !popover.classList.contains("hidden");
+    documentosList.querySelectorAll(".doc-row-menu-popover").forEach((el) => el.classList.add("hidden"));
+    documentosList.querySelectorAll("[data-row-menu-toggle]").forEach((el) => el.setAttribute("aria-expanded", "false"));
+    popover.classList.toggle("hidden", estabaAbierto);
+    toggle.setAttribute("aria-expanded", String(!estabaAbierto));
+});
+
+document.addEventListener("click", (event) => {
+    if (!event.target.closest(".doc-row-menu-wrap")) {
+        documentosList.querySelectorAll(".doc-row-menu-popover").forEach((el) => el.classList.add("hidden"));
+        documentosList.querySelectorAll("[data-row-menu-toggle]").forEach((el) => el.setAttribute("aria-expanded", "false"));
+    }
+});
 
 documentosList.addEventListener("click", async (event) => {
     const button = event.target.closest("[data-eliminar-documento]");
