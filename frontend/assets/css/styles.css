@@ -1005,23 +1005,14 @@ label[for="loginPassword"] {
     white-space: nowrap;
 }
 
-/* El rol es la etiqueta con mas contraste del bloque a proposito: define
-   que puede hacer este usuario, y antes era lo menos visible (gris tenue
-   sobre fondo oscuro). Ahora es una pildora con fondo propio, legible de
-   un vistazo. */
 .sidebar-role-pill {
     display: inline-flex;
     align-items: center;
     width: fit-content;
     max-width: 100%;
-    padding: 2px 8px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.14);
-    color: rgba(255, 255, 255, 0.92);
-    font-size: 0.66rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.6);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
