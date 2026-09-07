@@ -1129,7 +1129,6 @@ async function openMaintenanceDetail(item) {
             ${detailRow("Vehículo", vehicleName)}
             ${detailRow("Placa", item.placa || "Sin placa")}
             ${detailRow("Estado", estadosMantenimiento[item.estado] || item.estado || "Completado")}
-            ${detailRow("Tipo", tiposMantenimiento[item.tipo] || item.tipo)}
             ${detailRow("Valor", formatCurrency(item.valor))}
             ${detailRow("Kilometraje", `${Number(item.kilometraje || 0).toLocaleString("es-CO")} km`)}
             ${esCambioAceite ? detailRow("Próximo cambio", proximoCambioAceiteInfo(item)) : ""}
