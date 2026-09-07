@@ -198,9 +198,23 @@ async function evaluarNotificacionesMantenimiento({ mantenimiento, vehiculo, req
     );
   }
 
-  if (mantenimiento.vehiculo_varado) {
+  // Antes esto solo miraba "vehiculo_varado" (el checkbox), asi que un
+  // cambio de aceite -- que tambien bloquea el vehiculo para asignacion de
+  // rutas por estar en TIPOS_QUE_REQUIEREN_APROBACION, igual que
+  // correctivo/valor alto -- nunca disparaba este aviso. Se usa
+  // requiereAprobacion (la misma condicion que de verdad deja el vehiculo
+  // "en reparacion", ver vehiculo-disponibilidad.service.js) para cubrir
+  // todos los casos en los que el vehiculo efectivamente queda bloqueado, no
+  // solo cuando se marca el checkbox.
+  //
+  // Destinatario: asignaciones.view (Administrador/Operador/Lider, quienes
+  // asignan rutas) en vez de APPROVAL_PERMISSION -- este aviso es sobre
+  // disponibilidad del vehiculo, no sobre la aprobacion del mantenimiento en
+  // si (esa es la notificacion de arriba), asi que le llega a quien
+  // necesita saber que el vehiculo ya no se puede asignar.
+  if (requiereAprobacion) {
     tareas.push(
-      notificarUsuariosConPermiso(APPROVAL_PERMISSION, {
+      notificarUsuariosConPermiso("asignaciones.view", {
         tipo: "vehiculo_en_mantenimiento",
         mensaje: `El vehiculo ${vehiculoLabel} ha entrado a mantenimiento ${tipoMantenimientoLabel(mantenimiento.tipo)} y no esta disponible para asignacion de rutas.`,
         vehiculo_id: vehiculo.id,
