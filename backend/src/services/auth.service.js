@@ -38,6 +38,7 @@ function toSafeUser(user) {
     role_id: user.role_id,
     activo: Boolean(user.activo),
     foto_url: user.foto_url || null,
+    foto_posicion: user.foto_posicion || "50% 50%",
     empresa_id: user.empresa_id,
     empresa_nombre: user.empresa_nombre,
     empresa_logo_url: user.empresa_logo_url,

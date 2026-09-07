@@ -1826,6 +1826,7 @@ if (env.dbClient === "sqlite") {
   Promise.all([
     ensureColumn("usuarios", "role_id", "INTEGER"),
     ensureColumn("usuarios", "foto_url", "TEXT"),
+    ensureColumn("usuarios", "foto_posicion", "TEXT NOT NULL DEFAULT '50% 50%'"),
     ensureColumn("usuarios", "celular", "TEXT"),
     ensureColumn("roles", "permisos_configurados", "INTEGER NOT NULL DEFAULT 0"),
     ensureColumn("mantenimientos", "repuestos", "TEXT"),
@@ -1892,6 +1893,7 @@ if (env.dbClient === "sqlite") {
       ensureColumn("vehiculos", "intervalo_cambio_aceite_km", "INTEGER"),
       ensureColumn("usuarios", "role_id", "BIGINT REFERENCES roles(id)"),
     ensureColumn("usuarios", "foto_url", "TEXT"),
+      ensureColumn("usuarios", "foto_posicion", "TEXT NOT NULL DEFAULT '50% 50%'"),
       ensureColumn("usuarios", "celular", "TEXT"),
       ensureColumn("usuarios", "debe_cambiar_password", "BOOLEAN NOT NULL DEFAULT FALSE"),
       ensureColumn("roles", "permisos_configurados", "BOOLEAN NOT NULL DEFAULT FALSE"),

@@ -657,7 +657,7 @@ async function cargarSidebar() {
         if (mobileTopbarEmpresaEl) mobileTopbarEmpresaEl.textContent = user.empresa_nombre || "";
         if (avatarEl) {
             avatarEl.innerHTML = user.foto_url
-                ? `<img src="${window.VehiAmb.api.getAssetUrl(user.foto_url)}" alt="">`
+                ? `<img src="${window.VehiAmb.api.getAssetUrl(user.foto_url)}" alt="" style="object-position: ${escapeHtml(user.foto_posicion || "50% 50%")}">`
                 : getInitials(user.nombre);
         }
         actualizarEncabezadoPagina(user.empresa_nombre);

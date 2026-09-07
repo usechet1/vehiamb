@@ -22,6 +22,10 @@ const userPhoto = document.getElementById("userPhoto");
 const userPhotoDropzone = document.getElementById("userPhotoDropzone");
 const userPhotoPlaceholder = document.getElementById("userPhotoPlaceholder");
 const userPhotoPreview = document.getElementById("userPhotoPreview");
+const userFotoPosicion = document.getElementById("userFotoPosicion");
+const userPhotoActions = document.getElementById("userPhotoActions");
+const userPhotoChangeButton = document.getElementById("userPhotoChangeButton");
+const userPhotoCenterButton = document.getElementById("userPhotoCenterButton");
 
 let usersState = [];
 let rolesState = [];
@@ -59,12 +63,74 @@ function escapeHtml(value) {
         .replace(/'/g, "&#039;");
 }
 
+// El encuadre se guarda como "X% Y%" (mismo formato que la propiedad CSS
+// object-position, ver .avatar-dropzone-preview/.user-avatar img) para
+// poder aplicarlo tal cual como estilo inline sin traducirlo cada vez.
+function setFotoPosicion(x, y) {
+    const clampedX = Math.min(100, Math.max(0, x));
+    const clampedY = Math.min(100, Math.max(0, y));
+    userFotoPosicion.value = `${clampedX.toFixed(1)}% ${clampedY.toFixed(1)}%`;
+    userPhotoPreview.style.objectPosition = userFotoPosicion.value;
+}
+
+function parseFotoPosicion(value) {
+    const match = /^(\d+(?:\.\d+)?)% (\d+(?:\.\d+)?)%$/.exec(String(value || "").trim());
+    return match ? { x: Number(match[1]), y: Number(match[2]) } : { x: 50, y: 50 };
+}
+
 function resetPhotoField() {
     userPhoto.value = "";
     userPhotoPreview.removeAttribute("src");
     window.VehiAmb.ui.hide(userPhotoPreview);
     window.VehiAmb.ui.show(userPhotoPlaceholder);
+    window.VehiAmb.ui.hide(userPhotoActions);
+    setFotoPosicion(50, 50);
 }
+
+// Arrastrar la foto dentro del circulo (Pointer Events: funciona igual con
+// mouse y con touch) para elegir manualmente que parte queda visible --
+// antes siempre se recortaba centrada, sin forma de ajustarla.
+// setPointerCapture asegura que el arrastre siga funcionando aunque el
+// cursor se salga del circulo mientras se mueve.
+let arrastrandoFoto = false;
+let arrastreInicio = { x: 0, y: 0, posX: 50, posY: 50 };
+
+userPhotoPreview.addEventListener("pointerdown", (event) => {
+    if (userPhotoPreview.classList.contains("hidden")) return;
+
+    arrastrandoFoto = true;
+    const posicionActual = parseFotoPosicion(userFotoPosicion.value);
+    arrastreInicio = { x: event.clientX, y: event.clientY, posX: posicionActual.x, posY: posicionActual.y };
+    userPhotoPreview.setPointerCapture(event.pointerId);
+    event.preventDefault();
+});
+
+userPhotoPreview.addEventListener("pointermove", (event) => {
+    if (!arrastrandoFoto) return;
+
+    // La foto "sigue" al cursor (se arrastra el contenido, no la ventana de
+    // recorte) -- por eso el delta se resta: mover el mouse hacia la
+    // derecha debe revelar mas del lado izquierdo de la foto, que es
+    // object-position-x bajo (ver la nota en styles.css de object-position).
+    const rect = userPhotoPreview.getBoundingClientRect();
+    const deltaXPct = ((event.clientX - arrastreInicio.x) / rect.width) * 100;
+    const deltaYPct = ((event.clientY - arrastreInicio.y) / rect.height) * 100;
+    setFotoPosicion(arrastreInicio.posX - deltaXPct, arrastreInicio.posY - deltaYPct);
+});
+
+function terminarArrastreFoto(event) {
+    if (!arrastrandoFoto) return;
+    arrastrandoFoto = false;
+    if (userPhotoPreview.hasPointerCapture?.(event.pointerId)) {
+        userPhotoPreview.releasePointerCapture(event.pointerId);
+    }
+}
+
+userPhotoPreview.addEventListener("pointerup", terminarArrastreFoto);
+userPhotoPreview.addEventListener("pointercancel", terminarArrastreFoto);
+
+userPhotoChangeButton.addEventListener("click", () => userPhoto.click());
+userPhotoCenterButton.addEventListener("click", () => setFotoPosicion(50, 50));
 
 function resetForm() {
     userForm.reset();
@@ -186,7 +252,7 @@ function renderUsers(rows) {
                 <div class="user-list-identity">
                     <div class="user-avatar">
                         ${user.foto_url
-                            ? `<img src="${window.VehiAmb.api.getAssetUrl(user.foto_url)}" alt="">`
+                            ? `<img src="${window.VehiAmb.api.getAssetUrl(user.foto_url)}" alt="" style="object-position: ${escapeHtml(user.foto_posicion || "50% 50%")}">`
                             : window.getInitials(user.nombre)}
                     </div>
                     <div>
@@ -283,6 +349,9 @@ function editUser(id) {
         userPhotoPreview.src = window.VehiAmb.api.getAssetUrl(user.foto_url);
         window.VehiAmb.ui.show(userPhotoPreview);
         window.VehiAmb.ui.hide(userPhotoPlaceholder);
+        window.VehiAmb.ui.show(userPhotoActions);
+        const posicion = parseFotoPosicion(user.foto_posicion);
+        setFotoPosicion(posicion.x, posicion.y);
     } else {
         resetPhotoField();
     }
@@ -325,9 +394,22 @@ function updatePhotoPreview() {
     userPhotoPreview.src = URL.createObjectURL(file);
     window.VehiAmb.ui.show(userPhotoPreview);
     window.VehiAmb.ui.hide(userPhotoPlaceholder);
+    window.VehiAmb.ui.show(userPhotoActions);
+    // Foto nueva: se vuelve a centrar en vez de conservar el encuadre de la
+    // foto anterior (que ya no aplica a esta imagen).
+    setFotoPosicion(50, 50);
 }
 
 userPhoto.addEventListener("change", updatePhotoPreview);
+
+// Sin el <input type=file> cubriendo todo el circulo (eso ahora bloqueaba
+// poder arrastrar la foto para reencuadrarla, ver pointerdown mas arriba),
+// el dropzone necesita su propio listener para abrir el selector de
+// archivos -- pero solo mientras se ve el placeholder ("Arrastra o haz
+// clic"), no cuando ya hay una foto (ahi el clic es para arrastrarla).
+userPhotoDropzone.addEventListener("click", () => {
+    if (!userPhotoPlaceholder.classList.contains("hidden")) userPhoto.click();
+});
 
 ["dragenter", "dragover"].forEach((eventName) => {
     userPhotoDropzone.addEventListener(eventName, (event) => {
@@ -363,6 +445,9 @@ async function saveUser(event) {
     formData.set("activo", String(userActive.checked));
     if (userPhoto.files?.[0]) {
         formData.set("foto", userPhoto.files[0]);
+    }
+    if (!userPhotoPreview.classList.contains("hidden")) {
+        formData.set("foto_posicion", userFotoPosicion.value);
     }
 
     try {

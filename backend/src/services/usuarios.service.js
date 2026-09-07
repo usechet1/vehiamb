@@ -50,6 +50,7 @@ function toSafeUser(user) {
     role_id: user.role_id,
     activo: Boolean(user.activo),
     foto_url: user.foto_url || null,
+    foto_posicion: user.foto_posicion || "50% 50%",
     celular: user.celular || null,
     empresa_id: user.empresa_id,
     created_at: user.created_at,
@@ -64,6 +65,22 @@ function toSafeUser(user) {
 function normalizeCelular(value) {
   const digits = String(value || "").replace(/\D/g, "");
   return digits || null;
+}
+
+// "foto_posicion" se guarda tal cual como valor de object-position (ej.
+// "37% 82%") y se manda de vuelta al frontend para pintarlo como estilo
+// inline (ver renderUsers en admin-users.js) -- se valida el formato
+// estricto aca, nunca se confia en lo que mande el cliente para algo que
+// termina en un atributo style.
+const FOTO_POSICION_REGEX = /^(\d{1,3}(?:\.\d+)?)% (\d{1,3}(?:\.\d+)?)%$/;
+
+function normalizeFotoPosicion(value) {
+  const match = FOTO_POSICION_REGEX.exec(String(value || "").trim());
+  if (!match) return "50% 50%";
+
+  const x = Math.min(100, Math.max(0, Number(match[1])));
+  const y = Math.min(100, Math.max(0, Number(match[2])));
+  return `${x}% ${y}%`;
 }
 
 // Un rol inactivo ya no se puede asignar de cero, pero un usuario que ya lo
@@ -164,6 +181,7 @@ async function createUser(payload, file, empresaId, callerPermisos = [], actorUs
     ...user,
     password_hash: await hashPassword(user.password),
     foto_url: file ? `/uploads/usuarios/${file.filename}` : null,
+    foto_posicion: normalizeFotoPosicion(payload.foto_posicion),
     empresa_id: empresaId
   });
 
@@ -198,12 +216,19 @@ async function updateUser(id, payload, file, empresaId, callerPermisos = [], act
   }
 
   const fotoUrl = file ? `/uploads/usuarios/${file.filename}` : existing.foto_url;
+  // Si el payload no trae foto_posicion (ej. se edito solo el nombre, sin
+  // tocar el encuadre de la foto), se conserva la que ya tenia -- si no,
+  // cualquier edicion no relacionada le resetearia el encuadre al centro.
+  const fotoPosicion = payload.foto_posicion
+    ? normalizeFotoPosicion(payload.foto_posicion)
+    : (existing.foto_posicion || "50% 50%");
 
   const updated = await usuariosRepository.update(
     id,
     {
       ...user,
       foto_url: fotoUrl,
+      foto_posicion: fotoPosicion,
       password_hash: user.password ? await hashPassword(user.password) : null
     },
     empresaId
