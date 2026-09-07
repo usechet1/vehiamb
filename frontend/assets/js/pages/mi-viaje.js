@@ -55,6 +55,18 @@ function escapeHtml(value) {
         .replace(/'/g, "&#039;");
 }
 
+// conductor.nombres/apellidos vienen en MAYUSCULAS (mismo caso que
+// usuarios.nombre en el sidebar) -- se capitaliza para mostrar, nunca se
+// guarda asi.
+function capitalizarNombre(value) {
+    return String(value || "")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((palabra) => palabra.charAt(0).toUpperCase() + palabra.slice(1).toLowerCase())
+        .join(" ");
+}
+
 function formatFecha(value) {
     if (!value) return "Sin fecha";
     return new Date(`${String(value).slice(0, 10)}T00:00:00`).toLocaleDateString("es-CO", {
@@ -351,18 +363,17 @@ function renderViajeDrawerBody(resumen) {
         <section class="drawer-section">
             <h3>Conductor</h3>
             ${conductor ? `
-                <dl class="detail-list drawer-detail-list">
-                    <div><dt>Nombre</dt><dd>${escapeHtml(conductor.nombres)} ${escapeHtml(conductor.apellidos)}</dd></div>
-                    <div><dt>Cédula</dt><dd>${escapeHtml(conductor.cedula) || "--"}</dd></div>
-                    <div>
-                        <dt>Foto</dt>
-                        <dd>
-                            ${conductor.foto_url
-                                ? `<img class="drawer-conductor-foto" src="${escapeHtml(window.VehiAmb.api.getAssetUrl(conductor.foto_url))}" alt="Foto de ${escapeHtml(conductor.nombres)} ${escapeHtml(conductor.apellidos)}" style="object-position: ${escapeHtml(conductor.foto_posicion || "50% 50%")}">`
-                                : `<span class="drawer-conductor-foto drawer-conductor-foto-vacia">Sin foto</span>`}
-                        </dd>
+                <div class="user-list-identity">
+                    <div class="user-avatar">
+                        ${conductor.foto_url
+                            ? `<img src="${escapeHtml(window.VehiAmb.api.getAssetUrl(conductor.foto_url))}" alt="" style="object-position: ${escapeHtml(conductor.foto_posicion || "50% 50%")}">`
+                            : window.getInitials(`${conductor.nombres} ${conductor.apellidos}`)}
                     </div>
-                </dl>
+                    <div>
+                        <span class="record-title">${escapeHtml(capitalizarNombre(conductor.nombres))} ${escapeHtml(capitalizarNombre(conductor.apellidos))}</span>
+                        <span class="record-sub">${escapeHtml(conductor.cedula) || "--"}</span>
+                    </div>
+                </div>
             ` : '<p class="dash-empty">Este conductor no tiene ficha registrada.</p>'}
         </section>
 
