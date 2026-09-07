@@ -936,6 +936,14 @@ label[for="loginPassword"] {
     width: 34px;
     height: 34px;
     border-radius: 50%;
+    /* Sin esto, un <img> hijo con width/height:100% (ver ".user-avatar img"
+       mas abajo) no queda forzado al tamaño del circulo -- por como Grid
+       calcula el tamaño de un elemento reemplazado (img) cuando
+       place-items no es "stretch", el navegador preserva su relacion de
+       aspecto original en vez de recortarlo a 34x34, y la foto se sale del
+       marco (ovalada, mas grande que el circulo). overflow:hidden lo
+       recorta al circulo pase lo que pase con el tamaño calculado del img. */
+    overflow: hidden;
     background: linear-gradient(135deg, rgba(48, 95, 143, 0.18), #8a0404);
     color: #fff;
     display: grid;
