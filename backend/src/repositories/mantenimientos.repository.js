@@ -54,7 +54,8 @@ async function findAll(filters = {}, empresaId) {
         m.*,
         v.placa,
         v.marca,
-        v.modelo
+        v.modelo,
+        v.intervalo_cambio_aceite_km
       FROM mantenimientos m
       INNER JOIN vehiculos v ON v.id = m.vehiculo_id
       ${whereClause}

@@ -1055,6 +1055,23 @@ function detailRow(label, value) {
     `;
 }
 
+// Mismo calculo que la etiqueta de cambio de aceite (etiqueta-cambio-aceite.html):
+// km de este mantenimiento + intervalo configurado del vehiculo, en vez del
+// proximo_cambio_km guardado tal cual -- ese campo puede haber quedado mal
+// cargado en registros viejos (ej. guardado como el intervalo solo, sin sumar
+// el km). Si el vehiculo no tiene intervalo configurado, se cae de vuelta al
+// valor guardado.
+function proximoCambioAceiteInfo(item) {
+    const intervalo = Number(item.intervalo_cambio_aceite_km || 0);
+    const kmActual = Number(item.kilometraje || 0);
+    const proximoKm = intervalo > 0 ? kmActual + intervalo : (Number(item.proximo_cambio_km || 0) || null);
+
+    if (!proximoKm) return "No calculado";
+
+    const fechaTexto = item.proximo_cambio_fecha ? ` (posible fecha: ${formatDate(item.proximo_cambio_fecha)})` : "";
+    return `${proximoKm.toLocaleString("es-CO")} km${fechaTexto}`;
+}
+
 function renderDetailRepuestos(value) {
     const repuestos = parseRepuestos(value);
 
@@ -1116,6 +1133,7 @@ async function openMaintenanceDetail(item) {
             ${detailRow("Tipo", tiposMantenimiento[item.tipo] || item.tipo)}
             ${detailRow("Valor", formatCurrency(item.valor))}
             ${detailRow("Kilometraje", `${Number(item.kilometraje || 0).toLocaleString("es-CO")} km`)}
+            ${esCambioAceite ? detailRow("Próximo cambio", proximoCambioAceiteInfo(item)) : ""}
             ${detailRow("Fecha de creación", formatDateTime(item.created_at))}
         </dl>
 
