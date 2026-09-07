@@ -363,18 +363,20 @@ function renderViajeDrawerBody(resumen) {
     return `
         <section class="drawer-section">
             <h3>Vehículo</h3>
-            <div class="user-list-identity drawer-identity">
-                <div class="vehiculo-foto">
-                    ${vehiculo?.imagen_url
-                        ? `<img src="${escapeHtml(window.VehiAmb.api.getAssetUrl(vehiculo.imagen_url))}" alt="">`
-                        : VEHICULO_FOTO_PLACEHOLDER}
-                </div>
-                <div>
-                    <span class="record-title">${escapeHtml(vehiculo?.placa) || "--"}</span>
-                    <span class="record-sub">${escapeHtml(vehiculo?.marca)} ${escapeHtml(vehiculo?.modelo)}</span>
-                </div>
-            </div>
             <dl class="detail-list detail-list-plain">
+                <div>
+                    <div class="user-list-identity drawer-identity">
+                        <div class="vehiculo-foto">
+                            ${vehiculo?.imagen_url
+                                ? `<img src="${escapeHtml(window.VehiAmb.api.getAssetUrl(vehiculo.imagen_url))}" alt="">`
+                                : VEHICULO_FOTO_PLACEHOLDER}
+                        </div>
+                        <div>
+                            <span class="record-title">${escapeHtml(vehiculo?.placa) || "--"}</span>
+                            <span class="record-sub">${escapeHtml(vehiculo?.marca)} ${escapeHtml(vehiculo?.modelo)}</span>
+                        </div>
+                    </div>
+                </div>
                 <div><dt>Destino</dt><dd>${escapeHtml(viaje.destino) || "--"}</dd></div>
             </dl>
         </section>
