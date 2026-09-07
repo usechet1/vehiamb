@@ -52,6 +52,15 @@ async function crear(payload, currentUser) {
     throw new HttpError(404, "Vehículo no encontrado");
   }
 
+  // Mismo criterio que asignaciones.service.js: un vehiculo que no esta
+  // "activo" (en reparacion, fuera de servicio o dado de baja) no puede
+  // usarse para iniciar un viaje. El selector de vehiculo del conductor
+  // (home.js) ya lo deja ver pero deshabilitado -- esta es la validacion
+  // real, por si llega una peticion directa a la API.
+  if (vehiculo.estado !== "activo") {
+    throw new HttpError(409, `El vehículo ${vehiculo.placa} no está disponible (estado: ${vehiculo.estado}).`);
+  }
+
   const destino = String(payload.destino || "").trim().slice(0, 300);
   if (!destino) {
     throw new HttpError(400, "Debes indicar a dónde vas a realizar el viaje");

@@ -598,19 +598,30 @@ function renderConductorVehiculoGrid(vehiculos) {
         return;
     }
 
+    // Un vehiculo que no esta "activo" (en reparacion por un mantenimiento
+    // pendiente, fuera de servicio o dado de baja) no se puede elegir para
+    // iniciar un viaje -- se deja la tarjeta visible (para que el conductor
+    // entienda por que no aparece habilitada) pero deshabilitada, con su
+    // estado real debajo del modelo.
     grid.innerHTML = vehiculos
-        .map((vehiculo) => `
-            <button type="button" class="conductor-vehiculo-card" data-vehiculo-id="${vehiculo.id}" data-placa="${escapeHtml(String(vehiculo.placa || "").toLowerCase())}">
-                ${getVehiculoThumbnail(vehiculo)}
-                <span class="conductor-vehiculo-info">
-                    <span class="plate">${escapeHtml(vehiculo.placa)}</span>
-                    <strong>${escapeHtml(vehiculo.marca)} ${escapeHtml(vehiculo.modelo)}</strong>
-                </span>
-            </button>
-        `)
+        .map((vehiculo) => {
+            const disponible = vehiculo.estado === "activo";
+            const estadoLabel = ESTADOS_VEHICULO[vehiculo.estado]?.label || vehiculo.estado;
+
+            return `
+                <button type="button" class="conductor-vehiculo-card${disponible ? "" : " is-disabled"}" data-vehiculo-id="${vehiculo.id}" data-placa="${escapeHtml(String(vehiculo.placa || "").toLowerCase())}"${disponible ? "" : " disabled"}>
+                    ${getVehiculoThumbnail(vehiculo)}
+                    <span class="conductor-vehiculo-info">
+                        <span class="plate">${escapeHtml(vehiculo.placa)}</span>
+                        <strong>${escapeHtml(vehiculo.marca)} ${escapeHtml(vehiculo.modelo)}</strong>
+                        ${disponible ? "" : `<span class="conductor-vehiculo-estado">${escapeHtml(estadoLabel)}</span>`}
+                    </span>
+                </button>
+            `;
+        })
         .join("");
 
-    grid.querySelectorAll(".conductor-vehiculo-card").forEach((card) => {
+    grid.querySelectorAll(".conductor-vehiculo-card:not(.is-disabled)").forEach((card) => {
         card.addEventListener("click", () => {
             conductorVehiculoSeleccionado = card.dataset.vehiculoId;
             grid.querySelectorAll(".conductor-vehiculo-card").forEach((el) => {

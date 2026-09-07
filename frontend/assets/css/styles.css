@@ -2667,6 +2667,22 @@ label[for="loginPassword"] {
     box-shadow: 0 0 0 1px var(--color-primary);
 }
 
+.conductor-vehiculo-card.is-disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    background: var(--color-surface-2);
+}
+
+.conductor-vehiculo-card.is-disabled:hover {
+    border-color: var(--color-border);
+}
+
+.conductor-vehiculo-estado {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--color-warning);
+}
+
 .conductor-vehiculo-icon {
     display: inline-flex;
     align-items: center;
