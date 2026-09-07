@@ -10,6 +10,14 @@ const simitScraper = require("../scrapers/simit/simit-scraper");
 const scraperConfig = require("../scrapers/simit/simit-scraper.config");
 
 const DESTINATARIO_PERMISSION = "simit.view";
+// "simit_consulta_fallo" es un error tecnico de la propia consulta (SIMIT
+// bloqueo con CAPTCHA o fallo la conexion), no algo del vehiculo -- categoria
+// "sistema" en notificaciones.config.js, exclusiva de Administrador (mismo
+// criterio que "usuario_creado"/"permisos_actualizados" con users.manage).
+// logs.view es Administrador-only y ya cubre justamente "errores... del
+// sistema" en su descripcion, asi que se reusa en vez de crear un permiso
+// nuevo solo para esto.
+const DESTINATARIO_PERMISSION_FALLO_SISTEMA = "logs.view";
 const HORAS_SIN_DUPLICAR_FALLO = 24;
 const BULK_DELAY_MS = scraperConfig.BULK_DELAY_MS;
 
@@ -105,7 +113,7 @@ async function notificarFallo({ vehiculo, consulta, empresaId }) {
     ? "el portal SIMIT presento un CAPTCHA"
     : "ocurrio un error al consultar el portal SIMIT";
 
-  await notificacionesService.notificarUsuariosConPermiso(DESTINATARIO_PERMISSION, {
+  await notificacionesService.notificarUsuariosConPermiso(DESTINATARIO_PERMISSION_FALLO_SISTEMA, {
     tipo: "simit_consulta_fallo",
     mensaje: `No fue posible actualizar el estado SIMIT del vehiculo ${vehiculoLabel}: ${motivo}.`,
     vehiculo_id: vehiculo.id,
