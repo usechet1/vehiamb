@@ -690,6 +690,16 @@ label[for="loginPassword"] {
     line-height: 1;
 }
 
+/* El trigger "⋮" es el ultimo elemento de la barra (pegado al borde
+   derecho) -- .doc-filter-popover por defecto se alinea a la izquierda del
+   trigger (left:0) y se abre hacia la derecha, lo que lo saca de la
+   pantalla aca. Se ancla a la derecha en su lugar (mismo criterio que
+   .mnt-export-wrap). */
+#notifMenuPopover {
+    left: auto;
+    right: 0;
+}
+
 .notif-filters-popover {
     display: flex;
     flex-direction: column;
