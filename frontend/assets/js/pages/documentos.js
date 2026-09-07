@@ -176,6 +176,10 @@ function estadoVigencia(item) {
 
     if (dias === null) return { dias, estado: "neutral", texto: "Sin fecha" };
     if (dias < 0) return { dias, estado: "danger", texto: `Vencido hace ${Math.abs(dias)} días` };
+    // Ultimos 3 dias antes del vencimiento: mismo color "danger" que ya
+    // vencido, para que se note que es mas urgente que un simple "por
+    // vencer" (warning) generico.
+    if (dias <= 3) return { dias, estado: "danger", texto: `Vence en ${dias} días` };
     if (dias <= 30) return { dias, estado: "warning", texto: `Vence en ${dias} días` };
     return { dias, estado: "success", texto: `Vence en ${dias} días` };
 }
@@ -205,10 +209,8 @@ function formatDateRange(item) {
 // casi LLENA -- lectura invertida a lo que se espera de un vistazo. Ahora
 // una barra llena significa "le quedan 365 dias o mas" y se va vaciando a
 // medida que se acerca el vencimiento, asi que una barra corta ya avisa que
-// hay que renovarlo pronto. Ya vencido es un caso aparte: dias/365 daria un
-// numero negativo (barra vacia, invisible) justo cuando mas urgente es
-// verlo -- se fuerza a 100% en rojo (doc-vigencia-danger) como señal fuerte
-// de "vencido", no una lectura literal de dias restantes.
+// hay que renovarlo pronto (y en rojo -- ver estadoVigencia -- en los
+// ultimos 3 dias). Ya vencido queda con la barra vacia (dias negativo).
 function vigenciaBarInfo(item) {
     if (!item.fecha_expedicion || !item.fecha_vencimiento) return null;
 
@@ -217,7 +219,7 @@ function vigenciaBarInfo(item) {
     if (Number.isNaN(inicio) || Number.isNaN(fin) || fin <= inicio) return null;
 
     const { dias, estado } = estadoVigencia(item);
-    const pct = dias < 0 ? 100 : Math.max(0, Math.min(100, (dias / 365) * 100));
+    const pct = Math.max(0, Math.min(100, (dias / 365) * 100));
 
     return { pct, estado };
 }
