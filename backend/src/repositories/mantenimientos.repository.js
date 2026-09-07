@@ -24,17 +24,21 @@ const MANTENIMIENTO_FIELDS = [
 
 // Campos que "editar mantenimiento" puede tocar (ver
 // mantenimientos.service.js#updateMantenimiento) -- deliberadamente NO
-// incluye vehiculo_id, tipo, repuestos ni soporte: esos ya definieron
-// movimientos de stock/notificaciones al crear el registro y cambiarlos
-// despues requeriria revertir y reaplicar todo eso, fuera de alcance de esta
-// edicion (que es para corregir datos del registro, no para "recrearlo").
+// incluye vehiculo_id, repuestos ni soporte: esos ya definieron movimientos
+// de stock/notificaciones al crear el registro y cambiarlos despues
+// requeriria revertir y reaplicar todo eso, fuera de alcance de esta edicion
+// (que es para corregir datos del registro, no para "recrearlo"). "tipo" si
+// se puede editar (a diferencia de vehiculo/repuestos, cambiarlo no implica
+// revertir ningun movimiento de stock).
 const MANTENIMIENTO_EDITABLE_FIELDS = [
+  "tipo",
   "fecha",
   "descripcion",
   "kilometraje",
   "valor_mano_obra",
   "valor",
   "vehiculo_varado",
+  "proximo_cambio_km",
   "proximo_cambio_fecha",
   "estado"
 ];

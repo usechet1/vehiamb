@@ -1165,16 +1165,28 @@ async function renderMaintenanceDetailView(item) {
 }
 
 // Edicion restringida a los datos del registro (ver
-// backend/src/services/mantenimientos.service.js#updateMantenimiento):
+// backend/src/services/mantenimientos.service.js#updateMantenimiento): tipo,
 // fecha, descripcion, kilometraje, mano de obra, "vehiculo varado" y, para
-// cambio de aceite, la proxima fecha. Vehiculo, tipo y repuestos no se
-// pueden tocar desde aca (ya consumieron stock/dispararon notificaciones al
-// crear el registro) -- si estan mal, se elimina y se registra de nuevo.
+// cambio de aceite, el proximo cambio. Vehiculo y repuestos no se pueden
+// tocar desde aca (ya consumieron stock al crear el registro) -- si el
+// vehiculo esta mal, o los repuestos no coinciden con el tipo nuevo, se
+// elimina y se registra de nuevo.
 function renderMaintenanceEditForm(item) {
-    const esCambioAceite = item.tipo === "cambio_aceite";
-
     maintenanceDrawerBody.innerHTML = `
         <form id="editMaintenanceForm" class="mnt-edit-form">
+            <div class="form-group">
+                <label>Tipo de mantenimiento</label>
+                <select id="editMantenimientoTipo" required>
+                    <option value="revision">Revisión general</option>
+                    <option value="preventivo">Mantenimiento preventivo</option>
+                    <option value="correctivo">Mantenimiento correctivo</option>
+                    <option value="cambio_aceite">Cambio de aceite</option>
+                    <option value="frenos">Frenos</option>
+                    <option value="llantas">Llantas</option>
+                    <option value="otro">Otro</option>
+                </select>
+            </div>
+
             <div class="form-group">
                 <label>Fecha</label>
                 <input type="date" id="editMantenimientoFecha" required>
@@ -1186,32 +1198,30 @@ function renderMaintenanceEditForm(item) {
             </div>
 
             <div class="form-grid-3">
-                <div class="form-group">
+                <div class="form-group" id="editKilometrajeGroup">
                     <label>Kilometraje actual</label>
                     <input type="text" inputmode="decimal" id="editMantenimientoKilometraje" class="mnt-input-lg">
                 </div>
 
-                ${esCambioAceite ? `
-                    <div class="form-group">
-                        <label>Próximo cambio (km)</label>
-                        <input type="text" id="editProximoCambioKmInput" class="mnt-input-lg" readonly disabled>
-                    </div>
+                <div class="form-group hidden" id="editCambioAceiteFields">
+                    <label>Próximo cambio (km)</label>
+                    <input type="text" id="editProximoCambioKmInput" class="mnt-input-lg" readonly disabled>
+                </div>
 
-                    <div class="form-group">
-                        <label>Próxima fecha</label>
-                        <input type="date" id="editProximoCambioFechaInput" class="mnt-input-lg">
-                    </div>
-                ` : ""}
+                <div class="form-group hidden" id="editProximaFechaGroup">
+                    <label>Próxima fecha</label>
+                    <input type="date" id="editProximoCambioFechaInput" class="mnt-input-lg">
+                </div>
             </div>
 
-            <div class="form-group form-checkbox">
+            <div class="form-group form-checkbox" id="editVehiculoVaradoGroup">
                 <label>
                     <input type="checkbox" id="editVehiculoVaradoInput">
                     Vehículo en taller (no disponible para asignación de rutas)
                 </label>
             </div>
 
-            <div class="mnt-summary">
+            <div class="mnt-summary" id="editManoObraSummary">
                 <div class="mnt-summary-row">
                     <span>Mano de obra</span>
                     <input type="text" inputmode="numeric" id="editValorManoObraInput" class="mnt-summary-input">
@@ -1228,37 +1238,89 @@ function renderMaintenanceEditForm(item) {
         </form>
     `;
 
+    const tipoSelect = document.getElementById("editMantenimientoTipo");
     const fechaInput = document.getElementById("editMantenimientoFecha");
+    const kilometrajeGroup = document.getElementById("editKilometrajeGroup");
     const kilometrajeInput = document.getElementById("editMantenimientoKilometraje");
-    const valorManoObraEditInput = document.getElementById("editValorManoObraInput");
+    const cambioAceiteFields = document.getElementById("editCambioAceiteFields");
+    const proximaFechaGroup = document.getElementById("editProximaFechaGroup");
     const proximoCambioKmEditInput = document.getElementById("editProximoCambioKmInput");
     const proximoCambioFechaEditInput = document.getElementById("editProximoCambioFechaInput");
+    const vehiculoVaradoGroup = document.getElementById("editVehiculoVaradoGroup");
+    const vehiculoVaradoEditInput = document.getElementById("editVehiculoVaradoInput");
+    const manoObraSummary = document.getElementById("editManoObraSummary");
+    const valorManoObraEditInput = document.getElementById("editValorManoObraInput");
 
+    tipoSelect.value = item.tipo;
     fechaInput.value = String(item.fecha || "").slice(0, 10);
     document.getElementById("editMantenimientoDescripcion").value = item.descripcion || "";
     kilometrajeInput.value = window.VehiAmb.ui.formatearNumeroParaMostrar(Number(item.kilometraje || 0));
-    document.getElementById("editVehiculoVaradoInput").checked = Boolean(item.vehiculo_varado);
+    vehiculoVaradoEditInput.checked = Boolean(item.vehiculo_varado);
     valorManoObraEditInput.value = `$ ${window.VehiAmb.ui.formatearNumeroParaMostrar(Number(item.valor_mano_obra || 0))}`;
+    proximoCambioFechaEditInput.value = String(item.proximo_cambio_fecha || "").slice(0, 10);
+
+    // Si ya tenia una proxima fecha guardada, no se le pisa con la
+    // estimacion automatica de 3 meses (ver mas abajo) al abrir el formulario.
+    let proximaFechaEditadaManualmente = Boolean(item.proximo_cambio_fecha);
 
     // "Proximo cambio (km)" sigue siendo de solo lectura, igual que al
     // registrar: se recalcula con el kilometraje que se esta editando +
     // intervalo configurado del vehiculo (ver proximoCambioAceiteInfo).
     function actualizarProximoCambioKmEdit() {
-        if (!proximoCambioKmEditInput) return;
         proximoCambioKmEditInput.value = proximoCambioAceiteInfo({
             ...item,
             kilometraje: window.VehiAmb.ui.parseFormattedNumber(kilometrajeInput.value)
         });
     }
 
-    if (esCambioAceite) {
-        proximoCambioFechaEditInput.value = String(item.proximo_cambio_fecha || "").slice(0, 10);
-        actualizarProximoCambioKmEdit();
+    // Mismo criterio que updateCambioAceiteFields en el formulario de
+    // registro: un cambio de aceite es rutina, sin mano de obra aparte y sin
+    // dejar el vehiculo "en taller" -- esos dos campos se ocultan y se
+    // resetean para que no quede un valor viejo guardado sin verse en pantalla.
+    function actualizarCamposSegunTipo() {
+        const esCambioAceite = tipoSelect.value === "cambio_aceite";
+
+        cambioAceiteFields.classList.toggle("hidden", !esCambioAceite);
+        proximaFechaGroup.classList.toggle("hidden", !esCambioAceite);
+        kilometrajeGroup.classList.toggle("mnt-span-all", !esCambioAceite);
+        proximoCambioFechaEditInput.required = esCambioAceite;
+
+        vehiculoVaradoGroup.classList.toggle("hidden", esCambioAceite);
+        manoObraSummary.classList.toggle("hidden", esCambioAceite);
+
+        if (esCambioAceite) {
+            vehiculoVaradoEditInput.checked = false;
+            valorManoObraEditInput.value = "$ 0";
+            actualizarProximoCambioKmEdit();
+            if (!proximaFechaEditadaManualmente) {
+                proximoCambioFechaEditInput.value = sumarMeses(fechaInput.value, 3);
+            }
+        } else {
+            proximoCambioKmEditInput.value = "";
+            proximoCambioFechaEditInput.value = "";
+        }
     }
+
+    actualizarCamposSegunTipo();
+
+    tipoSelect.addEventListener("change", () => {
+        proximaFechaEditadaManualmente = false;
+        actualizarCamposSegunTipo();
+    });
+
+    fechaInput.addEventListener("change", () => {
+        if (tipoSelect.value === "cambio_aceite" && !proximaFechaEditadaManualmente) {
+            proximoCambioFechaEditInput.value = sumarMeses(fechaInput.value, 3);
+        }
+    });
+
+    proximoCambioFechaEditInput.addEventListener("input", () => {
+        proximaFechaEditadaManualmente = true;
+    });
 
     kilometrajeInput.addEventListener("input", () => {
         window.VehiAmb.ui.formatearNumeroEnVivo(kilometrajeInput);
-        actualizarProximoCambioKmEdit();
+        if (tipoSelect.value === "cambio_aceite") actualizarProximoCambioKmEdit();
     });
     valorManoObraEditInput.addEventListener("input", () => {
         window.VehiAmb.ui.formatearMonedaEnVivo(valorManoObraEditInput);
@@ -1274,14 +1336,17 @@ function renderMaintenanceEditForm(item) {
         const errorEl = document.getElementById("editMaintenanceError");
         errorEl.classList.add("hidden");
 
+        const esCambioAceite = tipoSelect.value === "cambio_aceite";
         const payload = {
+            tipo: tipoSelect.value,
             fecha: fechaInput.value,
             descripcion: document.getElementById("editMantenimientoDescripcion").value,
             kilometraje: window.VehiAmb.ui.parseFormattedNumber(kilometrajeInput.value),
             valor_mano_obra: window.VehiAmb.ui.parseFormattedMoneda(valorManoObraEditInput.value),
-            vehiculo_varado: document.getElementById("editVehiculoVaradoInput").checked
+            vehiculo_varado: vehiculoVaradoEditInput.checked
         };
         if (esCambioAceite) {
+            payload.proximo_cambio_km = window.VehiAmb.ui.parseFormattedNumber(proximoCambioKmEditInput.value);
             payload.proximo_cambio_fecha = proximoCambioFechaEditInput.value;
         }
 
@@ -1293,8 +1358,10 @@ function renderMaintenanceEditForm(item) {
             window.VehiAmb.ui.showMessage(mensaje, "Mantenimiento actualizado correctamente");
             await cargarDatos();
             const actualizado = mantenimientosState.find((registro) => String(registro.id) === String(item.id)) || item;
-            currentDetailItem = actualizado;
-            await renderMaintenanceDetailView(actualizado);
+            // openMaintenanceDetail (no solo renderMaintenanceDetailView) porque
+            // el tipo pudo haber cambiado -- eso tambien afecta el titulo del
+            // drawer y los botones "Ver etiqueta"/"Subir salida de inventario".
+            await openMaintenanceDetail(actualizado);
         } catch (error) {
             console.error(error);
             errorEl.textContent = error.message || "No se pudo actualizar el mantenimiento";

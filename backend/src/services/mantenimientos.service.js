@@ -377,13 +377,13 @@ async function createMantenimiento(payload, file, currentUser) {
   return { ...creado, advertenciasStock };
 }
 
-// Edicion restringida a los datos del registro (fecha, descripcion,
-// kilometraje, mano de obra, "vehiculo varado", proxima fecha de cambio de
-// aceite) -- deliberadamente NO permite cambiar vehiculo, tipo ni repuestos,
-// porque esos ya definieron movimientos de stock/notificaciones al crear el
-// registro (ver MANTENIMIENTO_EDITABLE_FIELDS en el repositorio). Si el
-// vehiculo o el tipo estan mal, se elimina el registro y se crea de nuevo.
-// Solo Lider/Administrador (permiso maintenance.edit).
+// Edicion restringida a los datos del registro (tipo, fecha, descripcion,
+// kilometraje, mano de obra, "vehiculo varado", proximo cambio de aceite) --
+// deliberadamente NO permite cambiar vehiculo ni repuestos, porque esos ya
+// definieron movimientos de stock al crear el registro (ver
+// MANTENIMIENTO_EDITABLE_FIELDS en el repositorio). Si el vehiculo esta mal,
+// o los repuestos no coinciden con el tipo nuevo, se elimina el registro y
+// se crea de nuevo. Solo Lider/Administrador (permiso maintenance.edit).
 async function updateMantenimiento(id, payload, currentUser) {
   const empresaId = currentUser.empresa_id;
 
@@ -397,26 +397,33 @@ async function updateMantenimiento(id, payload, currentUser) {
     throw new HttpError(404, "Vehículo no encontrado");
   }
 
-  const valorManoObra = toNumberOrNull(payload.valor_mano_obra) ?? 0;
+  const tipo = String(payload.tipo || existing.tipo).trim();
+  const esCambioAceite = tipo === "cambio_aceite";
   const totalRepuestos = sumRepuestos(existing.repuestos);
-  const vehiculoVarado = toBoolean(payload.vehiculo_varado);
+
+  // Igual que al crear (ver normalizePayload/updateCambioAceiteFields en el
+  // frontend): un cambio de aceite es rutina, sin mano de obra aparte y sin
+  // dejar el vehiculo "en taller" -- se ignora lo que venga en el payload
+  // para esos dos campos si el tipo (nuevo o existente) es cambio_aceite, no
+  // solo se confia en que el formulario ya los oculte.
+  const valorManoObra = esCambioAceite ? 0 : (toNumberOrNull(payload.valor_mano_obra) ?? 0);
+  const vehiculoVarado = esCambioAceite ? false : toBoolean(payload.vehiculo_varado);
 
   const cambios = {
+    tipo,
     fecha: String(payload.fecha || "").trim(),
     descripcion: payload.descripcion ? String(payload.descripcion).trim() : null,
     kilometraje: toNumberOrNull(payload.kilometraje),
     valor_mano_obra: valorManoObra,
     valor: valorManoObra + totalRepuestos,
     vehiculo_varado: vehiculoVarado,
-    proximo_cambio_fecha: existing.tipo === "cambio_aceite"
+    proximo_cambio_km: esCambioAceite ? toNumberOrNull(payload.proximo_cambio_km) : null,
+    proximo_cambio_fecha: esCambioAceite
       ? (payload.proximo_cambio_fecha ? String(payload.proximo_cambio_fecha).trim() : null)
-      : existing.proximo_cambio_fecha
+      : null
   };
 
-  await validateMantenimiento(
-    { ...cambios, vehiculo_id: existing.vehiculo_id, tipo: existing.tipo, proximo_cambio_km: existing.proximo_cambio_km },
-    vehiculo
-  );
+  await validateMantenimiento({ ...cambios, vehiculo_id: existing.vehiculo_id }, vehiculo);
 
   // Mismo criterio que al crear: si con los datos editados el mantenimiento
   // ahora requiere aprobacion (tipo/valor/varado), se marca "pendiente" sin
@@ -424,7 +431,7 @@ async function updateMantenimiento(id, payload, currentUser) {
   // tal cual -- editar nunca "des-pendiente" ni "des-aprueba" nada por si
   // solo, eso sigue siendo exclusivo del boton Aprobar/Rechazar.
   const requiereAprobacion =
-    TIPOS_QUE_REQUIEREN_APROBACION.has(existing.tipo) || cambios.valor > UMBRAL_APROBACION_VALOR || vehiculoVarado;
+    TIPOS_QUE_REQUIEREN_APROBACION.has(tipo) || cambios.valor > UMBRAL_APROBACION_VALOR || vehiculoVarado;
   cambios.estado = requiereAprobacion ? "pendiente" : existing.estado;
 
   const actualizado = await mantenimientosRepository.update(id, cambios, empresaId);
