@@ -585,6 +585,17 @@ label[for="loginPassword"] {
     color: var(--color-primary);
 }
 
+/* Reusa .notif-filtro-chip (mismo look que los chips de categoria del
+   centro de notificaciones) para filtrar "Usuarios registrados" por rol --
+   con 20+ usuarios entre varios roles, el buscador por nombre/correo solo
+   no alcanza para "muestrame solo los conductores". */
+.admin-users-role-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
 .notif-panel-footer {
     padding: 10px 14px;
     border-top: 1px solid var(--color-border);

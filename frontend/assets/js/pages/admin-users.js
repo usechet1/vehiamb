@@ -12,6 +12,7 @@ const userFormMode = document.getElementById("userFormMode");
 const cancelEditButton = document.getElementById("cancelEditButton");
 const usersList = document.getElementById("usersList");
 const usersKpisGrid = document.getElementById("usersKpisGrid");
+const usersRoleChips = document.getElementById("usersRoleChips");
 const userSearchInput = document.getElementById("userSearchInput");
 const rolesPermissions = document.getElementById("rolesPermissions");
 const toggleUserPasswordButton = document.getElementById("toggleUserPasswordButton");
@@ -25,6 +26,7 @@ const userPhotoPreview = document.getElementById("userPhotoPreview");
 let usersState = [];
 let rolesState = [];
 let permissionsState = [];
+let usersRoleActiva = "";
 
 function buildEmail(rawValue) {
     return String(rawValue || "").trim().toLowerCase();
@@ -109,6 +111,10 @@ function roleNameById(roleId) {
     return rolesState.find((role) => String(role.id) === String(roleId))?.nombre || "Sin rol";
 }
 
+function userRoleName(user) {
+    return user.rol || roleNameById(user.role_id);
+}
+
 function renderUsersKpis() {
     const activos = usersState.filter((user) => user.activo).length;
 
@@ -128,6 +134,32 @@ function renderUsersKpis() {
     `;
 }
 
+// Chips "Todos (27)" + uno por rol con su conteo -- con 20+ usuarios entre
+// varios roles, el buscador por nombre/correo solo no resuelve "muestrame
+// solo los conductores". Reusa .notif-filtro-chip (mismo look que las
+// categorias del centro de notificaciones).
+function renderUsersRoleChips() {
+    const counts = {};
+    usersState.forEach((user) => {
+        const rol = userRoleName(user);
+        counts[rol] = (counts[rol] || 0) + 1;
+    });
+
+    const roles = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+
+    const chipTodos = `<button type="button" class="notif-filtro-chip${usersRoleActiva ? "" : " active"}" data-users-rol="">Todos (${usersState.length})</button>`;
+    const chipsRoles = roles.map((rol) => {
+        const activa = usersRoleActiva === rol;
+        return `<button type="button" class="notif-filtro-chip${activa ? " active" : ""}" data-users-rol="${escapeHtml(rol)}">${escapeHtml(rol)} (${counts[rol]})</button>`;
+    }).join("");
+
+    usersRoleChips.innerHTML = chipTodos + chipsRoles;
+}
+
+function matchesUserRole(user) {
+    return !usersRoleActiva || userRoleName(user) === usersRoleActiva;
+}
+
 function matchesUserSearch(user) {
     const termino = userSearchInput.value.trim().toLowerCase();
     if (!termino) return true;
@@ -137,13 +169,13 @@ function matchesUserSearch(user) {
 }
 
 function applyUserFilters() {
-    renderUsers(usersState.filter(matchesUserSearch));
+    renderUsers(usersState.filter((user) => matchesUserRole(user) && matchesUserSearch(user)));
 }
 
 function renderUsers(rows) {
     if (!rows.length) {
         usersList.innerHTML = usersState.length
-            ? '<p class="dash-empty">Ningún usuario coincide con la búsqueda</p>'
+            ? '<p class="dash-empty">Ningún usuario coincide con estos filtros</p>'
             : '<p class="dash-empty">Aún no hay usuarios registrados</p>';
         return;
     }
@@ -167,7 +199,7 @@ function renderUsers(rows) {
                 </span>
             </div>
             <div class="record-meta">
-                <span class="pill">${escapeHtml(user.rol || roleNameById(user.role_id))}</span>
+                <span class="pill">${escapeHtml(userRoleName(user))}</span>
             </div>
             <div class="admin-user-actions">
                 <button type="button" class="btn-secondary" data-action="edit" data-id="${user.id}">Editar</button>
@@ -357,6 +389,7 @@ async function saveUser(event) {
 async function loadUsers() {
     usersState = await window.VehiAmb.api.getUsuarios();
     renderUsersKpis();
+    renderUsersRoleChips();
     applyUserFilters();
 }
 
@@ -405,6 +438,7 @@ async function initAdminUsers() {
 
         resetForm();
         renderUsersKpis();
+        renderUsersRoleChips();
         applyUserFilters();
         renderRolePermissions();
 
@@ -423,6 +457,17 @@ async function initAdminUsers() {
 userForm.addEventListener("submit", saveUser);
 cancelEditButton.addEventListener("click", resetForm);
 userSearchInput.addEventListener("input", applyUserFilters);
+
+usersRoleChips.addEventListener("click", (event) => {
+    const chip = event.target.closest("[data-users-rol]");
+    if (!chip) return;
+
+    usersRoleActiva = chip.dataset.usersRol;
+    usersRoleChips.querySelectorAll(".notif-filtro-chip").forEach((c) => {
+        c.classList.toggle("active", c.dataset.usersRol === usersRoleActiva);
+    });
+    applyUserFilters();
+});
 
 usersList.addEventListener("click", (event) => {
     const button = event.target.closest("button[data-action]");
