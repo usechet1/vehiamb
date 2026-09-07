@@ -22,6 +22,23 @@ const MANTENIMIENTO_FIELDS = [
   "empresa_id"
 ];
 
+// Campos que "editar mantenimiento" puede tocar (ver
+// mantenimientos.service.js#updateMantenimiento) -- deliberadamente NO
+// incluye vehiculo_id, tipo, repuestos ni soporte: esos ya definieron
+// movimientos de stock/notificaciones al crear el registro y cambiarlos
+// despues requeriria revertir y reaplicar todo eso, fuera de alcance de esta
+// edicion (que es para corregir datos del registro, no para "recrearlo").
+const MANTENIMIENTO_EDITABLE_FIELDS = [
+  "fecha",
+  "descripcion",
+  "kilometraje",
+  "valor_mano_obra",
+  "valor",
+  "vehiculo_varado",
+  "proximo_cambio_fecha",
+  "estado"
+];
+
 async function findAll(filters = {}, empresaId) {
   const conditions = ["m.empresa_id = ?"];
   const values = [empresaId];
@@ -171,6 +188,22 @@ async function findVehiculosBloqueadosEnFecha(fecha, empresaId) {
   );
 }
 
+// Update parcial restringido a MANTENIMIENTO_EDITABLE_FIELDS (ver arriba) --
+// "fields" trae solo las claves que de verdad cambian, calculadas en
+// mantenimientos.service.js#updateMantenimiento.
+async function update(id, fields, empresaId) {
+  const columnas = MANTENIMIENTO_EDITABLE_FIELDS.filter((field) => field in fields);
+  if (!columnas.length) return findById(id, empresaId);
+
+  const asignaciones = columnas.map((field) => `${field} = ?`).join(", ");
+  const valores = columnas.map((field) => fields[field]);
+
+  return db.get(
+    `UPDATE mantenimientos SET ${asignaciones} WHERE id = ? AND empresa_id = ? RETURNING *`,
+    [...valores, id, empresaId]
+  );
+}
+
 async function updateSalidaInventario(id, { url, nombre, mime }, empresaId) {
   await db.run(
     "UPDATE mantenimientos SET salida_inventario_url = ?, salida_inventario_nombre = ?, salida_inventario_mime = ? WHERE id = ? AND empresa_id = ?",
@@ -242,6 +275,7 @@ module.exports = {
   findById,
   findByIdWithVehiculo,
   create,
+  update,
   createRepuestoDetalle,
   findRepuestosEstructurados,
   updateEstado,

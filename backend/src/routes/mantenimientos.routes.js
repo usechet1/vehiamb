@@ -59,6 +59,12 @@ router.post(
   asyncHandler(mantenimientosController.rechazarMantenimiento)
 );
 
+router.put(
+  "/:id",
+  requirePermission("maintenance.edit"),
+  asyncHandler(mantenimientosController.updateMantenimiento)
+);
+
 router.delete("/:id", requirePermission("maintenance.delete"), asyncHandler(mantenimientosController.deleteMantenimiento));
 
 module.exports = router;

@@ -75,8 +75,11 @@ const maintenanceDrawerTitle = document.getElementById("maintenanceDrawerTitle")
 const maintenanceDrawerSubtitle = document.getElementById("maintenanceDrawerSubtitle");
 const maintenanceDrawerBody = document.getElementById("maintenanceDrawerBody");
 const exportMaintenanceButton = document.getElementById("exportMaintenanceButton");
-const deleteMaintenanceButton = document.getElementById("deleteMaintenanceButton");
 const approveMaintenanceButton = document.getElementById("approveMaintenanceButton");
+const maintenanceMenuTrigger = document.getElementById("maintenanceMenuTrigger");
+const maintenanceMenuPopover = document.getElementById("maintenanceMenuPopover");
+const editMaintenanceMenuButton = document.getElementById("editMaintenanceMenuButton");
+const deleteMaintenanceMenuButton = document.getElementById("deleteMaintenanceMenuButton");
 const exportHistorialButton = document.getElementById("exportHistorialButton");
 const exportHistorialExcelButton = document.getElementById("exportHistorialExcelButton");
 const exportMenuTrigger = document.getElementById("exportMenuTrigger");
@@ -1106,21 +1109,9 @@ function renderRepuestosCatalogo(items) {
     `;
 }
 
-async function openMaintenanceDetail(item) {
-    currentDetailItem = item;
+async function renderMaintenanceDetailView(item) {
     const vehicleName = `${item.marca || ""} ${item.modelo || ""}`.trim() || "Vehículo";
-
-    maintenanceDrawerTitle.textContent = tiposMantenimiento[item.tipo] || item.tipo || "Mantenimiento";
-    maintenanceDrawerSubtitle.textContent = `${item.placa || "Sin placa"} - ${vehicleName}`;
     const esCambioAceite = item.tipo === "cambio_aceite";
-    viewEtiquetaButton.classList.toggle("hidden", !esCambioAceite);
-    subirSalidaInventarioButton.classList.toggle("hidden", !esCambioAceite);
-    subirSalidaInventarioButton.textContent = item.salida_inventario_url
-        ? "Reemplazar salida de inventario"
-        : "Subir salida de inventario";
-    deleteMaintenanceButton.classList.toggle("hidden", !window.VehiAmb.auth?.hasPermission?.("maintenance.delete"));
-    const puedeAprobar = item.estado === "pendiente" && Boolean(window.VehiAmb.auth?.hasPermission?.("maintenance.approve"));
-    approveMaintenanceButton.classList.toggle("hidden", !puedeAprobar);
 
     maintenanceDrawerBody.innerHTML = `
         <dl class="detail-list drawer-detail-list mnt-detail-2col">
@@ -1162,11 +1153,6 @@ async function openMaintenanceDetail(item) {
         ` : ""}
     `;
 
-    window.VehiAmb.ui.show(maintenanceDrawerBackdrop);
-    window.VehiAmb.ui.show(maintenanceDrawer);
-    maintenanceDrawer.setAttribute("aria-hidden", "false");
-    closeMaintenanceDrawer.focus();
-
     try {
         const repuestosCatalogo = await window.VehiAmb.api.getMantenimientoRepuestos(item.id);
         if (!repuestosCatalogo.length) return; // Sin datos de catalogo: se deja el detalle legado ya mostrado.
@@ -1176,6 +1162,176 @@ async function openMaintenanceDetail(item) {
     } catch (error) {
         // Mantenimientos viejos (o sin repuestos de catalogo) se quedan con el detalle legado ya mostrado.
     }
+}
+
+// Edicion restringida a los datos del registro (ver
+// backend/src/services/mantenimientos.service.js#updateMantenimiento):
+// fecha, descripcion, kilometraje, mano de obra, "vehiculo varado" y, para
+// cambio de aceite, la proxima fecha. Vehiculo, tipo y repuestos no se
+// pueden tocar desde aca (ya consumieron stock/dispararon notificaciones al
+// crear el registro) -- si estan mal, se elimina y se registra de nuevo.
+function renderMaintenanceEditForm(item) {
+    const esCambioAceite = item.tipo === "cambio_aceite";
+
+    maintenanceDrawerBody.innerHTML = `
+        <form id="editMaintenanceForm" class="mnt-edit-form">
+            <div class="form-group">
+                <label>Fecha</label>
+                <input type="date" id="editMantenimientoFecha" required>
+            </div>
+
+            <div class="form-group">
+                <label>Descripción</label>
+                <textarea id="editMantenimientoDescripcion" rows="3" maxlength="1000" placeholder="Describe el trabajo realizado..."></textarea>
+            </div>
+
+            <div class="form-grid-3">
+                <div class="form-group">
+                    <label>Kilometraje actual</label>
+                    <input type="text" inputmode="decimal" id="editMantenimientoKilometraje" class="mnt-input-lg">
+                </div>
+
+                ${esCambioAceite ? `
+                    <div class="form-group">
+                        <label>Próximo cambio (km)</label>
+                        <input type="text" id="editProximoCambioKmInput" class="mnt-input-lg" readonly disabled>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Próxima fecha</label>
+                        <input type="date" id="editProximoCambioFechaInput" class="mnt-input-lg">
+                    </div>
+                ` : ""}
+            </div>
+
+            <div class="form-group form-checkbox">
+                <label>
+                    <input type="checkbox" id="editVehiculoVaradoInput">
+                    Vehículo en taller (no disponible para asignación de rutas)
+                </label>
+            </div>
+
+            <div class="mnt-summary">
+                <div class="mnt-summary-row">
+                    <span>Mano de obra</span>
+                    <input type="text" inputmode="numeric" id="editValorManoObraInput" class="mnt-summary-input">
+                </div>
+            </div>
+
+            <div class="wizard-nav">
+                <span id="editMaintenanceError" class="field-help field-help-danger hidden"></span>
+                <div class="mnt-step3-buttons">
+                    <button type="button" class="btn-secondary" id="cancelEditMaintenanceButton">Cancelar</button>
+                    <button type="submit" class="btn-primary" id="saveEditMaintenanceButton">Guardar cambios</button>
+                </div>
+            </div>
+        </form>
+    `;
+
+    const fechaInput = document.getElementById("editMantenimientoFecha");
+    const kilometrajeInput = document.getElementById("editMantenimientoKilometraje");
+    const valorManoObraEditInput = document.getElementById("editValorManoObraInput");
+    const proximoCambioKmEditInput = document.getElementById("editProximoCambioKmInput");
+    const proximoCambioFechaEditInput = document.getElementById("editProximoCambioFechaInput");
+
+    fechaInput.value = String(item.fecha || "").slice(0, 10);
+    document.getElementById("editMantenimientoDescripcion").value = item.descripcion || "";
+    kilometrajeInput.value = window.VehiAmb.ui.formatearNumeroParaMostrar(Number(item.kilometraje || 0));
+    document.getElementById("editVehiculoVaradoInput").checked = Boolean(item.vehiculo_varado);
+    valorManoObraEditInput.value = `$ ${window.VehiAmb.ui.formatearNumeroParaMostrar(Number(item.valor_mano_obra || 0))}`;
+
+    // "Proximo cambio (km)" sigue siendo de solo lectura, igual que al
+    // registrar: se recalcula con el kilometraje que se esta editando +
+    // intervalo configurado del vehiculo (ver proximoCambioAceiteInfo).
+    function actualizarProximoCambioKmEdit() {
+        if (!proximoCambioKmEditInput) return;
+        proximoCambioKmEditInput.value = proximoCambioAceiteInfo({
+            ...item,
+            kilometraje: window.VehiAmb.ui.parseFormattedNumber(kilometrajeInput.value)
+        });
+    }
+
+    if (esCambioAceite) {
+        proximoCambioFechaEditInput.value = String(item.proximo_cambio_fecha || "").slice(0, 10);
+        actualizarProximoCambioKmEdit();
+    }
+
+    kilometrajeInput.addEventListener("input", () => {
+        window.VehiAmb.ui.formatearNumeroEnVivo(kilometrajeInput);
+        actualizarProximoCambioKmEdit();
+    });
+    valorManoObraEditInput.addEventListener("input", () => {
+        window.VehiAmb.ui.formatearMonedaEnVivo(valorManoObraEditInput);
+    });
+
+    document.getElementById("cancelEditMaintenanceButton").addEventListener("click", () => {
+        renderMaintenanceDetailView(item);
+    });
+
+    document.getElementById("editMaintenanceForm").addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const errorEl = document.getElementById("editMaintenanceError");
+        errorEl.classList.add("hidden");
+
+        const payload = {
+            fecha: fechaInput.value,
+            descripcion: document.getElementById("editMantenimientoDescripcion").value,
+            kilometraje: window.VehiAmb.ui.parseFormattedNumber(kilometrajeInput.value),
+            valor_mano_obra: window.VehiAmb.ui.parseFormattedMoneda(valorManoObraEditInput.value),
+            vehiculo_varado: document.getElementById("editVehiculoVaradoInput").checked
+        };
+        if (esCambioAceite) {
+            payload.proximo_cambio_fecha = proximoCambioFechaEditInput.value;
+        }
+
+        const saveButton = document.getElementById("saveEditMaintenanceButton");
+        saveButton.disabled = true;
+
+        try {
+            await window.VehiAmb.api.updateMantenimiento(item.id, payload);
+            window.VehiAmb.ui.showMessage(mensaje, "Mantenimiento actualizado correctamente");
+            await cargarDatos();
+            const actualizado = mantenimientosState.find((registro) => String(registro.id) === String(item.id)) || item;
+            currentDetailItem = actualizado;
+            await renderMaintenanceDetailView(actualizado);
+        } catch (error) {
+            console.error(error);
+            errorEl.textContent = error.message || "No se pudo actualizar el mantenimiento";
+            errorEl.classList.remove("hidden");
+        } finally {
+            saveButton.disabled = false;
+        }
+    });
+}
+
+async function openMaintenanceDetail(item) {
+    currentDetailItem = item;
+    const vehicleName = `${item.marca || ""} ${item.modelo || ""}`.trim() || "Vehículo";
+
+    maintenanceDrawerTitle.textContent = tiposMantenimiento[item.tipo] || item.tipo || "Mantenimiento";
+    maintenanceDrawerSubtitle.textContent = `${item.placa || "Sin placa"} - ${vehicleName}`;
+    const esCambioAceite = item.tipo === "cambio_aceite";
+    viewEtiquetaButton.classList.toggle("hidden", !esCambioAceite);
+    subirSalidaInventarioButton.classList.toggle("hidden", !esCambioAceite);
+    subirSalidaInventarioButton.textContent = item.salida_inventario_url
+        ? "Reemplazar salida de inventario"
+        : "Subir salida de inventario";
+    editMaintenanceMenuButton.classList.toggle("hidden", !window.VehiAmb.auth?.hasPermission?.("maintenance.edit"));
+    deleteMaintenanceMenuButton.classList.toggle("hidden", !window.VehiAmb.auth?.hasPermission?.("maintenance.delete"));
+    const puedeAprobar = item.estado === "pendiente" && Boolean(window.VehiAmb.auth?.hasPermission?.("maintenance.approve"));
+    approveMaintenanceButton.classList.toggle("hidden", !puedeAprobar);
+
+    // No se espera renderMaintenanceDetailView (trae el catalogo de
+    // repuestos por su cuenta) para no retrasar la apertura del drawer -- se
+    // abre de una vez con el detalle legado y se actualiza en cuanto
+    // responda, igual que antes de este refactor.
+    renderMaintenanceDetailView(item);
+
+    window.VehiAmb.ui.show(maintenanceDrawerBackdrop);
+    window.VehiAmb.ui.show(maintenanceDrawer);
+    maintenanceDrawer.setAttribute("aria-hidden", "false");
+    closeMaintenanceDrawer.focus();
 }
 
 viewEtiquetaButton.addEventListener("click", () => {
@@ -1219,6 +1375,7 @@ function closeDetailDrawer() {
     window.VehiAmb.ui.hide(maintenanceDrawerBackdrop);
     window.VehiAmb.ui.hide(maintenanceDrawer);
     maintenanceDrawer.setAttribute("aria-hidden", "true");
+    maintenanceMenuPopover.classList.add("hidden");
 }
 
 // El backend ya trae los mantenimientos ordenados por fecha DESC, asi que
@@ -1665,17 +1822,37 @@ exportMaintenanceButton.addEventListener("click", async () => {
     }
 });
 
-deleteMaintenanceButton.addEventListener("click", async () => {
+function cerrarMenuMantenimiento() {
+    maintenanceMenuPopover.classList.add("hidden");
+}
+
+maintenanceMenuTrigger.addEventListener("click", (event) => {
+    event.stopPropagation();
+    maintenanceMenuPopover.classList.toggle("hidden");
+});
+
+document.addEventListener("click", (event) => {
+    if (!event.target.closest("#maintenanceMenuTrigger, #maintenanceMenuPopover")) cerrarMenuMantenimiento();
+});
+
+editMaintenanceMenuButton.addEventListener("click", () => {
     if (!currentDetailItem) return;
+    cerrarMenuMantenimiento();
+    renderMaintenanceEditForm(currentDetailItem);
+});
+
+deleteMaintenanceMenuButton.addEventListener("click", async () => {
+    if (!currentDetailItem) return;
+    cerrarMenuMantenimiento();
 
     const confirmado = await window.VehiAmb.ui.confirm({
         title: "Eliminar mantenimiento",
-        message: "Si consumió repuestos, el stock se devuelve. Esta acción no se puede deshacer.",
+        message: "¿Eliminar este mantenimiento? Esta acción no se puede deshacer.",
         confirmText: "Eliminar"
     });
     if (!confirmado) return;
 
-    deleteMaintenanceButton.disabled = true;
+    deleteMaintenanceMenuButton.disabled = true;
 
     try {
         await window.VehiAmb.api.deleteMantenimiento(currentDetailItem.id);
@@ -1686,7 +1863,7 @@ deleteMaintenanceButton.addEventListener("click", async () => {
         console.error(error);
         window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo eliminar el mantenimiento", "error");
     } finally {
-        deleteMaintenanceButton.disabled = false;
+        deleteMaintenanceMenuButton.disabled = false;
     }
 });
 

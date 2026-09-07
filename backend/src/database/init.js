@@ -195,6 +195,7 @@ const PERMISSIONS = [
   ["maintenance.view", "Mantenimientos", "Ver mantenimientos"],
   ["maintenance.create", "Mantenimientos", "Registrar mantenimientos"],
   ["maintenance.approve", "Mantenimientos", "Aprobar o rechazar mantenimientos"],
+  ["maintenance.edit", "Mantenimientos", "Editar mantenimientos ya registrados"],
   ["maintenance.delete", "Mantenimientos", "Eliminar mantenimientos"],
   ["documents.view", "Documentos", "Ver documentos"],
   ["documents.create", "Documentos", "Registrar documentos"],
@@ -278,6 +279,7 @@ const ROLE_PERMISSIONS = {
     "maintenance.view",
     "maintenance.create",
     "maintenance.approve",
+    "maintenance.edit",
     "documents.view",
     "documents.create",
     "documents.alertas_vencimiento",
@@ -420,7 +422,8 @@ const PERMISOS_NUEVOS_POR_ROL = {
   "seguridad.delete": ["Administrador"],
   "notificaciones.comentar": ["Administrador", "Operador"],
   "maintenance.delete": ["Administrador"],
-  "vehicles.edit_estado": ["Administrador", "Lider"]
+  "vehicles.edit_estado": ["Administrador", "Lider"],
+  "maintenance.edit": ["Administrador", "Lider"]
 };
 
 async function grantPermisosNuevos() {

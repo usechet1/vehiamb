@@ -255,6 +255,18 @@ window.VehiAmb.api = {
         );
     },
 
+    updateMantenimiento(id, payload) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/mantenimientos/${id}`,
+            {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            },
+            "No se pudo actualizar el mantenimiento"
+        );
+    },
+
     createMantenimiento(payload) {
         return requestJson(
             `${window.VehiAmb.API_URL}/mantenimientos`,

@@ -25,6 +25,11 @@ exports.createMantenimiento = async (req, res) => {
   res.status(201).json(mantenimiento);
 };
 
+exports.updateMantenimiento = async (req, res) => {
+  const mantenimiento = await mantenimientosService.updateMantenimiento(req.params.id, req.body, req.user);
+  res.json(mantenimiento);
+};
+
 exports.getRepuestosEstructurados = async (req, res) => {
   const items = await mantenimientosService.getRepuestosEstructurados(req.params.id, req.empresaId);
   res.json(items);

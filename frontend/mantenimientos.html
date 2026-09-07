@@ -372,14 +372,28 @@
                             <h2 id="maintenanceDrawerTitle">Mantenimiento</h2>
                             <p id="maintenanceDrawerSubtitle">Información completa del registro</p>
                         </div>
-                        <button type="button" id="closeMaintenanceDrawer" class="drawer-close" aria-label="Cerrar detalle">×</button>
+                        <div class="detail-drawer-head-buttons">
+                            <div class="doc-filter-popover-wrap">
+                                <button type="button" class="mnt-kebab-trigger" id="maintenanceMenuTrigger" aria-label="Más acciones">⋮</button>
+                                <div class="doc-filter-popover hidden" id="maintenanceMenuPopover">
+                                    <button type="button" class="doc-filter-option doc-filter-option--icon hidden" id="editMaintenanceMenuButton">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                                        Editar
+                                    </button>
+                                    <button type="button" class="doc-filter-option doc-filter-option--icon notif-menu-option--danger hidden" id="deleteMaintenanceMenuButton">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                                        Eliminar
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="button" id="closeMaintenanceDrawer" class="drawer-close" aria-label="Cerrar detalle">×</button>
+                        </div>
                     </div>
                     <div class="detail-drawer-actions">
                         <button type="button" id="subirSalidaInventarioButton" class="btn-secondary hidden">Subir salida de inventario</button>
                         <button type="button" id="viewEtiquetaButton" class="btn-secondary hidden">Ver etiqueta</button>
                         <button type="button" id="exportMaintenanceButton" class="btn-secondary btn-pdf">Exportar PDF</button>
                         <button type="button" id="approveMaintenanceButton" class="btn-primary hidden">Aprobar</button>
-                        <button type="button" id="deleteMaintenanceButton" class="btn-secondary btn-danger hidden">Eliminar mantenimiento</button>
                     </div>
                     <input type="file" id="salidaInventarioInput" accept=".pdf,image/png,image/jpeg,image/webp" class="hidden">
                 </div>

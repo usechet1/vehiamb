@@ -377,6 +377,63 @@ async function createMantenimiento(payload, file, currentUser) {
   return { ...creado, advertenciasStock };
 }
 
+// Edicion restringida a los datos del registro (fecha, descripcion,
+// kilometraje, mano de obra, "vehiculo varado", proxima fecha de cambio de
+// aceite) -- deliberadamente NO permite cambiar vehiculo, tipo ni repuestos,
+// porque esos ya definieron movimientos de stock/notificaciones al crear el
+// registro (ver MANTENIMIENTO_EDITABLE_FIELDS en el repositorio). Si el
+// vehiculo o el tipo estan mal, se elimina el registro y se crea de nuevo.
+// Solo Lider/Administrador (permiso maintenance.edit).
+async function updateMantenimiento(id, payload, currentUser) {
+  const empresaId = currentUser.empresa_id;
+
+  const existing = await mantenimientosRepository.findById(id, empresaId);
+  if (!existing) {
+    throw new HttpError(404, "Mantenimiento no encontrado");
+  }
+
+  const vehiculo = await vehiculosRepository.findById(existing.vehiculo_id, empresaId);
+  if (!vehiculo) {
+    throw new HttpError(404, "Vehículo no encontrado");
+  }
+
+  const valorManoObra = toNumberOrNull(payload.valor_mano_obra) ?? 0;
+  const totalRepuestos = sumRepuestos(existing.repuestos);
+  const vehiculoVarado = toBoolean(payload.vehiculo_varado);
+
+  const cambios = {
+    fecha: String(payload.fecha || "").trim(),
+    descripcion: payload.descripcion ? String(payload.descripcion).trim() : null,
+    kilometraje: toNumberOrNull(payload.kilometraje),
+    valor_mano_obra: valorManoObra,
+    valor: valorManoObra + totalRepuestos,
+    vehiculo_varado: vehiculoVarado,
+    proximo_cambio_fecha: existing.tipo === "cambio_aceite"
+      ? (payload.proximo_cambio_fecha ? String(payload.proximo_cambio_fecha).trim() : null)
+      : existing.proximo_cambio_fecha
+  };
+
+  await validateMantenimiento(
+    { ...cambios, vehiculo_id: existing.vehiculo_id, tipo: existing.tipo, proximo_cambio_km: existing.proximo_cambio_km },
+    vehiculo
+  );
+
+  // Mismo criterio que al crear: si con los datos editados el mantenimiento
+  // ahora requiere aprobacion (tipo/valor/varado), se marca "pendiente" sin
+  // importar el estado anterior. Si no la requiere, se deja el estado actual
+  // tal cual -- editar nunca "des-pendiente" ni "des-aprueba" nada por si
+  // solo, eso sigue siendo exclusivo del boton Aprobar/Rechazar.
+  const requiereAprobacion =
+    TIPOS_QUE_REQUIEREN_APROBACION.has(existing.tipo) || cambios.valor > UMBRAL_APROBACION_VALOR || vehiculoVarado;
+  cambios.estado = requiereAprobacion ? "pendiente" : existing.estado;
+
+  const actualizado = await mantenimientosRepository.update(id, cambios, empresaId);
+
+  await vehiculoDisponibilidadService.reevaluarDisponibilidad(existing.vehiculo_id, empresaId);
+
+  return actualizado;
+}
+
 // Solo Administrador (ver PERMISOS_NUEVOS_POR_ROL en database/init.js,
 // permiso maintenance.delete). Si el mantenimiento habia consumido
 // repuestos, ese stock se devuelve dentro de la misma transaccion -- si no,
@@ -441,6 +498,7 @@ module.exports = {
   getRepuestosEstructurados,
   getMantenimiento,
   createMantenimiento,
+  updateMantenimiento,
   subirSalidaInventario,
   confirmarCambioAceite,
   listUsuariosDisponibles,
