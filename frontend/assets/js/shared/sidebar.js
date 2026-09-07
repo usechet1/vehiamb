@@ -29,6 +29,20 @@ function getInitials(name) {
         .join("");
 }
 
+// El nombre completo (guardado en MAYUSCULAS, ej. "TOMAS FERNANDEZ
+// RESTREPO") es el dato mas ancho del panel del sidebar y el que menos
+// espacio tiene -- en vez de dejar que se corte con "...", se recorta a
+// "Nombre Primer-apellido" (las primeras dos palabras) y se pasa a
+// capitalizado normal, que ocupa menos ancho que sostenido. El nombre
+// completo original queda en el atributo title (tooltip al pasar el mouse)
+// para no perder el dato, y el ellipsis del CSS se deja como ultimo
+// recurso para el caso raro de un nombre/apellido individual larguisimo.
+function formatSidebarName(nombreCompleto) {
+    const palabras = String(nombreCompleto || "").trim().split(/\s+/).filter(Boolean);
+    const capitalizar = (palabra) => palabra.charAt(0).toUpperCase() + palabra.slice(1).toLowerCase();
+    return palabras.slice(0, 2).map(capitalizar).join(" ");
+}
+
 function formatearFechaHoy() {
     return new Date().toLocaleDateString("es-CO", {
         weekday: "long",
@@ -638,21 +652,40 @@ async function cargarSidebar() {
 
     const nameEl = aside.querySelector("#sidebarUserName");
     const roleEl = aside.querySelector("#sidebarUserRole");
-    const empresaEl = aside.querySelector("#sidebarUserEmpresa");
     const avatarEl = aside.querySelector("#userAvatar");
     const logoutButton = aside.querySelector("#logoutButton");
+    const userTrigger = aside.querySelector("#sidebarUserTrigger");
+    const userMenu = aside.querySelector("#sidebarUserMenu");
 
     logoutButton?.addEventListener("click", () => {
         window.VehiAmb.auth.logout();
     });
 
+    // Mismo patron que la campanita de notificaciones (ver setupNotificaciones):
+    // clic en el trigger alterna el menu, clic afuera lo cierra.
+    if (userTrigger && userMenu) {
+        userTrigger.addEventListener("click", () => {
+            const abierto = userMenu.classList.toggle("hidden") === false;
+            userTrigger.setAttribute("aria-expanded", String(abierto));
+        });
+
+        document.addEventListener("click", (event) => {
+            if (userMenu.classList.contains("hidden")) return;
+            if (userMenu.contains(event.target) || userTrigger.contains(event.target)) return;
+            userMenu.classList.add("hidden");
+            userTrigger.setAttribute("aria-expanded", "false");
+        });
+    }
+
     try {
         const user = await window.VehiAmb.auth.fetchCurrentUser();
         if (!user) return;
 
-        if (nameEl) nameEl.textContent = user.nombre;
+        if (nameEl) {
+            nameEl.textContent = formatSidebarName(user.nombre);
+            nameEl.title = user.nombre || "";
+        }
         if (roleEl) roleEl.textContent = user.rol || "Usuario";
-        if (empresaEl) empresaEl.textContent = user.empresa_nombre || "";
         const mobileTopbarEmpresaEl = document.getElementById("mobileTopbarEmpresa");
         if (mobileTopbarEmpresaEl) mobileTopbarEmpresaEl.textContent = user.empresa_nombre || "";
         if (avatarEl) {

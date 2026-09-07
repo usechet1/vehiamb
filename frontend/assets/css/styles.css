@@ -350,11 +350,40 @@ label[for="loginPassword"] {
 }
 
 /* ── Usuario ──────────────────────────────────── */
+.sidebar-user-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sidebar-user-menu-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+}
+
+/* El trigger es un <button> (antes era un <div> puramente decorativo) para
+   que todo el bloque avatar+nombre+rol abra el menu -- Cerrar sesion ya no
+   vive aca fuera, sino adentro del menu (ver .sidebar-user-menu), para que
+   no sea la accion mas facil de tocar por accidente siendo la menos usada. */
 .sidebar-user {
     display: flex;
     align-items: center;
+    width: 100%;
     gap: 10px;
     padding: 4px 8px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.sidebar-user:hover,
+.sidebar-user[aria-expanded="true"] {
+    background: rgba(255, 255, 255, 0.06);
 }
 
 /* ── Notificaciones ───────────────────────────── */
@@ -957,82 +986,133 @@ label[for="loginPassword"] {
 .user-info {
     display: flex;
     flex-direction: column;
+    gap: 3px;
     min-width: 0;
 }
 
+/* Nombre en peso normal (no en mayusculas+negrita): el dato mas personal
+   del panel no necesita gritar, y en mayusculas ocupa mas ancho -- una de
+   las razones por las que se cortaba tanto antes. El texto ya viene
+   recortado a "Nombre Apellido" desde JS (ver sidebar.js), asi que el
+   ellipsis de aca es un ultimo recurso, no el plan principal. */
 .user-info strong {
-    color: #fff;
-    font-size: 0.88rem;
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 0.85rem;
     font-weight: 500;
+    text-transform: none;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.user-info span {
-    color: rgba(255, 255, 255, 0.35);
-    font-size: 0.72rem;
+/* El rol es la etiqueta con mas contraste del bloque a proposito: define
+   que puede hacer este usuario, y antes era lo menos visible (gris tenue
+   sobre fondo oscuro). Ahora es una pildora con fondo propio, legible de
+   un vistazo. */
+.sidebar-role-pill {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    max-width: 100%;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.sidebar-user-empresa {
-    color: rgba(255, 255, 255, 0.55) !important;
+/* ── Menu desplegable del usuario (Empresa activa / Cambiar contraseña /
+   Cerrar sesion) -- se abre hacia arriba porque el trigger vive al fondo
+   del sidebar, mismo criterio que .notif-panel. Tema claro (como el resto
+   de los popovers de la app) en vez del fondo oscuro del sidebar. ── */
+.sidebar-user-menu {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    width: min(260px, 90vw);
+    padding: 6px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow);
+    z-index: 1000;
+}
+
+.sidebar-user-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-ink);
+    font-size: 0.85rem;
     font-weight: 600;
+    text-align: left;
+    cursor: pointer;
 }
 
-.sidebar-user-empresa:empty {
-    display: none;
+.sidebar-user-menu-item svg {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    color: var(--color-ink-soft);
+}
+
+.sidebar-user-menu-item:hover {
+    background: var(--color-surface-2);
+}
+
+.sidebar-user-menu-item.is-danger {
+    color: var(--color-primary);
+}
+
+.sidebar-user-menu-item.is-danger svg {
+    color: var(--color-primary);
+}
+
+.sidebar-user-menu-item.is-danger:hover {
+    background: rgba(178, 31, 45, 0.08);
+}
+
+.sidebar-user-menu-divider {
+    height: 1px;
+    margin: 6px 4px;
+    background: var(--color-border);
 }
 
 .sidebar-empresa-switcher {
-    margin-top: 6px;
+    padding: 6px 10px 10px;
+}
+
+.sidebar-empresa-switcher label {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--color-muted);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
 }
 
 .sidebar-empresa-switcher select {
     width: 100%;
-    min-height: 30px;
-    padding: 3px 6px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    min-height: 34px;
+    padding: 4px 8px;
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
-    background: rgba(255, 255, 255, 0.08);
-    color: #fff;
-    font-size: 0.76rem;
+    background: #fff;
+    color: var(--color-ink);
+    font-size: 0.8rem;
     font-weight: 650;
-}
-
-.sidebar-empresa-switcher select option {
-    color: #161b22;
-}
-
-/* ── Botón cerrar sesión ──────────────────────── */
-.footer-btn {
-    width: 100%;
-    min-height: 36px;
-    padding: 8px 10px;
-    border-radius: var(--radius-sm);
-    background: transparent;
-    color: #9aa7ba;
-    text-align: left;
-    font-size: 0.88rem;
-    cursor: pointer;
-    transition: var(--transition);
-}
-
-.footer-btn.logout {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    border: 0.5px solid rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.38);
-    font-size: 0.82rem;
-}
-
-.footer-btn.logout:hover {
-    background: rgba(192, 57, 43, 0.12);
-    color: #e8806e;
-    border-color: rgba(192, 57, 43, 0.3);
 }
 
 /* ── Íconos ───────────────────────────────────── */
@@ -5665,6 +5745,18 @@ button.record-link {
         top: auto;
         width: auto;
         max-height: min(420px, 65vh);
+        z-index: 1100;
+    }
+
+    /* Mismo problema y misma solucion que .notif-panel arriba: dentro del
+       drawer movil angosto, el menu de usuario absolute/left:0 tambien se
+       desborda del sidebar. */
+    .sidebar-user-menu {
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        bottom: 84px;
+        width: auto;
         z-index: 1100;
     }
 
