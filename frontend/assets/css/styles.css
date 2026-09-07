@@ -3511,10 +3511,17 @@ label[for="loginPassword"] {
     background: #c2410c;
 }
 
+/* Posicion del tooltip via variables (--tt-*) para que el ajuste de fila
+   (arriba/abajo) y el de columna (izquierda/derecha/centro) se puedan
+   pisar cada uno por separado sin tener que escribir una regla combinada
+   por cada esquina -- ver los overrides de fila 1 / columna 1 / columna 7
+   mas abajo, cada uno toca solo sus propias variables. */
 .dash-calendar-tooltip {
     position: absolute;
-    bottom: calc(100% + 6px);
-    left: 50%;
+    bottom: var(--tt-bottom, calc(100% + 6px));
+    top: var(--tt-top, auto);
+    left: var(--tt-left, 50%);
+    right: var(--tt-right, auto);
     z-index: 20;
     min-width: 170px;
     max-width: 220px;
@@ -3530,7 +3537,7 @@ label[for="loginPassword"] {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transform: translate(-50%, 4px);
+    transform: translate(var(--tt-tx, -50%), var(--tt-ty, 4px));
     transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
@@ -3545,34 +3552,32 @@ label[for="loginPassword"] {
 .dash-calendar-badge-wrap:focus-visible .dash-calendar-tooltip {
     opacity: 1;
     visibility: visible;
-    transform: translate(-50%, 0);
+    transform: translate(var(--tt-tx, -50%), 0);
 }
 
-/* El tooltip se centra sobre su badge por defecto -- en la primera o
-   ultima columna del calendario (7 columnas, grid-template-columns: repeat(7, ...))
-   eso lo hace salirse del calendario (y hasta de la pantalla). Se ancla al
-   borde del dia en su lugar, extendiendose hacia el centro del calendario. */
+/* Primera fila del calendario: no hay espacio arriba para el tooltip (se
+   sale del panel, ver captura del reporte) -- se abre hacia abajo en su
+   lugar. nth-child(-n+7) son las primeras 7 celdas del grid, que SIEMPRE
+   son la fila 1 sin importar en que dia de la semana caiga el 1 del mes
+   (las celdas de relleno .is-empty tambien cuentan para nth-child). */
+.dash-calendar-day:nth-child(-n+7) .dash-calendar-tooltip {
+    --tt-bottom: auto;
+    --tt-top: calc(100% + 6px);
+    --tt-ty: -4px;
+}
+
+/* Primera columna: ancla a la izquierda del dia en vez de centrarse (si no,
+   se sale del calendario por la izquierda). */
 .dash-calendar-day:nth-child(7n+1) .dash-calendar-tooltip {
-    left: 0;
-    transform: translate(0, 4px);
+    --tt-left: 0;
+    --tt-tx: 0;
 }
 
-.dash-calendar-day:nth-child(7n+1) .dash-calendar-badge-wrap:hover .dash-calendar-tooltip,
-.dash-calendar-day:nth-child(7n+1) .dash-calendar-badge-wrap:focus .dash-calendar-tooltip,
-.dash-calendar-day:nth-child(7n+1) .dash-calendar-badge-wrap:focus-visible .dash-calendar-tooltip {
-    transform: translate(0, 0);
-}
-
+/* Ultima columna: mismo problema pero por la derecha. */
 .dash-calendar-day:nth-child(7n) .dash-calendar-tooltip {
-    left: auto;
-    right: 0;
-    transform: translate(0, 4px);
-}
-
-.dash-calendar-day:nth-child(7n) .dash-calendar-badge-wrap:hover .dash-calendar-tooltip,
-.dash-calendar-day:nth-child(7n) .dash-calendar-badge-wrap:focus .dash-calendar-tooltip,
-.dash-calendar-day:nth-child(7n) .dash-calendar-badge-wrap:focus-visible .dash-calendar-tooltip {
-    transform: translate(0, 0);
+    --tt-left: auto;
+    --tt-right: 0;
+    --tt-tx: 0;
 }
 
 .dash-calendar-day-more {
