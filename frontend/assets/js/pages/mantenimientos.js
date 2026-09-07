@@ -75,7 +75,6 @@ const maintenanceDrawerTitle = document.getElementById("maintenanceDrawerTitle")
 const maintenanceDrawerSubtitle = document.getElementById("maintenanceDrawerSubtitle");
 const maintenanceDrawerBody = document.getElementById("maintenanceDrawerBody");
 const exportMaintenanceButton = document.getElementById("exportMaintenanceButton");
-const exportMaintenanceExcelButton = document.getElementById("exportMaintenanceExcelButton");
 const deleteMaintenanceButton = document.getElementById("deleteMaintenanceButton");
 const approveMaintenanceButton = document.getElementById("approveMaintenanceButton");
 const exportHistorialButton = document.getElementById("exportHistorialButton");
@@ -1663,24 +1662,6 @@ exportMaintenanceButton.addEventListener("click", async () => {
     } finally {
         exportMaintenanceButton.disabled = false;
         exportMaintenanceButton.textContent = originalLabel;
-    }
-});
-
-exportMaintenanceExcelButton.addEventListener("click", async () => {
-    if (!currentDetailItem) return;
-
-    const originalLabel = exportMaintenanceExcelButton.textContent;
-    exportMaintenanceExcelButton.disabled = true;
-    exportMaintenanceExcelButton.textContent = "Generando...";
-
-    try {
-        await window.VehiAmb.mantenimientos.exportExcel(currentDetailItem);
-    } catch (error) {
-        console.error(error);
-        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo exportar el Excel", "error");
-    } finally {
-        exportMaintenanceExcelButton.disabled = false;
-        exportMaintenanceExcelButton.textContent = originalLabel;
     }
 });
 
