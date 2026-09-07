@@ -67,6 +67,17 @@ function capitalizarNombre(value) {
         .join(" ");
 }
 
+// Mismo silueta que usa vehicles.js cuando el vehiculo no tiene foto -- para
+// que el "sin foto" del resumen del viaje se vea consistente con el resto.
+const VEHICULO_FOTO_PLACEHOLDER = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 13l1.5-4.5A2 2 0 0 1 6.4 7h11.2a2 2 0 0 1 1.9 1.5L21 13"/>
+        <path d="M3 13h18v5a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-1H6v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/>
+        <circle cx="7.5" cy="16" r="1.2"/>
+        <circle cx="16.5" cy="16" r="1.2"/>
+    </svg>
+`;
+
 function formatFecha(value) {
     if (!value) return "Sin fecha";
     return new Date(`${String(value).slice(0, 10)}T00:00:00`).toLocaleDateString("es-CO", {
@@ -352,9 +363,18 @@ function renderViajeDrawerBody(resumen) {
     return `
         <section class="drawer-section">
             <h3>Vehículo</h3>
-            <dl class="detail-list drawer-detail-list detail-list-plain">
-                <div><dt>Placa</dt><dd>${escapeHtml(vehiculo?.placa) || "--"}</dd></div>
-                <div><dt>Marca / modelo</dt><dd>${escapeHtml(vehiculo?.marca)} ${escapeHtml(vehiculo?.modelo)}</dd></div>
+            <div class="user-list-identity drawer-identity">
+                <div class="vehiculo-foto">
+                    ${vehiculo?.imagen_url
+                        ? `<img src="${escapeHtml(window.VehiAmb.api.getAssetUrl(vehiculo.imagen_url))}" alt="">`
+                        : VEHICULO_FOTO_PLACEHOLDER}
+                </div>
+                <div>
+                    <span class="record-title">${escapeHtml(vehiculo?.placa) || "--"}</span>
+                    <span class="record-sub">${escapeHtml(vehiculo?.marca)} ${escapeHtml(vehiculo?.modelo)}</span>
+                </div>
+            </div>
+            <dl class="detail-list detail-list-plain">
                 <div><dt>Destino</dt><dd>${escapeHtml(viaje.destino) || "--"}</dd></div>
             </dl>
         </section>
@@ -362,7 +382,7 @@ function renderViajeDrawerBody(resumen) {
         <section class="drawer-section">
             <h3>Conductor</h3>
             ${conductor ? `
-                <div class="user-list-identity conductor-identity">
+                <div class="user-list-identity drawer-identity">
                     <div class="user-avatar">
                         ${conductor.foto_url
                             ? `<img src="${escapeHtml(window.VehiAmb.api.getAssetUrl(conductor.foto_url))}" alt="" style="object-position: ${escapeHtml(conductor.foto_posicion || "50% 50%")}">`

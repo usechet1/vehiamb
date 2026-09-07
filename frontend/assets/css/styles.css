@@ -1253,14 +1253,41 @@ label[for="loginPassword"] {
 /* Misma fila que la lista de usuarios, pero es la unica identidad del
    drawer -- sin filas alrededor compitiendo por atencion, el avatar puede
    ser mas grande que el de esa lista (34px) sin verse fuera de lugar. */
-.conductor-identity .user-avatar {
+.drawer-identity .user-avatar {
     width: 52px;
     height: 52px;
     font-size: 1.05rem;
 }
 
-.conductor-identity .record-title {
+.drawer-identity .record-title {
     font-size: 1rem;
+}
+
+/* Equivalente al avatar del conductor pero para el vehiculo -- cuadrada
+   (no circular, un vehiculo no es una cara) con el mismo alto de 52px. Sin
+   foto cargada usa la misma silueta de auto que ya se ve en el listado de
+   vehiculos, en vez de una caja vacia. */
+.vehiculo-foto {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    overflow: hidden;
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-2);
+    color: var(--color-ink-soft);
+}
+
+.vehiculo-foto img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.vehiculo-foto svg {
+    width: 26px;
+    height: 26px;
 }
 
 .form-card {
