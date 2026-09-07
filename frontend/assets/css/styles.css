@@ -3548,6 +3548,33 @@ label[for="loginPassword"] {
     transform: translate(-50%, 0);
 }
 
+/* El tooltip se centra sobre su badge por defecto -- en la primera o
+   ultima columna del calendario (7 columnas, grid-template-columns: repeat(7, ...))
+   eso lo hace salirse del calendario (y hasta de la pantalla). Se ancla al
+   borde del dia en su lugar, extendiendose hacia el centro del calendario. */
+.dash-calendar-day:nth-child(7n+1) .dash-calendar-tooltip {
+    left: 0;
+    transform: translate(0, 4px);
+}
+
+.dash-calendar-day:nth-child(7n+1) .dash-calendar-badge-wrap:hover .dash-calendar-tooltip,
+.dash-calendar-day:nth-child(7n+1) .dash-calendar-badge-wrap:focus .dash-calendar-tooltip,
+.dash-calendar-day:nth-child(7n+1) .dash-calendar-badge-wrap:focus-visible .dash-calendar-tooltip {
+    transform: translate(0, 0);
+}
+
+.dash-calendar-day:nth-child(7n) .dash-calendar-tooltip {
+    left: auto;
+    right: 0;
+    transform: translate(0, 4px);
+}
+
+.dash-calendar-day:nth-child(7n) .dash-calendar-badge-wrap:hover .dash-calendar-tooltip,
+.dash-calendar-day:nth-child(7n) .dash-calendar-badge-wrap:focus .dash-calendar-tooltip,
+.dash-calendar-day:nth-child(7n) .dash-calendar-badge-wrap:focus-visible .dash-calendar-tooltip {
+    transform: translate(0, 0);
+}
+
 .dash-calendar-day-more {
     color: var(--color-muted);
     font-size: 0.68rem;
