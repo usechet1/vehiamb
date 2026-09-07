@@ -352,11 +352,10 @@ function renderViajeDrawerBody(resumen) {
     return `
         <section class="drawer-section">
             <h3>Vehículo</h3>
-            <dl class="detail-list drawer-detail-list">
+            <dl class="detail-list drawer-detail-list detail-list-plain">
                 <div><dt>Placa</dt><dd>${escapeHtml(vehiculo?.placa) || "--"}</dd></div>
                 <div><dt>Marca / modelo</dt><dd>${escapeHtml(vehiculo?.marca)} ${escapeHtml(vehiculo?.modelo)}</dd></div>
                 <div><dt>Destino</dt><dd>${escapeHtml(viaje.destino) || "--"}</dd></div>
-                <div><dt>Fecha del viaje</dt><dd>${formatFechaHora(viaje.creado_en)}</dd></div>
             </dl>
         </section>
 

@@ -4075,6 +4075,28 @@ label[for="loginPassword"] {
     overflow-wrap: break-word;
 }
 
+/* Sin caja/borde/fondo por campo -- para un dato corto (placa, destino) la
+   caja no aporta nada y hace notorio que las cajas de la fila quedan de
+   distinto alto segun si el valor cabe en una linea o dos. La etiqueta baja
+   de MAYUSCULAS 9px a minusculas 12px, que se lee mejor sin ocupar mas. */
+.detail-list-plain div {
+    padding: 0;
+    border: 0;
+    background: none;
+}
+
+.detail-list-plain dt {
+    margin-bottom: 2px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: none;
+}
+
+.detail-list-plain dd {
+    font-size: 0.92rem;
+    font-weight: 700;
+}
+
 .simit-card-actions {
     display: flex;
     align-items: center;
