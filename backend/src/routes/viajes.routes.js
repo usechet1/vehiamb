@@ -14,5 +14,6 @@ router.get("/recientes-empresa", requirePermission("trips.view"), asyncHandler(v
 router.get("/:viajeId/resumen", requirePermission("trips.view"), asyncHandler(viajesController.getResumen));
 router.get("/:viajeId/comentarios", requirePermission("trips.view"), asyncHandler(viajesController.getComentarios));
 router.post("/", requirePermission("trips.create"), asyncHandler(viajesController.crear));
+router.delete("/:viajeId", requirePermission("trips.delete"), asyncHandler(viajesController.eliminar));
 
 module.exports = router;

@@ -123,4 +123,19 @@ async function findRecientesPorEmpresa(empresaId, { fechaDesde, fechaHasta, limi
   );
 }
 
-module.exports = { create, findById, findRecientesPorUsuario, findRecientesPorVehiculo, findRecientesPorEmpresa };
+// inspecciones_preventivas.viaje_id y preoperacionales.viaje_id son
+// ON DELETE SET NULL (ver database/init.js), asi que no hace falta limpiar
+// nada antes de borrar -- esos registros quedan huerfanos de viaje pero
+// intactos, igual que ya toleraba el resto de la app antes de esta funcion.
+async function remove(id, empresaId) {
+  await db.run("DELETE FROM viajes WHERE id = ? AND empresa_id = ?", [id, empresaId]);
+}
+
+module.exports = {
+  create,
+  findById,
+  findRecientesPorUsuario,
+  findRecientesPorVehiculo,
+  findRecientesPorEmpresa,
+  remove
+};

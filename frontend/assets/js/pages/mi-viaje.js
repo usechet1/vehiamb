@@ -215,11 +215,13 @@ function renderConductor(conductor) {
         : '<p class="dash-empty">Este conductor no tiene licencias registradas.</p>';
 }
 
-function renderViajesList(viajes, contenedor, vacioHtml) {
+function renderViajesList(viajes, contenedor, vacioHtml, onDeleted) {
     if (!viajes.length) {
         contenedor.innerHTML = vacioHtml;
         return;
     }
+
+    const puedeEliminar = Boolean(window.VehiAmb.auth.hasPermission("trips.delete"));
 
     contenedor.innerHTML = viajes.map((viaje) => `
         <article class="record-item">
@@ -230,12 +232,41 @@ function renderViajesList(viajes, contenedor, vacioHtml) {
                 </div>
                 <span class="pill">${formatFechaHora(viaje.creado_en)}</span>
             </div>
-            <button type="button" class="record-link btn-ver-resumen" data-viaje-id="${escapeHtml(viaje.id)}">Ver resumen</button>
+            <div class="record-actions">
+                <button type="button" class="record-link btn-ver-resumen" data-viaje-id="${escapeHtml(viaje.id)}">Ver resumen</button>
+                ${puedeEliminar ? `<button type="button" class="record-link btn-eliminar-viaje" data-viaje-id="${escapeHtml(viaje.id)}">Eliminar</button>` : ""}
+            </div>
         </article>
     `).join("");
 
     contenedor.querySelectorAll(".btn-ver-resumen").forEach((btn) => {
         btn.addEventListener("click", () => openViajeResumen(btn.dataset.viajeId));
+    });
+
+    // Solo Administrador (permiso trips.delete). Tras eliminar se recarga la
+    // lista completa (onDeleted) en vez de solo quitar la fila del DOM, para
+    // que el conteo/resumen de filtros ("Mostrando X viajes...") tambien
+    // quede al dia.
+    contenedor.querySelectorAll(".btn-eliminar-viaje").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+            const confirmado = await window.VehiAmb.ui.confirm({
+                title: "Eliminar viaje",
+                message: "¿Eliminar este viaje? Esta acción no se puede deshacer.",
+                confirmText: "Eliminar"
+            });
+            if (!confirmado) return;
+
+            btn.disabled = true;
+            try {
+                await window.VehiAmb.api.eliminarViaje(btn.dataset.viajeId);
+                window.VehiAmb.ui.showMessage(mensaje, "Viaje eliminado correctamente");
+                await onDeleted?.();
+            } catch (error) {
+                console.error(error);
+                window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo eliminar el viaje", "error");
+                btn.disabled = false;
+            }
+        });
     });
 }
 
@@ -352,7 +383,13 @@ function renderViajeDrawerBody(resumen) {
                 ${puedeComentar ? `
                     <div class="form-group">
                         <label>Nuevo comentario</label>
-                        <textarea id="viajeComentarioTexto" rows="2" maxlength="500" placeholder="Responde a una novedad de este viaje..."></textarea>
+                        <div class="mnt-textarea-voice-wrap">
+                            <textarea id="viajeComentarioTexto" rows="2" maxlength="500" placeholder="Responde a una novedad de este viaje..."></textarea>
+                            <button type="button" id="viajeComentarioVozButton" class="mnt-voice-button" title="Dictar por voz" aria-label="Dictar comentario por voz">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+                            </button>
+                        </div>
+                        <span id="viajeComentarioVozHelp" class="field-help field-help-danger hidden"></span>
                     </div>
                     <div class="form-group">
                         <label>Foto (opcional)</label>
@@ -401,6 +438,12 @@ function cargarComentariosHiloSoloLectura(viajeId) {
 function setupComentarioForm(viajeId) {
     const enviarBtn = document.getElementById("viajeComentarioEnviar");
     if (!enviarBtn) return;
+
+    window.VehiAmb.ui.setupDictadoVoz(
+        document.getElementById("viajeComentarioVozButton"),
+        document.getElementById("viajeComentarioTexto"),
+        document.getElementById("viajeComentarioVozHelp")
+    );
 
     enviarBtn.addEventListener("click", async () => {
         const textoInput = document.getElementById("viajeComentarioTexto");
@@ -509,7 +552,7 @@ async function cargarViajesEmpresa() {
 
         viajesEmpresaSection.classList.remove("hidden");
         viajesEmpresaState = viajes || [];
-        renderViajesList(viajesEmpresaState, viajesEmpresaList, '<p class="dash-empty">Todavía no hay viajes registrados por los conductores.</p>');
+        renderViajesList(viajesEmpresaState, viajesEmpresaList, '<p class="dash-empty">Todavía no hay viajes registrados por los conductores.</p>', cargarViajesEmpresa);
         updateViajesFiltroSummary(viajesEmpresaState.length);
     } catch (error) {
         if (requestToken !== viajesEmpresaRequestToken) return;
@@ -530,7 +573,7 @@ async function cargarConductorViajesRecientes() {
     try {
         const viajes = await window.VehiAmb.api.getMisViajesRecientes();
         conductorViajesRecientesSection.classList.remove("hidden");
-        renderViajesList(viajes || [], conductorViajesRecientesList, '<p class="dash-empty">Todavía no has registrado ningún viaje.</p>');
+        renderViajesList(viajes || [], conductorViajesRecientesList, '<p class="dash-empty">Todavía no has registrado ningún viaje.</p>', cargarConductorViajesRecientes);
     } catch (error) {
         console.error(error);
         conductorViajesRecientesSection.classList.remove("hidden");

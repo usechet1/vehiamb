@@ -45,3 +45,8 @@ exports.getComentarios = async (req, res) => {
   const comentarios = await viajesService.listarComentariosViaje(req.params.viajeId, req.user);
   res.json(comentarios);
 };
+
+exports.eliminar = async (req, res) => {
+  await viajesService.eliminar(req.params.viajeId, req.user);
+  res.status(204).send();
+};

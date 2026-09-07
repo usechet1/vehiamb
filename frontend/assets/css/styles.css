@@ -4793,6 +4793,13 @@ label[for="loginPassword"] {
     margin-top: 10px;
 }
 
+/* .record-link ya trae su propio margin-top (para cuando va solo, sin
+   .record-actions) -- dentro de .record-actions se resetea para no sumar
+   los dos margenes. */
+.record-actions .record-link {
+    margin-top: 0;
+}
+
 .record-link {
     display: inline-flex;
     margin-top: 12px;

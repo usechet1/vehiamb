@@ -1299,6 +1299,14 @@ window.VehiAmb.api = {
         return requestJson(`${window.VehiAmb.API_URL}/viajes`, undefined, "No se pudo cargar el historial de viajes");
     },
 
+    eliminarViaje(viajeId) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/viajes/${viajeId}`,
+            { method: "DELETE" },
+            "No se pudo eliminar el viaje"
+        );
+    },
+
     // Solo lectura -- a diferencia de getComentariosNotificacion/comentarNotificacion
     // (permiso notificaciones.comentar, Administrador/Operador), esta ruta la puede
     // pedir cualquiera con trips.view, incluido un Conductor sobre sus propios

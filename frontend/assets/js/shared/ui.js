@@ -233,5 +233,61 @@ window.VehiAmb.ui = {
             document.addEventListener("keydown", onKeydown);
             okButton.focus();
         });
+    },
+
+    // Dictado por voz para un <textarea> (Web Speech API) -- si el navegador
+    // no la soporta, oculta el boton en vez de fallar. Usado por la
+    // descripcion de mantenimientos y por los comentarios de un viaje.
+    setupDictadoVoz(button, textarea, helpEl) {
+        const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!button || !textarea || !SpeechRecognitionClass) {
+            button?.classList.add("hidden");
+            return;
+        }
+
+        const recognition = new SpeechRecognitionClass();
+        recognition.lang = "es-CO";
+        recognition.interimResults = false;
+        recognition.continuous = false;
+
+        let escuchando = false;
+
+        recognition.addEventListener("result", (event) => {
+            const texto = event.results[0][0].transcript.trim();
+            if (!texto) return;
+            const separador = textarea.value.trim() ? " " : "";
+            textarea.value = `${textarea.value}${separador}${texto}`;
+            textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+
+        recognition.addEventListener("error", (event) => {
+            if (!helpEl) return;
+            helpEl.textContent = event.error === "not-allowed"
+                ? "Se necesita permiso del micrófono para dictar."
+                : "No se pudo reconocer el audio, intenta de nuevo.";
+            helpEl.classList.remove("hidden");
+        });
+
+        recognition.addEventListener("end", () => {
+            escuchando = false;
+            button.classList.remove("is-recording");
+        });
+
+        button.addEventListener("click", () => {
+            if (escuchando) {
+                recognition.stop();
+                return;
+            }
+
+            helpEl?.classList.add("hidden");
+            try {
+                recognition.start();
+                escuchando = true;
+                button.classList.add("is-recording");
+            } catch (error) {
+                // Ya habia una sesion de reconocimiento activa -- se ignora, el
+                // usuario solo tiene que volver a hacer clic.
+            }
+        });
     }
 };

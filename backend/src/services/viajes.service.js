@@ -337,6 +337,20 @@ async function listarComentariosViaje(viajeId, currentUser) {
   return notificacionComentariosRepository.findByReferencia("viaje", viajeId, currentUser.empresa_id);
 }
 
+// Solo Administrador (permiso trips.delete) -- ver "Viajes recientes" en
+// Mi último viaje. No hace falta revertir nada mas: inspecciones_preventivas
+// y preoperacionales asociados quedan huerfanos de viaje (ON DELETE SET
+// NULL, ver viajes.repository.js#remove) en vez de borrarse, para no perder
+// esos registros.
+async function eliminar(id, currentUser) {
+  const viaje = await viajesRepository.findById(id, currentUser.empresa_id);
+  if (!viaje) {
+    throw new HttpError(404, "Viaje no encontrado");
+  }
+
+  await viajesRepository.remove(id, currentUser.empresa_id);
+}
+
 module.exports = {
   crear,
   listarRecientes,
@@ -346,5 +360,6 @@ module.exports = {
   obtenerAsignacionHoy,
   obtenerAsignacionManana,
   obtenerResumen,
-  listarComentariosViaje
+  listarComentariosViaje,
+  eliminar
 };
