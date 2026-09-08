@@ -744,7 +744,8 @@ function inicializarConductorAsignacionHoy(asignacion) {
         try {
             const viaje = await window.VehiAmb.api.crearViaje({
                 vehiculo_id: asignacion.vehiculo.id,
-                destino: asignacion.ruta_nombre
+                destino: asignacion.ruta_nombre,
+                asignacion_id: asignacion.id
             });
             window.location.href = `vehiculo.html?id=${asignacion.vehiculo.id}&viaje=${viaje.id}&asignacion=${asignacion.id}`;
         } catch (error) {

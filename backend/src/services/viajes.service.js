@@ -74,6 +74,15 @@ async function crear(payload, currentUser) {
     empresa_id: currentUser.empresa_id
   });
 
+  // Si el conductor ya habia preparado la inspeccion de esta asignacion el
+  // dia anterior (ver home.js "preinspeccion"), esa inspeccion quedo sin
+  // viaje_id porque el viaje todavia no existia -- se vincula ahora que si
+  // existe, para que su resumen la encuentre (ver bug reportado: "aparece
+  // no registrada" pese a que el conductor si la hizo).
+  if (payload.asignacion_id) {
+    await inspeccionesRepository.vincularViaje(payload.asignacion_id, viaje.id, currentUser.empresa_id);
+  }
+
   return toSafeViaje({
     ...viaje,
     vehiculo_placa: vehiculo.placa,

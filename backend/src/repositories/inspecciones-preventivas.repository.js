@@ -88,4 +88,18 @@ async function findByAsignacionId(asignacionId, empresaId) {
   );
 }
 
-module.exports = { create, findById, findByVehiculo, findByViajeId, findByAsignacionId };
+// Cuando el conductor preparo la inspeccion el dia anterior (queda con
+// asignacion_id pero sin viaje_id, ver findByAsignacionId) y al dia
+// siguiente inicia el viaje de esa misma asignacion, esta inspeccion se
+// vincula al viaje recien creado -- si no, el resumen del viaje (ver
+// viajes.service.js#obtenerResumen, que busca por viaje_id) nunca la
+// encuentra aunque exista. Solo actualiza si todavia no tenia viaje_id
+// (no pisar una inspeccion ya vinculada a otro viaje).
+async function vincularViaje(asignacionId, viajeId, empresaId) {
+  return db.run(
+    "UPDATE inspecciones_preventivas SET viaje_id = ? WHERE asignacion_id = ? AND viaje_id IS NULL AND empresa_id = ?",
+    [viajeId, asignacionId, empresaId]
+  );
+}
+
+module.exports = { create, findById, findByVehiculo, findByViajeId, findByAsignacionId, vincularViaje };
