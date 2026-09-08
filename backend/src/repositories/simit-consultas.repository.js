@@ -95,7 +95,8 @@ async function findUltimoEstadoPorFlota(filters = {}, empresaId) {
         ultimas.total_comparendos,
         ultimas.valor_total,
         ultimas.mensaje_error,
-        COALESCE(conductores_ultima.conductores, '[]'::jsonb) AS conductores
+        COALESCE(conductores_ultima.conductores, '[]'::jsonb) AS conductores,
+        comparendo_reciente.fecha_infraccion AS fecha_comparendo_reciente
       FROM vehiculos v
       LEFT JOIN (
         SELECT DISTINCT ON (sc.vehiculo_id) sc.*
@@ -108,8 +109,13 @@ async function findUltimoEstadoPorFlota(filters = {}, empresaId) {
         LEFT JOIN conductores c ON c.id = comp.conductor_id
         WHERE comp.consulta_id = ultimas.id AND comp.conductor_id IS NOT NULL
       ) conductores_ultima ON true
+      LEFT JOIN LATERAL (
+        SELECT MAX(comp.fecha_infraccion) AS fecha_infraccion
+        FROM simit_comparendos comp
+        WHERE comp.consulta_id = ultimas.id
+      ) comparendo_reciente ON true
       ${whereClause}
-      ORDER BY ultimas.fecha_consulta DESC NULLS LAST, v.placa ASC
+      ORDER BY comparendo_reciente.fecha_infraccion DESC NULLS LAST, v.placa ASC
     `,
     values
   );

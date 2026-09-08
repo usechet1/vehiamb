@@ -485,15 +485,18 @@ function renderFiltersChips() {
     `).join("");
 }
 
-// Orden por defecto de la lista: la consulta mas reciente primero. Los
-// vehiculos que nunca se han consultado (fecha_consulta null) quedan al
-// final, sin importar que tan urgente sea su estado.
+// Orden por defecto de la lista: el comparendo vigente mas reciente primero
+// (fecha_infraccion de la ultima consulta de cada vehiculo), no la fecha en
+// que se hizo la consulta -- dos vehiculos consultados hoy no deberian
+// competir por eso si uno tiene una multa de hace tres meses y el otro de
+// ayer. Los vehiculos sin ningun comparendo vigente (o nunca consultados)
+// quedan al final.
 function ordenarPorFechaReciente(rows) {
     return [...rows].sort((a, b) => {
-        if (!a.fecha_consulta && !b.fecha_consulta) return 0;
-        if (!a.fecha_consulta) return 1;
-        if (!b.fecha_consulta) return -1;
-        return new Date(b.fecha_consulta) - new Date(a.fecha_consulta);
+        if (!a.fecha_comparendo_reciente && !b.fecha_comparendo_reciente) return 0;
+        if (!a.fecha_comparendo_reciente) return 1;
+        if (!b.fecha_comparendo_reciente) return -1;
+        return new Date(b.fecha_comparendo_reciente) - new Date(a.fecha_comparendo_reciente);
     });
 }
 
