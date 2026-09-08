@@ -146,7 +146,7 @@ async function consultarVehiculo(vehiculoId, empresaId, { origen = "manual" } = 
     conductor_id: comparendoMatcher.encontrarConductorCoincidente(comparendo, conductoresEmpresa)?.id || null
   }));
 
-  const { consulta, comparendos } = await db.withTransaction(async (dbTx) => {
+  const { consulta } = await db.withTransaction(async (dbTx) => {
     const consultaCreada = await simitConsultasRepository.create(
       {
         vehiculo_id: vehiculo.id,
@@ -163,7 +163,7 @@ async function consultarVehiculo(vehiculoId, empresaId, { origen = "manual" } = 
       dbTx
     );
 
-    const comparendosCreados = await simitComparendosRepository.bulkCreate(
+    await simitComparendosRepository.bulkCreate(
       consultaCreada.id,
       vehiculo.id,
       comparendosConConductor,
@@ -171,8 +171,17 @@ async function consultarVehiculo(vehiculoId, empresaId, { origen = "manual" } = 
       dbTx
     );
 
-    return { consulta: consultaCreada, comparendos: comparendosCreados };
+    return { consulta: consultaCreada };
   });
+
+  // bulkCreate inserta (y devolveria) los comparendos en el mismo orden en
+  // que llegaron del scraper -- orden de consulta de SIMIT, no siempre por
+  // fecha. Se vuelven a traer ya confirmada la transaccion con
+  // findByConsulta, que los ordena por fecha de infraccion mas reciente
+  // (mismo orden que ve un Administrador al reabrir esta consulta despues
+  // desde el historial -- antes solo la consulta recien hecha quedaba sin
+  // ese orden).
+  const comparendos = await simitComparendosRepository.findByConsulta(consulta.id, empresaId);
 
   if (consulta.estado_consulta !== "ok") {
     await notificarFallo({ vehiculo, consulta, empresaId }).catch((error) => {
