@@ -3,9 +3,11 @@ const path = require("path");
 const HttpError = require("../errors/http-error");
 const rolesRepository = require("../repositories/roles.repository");
 const usuariosRepository = require("../repositories/usuarios.repository");
+const conductoresRepository = require("../repositories/conductores.repository");
 const logsRegistroRepository = require("../repositories/logs-registro.repository");
 const { hashPassword } = require("../utils/password");
 const notificacionesService = require("./notificaciones.service");
+const db = require("../database/query");
 
 // Fire-and-forget, mismo criterio que las notificaciones de este archivo: un
 // fallo al guardar el log de registro nunca debe romper la operacion real.
@@ -17,6 +19,16 @@ function registrarEventoUsuario(data) {
 
 const PERMISO_SUPER_ADMIN = "empresas.switch";
 const UPLOADS_ROOT = path.resolve(__dirname, "..", "..", "uploads");
+
+// Un usuario con rol Conductor necesita ademas una ficha en "conductores"
+// (ver sincronizarFichaConductor mas abajo) -- antes solo se creaba al dar
+// de alta desde conductores.html; crear el usuario desde este panel con ese
+// mismo rol dejaba la cuenta sin ficha (bug reportado: no aparecia en
+// Conductores ni podia usar lo que depende de esa ficha -- licencias,
+// inspecciones, resumen del viaje).
+const ROL_CONDUCTOR = "Conductor";
+const CEDULA_REGEX = /^\d{6,10}$/;
+const TELEFONO_REGEX = /^\d{7,10}$/;
 
 function normalizeEmail(value) {
   return String(value || "").trim().toLowerCase();
@@ -52,6 +64,7 @@ function toSafeUser(user) {
     foto_url: user.foto_url || null,
     foto_posicion: user.foto_posicion || "50% 50%",
     celular: user.celular || null,
+    cedula: user.conductor_cedula || null,
     empresa_id: user.empresa_id,
     created_at: user.created_at,
     debe_cambiar_password: Boolean(user.debe_cambiar_password)
@@ -137,6 +150,21 @@ async function validateUserPayload(payload, { isUpdate = false, existingRoleId =
   }
 
   const role = await resolveRole(roleId, { allowInactiveId: isUpdate ? existingRoleId : null, callerPermisos });
+  const celular = normalizeCelular(payload.celular);
+  const cedula = String(payload.cedula || "").trim();
+
+  // El resto del formulario (nombre/email/password) es igual para cualquier
+  // rol, pero un Conductor necesita cedula y celular validos porque de ahi
+  // sale su ficha en "conductores" (ver sincronizarFichaConductor) -- sin
+  // esto no hay forma de crear esa ficha.
+  if (role.nombre === ROL_CONDUCTOR) {
+    if (!CEDULA_REGEX.test(cedula)) {
+      throw new HttpError(400, "La cédula es obligatoria y debe tener solo números (6 a 10 dígitos) para el rol Conductor");
+    }
+    if (!celular || !TELEFONO_REGEX.test(celular)) {
+      throw new HttpError(400, "El celular es obligatorio y debe tener solo números (7 a 10 dígitos) para el rol Conductor");
+    }
+  }
 
   return {
     nombre,
@@ -145,8 +173,56 @@ async function validateUserPayload(payload, { isUpdate = false, existingRoleId =
     role_id: role.id,
     rol: role.nombre,
     activo: parseActivo(payload.activo),
-    celular: normalizeCelular(payload.celular)
+    celular,
+    cedula: role.nombre === ROL_CONDUCTOR ? cedula : null
   };
+}
+
+async function verificarCedulaDisponible(cedula, empresaId, excluirConductorId = null) {
+  const conflicto = await conductoresRepository.findByCedula(cedula, empresaId);
+  if (conflicto && String(conflicto.id) !== String(excluirConductorId)) {
+    throw new HttpError(409, `Ya existe un conductor registrado con la cédula ${cedula}`);
+  }
+}
+
+// nombre llega combinado ("Juan Carlos Perez"), pero conductores.nombres/
+// apellidos son campos separados (ver [[feedback_nombres_apellidos_separados]]).
+// Mismo criterio "mejor esfuerzo" que uso la migracion original de esa
+// separacion: primera palabra = nombres, resto = apellidos.
+function splitNombre(nombreCompleto) {
+  const palabras = String(nombreCompleto || "").trim().toUpperCase().split(/\s+/).filter(Boolean);
+  return {
+    nombres: palabras[0] || "SIN NOMBRE",
+    apellidos: palabras.slice(1).join(" ")
+  };
+}
+
+// Crea o actualiza la ficha en "conductores" vinculada a este usuario, para
+// que un usuario con rol Conductor creado/editado desde este panel aparezca
+// en Conductores igual que uno creado desde alla. Se preserva
+// excluir_de_costos de la ficha existente porque ese campo solo se edita
+// desde Conductores, no desde aca.
+async function sincronizarFichaConductor(usuario, cedula, empresaId, conductorExistente = null) {
+  const existente = conductorExistente ?? (await conductoresRepository.findByUsuarioId(usuario.id, empresaId));
+  const { nombres, apellidos } = splitNombre(usuario.nombre);
+
+  const datos = {
+    nombres,
+    apellidos,
+    cedula,
+    telefono: usuario.celular,
+    email: usuario.email,
+    estado: usuario.activo ? "activo" : "inactivo",
+    excluir_de_costos: existente?.excluir_de_costos || false,
+    empresa_id: empresaId,
+    usuario_id: usuario.id
+  };
+
+  if (existente) {
+    await conductoresRepository.update(existente.id, datos, empresaId);
+  } else {
+    await conductoresRepository.create(datos);
+  }
 }
 
 async function listUsers(empresaId) {
@@ -177,6 +253,13 @@ async function createUser(payload, file, empresaId, callerPermisos = [], actorUs
     throw new HttpError(409, "Ya existe un usuario con ese correo");
   }
 
+  // Se valida la cedula ANTES de crear la cuenta para no dejarla huerfana
+  // (sin ficha) si la cedula ya esta en uso -- mismo orden que
+  // createConductor en conductores.service.js.
+  if (user.rol === ROL_CONDUCTOR) {
+    await verificarCedulaDisponible(user.cedula, empresaId);
+  }
+
   const created = await usuariosRepository.create({
     ...user,
     password_hash: await hashPassword(user.password),
@@ -184,6 +267,17 @@ async function createUser(payload, file, empresaId, callerPermisos = [], actorUs
     foto_posicion: normalizeFotoPosicion(payload.foto_posicion),
     empresa_id: empresaId
   });
+
+  if (user.rol === ROL_CONDUCTOR) {
+    try {
+      await sincronizarFichaConductor(created, user.cedula, empresaId);
+    } catch (error) {
+      // No dejar una cuenta Conductor sin ficha si la sincronizacion falla
+      // -- mismo criterio de rollback que createConductor.
+      await db.run("DELETE FROM usuarios WHERE id = ?", [created.id]).catch(() => {});
+      throw error;
+    }
+  }
 
   const safeUser = toSafeUser(created);
 
@@ -215,6 +309,16 @@ async function updateUser(id, payload, file, empresaId, callerPermisos = [], act
     throw new HttpError(409, "Ya existe un usuario con ese correo");
   }
 
+  // Se busca la ficha existente (si la hay) y se valida la cedula ANTES de
+  // tocar la cuenta -- incluye el caso de un usuario que ya era Conductor
+  // pero quedo sin ficha por el bug (ver createUser): guardar de nuevo aca
+  // la crea.
+  let conductorExistente = null;
+  if (user.rol === ROL_CONDUCTOR) {
+    conductorExistente = await conductoresRepository.findByUsuarioId(id, empresaId);
+    await verificarCedulaDisponible(user.cedula, empresaId, conductorExistente?.id);
+  }
+
   const fotoUrl = file ? `/uploads/usuarios/${file.filename}` : existing.foto_url;
   // Si el payload no trae foto_posicion (ej. se edito solo el nombre, sin
   // tocar el encuadre de la foto), se conserva la que ya tenia -- si no,
@@ -236,6 +340,10 @@ async function updateUser(id, payload, file, empresaId, callerPermisos = [], act
 
   if (file && existing.foto_url) {
     await eliminarFotoAnterior(existing.foto_url);
+  }
+
+  if (user.rol === ROL_CONDUCTOR) {
+    await sincronizarFichaConductor(updated, user.cedula, empresaId, conductorExistente);
   }
 
   const safeUser = toSafeUser(updated);

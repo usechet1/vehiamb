@@ -1,5 +1,11 @@
 const db = require("../database/query");
 
+// El join a conductores (1:1 via conductores.usuario_id) es para exponer
+// conductor_cedula: el panel de Usuarios necesita mostrarla/editarla cuando
+// el rol es Conductor (ver usuarios.service.js#sincronizarFichaConductor),
+// sin obligar a cada pantalla que hoy usa findById/findByEmail a saber que
+// existe conductores -- si el usuario no es Conductor o no tiene ficha
+// vinculada, la columna simplemente llega en null.
 const USER_SELECT = `
   SELECT
     u.id,
@@ -18,10 +24,12 @@ const USER_SELECT = `
     r.nombre AS role_nombre,
     e.nombre AS empresa_nombre,
     e.logo_url AS empresa_logo_url,
-    e.modulos_deshabilitados AS empresa_modulos_deshabilitados
+    e.modulos_deshabilitados AS empresa_modulos_deshabilitados,
+    c.cedula AS conductor_cedula
   FROM usuarios u
   LEFT JOIN roles r ON r.id = u.role_id
   LEFT JOIN empresas e ON e.id = u.empresa_id
+  LEFT JOIN conductores c ON c.usuario_id = u.id
 `;
 
 // findByEmail NO se filtra por empresa: el email es unico en toda la

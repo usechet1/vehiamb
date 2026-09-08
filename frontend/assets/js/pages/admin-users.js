@@ -7,6 +7,8 @@ const userEmail = document.getElementById("userEmail");
 const userCelular = document.getElementById("userCelular");
 const userPassword = document.getElementById("userPassword");
 const userRole = document.getElementById("userRole");
+const userCedulaGroup = document.getElementById("userCedulaGroup");
+const userCedula = document.getElementById("userCedula");
 const userActive = document.getElementById("userActive");
 const userFormMode = document.getElementById("userFormMode");
 const cancelEditButton = document.getElementById("cancelEditButton");
@@ -141,6 +143,18 @@ function resetForm() {
     hideUserPassword();
     resetPhotoField();
     fillRoles();
+    actualizarVisibilidadCedula();
+}
+
+// El rol Conductor necesita ademas una ficha en "conductores" (cedula y
+// celular validos, ver usuarios.service.js#sincronizarFichaConductor) --
+// para el resto de roles esos campos no aplican, asi que Cedula solo se
+// muestra/exige cuando el rol seleccionado es Conductor.
+function actualizarVisibilidadCedula() {
+    const esConductor = roleNameById(userRole.value) === "Conductor";
+    userCedulaGroup.classList.toggle("hidden", !esConductor);
+    userCedula.required = esConductor;
+    userCelular.required = esConductor;
 }
 
 function fillRoles() {
@@ -266,6 +280,9 @@ function renderUsers(rows) {
             </div>
             <div class="record-meta">
                 <span class="pill">${escapeHtml(userRoleName(user))}</span>
+                ${userRoleName(user) === "Conductor" && !user.cedula
+                    ? `<span class="pill pill-danger" title="Guárdalo de nuevo con su cédula para completar su ficha en Conductores">Sin ficha de conductor</span>`
+                    : ""}
             </div>
             <div class="admin-user-actions">
                 <button type="button" class="btn-secondary" data-action="edit" data-id="${user.id}">Editar</button>
@@ -337,11 +354,13 @@ function editUser(id) {
     userName.value = user.nombre || "";
     userEmail.value = user.email || "";
     userCelular.value = user.celular || "";
+    userCedula.value = user.cedula || "";
     userPassword.value = "";
     userPassword.required = false;
     hideUserPassword();
     ensureRoleOption(user.role_id);
     userRole.value = user.role_id || "";
+    actualizarVisibilidadCedula();
     userActive.checked = Boolean(user.activo);
     userFormMode.textContent = "Editar usuario";
 
@@ -440,6 +459,7 @@ async function saveUser(event) {
     formData.set("nombre", userName.value);
     formData.set("email", buildEmail(userEmail.value));
     formData.set("celular", userCelular.value);
+    formData.set("cedula", userCedula.value);
     formData.set("password", userPassword.value);
     formData.set("role_id", userRole.value);
     formData.set("activo", String(userActive.checked));
@@ -541,6 +561,7 @@ async function initAdminUsers() {
 
 userForm.addEventListener("submit", saveUser);
 cancelEditButton.addEventListener("click", resetForm);
+userRole.addEventListener("change", actualizarVisibilidadCedula);
 userSearchInput.addEventListener("input", applyUserFilters);
 
 usersRoleChips.addEventListener("click", (event) => {
