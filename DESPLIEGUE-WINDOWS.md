@@ -1,7 +1,6 @@
 # Despliegue de VehiAmb en el servidor Windows
 
-Esta guía reemplaza a `DESPLIEGUE-PASO-A-PASO.md` (esa era para un servidor
-Linux). El servidor real que te dieron es **Windows**, con PostgreSQL ya
+El servidor real que te dieron es **Windows**, con PostgreSQL ya
 instalado, y está en la misma red local/VPN que el recurso compartido
 `\\192.168.9.21\...` de donde se leen los Excel — así que las rutas UNC
 funcionan directo, sin necesidad de montajes CIFS ni sincronización aparte.

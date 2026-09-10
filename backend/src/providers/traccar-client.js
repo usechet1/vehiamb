@@ -3,8 +3,7 @@ const HttpError = require("../errors/http-error");
 
 // Unico modulo del backend que le habla a la API REST de Traccar (puerto
 // interno 8082, nunca expuesto). VehiAmb nunca implementa el protocolo del
-// tracker Suntech: Traccar es la capa de ingesta (ver
-// MIGRACION-SERVIDOR.md "Integracion GPS Suntech"), esto es solo un cliente
+// tracker Suntech: Traccar es la capa de ingesta, esto es solo un cliente
 // HTTP para su API ya existente. Autenticacion por Basic Auth en cada
 // request (Traccar la soporta sin necesidad de manejar cookies de sesion).
 function estaConfigurado() {

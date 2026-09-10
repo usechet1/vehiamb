@@ -989,9 +989,8 @@ async function ensurePostgresTables() {
     )
   `);
 
-  // ── Modulo de rastreo GPS (Traccar como capa de ingesta -- ver
-  // MIGRACION-SERVIDOR.md "Integracion GPS Suntech"). VehiAmb nunca habla el
-  // protocolo del tracker: dispositivos_gps solo guarda el vinculo
+  // ── Modulo de rastreo GPS (Traccar como capa de ingesta para trackers
+  // Suntech). VehiAmb nunca habla el protocolo del tracker: dispositivos_gps solo guarda el vinculo
   // dispositivo<->vehiculo, y gps_eventos guarda solo alarmas (la posicion
   // en si vive en la base separada de Traccar y se consulta en vivo via su
   // API, ver providers/traccar-client.js -- no se duplica aca).

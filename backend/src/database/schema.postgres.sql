@@ -418,8 +418,7 @@ CREATE INDEX IF NOT EXISTS idx_simit_consultas_vehiculo_id ON simit_consultas (v
 CREATE INDEX IF NOT EXISTS idx_simit_comparendos_consulta_id ON simit_comparendos (consulta_id);
 CREATE INDEX IF NOT EXISTS idx_simit_comparendos_vehiculo_numero ON simit_comparendos (vehiculo_id, numero_comparendo);
 
--- ── Modulo de rastreo GPS (Traccar como capa de ingesta, ver
--- MIGRACION-SERVIDOR.md "Integracion GPS Suntech") ──
+-- ── Modulo de rastreo GPS (Traccar como capa de ingesta para trackers Suntech) ──
 CREATE TABLE IF NOT EXISTS dispositivos_gps (
   id BIGSERIAL PRIMARY KEY,
   empresa_id BIGINT NOT NULL REFERENCES empresas(id),
