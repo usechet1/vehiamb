@@ -27,7 +27,6 @@ const PRIORIDAD_LEGACY_ALIAS = { baja: "informativa" };
 
 const TIPOS = {
   mantenimiento_proximo: { categoria: "mantenimiento", prioridad: "media", titulo: "Mantenimiento próximo" },
-  mantenimiento_vencido: { categoria: "mantenimiento", prioridad: "critica", titulo: "Mantenimiento vencido" },
   cambio_aceite_proximo: { categoria: "mantenimiento", prioridad: "media", titulo: "Cambio de aceite próximo" },
   soat_proximo: { categoria: "documentacion", prioridad: "alta", titulo: "SOAT próximo a vencer" },
   soat_vencido: { categoria: "documentacion", prioridad: "critica", titulo: "SOAT vencido" },
@@ -46,7 +45,6 @@ const TIPOS = {
   mantenimiento_aprobado: { categoria: "mantenimiento", prioridad: "informativa", titulo: "Mantenimiento aprobado" },
   mantenimiento_rechazado: { categoria: "mantenimiento", prioridad: "media", titulo: "Mantenimiento rechazado" },
   kilometraje_incoherente: { categoria: "incidente", prioridad: "media", titulo: "Kilometraje incoherente" },
-  error_sistema: { categoria: "sistema", prioridad: "media", titulo: "Error del sistema" },
   stock_minimo_alcanzado: { categoria: "inventario", prioridad: "media", titulo: "Stock mínimo alcanzado" },
   stock_agotado: { categoria: "inventario", prioridad: "media", titulo: "Repuesto agotado" },
   repuesto_inactivo_configurado: { categoria: "inventario", prioridad: "media", titulo: "Repuesto inactivo configurado" },

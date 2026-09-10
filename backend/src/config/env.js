@@ -42,7 +42,6 @@ if (!Number.isInteger(automationEmpresaId) || automationEmpresaId <= 0) {
 }
 
 const env = {
-  nodeEnv,
   port: Number(process.env.PORT || 3000),
   corsOrigin: process.env.CORS_ORIGIN || "*",
   dbClient: process.env.DB_CLIENT || "postgres",

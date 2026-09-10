@@ -5,9 +5,7 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "check": "node --check server.js",
-    "migrate:sqlite-postgres": "node scripts/migrate-sqlite-to-postgres.js",
-    "export:sqlite-postgres-sql": "node scripts/export-sqlite-to-postgres-sql.js"
+    "check": "node --check server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -21,7 +19,6 @@
     "pg": "^8.21.0",
     "playwright-core": "^1.48.0",
     "sharp": "^0.33.5",
-    "sqlite3": "^6.0.1",
     "tesseract.js": "^7.0.0",
     "xlsx": "^0.18.5"
   },

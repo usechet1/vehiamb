@@ -1623,259 +1623,19 @@ async function seedBodegaYConfigDefault() {
   );
 }
 
-if (env.dbClient === "sqlite") {
-  db.serialize(() => {
-    db.run(`
-      CREATE TABLE IF NOT EXISTS roles (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nombre TEXT NOT NULL UNIQUE,
-        descripcion TEXT,
-        activo INTEGER NOT NULL DEFAULT 1,
-        permisos_configurados INTEGER NOT NULL DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    db.run(`
-      CREATE TABLE IF NOT EXISTS permisos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        codigo TEXT NOT NULL UNIQUE,
-        modulo TEXT NOT NULL,
-        descripcion TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    db.run(`
-      CREATE TABLE IF NOT EXISTS roles_permisos (
-        role_id INTEGER NOT NULL,
-        permiso_id INTEGER NOT NULL,
-        PRIMARY KEY (role_id, permiso_id),
-        FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
-        FOREIGN KEY (permiso_id) REFERENCES permisos(id) ON DELETE CASCADE
-      )
-    `);
-
-    db.run(`
-      CREATE TABLE IF NOT EXISTS usuarios (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nombre TEXT NOT NULL,
-        email TEXT NOT NULL UNIQUE,
-        password_hash TEXT NOT NULL,
-        rol TEXT NOT NULL DEFAULT 'Administrador',
-        role_id INTEGER,
-        activo INTEGER NOT NULL DEFAULT 1,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (role_id) REFERENCES roles(id)
-      )
-    `);
-
-    db.run(`
-      CREATE TABLE IF NOT EXISTS vehiculos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        codigo_interno TEXT,
-        marca TEXT,
-        modelo TEXT,
-        anio INTEGER,
-        color TEXT,
-        combustible TEXT,
-        cilindraje INTEGER,
-        capacidad_carga INTEGER,
-        placa TEXT,
-        kilometraje_actual INTEGER,
-        tipo_vehiculo TEXT,
-        tipo_carroceria TEXT,
-        numero_chasis TEXT,
-        numero_motor TEXT,
-        estado TEXT NOT NULL DEFAULT 'activo',
-        imagen_url TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    db.run(`
-      CREATE TABLE IF NOT EXISTS mantenimientos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        vehiculo_id INTEGER,
-        fecha TEXT,
-        tipo TEXT,
-        descripcion TEXT,
-        autorizado_por TEXT,
-        hecho_por TEXT,
-        repuestos TEXT,
-        soporte_url TEXT,
-        soporte_nombre TEXT,
-        soporte_mime TEXT,
-        salida_inventario_url TEXT,
-        salida_inventario_nombre TEXT,
-        salida_inventario_mime TEXT,
-        valor REAL DEFAULT 0,
-        valor_mano_obra REAL DEFAULT 0,
-        kilometraje INTEGER,
-        proximo_cambio_km INTEGER,
-        proximo_cambio_fecha TEXT,
-        creado_por_usuario_id INTEGER,
-        estado TEXT NOT NULL DEFAULT 'completado',
-        vehiculo_varado INTEGER NOT NULL DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (vehiculo_id) REFERENCES vehiculos(id) ON DELETE CASCADE,
-        FOREIGN KEY (creado_por_usuario_id) REFERENCES usuarios(id)
-      )
-    `);
-
-    db.run(`
-      CREATE TABLE IF NOT EXISTS notificaciones (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        usuario_id INTEGER NOT NULL,
-        tipo TEXT NOT NULL,
-        categoria TEXT NOT NULL DEFAULT 'sistema',
-        prioridad TEXT NOT NULL DEFAULT 'media',
-        titulo TEXT,
-        mensaje TEXT NOT NULL,
-        vehiculo_id INTEGER,
-        accion_tipo TEXT,
-        accion_payload TEXT,
-        estado TEXT NOT NULL DEFAULT 'no_leida',
-        leido INTEGER NOT NULL DEFAULT 0,
-        referencia_tipo TEXT,
-        referencia_id INTEGER,
-        fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
-        FOREIGN KEY (vehiculo_id) REFERENCES vehiculos(id)
-      )
-    `);
-
-    db.run(`
-      CREATE TABLE IF NOT EXISTS documentos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        vehiculo_id INTEGER,
-        tipo TEXT,
-        numero_documento TEXT,
-        fecha_expedicion TEXT,
-        fecha_vencimiento TEXT,
-        archivo_url TEXT,
-        archivo_nombre TEXT,
-        archivo_mime TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (vehiculo_id) REFERENCES vehiculos(id) ON DELETE CASCADE
-      )
-    `);
-
-    db.run(`
-      CREATE TABLE IF NOT EXISTS cambios_aceite (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        vehiculo_id INTEGER,
-        fecha TEXT,
-        kilometraje_actual INTEGER,
-        proximo_cambio_km INTEGER,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (vehiculo_id) REFERENCES vehiculos(id) ON DELETE CASCADE
-      )
-    `);
-
-    db.run(`
-      CREATE TABLE IF NOT EXISTS importaciones (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nombre_archivo TEXT NOT NULL,
-        hash_archivo TEXT NOT NULL,
-        periodo TEXT NOT NULL,
-        fecha_importacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-        usuario_id INTEGER,
-        estado TEXT NOT NULL DEFAULT 'pendiente',
-        total_leidos INTEGER NOT NULL DEFAULT 0,
-        total_nuevos INTEGER NOT NULL DEFAULT 0,
-        total_actualizados INTEGER NOT NULL DEFAULT 0,
-        total_omitidos INTEGER NOT NULL DEFAULT 0,
-        total_errores INTEGER NOT NULL DEFAULT 0,
-        duracion_ms INTEGER,
-        observaciones TEXT,
-        creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
-      )
-    `);
-
-    db.run(`
-      CREATE TABLE IF NOT EXISTS facturas_vehiculares (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        numero_factura TEXT NOT NULL UNIQUE,
-        fecha_factura TEXT NOT NULL,
-        valor_factura REAL NOT NULL DEFAULT 0,
-        sala TEXT,
-        peso_kg REAL,
-        vehiculo_id INTEGER,
-        placa_original TEXT,
-        conductor_nombre TEXT,
-        fecha_envio TEXT,
-        observaciones TEXT,
-        estado_vehiculo TEXT NOT NULL DEFAULT 'sin_asignar',
-        importacion_creacion_id INTEGER,
-        importacion_ultima_id INTEGER,
-        hash_fila TEXT NOT NULL,
-        creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
-        actualizado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (vehiculo_id) REFERENCES vehiculos(id) ON DELETE SET NULL,
-        FOREIGN KEY (importacion_creacion_id) REFERENCES importaciones(id),
-        FOREIGN KEY (importacion_ultima_id) REFERENCES importaciones(id)
-      )
-    `);
-
-    db.run(`
-      CREATE TABLE IF NOT EXISTS gastos_operativos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        factura_id INTEGER NOT NULL,
-        tipo_gasto TEXT NOT NULL,
-        valor REAL NOT NULL DEFAULT 0,
-        unidad TEXT NOT NULL,
-        importacion_id INTEGER,
-        creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
-        actualizado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (factura_id) REFERENCES facturas_vehiculares(id) ON DELETE CASCADE,
-        FOREIGN KEY (importacion_id) REFERENCES importaciones(id)
-      )
-    `);
-
-    db.run(`
-      CREATE TABLE IF NOT EXISTS incidencias_importacion (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        importacion_id INTEGER NOT NULL,
-        fila_excel INTEGER,
-        numero_factura TEXT,
-        placa_original TEXT,
-        tipo_incidencia TEXT NOT NULL,
-        descripcion TEXT NOT NULL,
-        valor_problematico TEXT,
-        resuelta INTEGER NOT NULL DEFAULT 0,
-        resuelta_por INTEGER,
-        resuelta_en DATETIME,
-        creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (importacion_id) REFERENCES importaciones(id) ON DELETE CASCADE,
-        FOREIGN KEY (resuelta_por) REFERENCES usuarios(id)
-      )
-    `);
-
-    db.run(`
-      CREATE TABLE IF NOT EXISTS detalle_importacion (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        importacion_id INTEGER NOT NULL,
-        factura_id INTEGER,
-        numero_factura TEXT NOT NULL,
-        accion TEXT NOT NULL,
-        hash_anterior TEXT,
-        hash_nuevo TEXT,
-        creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (importacion_id) REFERENCES importaciones(id) ON DELETE CASCADE,
-        FOREIGN KEY (factura_id) REFERENCES facturas_vehiculares(id) ON DELETE SET NULL
-      )
-    `);
-  });
-
-  Promise.all([
-    ensureColumn("usuarios", "role_id", "INTEGER"),
-    ensureColumn("usuarios", "foto_url", "TEXT"),
+ensurePostgresTables()
+.then(seedEmpresaDefault)
+  .then(() => Promise.all([
+    ensureColumn("empresas", "logo_url", "TEXT"),
+    ensureColumn("empresas", "modulos_deshabilitados", "TEXT[] NOT NULL DEFAULT '{}'"),
+    ensureColumn("repuestos", "foto_url", "TEXT"),
+    ensureColumn("vehiculos", "intervalo_cambio_aceite_km", "INTEGER"),
+    ensureColumn("usuarios", "role_id", "BIGINT REFERENCES roles(id)"),
+  ensureColumn("usuarios", "foto_url", "TEXT"),
     ensureColumn("usuarios", "foto_posicion", "TEXT NOT NULL DEFAULT '50% 50%'"),
     ensureColumn("usuarios", "celular", "TEXT"),
-    ensureColumn("roles", "permisos_configurados", "INTEGER NOT NULL DEFAULT 0"),
+    ensureColumn("usuarios", "debe_cambiar_password", "BOOLEAN NOT NULL DEFAULT FALSE"),
+    ensureColumn("roles", "permisos_configurados", "BOOLEAN NOT NULL DEFAULT FALSE"),
     ensureColumn("mantenimientos", "repuestos", "TEXT"),
     ensureColumn("mantenimientos", "autorizado_por", "TEXT"),
     ensureColumn("mantenimientos", "hecho_por", "TEXT"),
@@ -1885,12 +1645,12 @@ if (env.dbClient === "sqlite") {
     ensureColumn("mantenimientos", "salida_inventario_url", "TEXT"),
     ensureColumn("mantenimientos", "salida_inventario_nombre", "TEXT"),
     ensureColumn("mantenimientos", "salida_inventario_mime", "TEXT"),
-    ensureColumn("mantenimientos", "valor_mano_obra", "REAL DEFAULT 0"),
+    ensureColumn("mantenimientos", "valor_mano_obra", "NUMERIC(12, 2) DEFAULT 0"),
     ensureColumn("mantenimientos", "proximo_cambio_km", "INTEGER"),
-    ensureColumn("mantenimientos", "proximo_cambio_fecha", "TEXT"),
-    ensureColumn("mantenimientos", "creado_por_usuario_id", "INTEGER"),
+    ensureColumn("mantenimientos", "proximo_cambio_fecha", "DATE"),
+    ensureColumn("mantenimientos", "creado_por_usuario_id", "BIGINT REFERENCES usuarios(id)"),
     ensureColumn("mantenimientos", "estado", "TEXT NOT NULL DEFAULT 'completado'"),
-    ensureColumn("mantenimientos", "vehiculo_varado", "INTEGER NOT NULL DEFAULT 0"),
+    ensureColumn("mantenimientos", "vehiculo_varado", "BOOLEAN NOT NULL DEFAULT FALSE"),
     ensureColumn("vehiculos", "tipo_vehiculo", "TEXT"),
     ensureColumn("vehiculos", "tipo_carroceria", "TEXT"),
     ensureColumn("vehiculos", "numero_chasis", "TEXT"),
@@ -1899,170 +1659,101 @@ if (env.dbClient === "sqlite") {
     ensureColumn("vehiculos", "imagen_url", "TEXT"),
     ensureColumn("documentos", "archivo_nombre", "TEXT"),
     ensureColumn("documentos", "archivo_mime", "TEXT"),
+    ensureColumn("documentos", "propietario_tipo_identificacion", "TEXT"),
+    ensureColumn("documentos", "propietario_numero_identificacion", "TEXT"),
+    ensureColumn("documentos", "propietario_nombre", "TEXT"),
     ensureColumn("notificaciones", "categoria", "TEXT NOT NULL DEFAULT 'sistema'"),
     ensureColumn("notificaciones", "titulo", "TEXT"),
-    ensureColumn("notificaciones", "vehiculo_id", "INTEGER"),
+    ensureColumn("notificaciones", "vehiculo_id", "BIGINT REFERENCES vehiculos(id) ON DELETE SET NULL"),
     ensureColumn("notificaciones", "accion_tipo", "TEXT"),
     ensureColumn("notificaciones", "accion_payload", "TEXT"),
     ensureColumn("notificaciones", "estado", "TEXT NOT NULL DEFAULT 'no_leida'"),
-    ensureColumn("notificaciones", "updated_at", "DATETIME DEFAULT CURRENT_TIMESTAMP"),
-    ensureColumn("inspecciones_preventivas", "latitud", "REAL"),
-    ensureColumn("inspecciones_preventivas", "longitud", "REAL"),
-    ensureColumn("inspecciones_preventivas", "ubicacion_precision", "REAL"),
+    ensureColumn("notificaciones", "updated_at", "TIMESTAMPTZ NOT NULL DEFAULT NOW()"),
+    ensureColumn("importaciones_config_vehiculos", "hash_archivo", "TEXT"),
+    ensureColumn("inspecciones_preventivas", "latitud", "DOUBLE PRECISION"),
+    ensureColumn("inspecciones_preventivas", "longitud", "DOUBLE PRECISION"),
+    ensureColumn("inspecciones_preventivas", "ubicacion_precision", "NUMERIC(10, 2)"),
     ensureColumn("simit_comparendos", "cedula_infractor", "TEXT"),
     ensureColumn("simit_comparendos", "nombre_infractor", "TEXT"),
-    ensureColumn("simit_comparendos", "conductor_id", "INTEGER"),
+    ensureColumn("simit_comparendos", "conductor_id", "BIGINT REFERENCES conductores(id) ON DELETE SET NULL"),
     ensureColumn("simit_comparendos", "numero_infraccion", "TEXT"),
-    ensureColumn("inspecciones_preventivas", "viaje_id", "INTEGER"),
+    ensureColumn("inspecciones_preventivas", "viaje_id", "BIGINT REFERENCES viajes(id) ON DELETE SET NULL"),
+    ensureColumn("inspecciones_preventivas", "asignacion_id", "BIGINT REFERENCES asignaciones_ruta(id) ON DELETE SET NULL"),
     ensureColumn("entregas_recibidas", "fotos_generales_json", "TEXT"),
-    ensureColumn("facturas_vehiculares", "conductor_id", "INTEGER"),
-    ensureColumn("conductores", "excluir_de_costos", "INTEGER NOT NULL DEFAULT 0"),
+    ensureColumn("conductores", "nombres", "TEXT"),
+    ensureColumn("conductores", "apellidos", "TEXT"),
+    ensureColumn("conductores", "licencia_archivo_url", "TEXT"),
+    ensureColumn("conductores", "licencia_archivo_nombre", "TEXT"),
+    ensureColumn("conductores", "licencia_archivo_mime", "TEXT"),
+    ensureColumn("conductores", "email", "TEXT"),
+    ensureColumn("conductores", "usuario_id", "BIGINT REFERENCES usuarios(id) ON DELETE SET NULL"),
+    ensureColumn("facturas_vehiculares", "conductor_id", "BIGINT REFERENCES conductores(id) ON DELETE SET NULL"),
+    ensureColumn("conductores", "excluir_de_costos", "BOOLEAN NOT NULL DEFAULT FALSE"),
     ensureColumn("inspecciones_preventivas", "firma_url", "TEXT"),
-    ensureColumn("preoperacionales", "firma_url", "TEXT")
-  ])
-    .then(() => db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_vehiculos_numero_chasis ON vehiculos (numero_chasis) WHERE numero_chasis IS NOT NULL"))
-    .then(() => db.run("UPDATE notificaciones SET estado = 'leida' WHERE leido = 1 AND estado = 'no_leida'"))
-    .then(() => db.run("UPDATE notificaciones SET vehiculo_id = referencia_id WHERE referencia_tipo = 'vehiculo' AND vehiculo_id IS NULL"))
-    .then(seedRolesAndPermissions)
-    .then(grantPermisosNuevos)
-    .then(revocarPermisosObsoletos)
-    .then(syncUserRoles)
-    .then(seedAdminUser)
-    .then(() => console.log("Tablas verificadas/creadas"))
-    .catch((error) => console.error("Error verificando columnas", error.message));
-} else {
-  ensurePostgresTables()
-    .then(seedEmpresaDefault)
-    .then(() => Promise.all([
-      ensureColumn("empresas", "logo_url", "TEXT"),
-      ensureColumn("empresas", "modulos_deshabilitados", "TEXT[] NOT NULL DEFAULT '{}'"),
-      ensureColumn("repuestos", "foto_url", "TEXT"),
-      ensureColumn("vehiculos", "intervalo_cambio_aceite_km", "INTEGER"),
-      ensureColumn("usuarios", "role_id", "BIGINT REFERENCES roles(id)"),
-    ensureColumn("usuarios", "foto_url", "TEXT"),
-      ensureColumn("usuarios", "foto_posicion", "TEXT NOT NULL DEFAULT '50% 50%'"),
-      ensureColumn("usuarios", "celular", "TEXT"),
-      ensureColumn("usuarios", "debe_cambiar_password", "BOOLEAN NOT NULL DEFAULT FALSE"),
-      ensureColumn("roles", "permisos_configurados", "BOOLEAN NOT NULL DEFAULT FALSE"),
-      ensureColumn("mantenimientos", "repuestos", "TEXT"),
-      ensureColumn("mantenimientos", "autorizado_por", "TEXT"),
-      ensureColumn("mantenimientos", "hecho_por", "TEXT"),
-      ensureColumn("mantenimientos", "soporte_url", "TEXT"),
-      ensureColumn("mantenimientos", "soporte_nombre", "TEXT"),
-      ensureColumn("mantenimientos", "soporte_mime", "TEXT"),
-      ensureColumn("mantenimientos", "salida_inventario_url", "TEXT"),
-      ensureColumn("mantenimientos", "salida_inventario_nombre", "TEXT"),
-      ensureColumn("mantenimientos", "salida_inventario_mime", "TEXT"),
-      ensureColumn("mantenimientos", "valor_mano_obra", "NUMERIC(12, 2) DEFAULT 0"),
-      ensureColumn("mantenimientos", "proximo_cambio_km", "INTEGER"),
-      ensureColumn("mantenimientos", "proximo_cambio_fecha", "DATE"),
-      ensureColumn("mantenimientos", "creado_por_usuario_id", "BIGINT REFERENCES usuarios(id)"),
-      ensureColumn("mantenimientos", "estado", "TEXT NOT NULL DEFAULT 'completado'"),
-      ensureColumn("mantenimientos", "vehiculo_varado", "BOOLEAN NOT NULL DEFAULT FALSE"),
-      ensureColumn("vehiculos", "tipo_vehiculo", "TEXT"),
-      ensureColumn("vehiculos", "tipo_carroceria", "TEXT"),
-      ensureColumn("vehiculos", "numero_chasis", "TEXT"),
-      ensureColumn("vehiculos", "numero_motor", "TEXT"),
-      ensureColumn("vehiculos", "estado", "TEXT NOT NULL DEFAULT 'activo'"),
-      ensureColumn("vehiculos", "imagen_url", "TEXT"),
-      ensureColumn("documentos", "archivo_nombre", "TEXT"),
-      ensureColumn("documentos", "archivo_mime", "TEXT"),
-      ensureColumn("documentos", "propietario_tipo_identificacion", "TEXT"),
-      ensureColumn("documentos", "propietario_numero_identificacion", "TEXT"),
-      ensureColumn("documentos", "propietario_nombre", "TEXT"),
-      ensureColumn("notificaciones", "categoria", "TEXT NOT NULL DEFAULT 'sistema'"),
-      ensureColumn("notificaciones", "titulo", "TEXT"),
-      ensureColumn("notificaciones", "vehiculo_id", "BIGINT REFERENCES vehiculos(id) ON DELETE SET NULL"),
-      ensureColumn("notificaciones", "accion_tipo", "TEXT"),
-      ensureColumn("notificaciones", "accion_payload", "TEXT"),
-      ensureColumn("notificaciones", "estado", "TEXT NOT NULL DEFAULT 'no_leida'"),
-      ensureColumn("notificaciones", "updated_at", "TIMESTAMPTZ NOT NULL DEFAULT NOW()"),
-      ensureColumn("importaciones_config_vehiculos", "hash_archivo", "TEXT"),
-      ensureColumn("inspecciones_preventivas", "latitud", "DOUBLE PRECISION"),
-      ensureColumn("inspecciones_preventivas", "longitud", "DOUBLE PRECISION"),
-      ensureColumn("inspecciones_preventivas", "ubicacion_precision", "NUMERIC(10, 2)"),
-      ensureColumn("simit_comparendos", "cedula_infractor", "TEXT"),
-      ensureColumn("simit_comparendos", "nombre_infractor", "TEXT"),
-      ensureColumn("simit_comparendos", "conductor_id", "BIGINT REFERENCES conductores(id) ON DELETE SET NULL"),
-      ensureColumn("simit_comparendos", "numero_infraccion", "TEXT"),
-      ensureColumn("inspecciones_preventivas", "viaje_id", "BIGINT REFERENCES viajes(id) ON DELETE SET NULL"),
-      ensureColumn("inspecciones_preventivas", "asignacion_id", "BIGINT REFERENCES asignaciones_ruta(id) ON DELETE SET NULL"),
-      ensureColumn("entregas_recibidas", "fotos_generales_json", "TEXT"),
-      ensureColumn("conductores", "nombres", "TEXT"),
-      ensureColumn("conductores", "apellidos", "TEXT"),
-      ensureColumn("conductores", "licencia_archivo_url", "TEXT"),
-      ensureColumn("conductores", "licencia_archivo_nombre", "TEXT"),
-      ensureColumn("conductores", "licencia_archivo_mime", "TEXT"),
-      ensureColumn("conductores", "email", "TEXT"),
-      ensureColumn("conductores", "usuario_id", "BIGINT REFERENCES usuarios(id) ON DELETE SET NULL"),
-      ensureColumn("facturas_vehiculares", "conductor_id", "BIGINT REFERENCES conductores(id) ON DELETE SET NULL"),
-      ensureColumn("conductores", "excluir_de_costos", "BOOLEAN NOT NULL DEFAULT FALSE"),
-      ensureColumn("inspecciones_preventivas", "firma_url", "TEXT"),
-      ensureColumn("preoperacionales", "firma_url", "TEXT"),
-      ensureColumn("preoperacionales", "observaciones", "TEXT"),
-      ensureColumn("asignaciones_ruta", "destinos", "JSONB"),
-      ensureColumn("asignaciones_ruta", "observaciones", "TEXT"),
-      ensureColumn("extintores", "libras", "NUMERIC(5,1)"),
-      ensureColumn("extintores", "consecutivo", "INTEGER"),
-      ensureColumn("herramientas_items", "codigo", "TEXT")
-    ]))
-    .then(backfillExtintoresConsecutivo)
-    .then(migrarConductoresNombreSplit)
-    .then(migrarEntregasConductorAUsuario)
-    .then(migrarTarjetaOperacionASeguro)
-    .then(ensureEmpresaIdColumns)
-    .then(() => Promise.all([
-      ensureNumericColumn("vehiculos", "kilometraje_actual"),
-      ensureNumericColumn("vehiculos", "capacidad_carga")
-    ]))
-    .then(backfillEmpresaId)
-    .then(backfillFacturasConductorId)
-    .then(enforceEmpresaIdNotNull)
-    .then(migrarLicenciasConductorATablaPropia)
-    .then(migrarConstraintsPorEmpresa)
-    .then(seedBodegaYConfigDefault)
-    .then(() => db.run("CREATE INDEX IF NOT EXISTS idx_vehiculos_estado ON vehiculos (estado)"))
-    .then(() => db.run("CREATE INDEX IF NOT EXISTS idx_usuarios_role_id ON usuarios (role_id)"))
-    .then(() => db.run("CREATE INDEX IF NOT EXISTS idx_notificaciones_estado ON notificaciones (usuario_id, estado)"))
-    .then(() => db.run("CREATE INDEX IF NOT EXISTS idx_notificaciones_vehiculo_id ON notificaciones (vehiculo_id)"))
-    .then(() => db.run("UPDATE notificaciones SET estado = 'leida' WHERE leido = TRUE AND estado = 'no_leida'"))
-    .then(() => db.run("UPDATE notificaciones SET vehiculo_id = referencia_id WHERE referencia_tipo = 'vehiculo' AND vehiculo_id IS NULL"))
-    .then(() => db.run(`
-      UPDATE notificaciones n
-      SET vehiculo_id = m.vehiculo_id
-      FROM mantenimientos m
-      WHERE n.referencia_tipo = 'mantenimiento'
-        AND n.referencia_id = m.id
-        AND n.vehiculo_id IS NULL
-    `))
-    // ── Fin de la fase de migraciones ──
-    //
-    // Este catch NO es cosmetico: sin el, cualquier fallo en alguna de las
-    // ~30 migraciones de arriba saltaba directo al final de la cadena y
-    // dejaba SIN sembrar los permisos y el usuario admin. El sintoma que
-    // producia era enganoso: la app arrancaba y respondia normal, pero un
-    // permiso recien agregado al catalogo simplemente no existia, y quien
-    // dependiera de el (por ejemplo, quien recibe una alerta) se quedaba sin
-    // nada, sin ningun error visible.
-    //
-    // Absorber el fallo aca deja el arranque "degradado pero correcto": la
-    // migracion pendiente se reintenta sola en el proximo arranque (todas
-    // son idempotentes), mientras que el catalogo de permisos -- que no
-    // depende de esas migraciones -- queda al dia igual.
-    .catch((error) => {
-      console.error("[init] Fallo una migracion de Postgres. El resto del arranque continua.");
-      console.error(error.stack || error.message);
-    })
-    .then(seedRolesAndPermissions)
-    .then(grantPermisosNuevos)
-    .then(revocarPermisosObsoletos)
-    .then(syncUserRoles)
-    .then(seedAdminUser)
-    .then(() => console.log("Columnas PostgreSQL verificadas"))
-    // Un fallo aca si es grave (sin permisos sembrados la app queda a medias),
-    // asi que se registra con stack completo en vez de solo el mensaje.
-    .catch((error) => {
-      console.error("[init] Fallo el sembrado de roles/permisos/admin:");
-      console.error(error.stack || error.message);
-    });
-}
+    ensureColumn("preoperacionales", "firma_url", "TEXT"),
+    ensureColumn("preoperacionales", "observaciones", "TEXT"),
+    ensureColumn("asignaciones_ruta", "destinos", "JSONB"),
+    ensureColumn("asignaciones_ruta", "observaciones", "TEXT"),
+    ensureColumn("extintores", "libras", "NUMERIC(5,1)"),
+    ensureColumn("extintores", "consecutivo", "INTEGER"),
+    ensureColumn("herramientas_items", "codigo", "TEXT")
+  ]))
+  .then(backfillExtintoresConsecutivo)
+  .then(migrarConductoresNombreSplit)
+  .then(migrarEntregasConductorAUsuario)
+  .then(migrarTarjetaOperacionASeguro)
+  .then(ensureEmpresaIdColumns)
+  .then(() => Promise.all([
+    ensureNumericColumn("vehiculos", "kilometraje_actual"),
+    ensureNumericColumn("vehiculos", "capacidad_carga")
+  ]))
+  .then(backfillEmpresaId)
+  .then(backfillFacturasConductorId)
+  .then(enforceEmpresaIdNotNull)
+  .then(migrarLicenciasConductorATablaPropia)
+  .then(migrarConstraintsPorEmpresa)
+  .then(seedBodegaYConfigDefault)
+  .then(() => db.run("CREATE INDEX IF NOT EXISTS idx_vehiculos_estado ON vehiculos (estado)"))
+  .then(() => db.run("CREATE INDEX IF NOT EXISTS idx_usuarios_role_id ON usuarios (role_id)"))
+  .then(() => db.run("CREATE INDEX IF NOT EXISTS idx_notificaciones_estado ON notificaciones (usuario_id, estado)"))
+  .then(() => db.run("CREATE INDEX IF NOT EXISTS idx_notificaciones_vehiculo_id ON notificaciones (vehiculo_id)"))
+  .then(() => db.run("UPDATE notificaciones SET estado = 'leida' WHERE leido = TRUE AND estado = 'no_leida'"))
+  .then(() => db.run("UPDATE notificaciones SET vehiculo_id = referencia_id WHERE referencia_tipo = 'vehiculo' AND vehiculo_id IS NULL"))
+  .then(() => db.run(`
+    UPDATE notificaciones n
+    SET vehiculo_id = m.vehiculo_id
+    FROM mantenimientos m
+    WHERE n.referencia_tipo = 'mantenimiento'
+      AND n.referencia_id = m.id
+      AND n.vehiculo_id IS NULL
+  `))
+  // ── Fin de la fase de migraciones ──
+  //
+  // Este catch NO es cosmetico: sin el, cualquier fallo en alguna de las
+  // ~30 migraciones de arriba saltaba directo al final de la cadena y
+  // dejaba SIN sembrar los permisos y el usuario admin. El sintoma que
+  // producia era enganoso: la app arrancaba y respondia normal, pero un
+  // permiso recien agregado al catalogo simplemente no existia, y quien
+  // dependiera de el (por ejemplo, quien recibe una alerta) se quedaba sin
+  // nada, sin ningun error visible.
+  //
+  // Absorber el fallo aca deja el arranque "degradado pero correcto": la
+  // migracion pendiente se reintenta sola en el proximo arranque (todas
+  // son idempotentes), mientras que el catalogo de permisos -- que no
+  // depende de esas migraciones -- queda al dia igual.
+  .catch((error) => {
+    console.error("[init] Fallo una migracion de Postgres. El resto del arranque continua.");
+    console.error(error.stack || error.message);
+  })
+  .then(seedRolesAndPermissions)
+  .then(grantPermisosNuevos)
+  .then(revocarPermisosObsoletos)
+  .then(syncUserRoles)
+  .then(seedAdminUser)
+  .then(() => console.log("Columnas PostgreSQL verificadas"))
+  // Un fallo aca si es grave (sin permisos sembrados la app queda a medias),
+  // asi que se registra con stack completo en vez de solo el mensaje.
+  .catch((error) => {
+    console.error("[init] Fallo el sembrado de roles/permisos/admin:");
+    console.error(error.stack || error.message);
+  });

@@ -219,8 +219,7 @@ label[for="loginPassword"] {
     gap: 8px;
 }
 
-.header-action,
-.ops-summary {
+.header-action {
     display: inline-flex;
     align-items: center;
     min-height: 38px;
@@ -515,17 +514,11 @@ label[for="loginPassword"] {
     font-size: 0.78rem;
 }
 
-/* ── Centro de notificaciones: prioridad, categoria, agrupacion ──
-   Selectores de dos clases para asegurar mayor especificidad que el
-   shorthand "border" de .record-item (usado en la pagina completa). */
-.notif-prio-critica,
-.notif-center-item.notif-prio-critica { border-left: 4px solid var(--color-primary); }
-.notif-prio-alta,
-.notif-center-item.notif-prio-alta { border-left: 4px solid #c2410c; }
-.notif-prio-media,
-.notif-center-item.notif-prio-media { border-left: 4px solid var(--color-warning); }
-.notif-prio-informativa,
-.notif-center-item.notif-prio-informativa { border-left: 4px solid #305f8f; }
+/* ── Centro de notificaciones: prioridad, categoria, agrupacion ── */
+.notif-prio-critica { border-left: 4px solid var(--color-primary); }
+.notif-prio-alta { border-left: 4px solid #c2410c; }
+.notif-prio-media { border-left: 4px solid var(--color-warning); }
+.notif-prio-informativa { border-left: 4px solid #305f8f; }
 
 .notif-item-head {
     display: flex;
@@ -637,19 +630,10 @@ label[for="loginPassword"] {
     font-weight: 700;
 }
 
-.notif-bulk-actions {
-    display: flex;
-    gap: 8px;
-}
-
 .notif-center-list {
     display: flex;
     flex-direction: column;
     gap: 12px;
-}
-
-.notif-center-item {
-    border-left-width: 4px;
 }
 
 /* ── Centro de notificaciones: toolbar (pestanas, categorias, buscador) ── */
@@ -1115,66 +1099,6 @@ label[for="loginPassword"] {
     height: 18px;
 }
 
-.nav-home::before,
-.nav-add::before,
-.nav-list::before,
-.nav-service::before,
-.nav-edit::before,
-.nav-delete::before {
-    content: "";
-    position: absolute;
-    inset: 3px;
-    border: 2px solid currentColor;
-    border-radius: 3px;
-}
-/* ── Ícono logout ─────────────────────────────── */
-.logout-icon {
-    position: relative;
-    display: inline-block;
-    flex-shrink: 0;
-    width: 14px;
-    height: 14px;
-}
-
-.logout-icon::before {
-    content: "";
-    position: absolute;
-    inset: 1px;
-    border: 2px solid currentColor;
-    border-right: none;
-    border-radius: 2px 0 0 2px;
-}
-
-.logout-icon::after {
-    content: "→";
-    position: absolute;
-    right: -2px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 11px;
-    line-height: 1;
-}
-.nav-edit::after {
-    content: "";
-    position: absolute;
-    right: 2px;
-    bottom: 3px;
-    width: 9px;
-    height: 2px;
-    background: currentColor;
-    transform: rotate(-35deg);
-}
-
-.nav-delete::after {
-    content: "";
-    position: absolute;
-    left: 5px;
-    right: 5px;
-    top: 3px;
-    height: 2px;
-    background: currentColor;
-}
-
 /* ── Foto de perfil de usuario (avatar circular arrastrable) ────── */
 .avatar-dropzone {
     position: relative;
@@ -1558,10 +1482,6 @@ label[for="loginPassword"] {
     font-size: 0.8rem;
     font-weight: 700;
     pointer-events: none;
-}
-
-.input-suffix-wrap-domain input {
-    padding-right: 114px;
 }
 
 .password-field {
@@ -2497,7 +2417,6 @@ label[for="loginPassword"] {
 }
 
 .dash-card-fleet { --card-accent: #2f80c9; }
-.dash-card-drivers { --card-accent: #305f8f; }
 .dash-card-docs { --card-accent: #305f8f; }
 .dash-card-service { --card-accent: #0e7c86; }
 .dash-card-routes { --card-accent: #147a45; }
@@ -2599,12 +2518,6 @@ label[for="loginPassword"] {
 .dash-card-delta.is-flat {
     background: var(--color-surface-2);
     color: var(--color-muted);
-}
-
-.dash-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
-    gap: 20px;
 }
 
 .dash-workspace {
@@ -3052,43 +2965,10 @@ label[for="loginPassword"] {
     gap: 12px;
 }
 
-.dash-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.89rem;
-}
-
-.dash-table th {
-    padding: 11px 14px;
-    border-bottom: 1px solid var(--color-border);
-    color: var(--color-muted);
-    font-size: 0.72rem;
-    text-align: left;
-    text-transform: uppercase;
-}
-
-.dash-table td {
-    padding: 13px 14px;
-    border-bottom: 1px solid #edf1f5;
-}
-
-.dash-table tr:last-child td {
-    border-bottom: 0;
-}
-
-.dash-table code,
 .plate {
     font-family: Consolas, "Courier New", monospace;
     font-weight: 800;
     letter-spacing: 0;
-}
-
-.dash-table code {
-    padding: 3px 7px;
-    border-radius: 4px;
-    background: #edf1f5;
-    color: var(--color-ink);
-    font-size: 0.82rem;
 }
 
 .badge {
@@ -3194,12 +3074,6 @@ label[for="loginPassword"] {
 .kpi-sub-good {
     color: var(--color-success);
     font-weight: 600;
-}
-
-/* Cobro coactivo: mas severo que el resto de estados, se resalta con una
-   barra de acento mas gruesa. */
-.kpi-card--critical::before {
-    height: 5px;
 }
 
 @media (max-width: 760px) {
@@ -3392,13 +3266,6 @@ label[for="loginPassword"] {
     border-bottom: 0;
 }
 
-.dash-item-side {
-    display: flex;
-    align-items: flex-end;
-    flex-direction: column;
-    gap: 7px;
-}
-
 /* ── Estado de la flota (panel resumen) ──────────── */
 .fleet-status {
     padding: 14px 18px;
@@ -3491,16 +3358,6 @@ label[for="loginPassword"] {
     margin-top: 3px;
     color: var(--color-muted);
     font-size: 0.78rem;
-}
-
-.dash-fecha-tag {
-    padding: 4px 8px;
-    border-radius: 999px;
-    background: var(--color-warning-bg);
-    color: var(--color-warning);
-    font-size: 0.76rem;
-    font-weight: 800;
-    white-space: nowrap;
 }
 
 .dash-empty {
@@ -3734,12 +3591,6 @@ label[for="loginPassword"] {
     --tt-tx: 0;
 }
 
-.dash-calendar-day-more {
-    color: var(--color-muted);
-    font-size: 0.68rem;
-    font-weight: 700;
-}
-
 .dash-calendar-legend {
     display: flex;
     flex-wrap: wrap;
@@ -3776,7 +3627,6 @@ label[for="loginPassword"] {
     padding: 12px 16px;
 }
 
-.dash-calendar-agenda .dash-item-side,
 .dash-calendar-agenda .badge {
     align-items: flex-start;
 }
@@ -3792,18 +3642,6 @@ label[for="loginPassword"] {
     overflow: hidden;
     padding: 20px;
     animation: fadeIn 0.25s ease forwards;
-}
-
-.vehicle-card-link {
-    display: block;
-    color: inherit;
-    transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
-}
-
-.vehicle-card-link:hover {
-    border-color: rgba(178, 31, 45, 0.45);
-    box-shadow: 0 20px 42px rgba(24, 32, 43, 0.12);
-    transform: translateY(-2px);
 }
 
 .vehicle-card::before {
@@ -3873,14 +3711,6 @@ label[for="loginPassword"] {
     color: var(--color-ink);
     font-size: 0.9rem;
     font-weight: 700;
-}
-
-.vehicle-card-action {
-    display: inline-flex;
-    margin-top: 16px;
-    color: var(--color-primary);
-    font-size: 0.84rem;
-    font-weight: 800;
 }
 
 .vehicle-card-photo {
@@ -4514,10 +4344,6 @@ label[for="loginPassword"] {
     min-height: 58px;
 }
 
-#mantenimientoForm .simple-list-builder {
-    gap: 8px;
-}
-
 .vehicles-toolbar {
     margin-bottom: 10px;
 }
@@ -4775,12 +4601,6 @@ label[for="loginPassword"] {
     accent-color: var(--color-primary);
 }
 
-.simple-list-builder {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
 .simple-list-entry {
     display: grid;
     grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(120px, 0.6fr) minmax(0, 1fr) auto;
@@ -4840,10 +4660,6 @@ label[for="loginPassword"] {
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     background: var(--color-surface-2);
-}
-
-.simple-checklist-item--excluido {
-    opacity: 0.55;
 }
 
 .simple-checklist-check {
@@ -5871,7 +5687,6 @@ button.record-link {
         padding: 20px 16px;
     }
 
-    .dash-grid,
     .dash-workspace {
         grid-template-columns: 1fr;
     }
@@ -5957,8 +5772,7 @@ button.record-link {
         white-space: normal;
     }
 
-    .header-action,
-    .ops-summary {
+    .header-action {
         width: 100%;
         justify-content: center;
     }
@@ -6096,19 +5910,9 @@ button.record-link {
     }
 
     .dash-panel-head,
-    .dash-list-item,
-    .dash-item-side {
-        align-items: flex-start;
-    }
-
-    .dash-panel-head,
     .dash-list-item {
+        align-items: flex-start;
         flex-direction: column;
-    }
-
-    .dash-item-side {
-        flex-direction: row;
-        flex-wrap: wrap;
     }
 }
 
@@ -6184,28 +5988,6 @@ button.record-link {
 .repuesto-autocomplete-meta {
     color: var(--color-muted);
     font-size: 0.74rem;
-}
-
-/* ── Sugeridos / equivalencias (formulario, ficha de vehiculo, inventario) ── */
-.repuesto-sugerido-item,
-.repuesto-equivalencia-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 8px 10px;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    background: var(--color-surface);
-}
-
-.repuesto-equivalencia-disponible {
-    color: #147a45;
-    font-weight: 800;
-}
-
-.repuesto-equivalencia-agotada {
-    color: var(--color-muted);
 }
 
 .repuesto-sin-stock-aviso {

@@ -27,6 +27,5 @@ module.exports = {
     task.start();
     console.log("Job simit-consulta iniciado");
   },
-  stop: () => task.stop(),
   ejecutarActualizacionFlota
 };

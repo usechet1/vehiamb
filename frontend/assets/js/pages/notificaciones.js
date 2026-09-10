@@ -169,10 +169,6 @@ function renderNotifEntry(notificacion) {
     `;
 }
 
-function contarNotificaciones(notificaciones) {
-    return notificaciones.reduce((total, item) => total + (item.agrupado ? item.items.length : 1), 0);
-}
-
 // Dos vacios muy distintos: "no hay nada que coincida con lo que filtraste"
 // (hay un filtro/busqueda de por medio, se ofrece limpiarlo) vs "no tienes
 // nada" (pestana por defecto, sin filtros -- un buen estado, no una

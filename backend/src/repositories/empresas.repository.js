@@ -43,19 +43,6 @@ async function update(id, { nombre, logo_url }) {
   return findById(id);
 }
 
-async function setModulosDeshabilitados(id, modulosDeshabilitados) {
-  await db.run(
-    `
-      UPDATE empresas
-      SET modulos_deshabilitados = ?
-      WHERE id = ?
-    `,
-    [modulosDeshabilitados, id]
-  );
-
-  return findById(id);
-}
-
 async function create({ nombre, slug }) {
   const result = await db.get(
     `
@@ -86,6 +73,5 @@ module.exports = {
   findBySlug,
   create,
   update,
-  setModulosDeshabilitados,
   findEmpresaPrincipal
 };
