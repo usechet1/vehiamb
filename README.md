@@ -1,8 +1,9 @@
 # VehiAmb
 
-Sistema de gestión de parque automotor: vehículos, mantenimientos, documentos
-(SOAT/RTM), inspecciones preoperacionales, viajes, comparendos SIMIT, rastreo
-GPS, repuestos/inventario y notificaciones (in-app, email y WhatsApp).
+Plataforma para centralizar el control del parque automotor: mantener la
+flota al día en documentos y mantenimientos, hacer seguimiento en tiempo real
+de viajes e inspecciones, y alertar automáticamente a los responsables por
+email y WhatsApp.
 
 ## Estructura
 

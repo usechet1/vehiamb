@@ -24,7 +24,7 @@ const TIPO_DOCUMENTO_NOTIFICACION = {
 
 async function obtenerDocumentosVigentes() {
   return db.all(`
-    SELECT d.id, d.vehiculo_id, d.tipo, d.fecha_vencimiento, d.empresa_id, v.placa, v.marca, v.modelo
+    SELECT d.id, d.vehiculo_id, d.tipo, d.fecha_vencimiento, d.empresa_id, v.placa
     FROM documentos d
     INNER JOIN vehiculos v ON v.id = d.vehiculo_id
     WHERE d.tipo IN ('soat', 'tecnomecanica', 'seguro', 'otro')
@@ -78,11 +78,10 @@ async function evaluarDocumento(row) {
   const yaNotificado = await notificacionesService.existsRecentByReferencia("documento", row.id, HORAS_SIN_DUPLICAR, row.empresa_id);
   if (yaNotificado) return;
 
-  const vehiculoLabel = `${row.marca} ${row.modelo} (${row.placa})`;
   const tipo = vencido ? config.vencido : config.proximo;
   const mensaje = vencido
-    ? `El ${config.label} del vehiculo ${vehiculoLabel} vencio hace ${Math.abs(diasRestantes)} dias.`
-    : `El ${config.label} del vehiculo ${vehiculoLabel} vence en ${diasRestantes} dias.`;
+    ? `El ${config.label} del vehiculo ${row.placa} vencio hace ${Math.abs(diasRestantes)} dias.`
+    : `El ${config.label} del vehiculo ${row.placa} vence en ${diasRestantes} dias.`;
 
   await notificacionesService.notificarUsuariosConPermiso(DESTINATARIO_PERMISSION, {
     tipo,

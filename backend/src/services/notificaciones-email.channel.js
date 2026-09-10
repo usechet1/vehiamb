@@ -9,10 +9,11 @@ const { getTransporter } = require("../utils/mailer");
 // al bundle de frontend.
 const ACCION_RUTAS = {
   ver_vehiculo: (payload) => `vehiculo.html?id=${payload?.vehiculo_id}`,
-  ver_mantenimiento: () => "mantenimientos.html",
-  renovar_documento: () => "documentos.html",
-  ver_usuario: () => "admin-usuarios.html",
-  ver_repuesto: () => "repuestos.html"
+  ver_mantenimiento: (payload) => `mantenimientos.html?mantenimiento_id=${payload?.mantenimiento_id}`,
+  renovar_documento: (payload) => `documentos.html?documento_id=${payload?.documento_id}`,
+  ver_usuario: (payload) => `admin-usuarios.html?usuario_id=${payload?.usuario_id}`,
+  ver_repuesto: (payload) => `repuestos.html?repuesto_id=${payload?.repuesto_id}`,
+  ver_simit: (payload) => `simit.html?vehiculo_id=${payload?.vehiculo_id}`
 };
 
 function debeEnviarPorPrioridad(prioridad) {
