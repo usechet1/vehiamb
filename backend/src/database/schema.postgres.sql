@@ -418,6 +418,36 @@ CREATE INDEX IF NOT EXISTS idx_simit_consultas_vehiculo_id ON simit_consultas (v
 CREATE INDEX IF NOT EXISTS idx_simit_comparendos_consulta_id ON simit_comparendos (consulta_id);
 CREATE INDEX IF NOT EXISTS idx_simit_comparendos_vehiculo_numero ON simit_comparendos (vehiculo_id, numero_comparendo);
 
+-- ── Modulo de rastreo GPS (Traccar como capa de ingesta, ver
+-- MIGRACION-SERVIDOR.md "Integracion GPS Suntech") ──
+CREATE TABLE IF NOT EXISTS dispositivos_gps (
+  id BIGSERIAL PRIMARY KEY,
+  empresa_id BIGINT NOT NULL REFERENCES empresas(id),
+  vehiculo_id BIGINT REFERENCES vehiculos(id) ON DELETE SET NULL,
+  traccar_device_id BIGINT NOT NULL UNIQUE,
+  imei TEXT NOT NULL UNIQUE,
+  nombre TEXT,
+  estado TEXT NOT NULL DEFAULT 'activo',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS gps_eventos (
+  id BIGSERIAL PRIMARY KEY,
+  empresa_id BIGINT NOT NULL REFERENCES empresas(id),
+  vehiculo_id BIGINT NOT NULL REFERENCES vehiculos(id) ON DELETE CASCADE,
+  dispositivo_id BIGINT NOT NULL REFERENCES dispositivos_gps(id) ON DELETE CASCADE,
+  tipo_evento TEXT NOT NULL,
+  traccar_event_id BIGINT NOT NULL UNIQUE,
+  payload JSONB,
+  leido BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_dispositivos_gps_empresa_id ON dispositivos_gps (empresa_id);
+CREATE INDEX IF NOT EXISTS idx_dispositivos_gps_vehiculo_id ON dispositivos_gps (vehiculo_id);
+CREATE INDEX IF NOT EXISTS idx_gps_eventos_vehiculo_id ON gps_eventos (vehiculo_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_gps_eventos_dispositivo_id ON gps_eventos (dispositivo_id);
+
 -- ── Modulo de Inspecciones preventivas (checklist tipo "radiografia") ──
 CREATE TABLE IF NOT EXISTS inspecciones_preventivas (
   id BIGSERIAL PRIMARY KEY,

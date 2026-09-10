@@ -12,6 +12,7 @@ const simitConsultaJob = require("./src/jobs/simit-consulta.job");
 const configSyncJob = require("./src/jobs/config-sync.job");
 const backupJob = require("./src/jobs/backup.job");
 const vehiculoDisponibilidadJob = require("./src/jobs/vehiculo-disponibilidad.job");
+const gpsEventosSyncJob = require("./src/jobs/gps-eventos-sync.job");
 
 const server = app.listen(env.port, () => {
   console.log(`Servidor corriendo en puerto ${env.port}`);
@@ -38,6 +39,7 @@ const server = app.listen(env.port, () => {
   configSyncJob.start();
   backupJob.start();
   vehiculoDisponibilidadJob.start();
+  gpsEventosSyncJob.start();
 });
 
 function shutdown(signal) {

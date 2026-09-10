@@ -230,7 +230,9 @@ const PERMISSIONS = [
   ["seguridad.view", "Seguridad y Salud", "Ver los registros de extintores e inspecciones de botiquin"],
   ["seguridad.create", "Seguridad y Salud", "Registrar extintores e inspecciones de botiquin"],
   ["seguridad.delete", "Seguridad y Salud", "Eliminar registros de extintores e inspecciones de botiquin"],
-  ["notificaciones.comentar", "Notificaciones", "Comentar y adjuntar evidencia en notificaciones"]
+  ["notificaciones.comentar", "Notificaciones", "Comentar y adjuntar evidencia en notificaciones"],
+  ["gps.view", "GPS", "Ver la ubicacion en tiempo real de los vehiculos con tracker GPS"],
+  ["gps.manage", "GPS", "Registrar dispositivos GPS y vincularlos a un vehiculo"]
 ];
 
 const ROLE_PERMISSIONS = {
@@ -265,7 +267,8 @@ const ROLE_PERMISSIONS = {
     "delivery.view",
     "delivery.create",
     "asignaciones.view",
-    "asignaciones.create"
+    "asignaciones.create",
+    "gps.view"
   ],
   // Rango entre Operador y Administrador: mismos permisos que Operador, mas
   // la capacidad exclusiva (junto con Administrador) de aprobar/rechazar
@@ -299,7 +302,8 @@ const ROLE_PERMISSIONS = {
     "delivery.view",
     "delivery.create",
     "asignaciones.view",
-    "asignaciones.create"
+    "asignaciones.create",
+    "gps.view"
   ],
   Consulta: [
     "dashboard.view",
@@ -313,7 +317,8 @@ const ROLE_PERMISSIONS = {
     "preoperacional.view",
     "trips.view",
     "conductores.view",
-    "delivery.view"
+    "delivery.view",
+    "gps.view"
   ],
   // Personal que maneja los vehiculos: elige un vehiculo, revisa sus
   // mantenimientos/documentos y hace la inspeccion preventiva. Sin acceso a
@@ -425,7 +430,9 @@ const PERMISOS_NUEVOS_POR_ROL = {
   "notificaciones.comentar": ["Administrador", "Operador"],
   "maintenance.delete": ["Administrador"],
   "vehicles.edit_estado": ["Administrador", "Lider"],
-  "maintenance.edit": ["Administrador", "Lider"]
+  "maintenance.edit": ["Administrador", "Lider"],
+  "gps.view": ["Administrador", "SuperAdministrador", "Operador", "Lider", "Consulta"],
+  "gps.manage": ["Administrador", "SuperAdministrador"]
 };
 
 async function grantPermisosNuevos() {
@@ -982,6 +989,43 @@ async function ensurePostgresTables() {
     )
   `);
 
+  // ── Modulo de rastreo GPS (Traccar como capa de ingesta -- ver
+  // MIGRACION-SERVIDOR.md "Integracion GPS Suntech"). VehiAmb nunca habla el
+  // protocolo del tracker: dispositivos_gps solo guarda el vinculo
+  // dispositivo<->vehiculo, y gps_eventos guarda solo alarmas (la posicion
+  // en si vive en la base separada de Traccar y se consulta en vivo via su
+  // API, ver providers/traccar-client.js -- no se duplica aca).
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS dispositivos_gps (
+      id BIGSERIAL PRIMARY KEY,
+      empresa_id BIGINT NOT NULL REFERENCES empresas(id),
+      vehiculo_id BIGINT REFERENCES vehiculos(id) ON DELETE SET NULL,
+      traccar_device_id BIGINT NOT NULL UNIQUE,
+      imei TEXT NOT NULL UNIQUE,
+      nombre TEXT,
+      estado TEXT NOT NULL DEFAULT 'activo',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  // traccar_event_id es UNIQUE para que el job de sincronizacion (cada 1 min,
+  // ver gps-eventos-sync.job.js) pueda re-consultar una ventana de tiempo que
+  // se solapa con la corrida anterior sin duplicar filas (ON CONFLICT DO
+  // NOTHING al insertar).
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS gps_eventos (
+      id BIGSERIAL PRIMARY KEY,
+      empresa_id BIGINT NOT NULL REFERENCES empresas(id),
+      vehiculo_id BIGINT NOT NULL REFERENCES vehiculos(id) ON DELETE CASCADE,
+      dispositivo_id BIGINT NOT NULL REFERENCES dispositivos_gps(id) ON DELETE CASCADE,
+      tipo_evento TEXT NOT NULL,
+      traccar_event_id BIGINT NOT NULL UNIQUE,
+      payload JSONB,
+      leido BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
   await db.run(`
     CREATE TABLE IF NOT EXISTS inspecciones_preventivas (
       id BIGSERIAL PRIMARY KEY,
@@ -1367,6 +1411,10 @@ async function ensurePostgresTables() {
   await db.run("CREATE INDEX IF NOT EXISTS idx_simit_consultas_vehiculo_id ON simit_consultas (vehiculo_id, fecha_consulta DESC)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_simit_comparendos_consulta_id ON simit_comparendos (consulta_id)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_simit_comparendos_vehiculo_numero ON simit_comparendos (vehiculo_id, numero_comparendo)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_dispositivos_gps_empresa_id ON dispositivos_gps (empresa_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_dispositivos_gps_vehiculo_id ON dispositivos_gps (vehiculo_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_gps_eventos_vehiculo_id ON gps_eventos (vehiculo_id, created_at DESC)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_gps_eventos_dispositivo_id ON gps_eventos (dispositivo_id)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_inspecciones_preventivas_vehiculo_id ON inspecciones_preventivas (vehiculo_id, fecha DESC)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_inspeccion_items_inspeccion_id ON inspeccion_items (inspeccion_id)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_preoperacionales_vehiculo_id ON preoperacionales (vehiculo_id, fecha DESC)");

@@ -115,7 +115,20 @@ const env = {
   backupSchedule: process.env.BACKUP_SCHEDULE || "0 1 * * *",
   backupDir: process.env.BACKUP_DIR || path.resolve(__dirname, "..", "..", "backups"),
   backupRetencionDias: Number(process.env.BACKUP_RETENCION_DIAS || 14),
-  pgDumpPath: process.env.PG_DUMP_PATH || "pg_dump"
+  pgDumpPath: process.env.PG_DUMP_PATH || "pg_dump",
+
+  // Rastreo GPS (ver providers/traccar-client.js): Traccar auto-hospedado es
+  // la unica capa que habla el protocolo del tracker Suntech -- VehiAmb solo
+  // consume su API REST (puerto 8082, interno, nunca expuesto). Sin
+  // TRACCAR_URL definido, gps.service.js trata la integracion como
+  // desactivada (mismo criterio que smtpHost vacio para el canal de email).
+  traccarUrl: process.env.TRACCAR_URL || "",
+  traccarUser: process.env.TRACCAR_USER || "",
+  traccarPassword: process.env.TRACCAR_PASSWORD || "",
+  // Cada cuanto se sincronizan alarmas/eventos desde Traccar hacia
+  // gps_eventos (ver gps-eventos-sync.job.js) -- posicion/velocidad no se
+  // sincroniza por cron, se consulta en vivo cuando alguien abre el mapa.
+  gpsEventosSyncSchedule: process.env.GPS_EVENTOS_SYNC_SCHEDULE || "* * * * *"
 };
 
 module.exports = env;
