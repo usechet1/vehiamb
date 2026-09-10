@@ -149,7 +149,7 @@ async function evaluarNotificacionInspeccion({ inspeccion, vehiculo, currentUser
   // mano. Mismo criterio que documents.alertas_vencimiento.
   await notificarUsuariosConPermiso("inspections.alertas_hallazgos", {
     tipo: "inspeccion_con_hallazgos",
-    mensaje: `El conductor ${currentUser.nombre} inició un viaje con el vehículo ${vehiculo.marca} ${vehiculo.modelo} (${vehiculo.placa}) y la inspección preventiva quedó con ${partes.join(" y ")}.`,
+    mensaje: `El conductor ${currentUser.nombre} inició un viaje con el vehículo ${vehiculo.placa} y la inspección preventiva quedó con ${partes.join(" y ")}.`,
     vehiculo_id: vehiculo.id,
     referencia_tipo: "inspeccion",
     referencia_id: inspeccion.id,
@@ -160,8 +160,6 @@ async function evaluarNotificacionInspeccion({ inspeccion, vehiculo, currentUser
         detalle_inspeccion: {
           conductor_nombre: currentUser.nombre,
           vehiculo_placa: vehiculo.placa,
-          vehiculo_marca: vehiculo.marca,
-          vehiculo_modelo: vehiculo.modelo,
           fecha: inspeccion.fecha,
           latitud: inspeccion.latitud,
           longitud: inspeccion.longitud,

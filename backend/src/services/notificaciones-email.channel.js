@@ -49,10 +49,10 @@ function escapeHtml(value) {
 function formatFechaCorreo(value) {
   if (!value) return "";
   return new Date(value).toLocaleString("es-CO", {
-    day: "2-digit",
-    month: "short",
+    day: "numeric",
+    month: "long",
     year: "numeric",
-    hour: "2-digit",
+    hour: "numeric",
     minute: "2-digit"
   });
 }
@@ -68,7 +68,7 @@ function construirDetalleInspeccion(detalle) {
 
   const filas = [];
   if (detalle.vehiculo_placa) {
-    filas.push(`<strong>Vehículo:</strong> ${escapeHtml(detalle.vehiculo_marca)} ${escapeHtml(detalle.vehiculo_modelo)} (${escapeHtml(detalle.vehiculo_placa)})`);
+    filas.push(`<strong>Vehículo:</strong> ${escapeHtml(detalle.vehiculo_placa)}`);
   }
   if (detalle.conductor_nombre) {
     filas.push(`<strong>Conductor:</strong> ${escapeHtml(detalle.conductor_nombre)}`);
@@ -88,10 +88,14 @@ function construirDetalleInspeccion(detalle) {
         <p style="color: #18202b; font-weight: bold; margin: 0 0 8px;">Ítems en mal estado:</p>
         <ul style="margin: 0; padding-left: 20px; color: #303947; line-height: 1.6;">
           ${itemsMal.map((item) => `
-            <li style="margin-bottom: 6px;">
+            <li style="margin-bottom: 10px;">
               <strong>${escapeHtml(item.label)}</strong>
-              ${item.comentario ? ` — ${escapeHtml(item.comentario)}` : ""}
               ${item.foto_url ? ` (<a href="${env.appBaseUrl}${item.foto_url}" style="color: #b21f2d;">ver foto</a>)` : ""}
+              ${item.comentario ? `
+                <div style="margin-top: 4px; padding: 6px 10px; background: #fff4f4; border-left: 3px solid #b21f2d; color: #5c1015; border-radius: 4px;">
+                  💬 ${escapeHtml(item.comentario)}
+                </div>
+              ` : ""}
             </li>
           `).join("")}
         </ul>
@@ -126,6 +130,14 @@ function construirCorreo(notificacion) {
     ? construirDetalleInspeccion(payload?.detalle_inspeccion)
     : "";
 
+  // Para "inspeccion_con_hallazgos" el bloque de detalle ya repite vehiculo,
+  // conductor e items en mal estado -- se reemplaza notificacion.mensaje (que
+  // trae todo eso en un solo parrafo, pensado para el centro de
+  // notificaciones in-app) por una intro corta para no duplicar la info.
+  const mensajeHtml = (notificacion.tipo === "inspeccion_con_hallazgos" && detalleHtml)
+    ? "La inspección preventiva quedó con hallazgos. Estos son los detalles:"
+    : notificacion.mensaje;
+
   return {
     subject: `${prioridad.icono} ${titulo} - VehiAmb`,
     html: `
@@ -134,7 +146,7 @@ function construirCorreo(notificacion) {
           ${categoria.icono} ${categoria.label} &middot; ${prioridad.label}
         </p>
         <h2 style="color: #18202b; margin: 0 0 12px;">${titulo}</h2>
-        <p style="color: #303947; line-height: 1.5;">${notificacion.mensaje}</p>
+        <p style="color: #303947; line-height: 1.5;">${mensajeHtml}</p>
         ${detalleHtml}
         <a href="${enlace}" style="display: inline-block; margin-top: 16px; padding: 10px 18px; background: #b21f2d; color: #fff; border-radius: 6px; text-decoration: none; font-weight: bold;">
           Ver en VehiAmb
