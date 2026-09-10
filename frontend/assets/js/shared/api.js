@@ -1063,6 +1063,79 @@ window.VehiAmb.api = {
         );
     },
 
+    getGpsFlota() {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/gps/flota`,
+            undefined,
+            "No se pudo cargar la ubicación de la flota"
+        );
+    },
+
+    getGpsHistorialVehiculo(vehiculoId, { desde, hasta } = {}) {
+        const params = new URLSearchParams();
+        if (desde) params.set("desde", desde);
+        if (hasta) params.set("hasta", hasta);
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/gps/vehiculo/${vehiculoId}/historial${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudo cargar el historial de posiciones del vehículo"
+        );
+    },
+
+    getGpsEventosVehiculo(vehiculoId) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/gps/vehiculo/${vehiculoId}/eventos`,
+            undefined,
+            "No se pudieron cargar los eventos GPS del vehículo"
+        );
+    },
+
+    getGpsDispositivos() {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/gps/dispositivos`,
+            undefined,
+            "No se pudieron cargar los dispositivos GPS"
+        );
+    },
+
+    registrarGpsDispositivo(payload) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/gps/dispositivos`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            },
+            "No se pudo registrar el dispositivo GPS"
+        );
+    },
+
+    asignarGpsVehiculo(dispositivoId, vehiculoId) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/gps/dispositivos/${dispositivoId}/vehiculo`,
+            {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ vehiculo_id: vehiculoId })
+            },
+            "No se pudo vincular el dispositivo GPS al vehículo"
+        );
+    },
+
+    setGpsDispositivoEstado(dispositivoId, estado) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/gps/dispositivos/${dispositivoId}/estado`,
+            {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ estado })
+            },
+            "No se pudo actualizar el estado del dispositivo GPS"
+        );
+    },
+
     getChecklistCatalogo() {
         return requestJson(
             `${window.VehiAmb.API_URL}/inspecciones/catalogo`,

@@ -4935,6 +4935,24 @@ label[for="loginPassword"] {
     background: #fff;
 }
 
+/* Vehiculo con dispositivo vinculado pero sin ninguna posicion reportada
+   todavia (recien vinculado, o el equipo esta apagado/sin cobertura) --
+   distinto de "sin dispositivo" (ese ni aparece en la lista). */
+.record-item.is-muted {
+    opacity: 0.6;
+}
+
+/* Alto fijo: Leaflet necesita que su contenedor tenga una dimension real
+   ANTES de inicializarse (mapa.setView en rastreo.js), si no queda con
+   alto 0 y ningun tile se ve. */
+.gps-mapa {
+    width: 100%;
+    height: 420px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 16px;
+    z-index: 0;
+}
+
 .record-top {
     display: flex;
     align-items: flex-start;

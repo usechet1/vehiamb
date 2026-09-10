@@ -36,7 +36,8 @@ const PAGE_PERMISSIONS = {
     "entrega-recibida.html": "delivery.view",
     "mi-viaje.html": "trips.view",
     "asignaciones.html": "asignaciones.view",
-    "seguridad.html": "seguridad.view"
+    "seguridad.html": "seguridad.view",
+    "rastreo.html": "gps.view"
 };
 
 function getStoredSession() {

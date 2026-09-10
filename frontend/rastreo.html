@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="img/car.png">
+    <link rel="apple-touch-icon" href="img/vehiamb_icon.png">
+    <link rel="manifest" href="manifest.json">
+    <title>Rastreo GPS - Vehiamb</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar"></aside>
+
+        <main class="content">
+            <div class="page-header">
+                <div>
+                    <h1>Rastreo GPS</h1>
+                    <p class="page-kicker">Ubicación y velocidad en tiempo real de los vehículos con tracker GPS.</p>
+                </div>
+            </div>
+
+            <section class="section-card">
+                <div class="section-card-head">
+                    <h2>Mapa de flota</h2>
+                    <p>Se actualiza sola cada 15 segundos. <span id="gpsUltimaActualizacion" class="section-card-subnote"></span></p>
+                </div>
+                <div class="section-card-body">
+                    <div id="gpsMapa" class="gps-mapa"></div>
+                    <div id="gpsFlotaList" class="records-list">
+                        <p class="dash-empty">Cargando...</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section-card hidden" id="gpsGestionSection">
+                <details class="section-card-collapsible">
+                    <summary class="section-card-head">
+                        <h2>Dispositivos GPS</h2>
+                        <p>Registrar trackers nuevos y vincularlos a un vehículo.</p>
+                    </summary>
+                    <div class="section-card-body">
+                        <form id="gpsDispositivoForm" class="form-grid">
+                            <div class="form-group">
+                                <label for="gpsImei">IMEI del tracker</label>
+                                <input type="text" id="gpsImei" inputmode="numeric" autocomplete="off" placeholder="Ej: 359632103578100" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="gpsNombreDispositivo">Nombre (opcional)</label>
+                                <input type="text" id="gpsNombreDispositivo" autocomplete="off" placeholder="Ej: Tracker WDP483">
+                            </div>
+                            <button type="submit" class="btn-primary">Registrar dispositivo</button>
+                        </form>
+
+                        <div id="gpsDispositivosList" class="records-list">
+                            <p class="dash-empty">Cargando...</p>
+                        </div>
+                    </div>
+                </details>
+            </section>
+
+            <div id="loader" class="loader hidden">
+                <video src="img/loader.mp4" autoplay loop muted playsinline></video>
+            </div>
+            <div id="mensaje" class="mensaje hidden"></div>
+        </main>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="assets/js/shared/auth.js"></script>
+    <script src="assets/js/shared/api.js"></script>
+    <script src="assets/js/shared/ui.js"></script>
+    <script src="assets/js/shared/notificaciones-config.js"></script>
+    <script src="assets/js/shared/sidebar.js"></script>
+    <script src="assets/js/pages/rastreo.js"></script>
+</body>
+</html>
