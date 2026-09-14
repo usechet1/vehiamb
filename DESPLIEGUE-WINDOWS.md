@@ -458,3 +458,13 @@ schtasks /run /tn "VehiAmbBackend"
   NSSM real (más robusto para un servidor 24/7).
 - Borrar el registro `A` manual viejo (`vehiamb` → IP directa) en el panel de
   SNHC — ya no aplica, el DNS real vive en Cloudflare como `CNAME` del túnel.
+- Instalar Ghostscript para que los PDF adjuntos (documentos de vehículo,
+  soportes de mantenimiento, etc.) se compriman al subirlos — ver
+  `middlewares/compress-image.js` y la variable `GHOSTSCRIPT_PATH` en
+  `.env.example`. Sin instalarlo, la app sigue funcionando normal, solo que
+  los PDF se guardan sin comprimir. Instalador:
+  [ghostscript.com/releases](https://ghostscript.com/releases/gsdnld.html)
+  (versión Windows 64-bit); después define en el `.env` del servidor:
+  ```env
+  GHOSTSCRIPT_PATH=C:\Program Files\gs\gs<version>\bin\gswin64c.exe
+  ```

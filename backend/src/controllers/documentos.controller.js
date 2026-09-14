@@ -43,7 +43,13 @@ exports.extraerDatos = async (req, res) => {
     return res.json(await extraccionDocumentosService.extraerDesdeSoatPdf(req.file.buffer));
   }
   if (tipo === "tecnomecanica") {
-    return res.json(await extraccionDocumentosService.extraerDesdeTecnomecanicaImagen(req.file.buffer));
+    // Algunos CDA la mandan como PDF (texto real) en vez de foto -- ambos
+    // formatos se aceptan aqui, elige el lector segun lo que haya llegado
+    // (mismo criterio que automation.controller.js#extraerTecnomecanica).
+    const campos = req.file.mimetype === "application/pdf"
+      ? await extraccionDocumentosService.extraerDesdeTecnomecanicaPdf(req.file.buffer)
+      : await extraccionDocumentosService.extraerDesdeTecnomecanicaImagen(req.file.buffer);
+    return res.json(campos);
   }
 
   throw new HttpError(400, "Solo se puede autocompletar SOAT o tecnomecánica");

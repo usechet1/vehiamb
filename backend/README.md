@@ -78,6 +78,16 @@ mínima configurable:
   `WHATSAPP_ACCESS_TOKEN` y `WHATSAPP_PHONE_NUMBER_ID`; usa plantillas
   aprobadas en Meta.
 
+## Archivos adjuntos
+
+`middlewares/compress-image.js` comprime imágenes (JPG/PNG/WEBP) y PDFs al
+subirlos (documentos de vehículo, soportes de mantenimiento, etc.), siempre
+que el original supere ~300KB. La compresión de PDF usa Ghostscript, un
+binario externo — si `GHOSTSCRIPT_PATH` no resuelve a un ejecutable válido,
+esa parte simplemente se omite (el archivo se guarda sin comprimir, la subida
+nunca falla por esto). Ver `.env.example` y `DESPLIEGUE-WINDOWS.md` para
+instalarlo en el servidor.
+
 ## Comandos
 
 ```bash

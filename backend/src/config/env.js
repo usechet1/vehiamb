@@ -116,6 +116,19 @@ const env = {
   backupRetencionDias: Number(process.env.BACKUP_RETENCION_DIAS || 14),
   pgDumpPath: process.env.PG_DUMP_PATH || "pg_dump",
 
+  // Compresion de PDFs adjuntos (documentos, soportes de mantenimiento, etc.
+  // -- ver middlewares/compress-image.js). Ghostscript no viene con Node, es
+  // un binario aparte que hay que instalar en el servidor; si GHOSTSCRIPT_PATH
+  // no resuelve a un ejecutable valido, la compresion de PDF simplemente se
+  // omite (el archivo se guarda tal cual), mismo criterio que smtpHost vacio
+  // para el canal de email. En Windows el ejecutable de consola se llama
+  // "gswin64c.exe" (no "gs"), tipicamente en
+  // "C:\Program Files\gs\gs<version>\bin\gswin64c.exe" -- esa carpeta no se
+  // agrega automaticamente al PATH, hay que apuntar GHOSTSCRIPT_PATH ahi
+  // directo (mismo caso que PG_DUMP_PATH arriba). En Linux/Docker el paquete
+  // ghostscript expone "gs" directo en el PATH.
+  ghostscriptPath: process.env.GHOSTSCRIPT_PATH || "gs",
+
   // Rastreo GPS (ver providers/traccar-client.js): Traccar auto-hospedado es
   // la unica capa que habla el protocolo del tracker Suntech -- VehiAmb solo
   // consume su API REST (puerto 8082, interno, nunca expuesto). Sin
