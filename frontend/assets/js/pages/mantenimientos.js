@@ -390,6 +390,16 @@ function goToWizardStep(step) {
     registrarMantenimientoSection.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+// El calendario nativo impide de una vez elegir una salida anterior a la
+// fecha del mantenimiento; el chequeo en validateWizardStep1 cubre el caso
+// de un valor ya cargado antes de que la fecha cambiara.
+function sincronizarMinFechaTentativaSalida() {
+    mantenimientoFechaTentativaSalida.min = mantenimientoFecha.value || "";
+    if (mantenimientoFechaTentativaSalida.value && mantenimientoFechaTentativaSalida.value < mantenimientoFecha.value) {
+        mantenimientoFechaTentativaSalida.value = "";
+    }
+}
+
 function validateWizardStep1() {
     if (!mantenimientoSelect.checkValidity()) {
         mantenimientoSelect.focus();
@@ -406,6 +416,12 @@ function validateWizardStep1() {
     if (!mantenimientoFechaTentativaSalida.checkValidity()) {
         mantenimientoFechaTentativaSalida.focus();
         window.VehiAmb.ui.showMessage(mensaje, "Ingresa la fecha tentativa de salida de mantenimiento para continuar", "error");
+        return false;
+    }
+
+    if (mantenimientoFechaTentativaSalida.value < mantenimientoFecha.value) {
+        mantenimientoFechaTentativaSalida.focus();
+        window.VehiAmb.ui.showMessage(mensaje, "La fecha tentativa de salida no puede ser anterior a la fecha del mantenimiento", "error");
         return false;
     }
 
@@ -1216,6 +1232,7 @@ function renderMaintenanceEditForm(item) {
     tipoSelect.value = item.tipo;
     fechaInput.value = String(item.fecha || "").slice(0, 10);
     fechaTentativaSalidaInput.value = String(item.fecha_tentativa_salida || "").slice(0, 10);
+    fechaTentativaSalidaInput.min = fechaInput.value;
     document.getElementById("editMantenimientoDescripcion").value = item.descripcion || "";
     kilometrajeInput.value = window.VehiAmb.ui.formatearNumeroParaMostrar(Number(item.kilometraje || 0));
     vehiculoVaradoEditInput.checked = Boolean(item.vehiculo_varado);
@@ -1275,6 +1292,10 @@ function renderMaintenanceEditForm(item) {
         if (tipoSelect.value === "cambio_aceite" && !proximaFechaEditadaManualmente) {
             proximoCambioFechaEditInput.value = sumarMeses(fechaInput.value, 3);
         }
+        fechaTentativaSalidaInput.min = fechaInput.value;
+        if (fechaTentativaSalidaInput.value && fechaTentativaSalidaInput.value < fechaInput.value) {
+            fechaTentativaSalidaInput.value = "";
+        }
     });
 
     proximoCambioFechaEditInput.addEventListener("input", () => {
@@ -1298,6 +1319,13 @@ function renderMaintenanceEditForm(item) {
 
         const errorEl = document.getElementById("editMaintenanceError");
         errorEl.classList.add("hidden");
+
+        if (fechaTentativaSalidaInput.value < fechaInput.value) {
+            errorEl.textContent = "La fecha tentativa de salida no puede ser anterior a la fecha del mantenimiento";
+            errorEl.classList.remove("hidden");
+            fechaTentativaSalidaInput.focus();
+            return;
+        }
 
         const esCambioAceite = tipoSelect.value === "cambio_aceite";
         const payload = {
@@ -1727,6 +1755,7 @@ mantenimientoForm.addEventListener("submit", async (event) => {
 
         mantenimientoForm.reset();
         mantenimientoFecha.value = hoyISO();
+        sincronizarMinFechaTentativaSalida();
         tipoCardGrid.querySelectorAll(".type-card.is-selected").forEach((card) => card.classList.remove("is-selected"));
         goToWizardStep(1);
         repuestosState = [];
@@ -1761,6 +1790,7 @@ valorManoObraInput.addEventListener("input", () => {
 });
 mantenimientoTipo.addEventListener("change", updateCambioAceiteFields);
 mantenimientoFecha.addEventListener("input", autocompletarProximaFecha);
+mantenimientoFecha.addEventListener("input", sincronizarMinFechaTentativaSalida);
 proximoCambioFechaInput.addEventListener("input", () => {
     proximaFechaEditadaManualmente = true;
 });
@@ -1992,6 +2022,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     switchTab(puedeRegistrar ? "registrar" : "historial");
 
     mantenimientoFecha.value = hoyISO();
+    sincronizarMinFechaTentativaSalida();
     goToWizardStep(1);
     renderRepuestosBuilder();
     updateCostoTotal();

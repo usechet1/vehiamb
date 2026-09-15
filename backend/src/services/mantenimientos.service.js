@@ -119,6 +119,13 @@ async function validateMantenimiento(mantenimiento, vehiculo) {
     throw new HttpError(400, "La fecha tentativa de salida de mantenimiento es obligatoria");
   }
 
+  // Comparacion lexicografica directa: ambas llegan como "YYYY-MM-DD" (input
+  // type="date" del formulario), formato en el que el orden de string
+  // coincide con el orden cronologico -- no hace falta parsear a Date.
+  if (mantenimiento.fecha_tentativa_salida < mantenimiento.fecha) {
+    throw new HttpError(400, "La fecha tentativa de salida no puede ser anterior a la fecha del mantenimiento");
+  }
+
   if (!TIPOS_VALIDOS.has(mantenimiento.tipo)) {
     throw new HttpError(400, "Tipo de mantenimiento no valido");
   }
