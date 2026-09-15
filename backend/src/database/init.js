@@ -1648,6 +1648,7 @@ ensurePostgresTables()
     ensureColumn("mantenimientos", "valor_mano_obra", "NUMERIC(12, 2) DEFAULT 0"),
     ensureColumn("mantenimientos", "proximo_cambio_km", "INTEGER"),
     ensureColumn("mantenimientos", "proximo_cambio_fecha", "DATE"),
+    ensureColumn("mantenimientos", "fecha_tentativa_salida", "DATE"),
     ensureColumn("mantenimientos", "creado_por_usuario_id", "BIGINT REFERENCES usuarios(id)"),
     ensureColumn("mantenimientos", "estado", "TEXT NOT NULL DEFAULT 'completado'"),
     ensureColumn("mantenimientos", "vehiculo_varado", "BOOLEAN NOT NULL DEFAULT FALSE"),

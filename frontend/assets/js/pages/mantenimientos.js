@@ -19,6 +19,7 @@ const clearFiltersButton = document.getElementById("clearFiltersButton");
 const loader = document.getElementById("loader");
 const mensaje = document.getElementById("mensaje");
 const mantenimientoFecha = document.getElementById("mantenimientoFecha");
+const mantenimientoFechaTentativaSalida = document.getElementById("mantenimientoFechaTentativaSalida");
 const wizardStep1 = document.getElementById("wizardStep1");
 const wizardStep2 = document.getElementById("wizardStep2");
 const wizardStep3 = document.getElementById("wizardStep3");
@@ -399,6 +400,12 @@ function validateWizardStep1() {
     if (!mantenimientoFecha.checkValidity()) {
         mantenimientoFecha.focus();
         window.VehiAmb.ui.showMessage(mensaje, "Selecciona una fecha para continuar", "error");
+        return false;
+    }
+
+    if (!mantenimientoFechaTentativaSalida.checkValidity()) {
+        mantenimientoFechaTentativaSalida.focus();
+        window.VehiAmb.ui.showMessage(mensaje, "Ingresa la fecha tentativa de salida de mantenimiento para continuar", "error");
         return false;
     }
 
@@ -1065,6 +1072,8 @@ async function renderMaintenanceDetailView(item) {
             ${detailRow("Vehículo", vehicleName)}
             ${detailRow("Placa", item.placa || "Sin placa")}
             ${detailRow("Estado", estadosMantenimiento[item.estado] || item.estado || "Completado")}
+            ${detailRow("Fecha", formatDate(item.fecha))}
+            ${detailRow("Fecha tentativa de salida", formatDate(item.fecha_tentativa_salida))}
             ${detailRow("Valor", formatCurrency(item.valor))}
             ${detailRow("Kilometraje", `${Number(item.kilometraje || 0).toLocaleString("es-CO")} km`)}
             ${esCambioAceite ? detailRow("Próximo cambio", proximoCambioAceiteInfo(item)) : ""}
@@ -1140,6 +1149,11 @@ function renderMaintenanceEditForm(item) {
             </div>
 
             <div class="form-group">
+                <label>Fecha tentativa de salida de mantenimiento</label>
+                <input type="date" id="editMantenimientoFechaTentativaSalida" required>
+            </div>
+
+            <div class="form-group">
                 <label>Descripción</label>
                 <textarea id="editMantenimientoDescripcion" rows="3" maxlength="1000" placeholder="Describe el trabajo realizado..."></textarea>
             </div>
@@ -1187,6 +1201,7 @@ function renderMaintenanceEditForm(item) {
 
     const tipoSelect = document.getElementById("editMantenimientoTipo");
     const fechaInput = document.getElementById("editMantenimientoFecha");
+    const fechaTentativaSalidaInput = document.getElementById("editMantenimientoFechaTentativaSalida");
     const kilometrajeGroup = document.getElementById("editKilometrajeGroup");
     const kilometrajeInput = document.getElementById("editMantenimientoKilometraje");
     const cambioAceiteFields = document.getElementById("editCambioAceiteFields");
@@ -1200,6 +1215,7 @@ function renderMaintenanceEditForm(item) {
 
     tipoSelect.value = item.tipo;
     fechaInput.value = String(item.fecha || "").slice(0, 10);
+    fechaTentativaSalidaInput.value = String(item.fecha_tentativa_salida || "").slice(0, 10);
     document.getElementById("editMantenimientoDescripcion").value = item.descripcion || "";
     kilometrajeInput.value = window.VehiAmb.ui.formatearNumeroParaMostrar(Number(item.kilometraje || 0));
     vehiculoVaradoEditInput.checked = Boolean(item.vehiculo_varado);
@@ -1287,6 +1303,7 @@ function renderMaintenanceEditForm(item) {
         const payload = {
             tipo: tipoSelect.value,
             fecha: fechaInput.value,
+            fecha_tentativa_salida: fechaTentativaSalidaInput.value,
             descripcion: document.getElementById("editMantenimientoDescripcion").value,
             kilometraje: window.VehiAmb.ui.parseFormattedNumber(kilometrajeInput.value),
             valor_mano_obra: window.VehiAmb.ui.parseFormattedMoneda(valorManoObraEditInput.value),

@@ -3,6 +3,7 @@ const db = require("../database/query");
 const MANTENIMIENTO_FIELDS = [
   "vehiculo_id",
   "fecha",
+  "fecha_tentativa_salida",
   "tipo",
   "descripcion",
   "autorizado_por",
@@ -33,6 +34,7 @@ const MANTENIMIENTO_FIELDS = [
 const MANTENIMIENTO_EDITABLE_FIELDS = [
   "tipo",
   "fecha",
+  "fecha_tentativa_salida",
   "descripcion",
   "kilometraje",
   "valor_mano_obra",

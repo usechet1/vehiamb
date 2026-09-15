@@ -87,6 +87,7 @@ function normalizePayload(payload) {
   return {
     vehiculo_id: toNumberOrNull(payload.vehiculo_id),
     fecha: String(payload.fecha || "").trim(),
+    fecha_tentativa_salida: payload.fecha_tentativa_salida ? String(payload.fecha_tentativa_salida).trim() : null,
     tipo: String(payload.tipo || "").trim(),
     descripcion: payload.descripcion ? String(payload.descripcion).trim() : null,
     autorizado_por: payload.autorizado_por ? String(payload.autorizado_por).trim() : null,
@@ -108,6 +109,14 @@ function normalizePayload(payload) {
 async function validateMantenimiento(mantenimiento, vehiculo) {
   if (!mantenimiento.vehiculo_id || !mantenimiento.fecha || !mantenimiento.tipo) {
     throw new HttpError(400, "Vehículo, fecha y tipo son obligatorios");
+  }
+
+  // Obligatoria para cualquier tipo de mantenimiento (revision, preventivo,
+  // correctivo, cambio de aceite, frenos, llantas u otro): quien registra el
+  // ingreso al taller debe comprometerse a una fecha estimada de salida, sin
+  // importar que tan rutinario sea el trabajo.
+  if (!mantenimiento.fecha_tentativa_salida) {
+    throw new HttpError(400, "La fecha tentativa de salida de mantenimiento es obligatoria");
   }
 
   if (!TIPOS_VALIDOS.has(mantenimiento.tipo)) {
@@ -412,6 +421,7 @@ async function updateMantenimiento(id, payload, currentUser) {
   const cambios = {
     tipo,
     fecha: String(payload.fecha || "").trim(),
+    fecha_tentativa_salida: payload.fecha_tentativa_salida ? String(payload.fecha_tentativa_salida).trim() : null,
     descripcion: payload.descripcion ? String(payload.descripcion).trim() : null,
     kilometraje: toNumberOrNull(payload.kilometraje),
     valor_mano_obra: valorManoObra,

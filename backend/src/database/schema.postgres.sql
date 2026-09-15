@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS mantenimientos (
   id BIGSERIAL PRIMARY KEY,
   vehiculo_id BIGINT NOT NULL REFERENCES vehiculos(id) ON DELETE CASCADE,
   fecha DATE NOT NULL,
+  fecha_tentativa_salida DATE,
   tipo TEXT NOT NULL,
   descripcion TEXT,
   autorizado_por TEXT,
