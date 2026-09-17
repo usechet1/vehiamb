@@ -298,6 +298,49 @@ window.VehiAmb.api = {
         );
     },
 
+    getNovedades(filters = {}) {
+        const params = new URLSearchParams();
+
+        if (filters.vehiculo_id) params.set("vehiculo_id", filters.vehiculo_id);
+        if (filters.fecha_desde) params.set("fecha_desde", filters.fecha_desde);
+        if (filters.fecha_hasta) params.set("fecha_hasta", filters.fecha_hasta);
+
+        const query = params.toString();
+
+        return requestJson(
+            `${window.VehiAmb.API_URL}/novedades${query ? `?${query}` : ""}`,
+            undefined,
+            "No se pudieron cargar las novedades"
+        );
+    },
+
+    getNovedadesByVehicle(vehiculoId) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/novedades/vehiculo/${vehiculoId}`,
+            undefined,
+            "No se pudieron cargar las novedades del vehiculo"
+        );
+    },
+
+    createNovedad(payload) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/novedades`,
+            {
+                method: "POST",
+                body: payload
+            },
+            "No se pudo guardar la novedad"
+        );
+    },
+
+    deleteNovedad(id) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/novedades/${id}`,
+            { method: "DELETE" },
+            "No se pudo eliminar la novedad"
+        );
+    },
+
     getDocumentos() {
         return requestJson(`${window.VehiAmb.API_URL}/documentos`, undefined, "No se pudieron cargar los documentos");
     },

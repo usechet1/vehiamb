@@ -34,6 +34,33 @@ const ANIO_REGEX = /^\d{4}$/;
 
 const selectTipoVehiculo = document.getElementById("select-tipo-vehiculo");
 
+// Un montacargas no tiene la mayoria de estos datos (ni carroceria, ni
+// cilindraje, ni kilometraje registrado en el tablero) -- se ocultan sus
+// campos y se les quita "required" para no bloquear el envio (el backend
+// completa marca/modelo/kilometraje por su cuenta, ver
+// vehiculos.service.js#normalizePayload). Los campos sin "required" original
+// (Serial motor, Serial chasis) solo se ocultan.
+//
+// Los campos requeridos se capturan UNA sola vez aqui, con referencias
+// directas al elemento -- si se recalculara con querySelectorAll("[required]")
+// en cada toggle, la segunda vez ya no los encontraria: quitar "required" via
+// la propiedad IDL borra tambien el atributo del DOM.
+const CAMPOS_MONTACARGAS_OCULTABLES = Array.from(document.querySelectorAll("[data-montacargas-hide]"));
+const CAMPOS_MONTACARGAS_REQUERIDOS = CAMPOS_MONTACARGAS_OCULTABLES.flatMap((elemento) =>
+    Array.from(elemento.querySelectorAll("[required]"))
+);
+
+function aplicarCamposSegunTipoVehiculo() {
+    const esMontacargas = selectTipoVehiculo?.value === "Montacargas";
+
+    CAMPOS_MONTACARGAS_OCULTABLES.forEach((elemento) => elemento.classList.toggle("hidden", esMontacargas));
+    CAMPOS_MONTACARGAS_REQUERIDOS.forEach((campo) => {
+        campo.required = !esMontacargas;
+    });
+}
+
+selectTipoVehiculo?.addEventListener("change", aplicarCamposSegunTipoVehiculo);
+
 // Formato colombiano estandar: 3 letras + 3 numeros (AAA123). Las motos usan
 // un formato distinto (3 letras + 2 numeros + 1 letra, ej. AAA12B), asi que
 // se valida contra uno u otro segun el tipo de vehiculo elegido.
@@ -66,7 +93,10 @@ function validarAnioField() {
     const anioMax = new Date().getFullYear() + 1;
 
     if (!raw) {
-        inputAnio.setCustomValidity("El campo Año es obligatorio.");
+        // Vacio es valido si el campo no es requerido en este momento (ej.
+        // Montacargas, ver aplicarCamposSegunTipoVehiculo): el campo no se
+        // muestra pero sigue en el DOM, asi que checkValidity() lo evalua igual.
+        inputAnio.setCustomValidity(inputAnio.required ? "El campo Año es obligatorio." : "");
         return;
     }
 
@@ -125,6 +155,8 @@ async function cargarVehiculoParaEditar() {
         camposNumericosFormateados.forEach((input) => {
             input.value = formatearNumeroParaMostrar(input.value);
         });
+
+        aplicarCamposSegunTipoVehiculo();
 
         if (vehiculo.imagen_url) {
             preview.src = window.VehiAmb.api.getAssetUrl(vehiculo.imagen_url);

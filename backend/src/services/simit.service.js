@@ -133,6 +133,10 @@ async function consultarVehiculo(vehiculoId, empresaId, { origen = "manual" } = 
     throw new HttpError(400, "El vehículo no tiene placa registrada");
   }
 
+  if (vehiculo.tipo_vehiculo === "Montacargas") {
+    throw new HttpError(400, "Los montacargas no aplican para consulta SIMIT");
+  }
+
   const resultado = await simitScraper.scrapePlaca(vehiculo.placa);
 
   // Cruza cada comparendo nuevo contra el catalogo de conductores de la
@@ -210,7 +214,9 @@ async function consultarVehiculo(vehiculoId, empresaId, { origen = "manual" } = 
 // a solo esa empresa: un usuario autenticado no deberia poder disparar la
 // actualizacion de la flota de otras empresas.
 async function actualizarFlota(empresaId = null) {
-  let vehiculos = (await vehiculosRepository.findAllParaCron()).filter((vehiculo) => vehiculo.placa);
+  let vehiculos = (await vehiculosRepository.findAllParaCron()).filter(
+    (vehiculo) => vehiculo.placa && vehiculo.tipo_vehiculo !== "Montacargas"
+  );
   if (empresaId !== null) {
     vehiculos = vehiculos.filter((vehiculo) => String(vehiculo.empresa_id) === String(empresaId));
   }

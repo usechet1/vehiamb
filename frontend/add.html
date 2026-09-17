@@ -70,8 +70,8 @@
                         </div>
                     </div>
 
-                    <h3 class="form-section-title form-col-right form-row-3">Especificaciones técnicas</h3>
-                    <div class="form-grid-3 form-col-right form-row-4">
+                    <h3 class="form-section-title form-col-right form-row-3" data-montacargas-hide>Especificaciones técnicas</h3>
+                    <div class="form-grid-3 form-col-right form-row-4" data-montacargas-hide>
                         <div class="form-group">
                             <label for="select-tipo-carroceria">Tipo de carrocería <span class="required-mark">*</span></label>
                             <select name="tipo_carroceria" id="select-tipo-carroceria" required>
@@ -114,12 +114,12 @@
                         </div>
 
                         <div class="form-group">
-                            <label>Línea <span class="required-mark">*</span></label>
-                            <input type="text" name="modelo" required placeholder="Ej: Renault Kwid, Mazda 3 Prime">
+                            <label for="input-linea">Línea <span class="required-mark">*</span></label>
+                            <input type="text" name="modelo" id="input-linea" required placeholder="Ej: Renault Kwid, Mazda 3 Prime">
                         </div>
                     </div>
 
-                    <div class="form-grid-3 form-col-right form-row-5">
+                    <div class="form-grid-3 form-col-right form-row-5" data-montacargas-hide>
                         <div class="form-group">
                             <label>Modelo <span class="required-mark">*</span></label>
                             <input type="text" name="anio" id="input-anio" inputmode="numeric" maxlength="4" required>
@@ -147,8 +147,8 @@
                         </div>
 
                         <div class="form-group">
-                            <label>Combustible <span class="required-mark">*</span></label>
-                            <select name="combustible" required>
+                            <label for="select-combustible">Combustible <span class="required-mark">*</span></label>
+                            <select name="combustible" id="select-combustible" required>
                                 <option value="">Selecciona un tipo</option>
                                 <option value="Diesel">Diesel</option>
                                 <option value="Gasolina">Gasolina</option>
@@ -162,7 +162,7 @@
                     <h3 class="form-section-title form-col-left form-row-5">Estado y kilometraje</h3>
 
                     <div class="form-grid-3 form-col-right form-row-6">
-                        <div class="form-group">
+                        <div class="form-group" data-montacargas-hide>
                             <label>Cilindrada <span class="required-mark">*</span></label>
                             <div class="input-suffix-wrap">
                                 <input type="text" inputmode="decimal" name="cilindraje" id="input-cilindraje" required>
@@ -178,13 +178,13 @@
                             </div>
                         </div>
 
-                        <div class="form-group">
+                        <div class="form-group" data-montacargas-hide>
                             <label>Serial motor</label>
                             <input type="text" name="numero_motor" placeholder="Si no está, dejar en blanco">
                         </div>
                     </div>
 
-                    <div class="form-group form-col-left form-row-6">
+                    <div class="form-group form-col-left form-row-6" data-montacargas-hide>
                         <label>Kilometraje actual <span class="required-mark">*</span></label>
                         <div class="input-suffix-wrap">
                             <input type="text" inputmode="decimal" name="kilometraje_actual" id="input-kilometraje" required>
@@ -193,7 +193,7 @@
                     </div>
 
                     <div class="form-grid-3 form-grid-3-chasis-row form-col-right form-row-7">
-                        <div class="form-group">
+                        <div class="form-group" data-montacargas-hide>
                             <label>Serial chasis</label>
                             <input type="text" name="numero_chasis" minlength="17" maxlength="17" placeholder="Ej: 9BWZZZ377VT004251">
                             <span class="field-help">Alfanumérico, exactamente 17 caracteres. Debe ser único.</span>

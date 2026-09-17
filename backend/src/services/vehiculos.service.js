@@ -79,18 +79,27 @@ function toTrimmedOrNull(value) {
 }
 
 function normalizePayload(payload) {
+  const tipoVehiculo = toTrimmedOrNull(payload.tipo_vehiculo);
+  // El formulario de alta muestra solo Placa/Codigo/Tipo/Capacidad/Estado/
+  // Imagen para Montacargas (ver add.js) -- marca/modelo/kilometraje quedan
+  // sin diligenciar, asi que se completan con un valor por defecto en vez de
+  // exigirlos: son NOT NULL en la tabla y ademas se interpolan como texto en
+  // decenas de lugares (tarjetas, PDFs, WhatsApp, email) que asumen que
+  // siempre traen algo.
+  const esMontacargas = tipoVehiculo === "Montacargas";
+
   return {
     codigo_interno: String(payload.codigo_interno || "").trim(),
-    marca: String(payload.marca || "").trim(),
-    modelo: String(payload.modelo || "").trim(),
+    marca: String(payload.marca || "").trim() || (esMontacargas ? "Montacargas" : ""),
+    modelo: String(payload.modelo || "").trim() || (esMontacargas ? "Montacargas" : ""),
     anio: payload.anio,
     color: payload.color ? String(payload.color).trim() : null,
     combustible: payload.combustible ? String(payload.combustible).trim() : null,
     cilindraje: toNumberOrNull(payload.cilindraje),
     capacidad_carga: toNumberOrNull(payload.capacidad_carga),
     placa: String(payload.placa || "").trim().toUpperCase(),
-    kilometraje_actual: toNumberOrNull(payload.kilometraje_actual),
-    tipo_vehiculo: toTrimmedOrNull(payload.tipo_vehiculo),
+    kilometraje_actual: toNumberOrNull(payload.kilometraje_actual) ?? (esMontacargas ? 0 : null),
+    tipo_vehiculo: tipoVehiculo,
     tipo_carroceria: toTrimmedOrNull(payload.tipo_carroceria),
     numero_chasis: toTrimmedOrNull(payload.numero_chasis)?.toUpperCase() || null,
     numero_motor: toTrimmedOrNull(payload.numero_motor)
@@ -115,7 +124,12 @@ function validateVehiculo(vehiculo) {
     throw new HttpError(400, "La capacidad de carga no puede ser negativa");
   }
 
-  vehiculo.anio = validarAnio(vehiculo.anio);
+  // El formulario simplificado de Montacargas no pide año/modelo de
+  // fabricacion (ver normalizePayload arriba) -- se deja en null en vez de
+  // exigirlo.
+  vehiculo.anio = vehiculo.tipo_vehiculo === "Montacargas" && !vehiculo.anio
+    ? null
+    : validarAnio(vehiculo.anio);
 
   const esMoto = vehiculo.tipo_vehiculo === "Motocicleta";
   const placaValida = esMoto ? PLACA_REGEX_MOTO.test(vehiculo.placa) : PLACA_REGEX_ESTANDAR.test(vehiculo.placa);

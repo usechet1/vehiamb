@@ -62,7 +62,10 @@ async function findAnteriorByVehiculo(vehiculoId, consultaActualId, empresaId) {
 // "nunca consultado"). Filtros de estado de cartera y busqueda por placa.
 // Usa DISTINCT ON, disponible en Postgres (unico motor soportado por este modulo).
 async function findUltimoEstadoPorFlota(filters = {}, empresaId) {
-  const conditions = ["v.empresa_id = ?"];
+  // Los montacargas no tienen placa real ni comparendos SIMIT: quedan fuera
+  // de este listado igual que de la actualizacion masiva (ver
+  // simit.service.js#actualizarFlota).
+  const conditions = ["v.empresa_id = ?", "v.tipo_vehiculo IS DISTINCT FROM 'Montacargas'"];
   const values = [empresaId];
 
   if (filters.estado_cartera === "nunca_consultado") {

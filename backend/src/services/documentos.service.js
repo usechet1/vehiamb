@@ -68,6 +68,17 @@ async function validateDocumento(documento, empresaId) {
     throw new HttpError(400, "Vehículo y tipo son obligatorios");
   }
 
+  const vehiculo = await vehiculosRepository.findById(documento.vehiculo_id, empresaId);
+  if (!vehiculo) {
+    throw new HttpError(404, "Vehículo no encontrado");
+  }
+
+  // Los montacargas no manejan SOAT/RTM/poliza (ver tambien el filtro del
+  // selector en documentos.js).
+  if (vehiculo.tipo_vehiculo === "Montacargas") {
+    throw new HttpError(409, `El vehículo ${vehiculo.placa} es un montacargas y no aplica para documentos.`);
+  }
+
   if (!TIPOS_VALIDOS.has(documento.tipo)) {
     throw new HttpError(400, "Tipo de documento no valido");
   }
@@ -87,11 +98,6 @@ async function validateDocumento(documento, empresaId) {
     documento.propietario_nombre = propietario.nombre;
   } else if (!documento.fecha_vencimiento) {
     throw new HttpError(400, "La fecha de vencimiento es obligatoria para este tipo de documento");
-  }
-
-  const vehiculo = await vehiculosRepository.findById(documento.vehiculo_id, empresaId);
-  if (!vehiculo) {
-    throw new HttpError(404, "Vehículo no encontrado");
   }
 }
 

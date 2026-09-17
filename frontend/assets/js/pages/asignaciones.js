@@ -144,11 +144,15 @@ const ESTADOS_VEHICULO_LABEL = {
 };
 
 async function cargarCatalogos() {
-    const [conductores, vehiculos, departamentos] = await Promise.all([
+    const [conductores, vehiculosCatalogo, departamentos] = await Promise.all([
         window.VehiAmb.api.getConductoresCatalogo(),
         window.VehiAmb.api.getVehiculosCatalogo(),
         window.VehiAmb.ubicaciones.cargarDepartamentosCiudades()
     ]);
+
+    // Los montacargas no salen a ruta: se excluyen del selector de
+    // asignaciones (siguen disponibles en Mantenimientos y Novedades).
+    const vehiculos = (vehiculosCatalogo || []).filter((v) => v.tipo_vehiculo !== "Montacargas");
 
     conductoresCatalogo = conductores || [];
     departamentosCatalogo = departamentos || [];

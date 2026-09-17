@@ -232,7 +232,10 @@ const PERMISSIONS = [
   ["seguridad.delete", "Seguridad y Salud", "Eliminar registros de extintores e inspecciones de botiquin"],
   ["notificaciones.comentar", "Notificaciones", "Comentar y adjuntar evidencia en notificaciones"],
   ["gps.view", "GPS", "Ver la ubicacion en tiempo real de los vehiculos con tracker GPS"],
-  ["gps.manage", "GPS", "Registrar dispositivos GPS y vincularlos a un vehiculo"]
+  ["gps.manage", "GPS", "Registrar dispositivos GPS y vincularlos a un vehiculo"],
+  ["novedades.view", "Novedades", "Ver el registro de novedades de vehiculos"],
+  ["novedades.create", "Novedades", "Registrar novedades de vehiculos"],
+  ["novedades.delete", "Novedades", "Eliminar novedades registradas"]
 ];
 
 const ROLE_PERMISSIONS = {
@@ -338,6 +341,19 @@ const ROLE_PERMISSIONS = {
     "conductores.view",
     "delivery.view",
     "delivery.create"
+  ],
+  // Operan montacargas, no vehiculos de flota con placa: sin acceso a
+  // Documentos (SOAT/RTM no aplican), SIMIT, Asignacion de rutas, Viajes ni
+  // Preoperacional -- solo registran mantenimientos y novedades del
+  // montacargas que operan. Ver tambien evaluarNotificacionInspeccion y el
+  // filtro de montacargas en simit-consulta.job.js / asignaciones.service.js.
+  "Conductor B": [
+    "dashboard.view",
+    "vehicles.view",
+    "maintenance.view",
+    "maintenance.create",
+    "novedades.view",
+    "novedades.create"
   ]
 };
 
@@ -432,7 +448,10 @@ const PERMISOS_NUEVOS_POR_ROL = {
   "vehicles.edit_estado": ["Administrador", "Lider"],
   "maintenance.edit": ["Administrador", "Lider"],
   "gps.view": ["Administrador", "SuperAdministrador", "Operador", "Lider", "Consulta"],
-  "gps.manage": ["Administrador", "SuperAdministrador"]
+  "gps.manage": ["Administrador", "SuperAdministrador"],
+  "novedades.view": ["Administrador", "Operador", "Consulta"],
+  "novedades.create": ["Administrador", "Operador"],
+  "novedades.delete": ["Administrador"]
 };
 
 async function grantPermisosNuevos() {
@@ -647,6 +666,21 @@ async function ensurePostgresTables() {
       creado_por_usuario_id BIGINT REFERENCES usuarios(id),
       estado TEXT NOT NULL DEFAULT 'completado',
       vehiculo_varado BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS novedades (
+      id BIGSERIAL PRIMARY KEY,
+      empresa_id BIGINT NOT NULL REFERENCES empresas(id),
+      vehiculo_id BIGINT NOT NULL REFERENCES vehiculos(id) ON DELETE CASCADE,
+      fecha DATE NOT NULL DEFAULT CURRENT_DATE,
+      descripcion TEXT NOT NULL,
+      foto_url TEXT,
+      foto_nombre TEXT,
+      foto_mime TEXT,
+      creado_por_usuario_id BIGINT REFERENCES usuarios(id),
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
@@ -1422,6 +1456,8 @@ async function ensurePostgresTables() {
   await db.run("CREATE INDEX IF NOT EXISTS idx_conductores_estado ON conductores (estado)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_entregas_recibidas_vehiculo_id ON entregas_recibidas (vehiculo_id, fecha DESC)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_entrega_items_entrega_id ON entrega_items (entrega_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_novedades_vehiculo_id ON novedades (vehiculo_id, fecha DESC)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_novedades_empresa_id ON novedades (empresa_id, fecha DESC)");
   await db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_rutas_empresa_nombre ON rutas (empresa_id, nombre)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_asignaciones_ruta_fecha ON asignaciones_ruta (empresa_id, fecha DESC)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_logs_acceso_empresa_creado ON logs_acceso (empresa_id, creado_en DESC)");

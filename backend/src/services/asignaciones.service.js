@@ -104,6 +104,12 @@ async function validarYResolverPayload(payload, empresaId, excludeId = null) {
     throw new HttpError(409, `El vehículo ${vehiculo.placa} no está disponible para asignar rutas (estado: ${vehiculo.estado}).`);
   }
 
+  // Los montacargas no salen a ruta (ver tambien el filtro del selector en
+  // asignaciones.js y de la flota SIMIT en simit.service.js).
+  if (vehiculo.tipo_vehiculo === "Montacargas" && !vehiculoSinCambios) {
+    throw new HttpError(409, `El vehículo ${vehiculo.placa} es un montacargas y no aplica para asignación de rutas.`);
+  }
+
   // Bloqueo especifico del dia: un mantenimiento programado EXACTAMENTE para
   // esa fecha y aun no resuelto como aprobado/rechazado, o uno "pendiente"
   // (sin resolver) desde esa fecha o antes, bloquea el vehiculo ESE dia --

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="img/car.png">
+    <link rel="apple-touch-icon" href="img/vehiamb_icon.png">
+    <link rel="manifest" href="manifest.json">
+    <title>Novedades - Vehiamb</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar"></aside>
+
+        <main class="content">
+            <div class="page-header">
+                <div>
+                    <h1>Novedades</h1>
+                    <p class="page-kicker">Registro de novedades por vehículo</p>
+                </div>
+            </div>
+
+            <div class="stack">
+                <section class="section-card" id="registrarNovedadSection">
+                    <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
+                            <h2>Registrar novedad</h2>
+                            <p>Deja constancia de cualquier evento o incidente del vehículo.</p>
+                        </summary>
+                        <div class="section-card-body">
+                            <form id="novedadForm" class="compact-form">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Vehículo</label>
+                                        <select id="novedadVehiculo" name="vehiculo_id" required>
+                                            <option value="">Selecciona un vehículo</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Fecha</label>
+                                        <input type="date" id="novedadFecha" name="fecha" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Descripción</label>
+                                    <textarea id="novedadDescripcion" name="descripcion" rows="3" maxlength="1000" required placeholder="Qué pasó, dónde y cualquier detalle relevante"></textarea>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Foto (opcional)</label>
+                                    <input type="file" id="novedadFoto" name="foto" accept="image/png,image/jpeg,image/webp">
+                                </div>
+
+                                <div class="form-actions">
+                                    <button type="submit" class="btn-primary" id="novedadSubmitButton">Guardar novedad</button>
+                                </div>
+                            </form>
+                        </div>
+                    </details>
+                </section>
+
+                <section class="section-card" id="novedadesHistorialSection">
+                    <details class="section-card-collapsible" open>
+                        <summary class="section-card-head">
+                            <h2>Novedades registradas</h2>
+                            <p>Ordenadas por fecha más reciente.</p>
+                        </summary>
+                        <div class="section-card-body">
+                            <form id="novedadesFilterForm" class="filter-form">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Vehículo</label>
+                                        <select id="filterNovedadVehiculo">
+                                            <option value="">Todos los vehículos</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Desde</label>
+                                        <input type="date" id="filterNovedadDesde">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Hasta</label>
+                                        <input type="date" id="filterNovedadHasta">
+                                    </div>
+                                </div>
+
+                                <div class="filter-actions">
+                                    <span id="novedadesFilterSummary" class="field-help">Mostrando todas las novedades.</span>
+                                    <button type="button" id="clearNovedadesFiltersButton" class="btn-secondary">Limpiar filtros</button>
+                                </div>
+                            </form>
+
+                            <div class="table-scroll">
+                                <table class="import-table" id="novedadesTabla">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>Vehículo</th>
+                                            <th>Descripción</th>
+                                            <th>Foto</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="novedadesTablaBody">
+                                        <tr><td colspan="5" class="dash-empty">Cargando...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </details>
+                </section>
+            </div>
+
+            <div id="loader" class="loader hidden">
+                <video src="img/loader.mp4" autoplay loop muted playsinline></video>
+            </div>
+            <div id="mensaje" class="mensaje hidden"></div>
+        </main>
+    </div>
+
+    <script src="assets/js/shared/auth.js"></script>
+    <script src="assets/js/shared/api.js"></script>
+    <script src="assets/js/shared/ui.js"></script>
+    <script src="assets/js/shared/notificaciones-config.js"></script>
+    <script src="assets/js/shared/sidebar.js"></script>
+    <script src="assets/js/pages/novedades.js"></script>
+</body>
+</html>

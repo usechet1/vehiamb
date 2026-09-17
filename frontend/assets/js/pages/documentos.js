@@ -458,8 +458,12 @@ async function cargarDatos() {
 
         const vehiculos = await window.VehiAmb.api.getVehiculosCatalogo();
         vehiculosState = vehiculos;
-        fillVehicleSelect(documentoSelect, vehiculos);
-        fillVehicleSelect(renovarVehiculo, vehiculos);
+        // Los montacargas no manejan SOAT/RTM/poliza: se excluyen del
+        // selector de documentos (siguen disponibles en Mantenimientos y
+        // Novedades).
+        const vehiculosParaSelect = vehiculos.filter((v) => v.tipo_vehiculo !== "Montacargas");
+        fillVehicleSelect(documentoSelect, vehiculosParaSelect);
+        fillVehicleSelect(renovarVehiculo, vehiculosParaSelect);
     } catch (error) {
         console.error(error);
         window.VehiAmb.ui.showMessage(mensaje, "No fue posible cargar los vehículos", "error");
