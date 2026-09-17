@@ -728,6 +728,17 @@ function pintarViajesRecientes(viajes) {
 // resumen y el boton para iniciar el viaje. El destino que se envia es
 // directamente el nombre de la ruta asignada (confirmado con el negocio: no
 // tiene sentido pedirle tambien departamento/ciudad si ya sabe a donde va).
+// Cuando el conductor ya cerro por completo el viaje de hoy (inspeccion +
+// preoperacional + firma) para su unica ruta asignada, no tiene sentido
+// volver a mostrarle "Iniciar viaje" -- lo dejaria arrancar un viaje
+// duplicado sobre la misma asignacion. En su lugar, una tarjeta de cierre
+// simple: ya no hay nada que hacer hasta la proxima asignacion.
+function inicializarConductorAsignacionCompletada(asignacion) {
+    document.getElementById("conductorAsignacionCompletadaCard").classList.remove("hidden");
+    document.getElementById("conductorAsignacionCompletadaRuta").textContent = asignacion.ruta_nombre || "Sin nombre";
+    document.getElementById("conductorAsignacionCompletadaPlaca").textContent = asignacion.vehiculo.placa || "";
+}
+
 function inicializarConductorAsignacionHoy(asignacion) {
     document.getElementById("conductorAsignacionCard").classList.remove("hidden");
     document.getElementById("conductorAsignacionRuta").textContent = asignacion.ruta_nombre || "Sin nombre";
@@ -869,7 +880,11 @@ async function inicializarConductorHome(user) {
 
     if (asignacion?.vehiculo) {
         viajesPanel?.classList.add("hidden");
-        inicializarConductorAsignacionHoy(asignacion);
+        if (asignacion.viaje_completado) {
+            inicializarConductorAsignacionCompletada(asignacion);
+        } else {
+            inicializarConductorAsignacionHoy(asignacion);
+        }
         return;
     }
 

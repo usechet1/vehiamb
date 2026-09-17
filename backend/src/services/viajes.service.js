@@ -173,7 +173,11 @@ async function obtenerUltimoViajeControl(currentUser) {
 // hay asignacion para esa fecha, o si la asignacion no tiene vehiculo
 // cargado -- en cualquiera de esos casos el frontend cae al flujo manual de
 // siempre. Tambien agrega si ya existe una inspeccion preparada de antemano
-// para esa asignacion (ver inspecciones.service.js, modo "preinspeccion").
+// para esa asignacion (ver inspecciones.service.js, modo "preinspeccion"), y
+// si el viaje de hoy ya quedo totalmente cerrado (inspeccion + preoperacional
+// + firma) -- sin esto ultimo, un conductor que ya termino su unica ruta del
+// dia volvia a ver la tarjeta "Iniciar viaje" en Inicio y podia arrancar un
+// viaje duplicado sobre la misma asignacion.
 async function resolverAsignacionParaFecha(currentUser, fecha) {
   const conductor = await conductoresRepository.findByUsuarioId(currentUser.id, currentUser.empresa_id);
   if (!conductor) return null;
@@ -182,12 +186,16 @@ async function resolverAsignacionParaFecha(currentUser, fecha) {
   if (!asignacion || !asignacion.vehiculo_id) return null;
 
   const inspeccionPrevia = await inspeccionesRepository.findByAsignacionId(asignacion.id, currentUser.empresa_id);
+  const preoperacionalPrevio = inspeccionPrevia?.viaje_id
+    ? await preoperacionalesRepository.findByViajeId(inspeccionPrevia.viaje_id, currentUser.empresa_id)
+    : null;
 
   return {
     id: asignacion.id,
     fecha: asignacion.fecha,
     ruta_nombre: asignacion.ruta_nombre,
     inspeccion_completada: Boolean(inspeccionPrevia),
+    viaje_completado: Boolean(preoperacionalPrevio),
     vehiculo: {
       id: asignacion.vehiculo_id,
       placa: asignacion.vehiculo_placa,
