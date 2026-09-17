@@ -197,6 +197,7 @@ const PERMISSIONS = [
   ["maintenance.approve", "Mantenimientos", "Aprobar o rechazar mantenimientos"],
   ["maintenance.edit", "Mantenimientos", "Editar mantenimientos ya registrados"],
   ["maintenance.delete", "Mantenimientos", "Eliminar mantenimientos"],
+  ["maintenance.alertas_cambio_aceite", "Mantenimientos", "Recibir alertas cuando se registra un cambio de aceite"],
   ["documents.view", "Documentos", "Ver documentos"],
   ["documents.create", "Documentos", "Registrar documentos"],
   ["documents.delete", "Documentos", "Eliminar documentos"],
@@ -451,7 +452,8 @@ const PERMISOS_NUEVOS_POR_ROL = {
   "gps.manage": ["Administrador", "SuperAdministrador"],
   "novedades.view": ["Administrador", "Operador", "Consulta"],
   "novedades.create": ["Administrador", "Operador"],
-  "novedades.delete": ["Administrador"]
+  "novedades.delete": ["Administrador"],
+  "maintenance.alertas_cambio_aceite": ["Administrador", "Operador"]
 };
 
 async function grantPermisosNuevos() {
@@ -1671,6 +1673,7 @@ ensurePostgresTables()
     ensureColumn("usuarios", "foto_posicion", "TEXT NOT NULL DEFAULT '50% 50%'"),
     ensureColumn("usuarios", "celular", "TEXT"),
     ensureColumn("usuarios", "debe_cambiar_password", "BOOLEAN NOT NULL DEFAULT FALSE"),
+    ensureColumn("usuarios", "vehiculo_asignado_id", "BIGINT REFERENCES vehiculos(id) ON DELETE SET NULL"),
     ensureColumn("roles", "permisos_configurados", "BOOLEAN NOT NULL DEFAULT FALSE"),
     ensureColumn("mantenimientos", "repuestos", "TEXT"),
     ensureColumn("mantenimientos", "autorizado_por", "TEXT"),

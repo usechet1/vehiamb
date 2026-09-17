@@ -28,6 +28,7 @@ const PRIORIDAD_LEGACY_ALIAS = { baja: "informativa" };
 const TIPOS = {
   mantenimiento_proximo: { categoria: "mantenimiento", prioridad: "media", titulo: "Mantenimiento próximo" },
   cambio_aceite_proximo: { categoria: "mantenimiento", prioridad: "media", titulo: "Cambio de aceite próximo" },
+  cambio_aceite_registrado: { categoria: "mantenimiento", prioridad: "alta", titulo: "Cambio de aceite registrado" },
   soat_proximo: { categoria: "documentacion", prioridad: "alta", titulo: "SOAT próximo a vencer" },
   soat_vencido: { categoria: "documentacion", prioridad: "critica", titulo: "SOAT vencido" },
   tecnomecanica_proxima: { categoria: "documentacion", prioridad: "alta", titulo: "RTM próxima a vencer" },

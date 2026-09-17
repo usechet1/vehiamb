@@ -9,6 +9,8 @@ const userPassword = document.getElementById("userPassword");
 const userRole = document.getElementById("userRole");
 const userCedulaGroup = document.getElementById("userCedulaGroup");
 const userCedula = document.getElementById("userCedula");
+const userVehiculoAsignadoGroup = document.getElementById("userVehiculoAsignadoGroup");
+const userVehiculoAsignado = document.getElementById("userVehiculoAsignado");
 const userActive = document.getElementById("userActive");
 const userFormMode = document.getElementById("userFormMode");
 const cancelEditButton = document.getElementById("cancelEditButton");
@@ -33,6 +35,7 @@ let usersState = [];
 let rolesState = [];
 let permissionsState = [];
 let usersRoleActiva = "";
+let montacargasState = [];
 
 function buildEmail(rawValue) {
     return String(rawValue || "").trim().toLowerCase();
@@ -144,6 +147,7 @@ function resetForm() {
     resetPhotoField();
     fillRoles();
     actualizarVisibilidadCedula();
+    actualizarVisibilidadMontacarga();
 }
 
 // El rol Conductor necesita ademas una ficha en "conductores" (cedula y
@@ -157,6 +161,15 @@ function actualizarVisibilidadCedula() {
     userCelular.required = esConductor;
 }
 
+// Conductor B opera un montacargas puntual (no elige vehiculo cada viaje
+// como Conductor) -- necesita tener siempre uno asignado, ver
+// usuarios.service.js#validateUserPayload y home.js en el frontend.
+function actualizarVisibilidadMontacarga() {
+    const esConductorB = roleNameById(userRole.value) === "Conductor B";
+    userVehiculoAsignadoGroup.classList.toggle("hidden", !esConductorB);
+    userVehiculoAsignado.required = esConductorB;
+}
+
 function fillRoles() {
     userRole.innerHTML = '<option value="">Selecciona un rol</option>';
 
@@ -168,6 +181,20 @@ function fillRoles() {
         option.textContent = role.nombre;
         userRole.appendChild(option);
     });
+}
+
+function fillMontacargas() {
+    const seleccionado = userVehiculoAsignado.value;
+    userVehiculoAsignado.innerHTML = '<option value="">Selecciona un montacargas</option>';
+
+    montacargasState.forEach((vehiculo) => {
+        const option = document.createElement("option");
+        option.value = vehiculo.id;
+        option.textContent = `${vehiculo.placa} — ${vehiculo.marca} ${vehiculo.modelo}`;
+        userVehiculoAsignado.appendChild(option);
+    });
+
+    userVehiculoAsignado.value = seleccionado;
 }
 
 // Un usuario puede tener asignado un rol que despues se desactivo. Si no se
@@ -355,12 +382,14 @@ function editUser(id) {
     userEmail.value = user.email || "";
     userCelular.value = user.celular || "";
     userCedula.value = user.cedula || "";
+    userVehiculoAsignado.value = user.vehiculo_asignado_id || "";
     userPassword.value = "";
     userPassword.required = false;
     hideUserPassword();
     ensureRoleOption(user.role_id);
     userRole.value = user.role_id || "";
     actualizarVisibilidadCedula();
+    actualizarVisibilidadMontacarga();
     userActive.checked = Boolean(user.activo);
     userFormMode.textContent = "Editar usuario";
 
@@ -460,6 +489,7 @@ async function saveUser(event) {
     formData.set("email", buildEmail(userEmail.value));
     formData.set("celular", userCelular.value);
     formData.set("cedula", userCedula.value);
+    formData.set("vehiculo_asignado_id", userVehiculoAsignado.value);
     formData.set("password", userPassword.value);
     formData.set("role_id", userRole.value);
     formData.set("activo", String(userActive.checked));
@@ -531,15 +561,18 @@ async function initAdminUsers() {
     try {
         window.VehiAmb.ui.show(loader);
 
-        const [roles, permissions, users] = await Promise.all([
+        const [roles, permissions, users, vehiculos] = await Promise.all([
             window.VehiAmb.api.getRoles(),
             window.VehiAmb.api.getPermisos(),
-            window.VehiAmb.api.getUsuarios()
+            window.VehiAmb.api.getUsuarios(),
+            window.VehiAmb.api.getVehiculosCatalogo()
         ]);
 
         rolesState = roles;
         permissionsState = permissions;
         usersState = users;
+        montacargasState = (vehiculos || []).filter((vehiculo) => vehiculo.tipo_vehiculo === "Montacargas");
+        fillMontacargas();
 
         resetForm();
         renderUsersKpis();
@@ -562,6 +595,7 @@ async function initAdminUsers() {
 userForm.addEventListener("submit", saveUser);
 cancelEditButton.addEventListener("click", resetForm);
 userRole.addEventListener("change", actualizarVisibilidadCedula);
+userRole.addEventListener("change", actualizarVisibilidadMontacarga);
 userSearchInput.addEventListener("input", applyUserFilters);
 
 usersRoleChips.addEventListener("click", (event) => {

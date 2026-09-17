@@ -223,6 +223,30 @@ async function evaluarNotificacionesMantenimiento({ mantenimiento, vehiculo, req
     );
   }
 
+  // Aviso dedicado (no el generico "vehiculo_en_mantenimiento" de abajo, que
+  // es sobre disponibilidad): prioridad "alta" para que llegue por email por
+  // defecto (ver EMAIL_ALERT_PRIORIDAD_MINIMA), a quien tenga el permiso
+  // dedicado maintenance.alertas_cambio_aceite -- no todo el que ve
+  // mantenimientos necesita un correo por cada cambio de aceite registrado.
+  if (mantenimiento.tipo === "cambio_aceite") {
+    const proximoCambio = mantenimiento.proximo_cambio_km
+      ? `${Number(mantenimiento.proximo_cambio_km).toLocaleString("es-CO")} km`
+      : mantenimiento.proximo_cambio_fecha
+        ? new Date(mantenimiento.proximo_cambio_fecha).toLocaleDateString("es-CO")
+        : null;
+
+    tareas.push(
+      notificarUsuariosConPermiso("maintenance.alertas_cambio_aceite", {
+        tipo: "cambio_aceite_registrado",
+        mensaje: `Se registró un cambio de aceite para el vehículo ${vehiculoLabel} a los ${Number(mantenimiento.kilometraje || 0).toLocaleString("es-CO")} km.${proximoCambio ? ` Próximo cambio: ${proximoCambio}.` : ""}`,
+        vehiculo_id: vehiculo.id,
+        referencia_tipo: "mantenimiento",
+        referencia_id: mantenimiento.id,
+        accion: { tipo: "ver_mantenimiento", payload: { mantenimiento_id: mantenimiento.id } }
+      }, vehiculo.empresa_id)
+    );
+  }
+
   await Promise.all(tareas);
 }
 

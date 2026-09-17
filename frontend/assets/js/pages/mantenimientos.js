@@ -1,6 +1,7 @@
 const mantenimientoForm = document.getElementById("mantenimientoForm");
 const mantenimientosFilterForm = document.getElementById("mantenimientosFilterForm");
 const mantenimientoSelect = document.getElementById("vehiculoMantenimiento");
+const mantenimientoSelectBuscar = document.getElementById("vehiculoMantenimientoBuscar");
 const mantenimientosList = document.getElementById("mantenimientosList");
 const mantenimientosKpisGrid = document.getElementById("mantenimientosKpisGrid");
 const filterBusqueda = document.getElementById("filterBusqueda");
@@ -1777,6 +1778,32 @@ mantenimientoForm.addEventListener("submit", async (event) => {
 mantenimientoSelect.addEventListener("change", () => {
     updateKilometrajeValidation();
     cargarRepuestosSugeridos();
+});
+
+// Filtra las opciones del select por texto (placa, marca o modelo) sin tocar
+// su comportamiento nativo (value, "change", checkValidity siguen igual) --
+// se ocultan las que no coinciden en vez de reconstruir el select, asi que
+// limpiar la busqueda siempre vuelve a mostrar la lista completa.
+mantenimientoSelectBuscar?.addEventListener("input", () => {
+    const termino = mantenimientoSelectBuscar.value.trim().toLowerCase();
+
+    Array.from(mantenimientoSelect.options).forEach((option) => {
+        if (!option.value) return;
+        option.hidden = termino.length > 0 && !option.textContent.toLowerCase().includes(termino);
+    });
+});
+
+// Si al filtrar queda una sola opcion visible, Enter la selecciona directo
+// (evita tener que abrir el select despues de escribir).
+mantenimientoSelectBuscar?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+
+    const visibles = Array.from(mantenimientoSelect.options).filter((option) => option.value && !option.hidden);
+    if (visibles.length === 1) {
+        mantenimientoSelect.value = visibles[0].value;
+        mantenimientoSelect.dispatchEvent(new Event("change"));
+    }
 });
 
 mantenimientoKilometraje.addEventListener("input", () => {

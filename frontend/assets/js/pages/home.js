@@ -887,6 +887,20 @@ async function inicializarConductorHome(user) {
 async function inicializarDashboard() {
     const user = await window.VehiAmb.auth.fetchCurrentUser();
 
+    // Conductor B opera un montacargas puntual (a diferencia de Conductor,
+    // que arma el viaje eligiendo vehiculo cada vez) -- Inicio no le sirve de
+    // nada, asi que se lo salta del todo y entra directo a la ficha de su
+    // montacargas asignado (ver usuarios.service.js#validateUserPayload y el
+    // boton "Inicio" oculto para este rol en sidebar.js).
+    if (user?.rol === "Conductor B") {
+        if (user.vehiculo_asignado_id) {
+            window.location.replace(`vehiculo.html?id=${user.vehiculo_asignado_id}`);
+        } else {
+            window.alert("Todavía no tienes un montacargas asignado. Contacta a un administrador.");
+        }
+        return;
+    }
+
     if (user?.rol === "Conductor") {
         await inicializarConductorHome(user);
         return;

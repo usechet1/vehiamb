@@ -708,7 +708,12 @@ async function cargarSidebar() {
         // El bloqueo real de acceso directo por URL vive en auth.js
         // (PAGINAS_BLOQUEADAS_POR_ROL), esto solo oculta el boton del menu.
         const paginasOcultasPorRol = {
-            Conductor: ["mantenimientos.html", "documentos.html", "dashboard.html", "conductores.html", "notificaciones.html"]
+            Conductor: ["mantenimientos.html", "documentos.html", "dashboard.html", "conductores.html", "notificaciones.html"],
+            // Conductor B ni siquiera pasa por Inicio: home.js lo redirige
+            // directo a la ficha de su montacargas asignado, asi que el boton
+            // no tiene ningun destino util (ver PAGINAS_BLOQUEADAS_POR_ROL en
+            // auth.js para el bloqueo real de acceso directo por URL).
+            "Conductor B": ["index.html"]
         };
 
         aside.querySelectorAll("button[data-permission]").forEach((btn) => {

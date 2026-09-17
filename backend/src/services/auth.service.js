@@ -43,7 +43,11 @@ function toSafeUser(user) {
     empresa_nombre: user.empresa_nombre,
     empresa_logo_url: user.empresa_logo_url,
     permisos: user.permisos || [],
-    debe_cambiar_password: Boolean(user.debe_cambiar_password)
+    debe_cambiar_password: Boolean(user.debe_cambiar_password),
+    // Conductor B: el vehiculo (montacargas) que "Inicio" usa para mandarlo
+    // directo a su ficha, ver home.js.
+    vehiculo_asignado_id: user.vehiculo_asignado_id || null,
+    vehiculo_asignado_placa: user.vehiculo_asignado_placa || null
   };
 }
 

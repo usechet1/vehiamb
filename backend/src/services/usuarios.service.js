@@ -4,6 +4,7 @@ const HttpError = require("../errors/http-error");
 const rolesRepository = require("../repositories/roles.repository");
 const usuariosRepository = require("../repositories/usuarios.repository");
 const conductoresRepository = require("../repositories/conductores.repository");
+const vehiculosRepository = require("../repositories/vehiculos.repository");
 const logsRegistroRepository = require("../repositories/logs-registro.repository");
 const { hashPassword } = require("../utils/password");
 const notificacionesService = require("./notificaciones.service");
@@ -27,6 +28,12 @@ const UPLOADS_ROOT = path.resolve(__dirname, "..", "..", "uploads");
 // Conductores ni podia usar lo que depende de esa ficha -- licencias,
 // inspecciones, resumen del viaje).
 const ROL_CONDUCTOR = "Conductor";
+
+// Conductor B opera un montacargas puntual (no elige vehiculo cada viaje
+// como Conductor) -- necesita tener SIEMPRE uno asignado, para que Inicio
+// pueda mandarlo directo a su ficha (ver home.js e index.html en el
+// frontend).
+const ROL_CONDUCTOR_B = "Conductor B";
 const CEDULA_REGEX = /^\d{6,10}$/;
 const TELEFONO_REGEX = /^\d{7,10}$/;
 
@@ -67,7 +74,9 @@ function toSafeUser(user) {
     cedula: user.conductor_cedula || null,
     empresa_id: user.empresa_id,
     created_at: user.created_at,
-    debe_cambiar_password: Boolean(user.debe_cambiar_password)
+    debe_cambiar_password: Boolean(user.debe_cambiar_password),
+    vehiculo_asignado_id: user.vehiculo_asignado_id || null,
+    vehiculo_asignado_placa: user.vehiculo_asignado_placa || null
   };
 }
 
@@ -122,7 +131,7 @@ async function resolveRole(roleId, { allowInactiveId = null, callerPermisos = []
   return role;
 }
 
-async function validateUserPayload(payload, { isUpdate = false, existingRoleId = null, callerPermisos = [] } = {}) {
+async function validateUserPayload(payload, { isUpdate = false, existingRoleId = null, callerPermisos = [], empresaId = null } = {}) {
   const nombre = String(payload.nombre || "").trim();
   const email = normalizeEmail(payload.email);
   const password = String(payload.password || "");
@@ -166,6 +175,25 @@ async function validateUserPayload(payload, { isUpdate = false, existingRoleId =
     }
   }
 
+  // Conductor B necesita su montacargas asignado desde ya: es lo que
+  // "Inicio" usa para mandarlo directo a la ficha (ver home.js), no elige
+  // vehiculo cada vez como Conductor.
+  let vehiculoAsignadoId = null;
+  if (role.nombre === ROL_CONDUCTOR_B) {
+    vehiculoAsignadoId = Number(payload.vehiculo_asignado_id || 0) || null;
+    if (!vehiculoAsignadoId) {
+      throw new HttpError(400, "Debes asignar un montacargas para el rol Conductor B");
+    }
+
+    const vehiculo = await vehiculosRepository.findById(vehiculoAsignadoId, empresaId);
+    if (!vehiculo) {
+      throw new HttpError(404, "El montacargas asignado no existe");
+    }
+    if (vehiculo.tipo_vehiculo !== "Montacargas") {
+      throw new HttpError(400, "El vehículo asignado debe ser un montacargas");
+    }
+  }
+
   return {
     nombre,
     email,
@@ -174,7 +202,8 @@ async function validateUserPayload(payload, { isUpdate = false, existingRoleId =
     rol: role.nombre,
     activo: parseActivo(payload.activo),
     celular,
-    cedula: role.nombre === ROL_CONDUCTOR ? cedula : null
+    cedula: role.nombre === ROL_CONDUCTOR ? cedula : null,
+    vehiculo_asignado_id: vehiculoAsignadoId
   };
 }
 
@@ -246,7 +275,7 @@ async function listUsersCatalogo(empresaId) {
 // = una empresa, el login no pide elegir empresa), asi que la verificacion
 // de unicidad de email es deliberadamente global, sin filtrar por empresaId.
 async function createUser(payload, file, empresaId, callerPermisos = [], actorUserId = null) {
-  const user = await validateUserPayload(payload, { callerPermisos });
+  const user = await validateUserPayload(payload, { callerPermisos, empresaId });
   const existing = await usuariosRepository.findByEmail(user.email);
 
   if (existing) {
@@ -302,7 +331,7 @@ async function updateUser(id, payload, file, empresaId, callerPermisos = [], act
     throw new HttpError(404, "Usuario no encontrado");
   }
 
-  const user = await validateUserPayload(payload, { isUpdate: true, existingRoleId: existing.role_id, callerPermisos });
+  const user = await validateUserPayload(payload, { isUpdate: true, existingRoleId: existing.role_id, callerPermisos, empresaId });
   const sameEmailUser = await usuariosRepository.findByEmail(user.email);
 
   if (sameEmailUser && String(sameEmailUser.id) !== String(id)) {

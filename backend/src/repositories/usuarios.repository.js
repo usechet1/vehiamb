@@ -21,15 +21,18 @@ const USER_SELECT = `
     u.empresa_id,
     u.created_at,
     u.debe_cambiar_password,
+    u.vehiculo_asignado_id,
     r.nombre AS role_nombre,
     e.nombre AS empresa_nombre,
     e.logo_url AS empresa_logo_url,
     e.modulos_deshabilitados AS empresa_modulos_deshabilitados,
-    c.cedula AS conductor_cedula
+    c.cedula AS conductor_cedula,
+    va.placa AS vehiculo_asignado_placa
   FROM usuarios u
   LEFT JOIN roles r ON r.id = u.role_id
   LEFT JOIN empresas e ON e.id = u.empresa_id
   LEFT JOIN conductores c ON c.usuario_id = u.id
+  LEFT JOIN vehiculos va ON va.id = u.vehiculo_asignado_id
 `;
 
 // findByEmail NO se filtra por empresa: el email es unico en toda la
@@ -84,8 +87,8 @@ async function findAll(empresaId) {
 async function create(user) {
   const result = await db.get(
     `
-      INSERT INTO usuarios (nombre, email, password_hash, rol, role_id, activo, foto_url, foto_posicion, celular, empresa_id, debe_cambiar_password)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE)
+      INSERT INTO usuarios (nombre, email, password_hash, rol, role_id, activo, foto_url, foto_posicion, celular, empresa_id, vehiculo_asignado_id, debe_cambiar_password)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE)
       RETURNING id
     `,
     [
@@ -98,7 +101,8 @@ async function create(user) {
       user.foto_url ?? null,
       user.foto_posicion || "50% 50%",
       user.celular ?? null,
-      user.empresa_id
+      user.empresa_id,
+      user.vehiculo_asignado_id ?? null
     ]
   );
 
@@ -114,7 +118,8 @@ async function update(id, user, empresaId) {
     "activo = ?",
     "foto_url = ?",
     "foto_posicion = ?",
-    "celular = ?"
+    "celular = ?",
+    "vehiculo_asignado_id = ?"
   ];
   const values = [
     user.nombre,
@@ -124,7 +129,8 @@ async function update(id, user, empresaId) {
     user.activo,
     user.foto_url ?? null,
     user.foto_posicion || "50% 50%",
-    user.celular ?? null
+    user.celular ?? null,
+    user.vehiculo_asignado_id ?? null
   ];
 
   if (user.password_hash) {
