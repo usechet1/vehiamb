@@ -132,7 +132,15 @@ function validateVehiculo(vehiculo) {
     : validarAnio(vehiculo.anio);
 
   const esMoto = vehiculo.tipo_vehiculo === "Motocicleta";
-  const placaValida = esMoto ? PLACA_REGEX_MOTO.test(vehiculo.placa) : PLACA_REGEX_ESTANDAR.test(vehiculo.placa);
+  const esMontacargas = vehiculo.tipo_vehiculo === "Montacargas";
+  // Los montacargas no tienen placa vehicular real: solo se exige que no
+  // quede vacia (ya validado arriba via REQUIRED_FIELDS), sin el formato de
+  // placa colombiana (ver tambien validarPlacaField en add.js).
+  const placaValida = esMontacargas
+    ? true
+    : esMoto
+      ? PLACA_REGEX_MOTO.test(vehiculo.placa)
+      : PLACA_REGEX_ESTANDAR.test(vehiculo.placa);
   if (!placaValida) {
     throw new HttpError(
       400,

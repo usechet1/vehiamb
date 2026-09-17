@@ -76,6 +76,13 @@ function validarPlacaField() {
         return;
     }
 
+    // Los montacargas no tienen placa vehicular real -- cualquier codigo
+    // interno sirve (ej. "AMB-001"), sin el formato de placa colombiana.
+    if (selectTipoVehiculo?.value === "Montacargas") {
+        inputPlaca.setCustomValidity("");
+        return;
+    }
+
     const esMoto = selectTipoVehiculo?.value === "Motocicleta";
     const valida = esMoto ? PLACA_REGEX_MOTO.test(raw) : PLACA_REGEX_ESTANDAR.test(raw);
 
@@ -204,7 +211,14 @@ if (isEditMode) {
 
 inputPlaca?.addEventListener("input", () => {
     const { selectionStart, selectionEnd } = inputPlaca;
-    inputPlaca.value = inputPlaca.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+
+    // Los montacargas no usan placa vehicular real: se permite cualquier
+    // codigo (letras, numeros y guion, sin tope de 6 caracteres) en vez del
+    // saneo estricto de placa colombiana.
+    inputPlaca.value = selectTipoVehiculo?.value === "Montacargas"
+        ? inputPlaca.value.toUpperCase().replace(/[^A-Z0-9-]/g, "")
+        : inputPlaca.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+
     inputPlaca.setSelectionRange(selectionStart, selectionEnd);
     validarPlacaField();
 });
