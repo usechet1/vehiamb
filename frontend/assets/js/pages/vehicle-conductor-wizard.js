@@ -163,10 +163,14 @@ async function initConductorWizard() {
             document.getElementById("preopContenido")?.classList.toggle("hidden", preopBloqueadoPorHora);
         }
 
-        // El avance de Inspeccion/Preoperacional es automatico (ver
-        // listeners de "inspeccion:completa"/"preoperacional:completo" mas
-        // abajo); estos botones/hint quedan solo como respaldo defensivo
-        // por si ese evento no llegara a dispararse.
+        // El avance de Inspeccion es automatico al completarse (ver listener
+        // de "inspeccion:completa" mas abajo), por eso este boton en ese paso
+        // es solo respaldo defensivo. Preoperacional ya no: este es el UNICO
+        // boton que avanza ahi, se renombra a "Guardar y continuar" y queda
+        // deshabilitado hasta que el checklist este completo -- asi el
+        // conductor decide cuando pasar a Finalizar, con tiempo de escribir
+        // sus observaciones generales primero.
+        siguienteBtn.textContent = esPasoPreoperacional ? "Guardar y continuar" : "Siguiente";
         siguienteBtn.classList.toggle("hidden", esUltimoPaso);
         siguienteBtn.disabled = (esPasoInspeccion && !inspeccionCompleta) || (esPasoPreoperacional && (!preoperacionalCompleta || preopBloqueadoPorHora));
 
@@ -197,10 +201,12 @@ async function initConductorWizard() {
         }
     });
 
-    // Ni la inspeccion ni el preoperacional se guardan ya al completarse --
-    // solo marcan items/preguntas localmente (ver vehicle-inspeccion.js /
-    // vehicle-preoperacional.js) y avisan aqui para saltar automaticamente
-    // al siguiente paso, sin pedirle al conductor un click extra.
+    // El avance de Inspeccion sigue siendo automatico al completarse (ver
+    // listener de "inspeccion:completa" mas abajo). Preoperacional ya NO:
+    // solo marca items/preguntas localmente (ver vehicle-preoperacional.js) y
+    // habilita el boton "Guardar y continuar" -- el conductor decide cuando
+    // avanzar, para poder terminar de escribir sus observaciones generales
+    // antes de pasar a Finalizar.
     document.addEventListener("inspeccion:completa", () => {
         inspeccionCompleta = true;
         const siguienteLabel = modoPreinspeccion ? "Guardar" : "Preoperacional";
@@ -211,7 +217,6 @@ async function initConductorWizard() {
 
     document.addEventListener("preoperacional:completo", () => {
         preoperacionalCompleta = true;
-        currentStep = WIZARD_STEPS.length - 1;
         render();
     });
 

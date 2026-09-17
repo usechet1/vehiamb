@@ -96,8 +96,12 @@ function checklistCompleto() {
 }
 
 // Una vez las 9 preguntas tienen respuesta (con observacion en cada "No"),
-// avanza automaticamente al paso 5 (Finalizar) -- el guardado real (con
-// firma) queda diferido a ese paso, ver window.VehiAmb.wizardPreoperacional.
+// habilita el boton "Guardar y continuar" del wizard -- ya NO avanza solo de
+// paso: el conductor debe poder terminar de leer/escribir sus observaciones
+// generales (preopObservacionesEl) antes de seguir, asi que el avance queda
+// en sus manos (ver listener de "preoperacional:completo" en
+// vehicle-conductor-wizard.js). El guardado real (con firma) sigue diferido
+// al paso 5 (Finalizar).
 function evaluarCompletitudPreoperacional() {
     if (!preopPuedeCrear || preopCompletoDisparado || !checklistCompleto()) return;
 
