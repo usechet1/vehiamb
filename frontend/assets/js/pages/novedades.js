@@ -99,21 +99,29 @@ function renderNovedades() {
         : "Mostrando todas las novedades.";
 
     if (!filtradas.length) {
-        novedadesTablaBody.innerHTML = '<tr><td colspan="5" class="dash-empty">No hay novedades registradas</td></tr>';
+        novedadesTablaBody.innerHTML = '<p class="dash-empty">No hay novedades registradas</p>';
         return;
     }
 
     novedadesTablaBody.innerHTML = filtradas
         .map((novedad) => `
-            <tr class="import-row" data-novedad-id="${novedad.id}" tabindex="0" role="button" aria-label="Ver detalle de la novedad de ${escapeHtml(novedad.placa)}">
-                <td>${formatFecha(novedad.fecha)}</td>
-                <td>${escapeHtml(novedad.placa)} — ${escapeHtml(novedad.marca || "")} ${escapeHtml(novedad.modelo || "")}</td>
-                <td>${escapeHtml(novedad.descripcion)}</td>
-                <td>${novedad.foto_url ? "📷 Con foto" : "-"}</td>
-                <td class="table-actions">
+            <article class="record-item clickable-record" data-novedad-id="${novedad.id}" tabindex="0" role="button" aria-label="Ver detalle de la novedad de ${escapeHtml(novedad.placa)}">
+                <div class="record-top">
+                    <div>
+                        <span class="record-title">${escapeHtml(novedad.placa)}</span>
+                        <span class="record-sub">${escapeHtml(novedad.marca || "")} ${escapeHtml(novedad.modelo || "")}</span>
+                    </div>
+                    <span class="pill">${formatFecha(novedad.fecha)}</span>
+                </div>
+                <div class="record-meta">
+                    <span>${escapeHtml(novedad.descripcion)}</span>
+                    ${novedad.foto_url ? `<span class="pill">📷 Con foto</span>` : ""}
+                </div>
+                <div class="simit-card-actions">
+                    <span class="record-link">Ver detalle →</span>
                     ${puedeEliminar() ? `<button type="button" class="btn-secondary btn-danger" data-eliminar-novedad="${novedad.id}">Eliminar</button>` : ""}
-                </td>
-            </tr>
+                </div>
+            </article>
         `)
         .join("");
 }
@@ -124,7 +132,7 @@ async function cargarNovedades() {
         renderNovedades();
     } catch (error) {
         console.error(error);
-        novedadesTablaBody.innerHTML = '<tr><td colspan="5" class="dash-empty">No fue posible cargar las novedades</td></tr>';
+        novedadesTablaBody.innerHTML = '<p class="dash-empty">No fue posible cargar las novedades</p>';
     }
 }
 
@@ -311,11 +319,13 @@ novedadForm?.addEventListener("submit", async (event) => {
     }
 });
 
-// La fila completa es clicable (ver renderNovedades, clase "import-row"
-// reutilizada de importaciones/stock-importaciones): al hacer click en
-// cualquier parte que no sea "Eliminar" se abre el drawer con el detalle
-// grande (foto, descripcion completa e hilo de respuestas). Antes solo un
-// boton "Responder" chiquito abria ese detalle, facil de pasar por alto.
+// La tarjeta completa es clicable (mismo patron "clickable-record" que ya
+// usa simit.js para su listado de flota): al hacer click en cualquier parte
+// que no sea "Eliminar" se abre el drawer con el detalle grande (foto,
+// descripcion completa e hilo de respuestas). Se cambio de tabla a tarjetas
+// porque en mobile una tabla de 5 columnas quedaba ilegible/dificil de tocar
+// -- las tarjetas dan un area de click mucho mas grande y clara, con "Ver
+// detalle ->" como pista visual explicita.
 novedadesTablaBody?.addEventListener("click", async (event) => {
     const eliminarButton = event.target.closest("[data-eliminar-novedad]");
     if (eliminarButton) {
@@ -340,21 +350,21 @@ novedadesTablaBody?.addEventListener("click", async (event) => {
         return;
     }
 
-    const fila = event.target.closest("tr[data-novedad-id]");
-    if (fila) openNovedadResumen(fila.dataset.novedadId);
+    const tarjeta = event.target.closest("[data-novedad-id]");
+    if (tarjeta) openNovedadResumen(tarjeta.dataset.novedadId);
 });
 
 // Mismo criterio de accesibilidad que simit.js (ranking/flota clicables):
-// la fila tiene tabindex + role="button", asi que Enter/Espacio deben
+// la tarjeta tiene tabindex + role="button", asi que Enter/Espacio deben
 // abrir el detalle igual que un click.
 novedadesTablaBody?.addEventListener("keydown", (event) => {
     if (event.key !== "Enter" && event.key !== " ") return;
 
-    const fila = event.target.closest("tr[data-novedad-id]");
-    if (!fila) return;
+    const tarjeta = event.target.closest("[data-novedad-id]");
+    if (!tarjeta) return;
 
     event.preventDefault();
-    openNovedadResumen(fila.dataset.novedadId);
+    openNovedadResumen(tarjeta.dataset.novedadId);
 });
 
 // Sin esto, Enter dentro de un campo del filtro dispara el submit implicito
