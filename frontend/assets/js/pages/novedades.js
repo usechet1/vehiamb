@@ -105,13 +105,12 @@ function renderNovedades() {
 
     novedadesTablaBody.innerHTML = filtradas
         .map((novedad) => `
-            <tr>
+            <tr class="import-row" data-novedad-id="${novedad.id}" tabindex="0" role="button" aria-label="Ver detalle de la novedad de ${escapeHtml(novedad.placa)}">
                 <td>${formatFecha(novedad.fecha)}</td>
                 <td>${escapeHtml(novedad.placa)} — ${escapeHtml(novedad.marca || "")} ${escapeHtml(novedad.modelo || "")}</td>
                 <td>${escapeHtml(novedad.descripcion)}</td>
-                <td>${novedad.foto_url ? `<a href="${window.VehiAmb.api.getAssetUrl(novedad.foto_url)}" target="_blank" rel="noopener">Ver foto</a>` : "-"}</td>
+                <td>${novedad.foto_url ? "📷 Con foto" : "-"}</td>
                 <td class="table-actions">
-                    <button type="button" class="btn-secondary" data-responder-novedad="${novedad.id}">Responder</button>
                     ${puedeEliminar() ? `<button type="button" class="btn-secondary btn-danger" data-eliminar-novedad="${novedad.id}">Eliminar</button>` : ""}
                 </td>
             </tr>
@@ -312,34 +311,50 @@ novedadForm?.addEventListener("submit", async (event) => {
     }
 });
 
+// La fila completa es clicable (ver renderNovedades, clase "import-row"
+// reutilizada de importaciones/stock-importaciones): al hacer click en
+// cualquier parte que no sea "Eliminar" se abre el drawer con el detalle
+// grande (foto, descripcion completa e hilo de respuestas). Antes solo un
+// boton "Responder" chiquito abria ese detalle, facil de pasar por alto.
 novedadesTablaBody?.addEventListener("click", async (event) => {
-    const responderButton = event.target.closest("[data-responder-novedad]");
-    if (responderButton) {
-        openNovedadResumen(responderButton.dataset.responderNovedad);
+    const eliminarButton = event.target.closest("[data-eliminar-novedad]");
+    if (eliminarButton) {
+        const confirmado = await window.VehiAmb.ui.confirm({
+            title: "Eliminar novedad",
+            message: "Esta acción no se puede deshacer.",
+            confirmText: "Eliminar"
+        });
+        if (!confirmado) return;
+
+        try {
+            window.VehiAmb.ui.show(loader);
+            await window.VehiAmb.api.deleteNovedad(eliminarButton.dataset.eliminarNovedad);
+            window.VehiAmb.ui.showMessage(mensaje, "Novedad eliminada correctamente");
+            await cargarNovedades();
+        } catch (error) {
+            console.error(error);
+            window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo eliminar la novedad", "error");
+        } finally {
+            window.VehiAmb.ui.hide(loader);
+        }
         return;
     }
 
-    const eliminarButton = event.target.closest("[data-eliminar-novedad]");
-    if (!eliminarButton) return;
+    const fila = event.target.closest("tr[data-novedad-id]");
+    if (fila) openNovedadResumen(fila.dataset.novedadId);
+});
 
-    const confirmado = await window.VehiAmb.ui.confirm({
-        title: "Eliminar novedad",
-        message: "Esta acción no se puede deshacer.",
-        confirmText: "Eliminar"
-    });
-    if (!confirmado) return;
+// Mismo criterio de accesibilidad que simit.js (ranking/flota clicables):
+// la fila tiene tabindex + role="button", asi que Enter/Espacio deben
+// abrir el detalle igual que un click.
+novedadesTablaBody?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
 
-    try {
-        window.VehiAmb.ui.show(loader);
-        await window.VehiAmb.api.deleteNovedad(eliminarButton.dataset.eliminarNovedad);
-        window.VehiAmb.ui.showMessage(mensaje, "Novedad eliminada correctamente");
-        await cargarNovedades();
-    } catch (error) {
-        console.error(error);
-        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo eliminar la novedad", "error");
-    } finally {
-        window.VehiAmb.ui.hide(loader);
-    }
+    const fila = event.target.closest("tr[data-novedad-id]");
+    if (!fila) return;
+
+    event.preventDefault();
+    openNovedadResumen(fila.dataset.novedadId);
 });
 
 // Sin esto, Enter dentro de un campo del filtro dispara el submit implicito
