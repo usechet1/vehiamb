@@ -311,6 +311,7 @@ function renderInspeccionHtml(inspeccion) {
     return `
         <p class="field-help">${inspeccion.total_items_mal} de ${inspeccion.total_items} ítems quedaron en mal estado · ${formatFechaHora(inspeccion.fecha)}</p>
         ${items}
+        ${inspeccion.observaciones ? `<p class="field-help"><strong>Observaciones del conductor:</strong> ${escapeHtml(inspeccion.observaciones)}</p>` : ""}
     `;
 }
 
@@ -329,6 +330,7 @@ function renderPreoperacionalHtml(preoperacional) {
     return `
         <p class="field-help">${preoperacional.total_items_no} de ${preoperacional.total_items} preguntas en "No" · ${formatFechaHora(preoperacional.fecha)}</p>
         ${items}
+        ${preoperacional.observaciones ? `<p class="field-help"><strong>Observaciones del conductor:</strong> ${escapeHtml(preoperacional.observaciones)}</p>` : ""}
     `;
 }
 

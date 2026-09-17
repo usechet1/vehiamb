@@ -265,7 +265,10 @@
     // Combina el titulo de seccion con su mini-tabla (o el aviso de "no
     // registrado" cuando no aplica) -- una llamada por seccion en
     // addDetallePorViaje, una para inspeccion y otra para preoperacional.
-    function addSeccion(doc, layout, bottomLimit, { titulo, color, fechaRegistro, filas }) {
+    // "observacionesGenerales" es el comentario libre que el conductor deja
+    // al final del formulario (distinto del comentario por item, que ya va
+    // en la mini-tabla) -- antes no se traia del backend y se perdia.
+    function addSeccion(doc, layout, bottomLimit, { titulo, color, fechaRegistro, filas, observacionesGenerales }) {
         addSeccionTitulo(doc, layout, bottomLimit, {
             titulo,
             color,
@@ -284,6 +287,31 @@
         }
 
         addMiniTabla(doc, layout, bottomLimit, filas);
+        addObservacionesGenerales(doc, layout, bottomLimit, observacionesGenerales);
+    }
+
+    function addObservacionesGenerales(doc, layout, bottomLimit, observaciones) {
+        if (!observaciones) return;
+
+        const maxWidth = layout.pageWidth - MARGIN_X * 2 - 10;
+        const lineasLabel = doc.splitTextToSize(`Observaciones del conductor: ${observaciones}`, maxWidth);
+        const alto = lineasLabel.length * ROW_LINE_HEIGHT + 8;
+
+        if (layout.y + alto > bottomLimit) {
+            doc.addPage();
+            layout.y = 40;
+        }
+
+        doc.setFontSize(8.5);
+        doc.setFont(undefined, "bold");
+        doc.setTextColor(24, 32, 43);
+        doc.text("Observaciones del conductor:", MARGIN_X + 10, layout.y);
+        doc.setFont(undefined, "normal");
+        doc.setTextColor(105, 115, 134);
+        const lineasTexto = doc.splitTextToSize(observaciones, maxWidth - 140);
+        doc.text(lineasTexto, MARGIN_X + 150, layout.y);
+        doc.setTextColor(24, 32, 43);
+        layout.y += Math.max(14, lineasTexto.length * ROW_LINE_HEIGHT) + 8;
     }
 
     const AZUL_SECCION = [219, 234, 248];
@@ -330,7 +358,8 @@
                     resultado: detalleItem.estado === "mal" ? "Mal estado" : "Bien",
                     observacion: detalleItem.comentario,
                     mal: detalleItem.estado === "mal"
-                }))
+                })),
+                observacionesGenerales: item.inspeccion_observaciones
             });
 
             layout.y += 14;
@@ -344,7 +373,8 @@
                     resultado: detalleItem.respuesta === "no" ? "No" : "Sí",
                     observacion: detalleItem.observacion,
                     mal: detalleItem.respuesta === "no"
-                }))
+                })),
+                observacionesGenerales: item.preoperacional_observaciones
             });
         });
     }
@@ -484,6 +514,18 @@
                 bandaDetalle = !bandaDetalle;
             });
 
+            // Comentario libre del conductor (distinto de la observacion por
+            // item de arriba) -- se agrega como fila aparte, una por tipo,
+            // solo cuando el conductor la diligencio.
+            if (item.preoperacional_observaciones) {
+                excel.addTableDataRow(
+                    detalleSheet,
+                    [fecha, placa, conductor, "Preoperacional", "(Observación general)", "", item.preoperacional_observaciones],
+                    { band: bandaDetalle }
+                );
+                bandaDetalle = !bandaDetalle;
+            }
+
             (item.inspeccion_items || []).forEach((detalleItem) => {
                 excel.addTableDataRow(
                     detalleSheet,
@@ -492,6 +534,15 @@
                 );
                 bandaDetalle = !bandaDetalle;
             });
+
+            if (item.inspeccion_observaciones) {
+                excel.addTableDataRow(
+                    detalleSheet,
+                    [fecha, placa, conductor, "Inspección", "(Observación general)", "", item.inspeccion_observaciones],
+                    { band: bandaDetalle }
+                );
+                bandaDetalle = !bandaDetalle;
+            }
         });
 
         excel.addFooterRow(detalleSheet, FOOTER_TEXT(branding?.nombreEmpresa), detalleColumnas.length);

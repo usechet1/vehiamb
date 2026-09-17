@@ -104,6 +104,7 @@ async function findRecientesPorEmpresa(empresaId, { fechaDesde, fechaHasta, cond
         veh.modelo AS vehiculo_modelo,
         p.id AS preoperacional_id,
         p.fecha AS preoperacional_fecha,
+        p.observaciones AS preoperacional_observaciones,
         (
           SELECT COALESCE(json_agg(jsonb_build_object('item_label', pi.item_label, 'respuesta', pi.respuesta, 'observacion', pi.observacion) ORDER BY pi.id), '[]'::json)
           FROM preoperacional_items pi
@@ -111,6 +112,7 @@ async function findRecientesPorEmpresa(empresaId, { fechaDesde, fechaHasta, cond
         ) AS preoperacional_items,
         insp.id AS inspeccion_id,
         insp.fecha AS inspeccion_fecha,
+        insp.observaciones AS inspeccion_observaciones,
         (
           SELECT COALESCE(json_agg(jsonb_build_object('item_label', ii.item_label, 'estado', ii.estado, 'comentario', ii.comentario) ORDER BY ii.id), '[]'::json)
           FROM inspeccion_items ii
@@ -120,10 +122,10 @@ async function findRecientesPorEmpresa(empresaId, { fechaDesde, fechaHasta, cond
       LEFT JOIN usuarios u ON u.id = v.usuario_id
       LEFT JOIN vehiculos veh ON veh.id = v.vehiculo_id
       LEFT JOIN LATERAL (
-        SELECT pp.id, pp.fecha FROM preoperacionales pp WHERE pp.viaje_id = v.id ORDER BY pp.id DESC LIMIT 1
+        SELECT pp.id, pp.fecha, pp.observaciones FROM preoperacionales pp WHERE pp.viaje_id = v.id ORDER BY pp.id DESC LIMIT 1
       ) p ON true
       LEFT JOIN LATERAL (
-        SELECT ip.id, ip.fecha FROM inspecciones_preventivas ip WHERE ip.viaje_id = v.id ORDER BY ip.id DESC LIMIT 1
+        SELECT ip.id, ip.fecha, ip.observaciones FROM inspecciones_preventivas ip WHERE ip.viaje_id = v.id ORDER BY ip.id DESC LIMIT 1
       ) insp ON true
       WHERE ${conditions.join(" AND ")}
       ORDER BY v.creado_en DESC

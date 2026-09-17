@@ -225,10 +225,12 @@ async function listarRecientesEmpresa(empresaId, { fechaDesde, fechaHasta, condu
       ...toSafeViaje(viaje),
       preoperacional_realizado: viaje.preoperacional_id !== null && viaje.preoperacional_id !== undefined,
       preoperacional_fecha: viaje.preoperacional_fecha || null,
+      preoperacional_observaciones: viaje.preoperacional_observaciones || null,
       preoperacional_items: preoperacionalItems,
       preoperacional_items_mal: preoperacionalItems.filter((item) => item.respuesta === "no").length,
       inspeccion_realizada: viaje.inspeccion_id !== null && viaje.inspeccion_id !== undefined,
       inspeccion_fecha: viaje.inspeccion_fecha || null,
+      inspeccion_observaciones: viaje.inspeccion_observaciones || null,
       inspeccion_items: inspeccionItems,
       inspeccion_items_mal: inspeccionItems.filter((item) => item.estado === "mal").length
     };
@@ -310,6 +312,7 @@ async function obtenerResumen(viajeId, currentUser) {
       ? {
           id: inspeccion.id,
           fecha: inspeccion.fecha,
+          observaciones: inspeccion.observaciones,
           total_items: itemsInspeccion.length,
           total_items_mal: itemsInspeccion.filter((item) => item.estado === "mal").length,
           items: itemsInspeccion.map((item) => ({
@@ -324,6 +327,7 @@ async function obtenerResumen(viajeId, currentUser) {
       ? {
           id: preoperacional.id,
           fecha: preoperacional.fecha,
+          observaciones: preoperacional.observaciones,
           total_items: itemsPreoperacional.length,
           total_items_no: itemsPreoperacional.filter((item) => item.respuesta === "no").length,
           items: itemsPreoperacional.map((item) => ({
