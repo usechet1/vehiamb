@@ -15,6 +15,13 @@ const novedadesFilterSummary = document.getElementById("novedadesFilterSummary")
 const clearNovedadesFiltersButton = document.getElementById("clearNovedadesFiltersButton");
 const novedadesFilterForm = document.getElementById("novedadesFilterForm");
 
+const novedadDrawerBackdrop = document.getElementById("novedadDrawerBackdrop");
+const novedadDrawer = document.getElementById("novedadDrawer");
+const novedadDrawerTitle = document.getElementById("novedadDrawerTitle");
+const novedadDrawerSubtitle = document.getElementById("novedadDrawerSubtitle");
+const novedadDrawerBody = document.getElementById("novedadDrawerBody");
+const closeNovedadDrawer = document.getElementById("closeNovedadDrawer");
+
 let novedadesState = [];
 
 function hoyISO() {
@@ -49,6 +56,17 @@ function fillVehicleSelect(select, vehiculos, placeholder = "Selecciona un vehí
     });
 
     select.value = seleccionado;
+}
+
+function formatFechaHora(value) {
+    if (!value) return "Sin fecha";
+    return new Date(value).toLocaleString("es-CO", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
 }
 
 function puedeCrear() {
@@ -92,7 +110,10 @@ function renderNovedades() {
                 <td>${escapeHtml(novedad.placa)} — ${escapeHtml(novedad.marca || "")} ${escapeHtml(novedad.modelo || "")}</td>
                 <td>${escapeHtml(novedad.descripcion)}</td>
                 <td>${novedad.foto_url ? `<a href="${window.VehiAmb.api.getAssetUrl(novedad.foto_url)}" target="_blank" rel="noopener">Ver foto</a>` : "-"}</td>
-                <td class="table-actions">${puedeEliminar() ? `<button type="button" class="btn-secondary btn-danger" data-eliminar-novedad="${novedad.id}">Eliminar</button>` : ""}</td>
+                <td class="table-actions">
+                    <button type="button" class="btn-secondary" data-responder-novedad="${novedad.id}">Responder</button>
+                    ${puedeEliminar() ? `<button type="button" class="btn-secondary btn-danger" data-eliminar-novedad="${novedad.id}">Eliminar</button>` : ""}
+                </td>
             </tr>
         `)
         .join("");
@@ -107,6 +128,165 @@ async function cargarNovedades() {
         novedadesTablaBody.innerHTML = '<tr><td colspan="5" class="dash-empty">No fue posible cargar las novedades</td></tr>';
     }
 }
+
+// ─────────────────── Responder (hilo de comentarios) ───────────────────
+// Reutiliza el mismo sistema generico de comentarios de notificaciones/viajes
+// (referencia_tipo/referencia_id, ver notificaciones.service.js) con
+// referencia_tipo = "novedad" -- no requiere nada nuevo en el backend.
+// Responder queda detras del permiso notificaciones.comentar
+// (Administrador/Operador); el resto de roles con novedades.view (incluido
+// Conductor B) ve el hilo en solo lectura.
+function puedeResponder() {
+    return Boolean(window.VehiAmb.auth?.hasPermission?.("notificaciones.comentar"));
+}
+
+function renderComentarioItem(comentario) {
+    return `
+        <div class="notif-comentario-item">
+            <div class="notif-comentario-meta">
+                <strong>${escapeHtml(comentario.usuario_nombre) || "Usuario"}</strong>
+                <span class="notif-item-time">${formatFechaHora(comentario.creado_en)}</span>
+            </div>
+            <p>${escapeHtml(comentario.comentario)}</p>
+            ${comentario.foto_url ? `<a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(comentario.foto_url))}" target="_blank" rel="noreferrer">Ver foto adjunta</a>` : ""}
+        </div>
+    `;
+}
+
+function renderComentariosHilo(comentarios) {
+    if (!comentarios.length) {
+        return '<p class="dash-empty">Todavía no hay respuestas para esta novedad.</p>';
+    }
+    return comentarios.map(renderComentarioItem).join("");
+}
+
+let comentariosNovedadRequestToken = 0;
+
+async function cargarComentariosNovedad(novedadId) {
+    const requestToken = ++comentariosNovedadRequestToken;
+    const hiloEl = document.getElementById("novedadComentariosHilo");
+    if (!hiloEl) return;
+
+    try {
+        const comentarios = await window.VehiAmb.api.getComentariosNotificacion("novedad", novedadId);
+        if (requestToken !== comentariosNovedadRequestToken) return;
+        hiloEl.innerHTML = renderComentariosHilo(comentarios);
+    } catch (error) {
+        if (requestToken !== comentariosNovedadRequestToken) return;
+        console.error(error);
+        hiloEl.innerHTML = '<p class="dash-empty">No se pudieron cargar las respuestas.</p>';
+    }
+}
+
+// El listener se engancha aparte de cargarComentariosNovedad porque
+// renderNovedadDrawerBody reemplaza todo #novedadDrawerBody via innerHTML --
+// si el botón se reenganchara ahi mismo quedaria duplicado en cada recarga.
+function setupComentarioNovedadForm(novedadId) {
+    const enviarBtn = document.getElementById("novedadComentarioEnviar");
+    if (!enviarBtn) return;
+
+    window.VehiAmb.ui.setupDictadoVoz(
+        document.getElementById("novedadComentarioVozButton"),
+        document.getElementById("novedadComentarioTexto"),
+        document.getElementById("novedadComentarioVozHelp")
+    );
+
+    enviarBtn.addEventListener("click", async () => {
+        const textoInput = document.getElementById("novedadComentarioTexto");
+        const fotoInput = document.getElementById("novedadComentarioFoto");
+        const texto = textoInput.value.trim();
+        if (!texto) {
+            textoInput.focus();
+            return;
+        }
+
+        enviarBtn.disabled = true;
+        try {
+            const formData = new FormData();
+            formData.append("comentario", texto);
+            if (fotoInput.files[0]) formData.append("foto", fotoInput.files[0]);
+
+            await window.VehiAmb.api.comentarNotificacion("novedad", novedadId, formData);
+            textoInput.value = "";
+            fotoInput.value = "";
+            await cargarComentariosNovedad(novedadId);
+        } catch (error) {
+            console.error(error);
+            window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo guardar la respuesta", "error");
+        } finally {
+            enviarBtn.disabled = false;
+        }
+    });
+}
+
+function renderNovedadDrawerBody(novedad) {
+    const puedeResponderThread = puedeResponder();
+    return `
+        <section class="drawer-section">
+            <dl class="detail-list detail-list-plain">
+                <div><dt>Vehículo</dt><dd>${escapeHtml(novedad.placa)} — ${escapeHtml(novedad.marca || "")} ${escapeHtml(novedad.modelo || "")}</dd></div>
+                <div><dt>Fecha</dt><dd>${formatFecha(novedad.fecha)}</dd></div>
+                <div><dt>Descripción</dt><dd>${escapeHtml(novedad.descripcion)}</dd></div>
+            </dl>
+            ${novedad.foto_url ? `<a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(novedad.foto_url))}" target="_blank" rel="noreferrer">Ver foto adjunta</a>` : ""}
+        </section>
+
+        <section class="drawer-section">
+            <h3>Respuestas</h3>
+            <div id="novedadComentariosHilo" class="notif-comentarios-hilo">
+                <p class="dash-empty">Cargando respuestas...</p>
+            </div>
+            ${puedeResponderThread ? `
+                <div class="form-group">
+                    <label>Nueva respuesta</label>
+                    <div class="mnt-textarea-voice-wrap">
+                        <textarea id="novedadComentarioTexto" rows="2" maxlength="500" placeholder="Responde a esta novedad..."></textarea>
+                        <button type="button" id="novedadComentarioVozButton" class="mnt-voice-button" title="Dictar por voz" aria-label="Dictar respuesta por voz">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+                        </button>
+                    </div>
+                    <span id="novedadComentarioVozHelp" class="field-help field-help-danger hidden"></span>
+                </div>
+                <div class="form-group">
+                    <label>Foto (opcional)</label>
+                    <input type="file" id="novedadComentarioFoto" accept="image/png,image/jpeg,image/webp">
+                </div>
+                <button type="button" id="novedadComentarioEnviar" class="btn-primary">Enviar</button>
+            ` : ""}
+        </section>
+    `;
+}
+
+function closeNovedadResumen() {
+    window.VehiAmb.ui.hide(novedadDrawerBackdrop);
+    window.VehiAmb.ui.hide(novedadDrawer);
+    novedadDrawer.setAttribute("aria-hidden", "true");
+}
+
+function openNovedadResumen(novedadId) {
+    const novedad = novedadesState.find((item) => String(item.id) === String(novedadId));
+    if (!novedad) return;
+
+    novedadDrawerTitle.textContent = `${novedad.placa || "Vehículo"}`;
+    novedadDrawerSubtitle.textContent = `${formatFecha(novedad.fecha)}`;
+    novedadDrawerBody.innerHTML = renderNovedadDrawerBody(novedad);
+
+    window.VehiAmb.ui.show(novedadDrawerBackdrop);
+    window.VehiAmb.ui.show(novedadDrawer);
+    novedadDrawer.setAttribute("aria-hidden", "false");
+    closeNovedadDrawer.focus();
+
+    cargarComentariosNovedad(novedad.id);
+    if (puedeResponder()) setupComentarioNovedadForm(novedad.id);
+}
+
+closeNovedadDrawer?.addEventListener("click", closeNovedadResumen);
+novedadDrawerBackdrop?.addEventListener("click", closeNovedadResumen);
+document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !novedadDrawer.classList.contains("hidden")) {
+        closeNovedadResumen();
+    }
+});
 
 function resetNovedadForm() {
     novedadForm.reset();
@@ -133,6 +313,12 @@ novedadForm?.addEventListener("submit", async (event) => {
 });
 
 novedadesTablaBody?.addEventListener("click", async (event) => {
+    const responderButton = event.target.closest("[data-responder-novedad]");
+    if (responderButton) {
+        openNovedadResumen(responderButton.dataset.responderNovedad);
+        return;
+    }
+
     const eliminarButton = event.target.closest("[data-eliminar-novedad]");
     if (!eliminarButton) return;
 

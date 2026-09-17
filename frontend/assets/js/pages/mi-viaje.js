@@ -4,6 +4,8 @@ const viajesEmpresaSection = document.getElementById("viajesEmpresaSection");
 const viajesEmpresaFilterForm = document.getElementById("viajesEmpresaFilterForm");
 const viajesFiltroDesde = document.getElementById("viajesFiltroDesde");
 const viajesFiltroHasta = document.getElementById("viajesFiltroHasta");
+const viajesFiltroConductor = document.getElementById("viajesFiltroConductor");
+const viajesFiltroPlaca = document.getElementById("viajesFiltroPlaca");
 const viajesFiltroSummary = document.getElementById("viajesFiltroSummary");
 const viajesFiltroClearButton = document.getElementById("viajesFiltroClearButton");
 const exportViajesPdfButton = document.getElementById("exportViajesPdfButton");
@@ -568,17 +570,47 @@ document.addEventListener("keydown", (event) => {
 function currentViajesFilters() {
     return {
         fecha_desde: viajesFiltroDesde.value,
-        fecha_hasta: viajesFiltroHasta.value
+        fecha_hasta: viajesFiltroHasta.value,
+        conductor_id: viajesFiltroConductor.value,
+        // Solo para el encabezado del PDF/Excel (ver describeFiltros en
+        // mi-viaje-export.js) -- la consulta al backend solo usa conductor_id.
+        conductor_nombre: viajesFiltroConductor.value
+            ? viajesFiltroConductor.options[viajesFiltroConductor.selectedIndex]?.textContent || ""
+            : "",
+        placa: viajesFiltroPlaca.value
     };
 }
 
 function updateViajesFiltroSummary(cantidad) {
     const filtros = currentViajesFilters();
-    const hayFiltros = Boolean(filtros.fecha_desde || filtros.fecha_hasta);
+    const hayFiltros = Boolean(filtros.fecha_desde || filtros.fecha_hasta || filtros.conductor_id || filtros.placa);
 
     viajesFiltroSummary.textContent = hayFiltros
-        ? `Mostrando ${cantidad} viaje(s) en el rango seleccionado.`
+        ? `Mostrando ${cantidad} viaje(s) que coinciden con los filtros.`
         : `Mostrando los ${cantidad} viajes más recientes. Filtra por fecha para exportar un rango completo.`;
+}
+
+// Catalogos del filtro (conductor/placa): se cargan una sola vez, aparte de
+// cargarViajesEmpresa (que solo trae los VIAJES ya filtrados) -- si se
+// recalcularan a partir de la lista filtrada, elegir una placa vaciaria las
+// opciones de Conductor y viceversa.
+async function cargarFiltrosViajesEmpresa() {
+    try {
+        const [conductores, vehiculos] = await Promise.all([
+            window.VehiAmb.api.getConductoresConViajesEmpresa(),
+            window.VehiAmb.api.getVehiculosCatalogo()
+        ]);
+
+        viajesFiltroConductor.innerHTML = '<option value="">Todos los conductores</option>' + (conductores || [])
+            .map((conductor) => `<option value="${conductor.id}">${escapeHtml(conductor.nombre)}</option>`)
+            .join("");
+
+        viajesFiltroPlaca.innerHTML = '<option value="">Todas las placas</option>' + (vehiculos || [])
+            .map((vehiculo) => `<option value="${escapeHtml(vehiculo.placa)}">${escapeHtml(vehiculo.placa)}</option>`)
+            .join("");
+    } catch (error) {
+        console.error("No fue posible cargar los filtros de conductor/placa:", error);
+    }
 }
 
 async function cargarViajesEmpresa() {
@@ -622,13 +654,15 @@ async function cargarConductorViajesRecientes() {
 
 viajesEmpresaFilterForm.addEventListener("submit", (event) => event.preventDefault());
 
-[viajesFiltroDesde, viajesFiltroHasta].forEach((input) => {
+[viajesFiltroDesde, viajesFiltroHasta, viajesFiltroConductor, viajesFiltroPlaca].forEach((input) => {
     input.addEventListener("change", cargarViajesEmpresa);
 });
 
 viajesFiltroClearButton.addEventListener("click", () => {
     viajesFiltroDesde.value = "";
     viajesFiltroHasta.value = "";
+    viajesFiltroConductor.value = "";
+    viajesFiltroPlaca.value = "";
     cargarViajesEmpresa();
 });
 
@@ -771,5 +805,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     pageTitulo.textContent = "Viajes recientes";
     pageDescripcion.textContent = "Últimos viajes registrados por los conductores de la empresa.";
+    cargarFiltrosViajesEmpresa();
     cargarViajesEmpresa();
 });

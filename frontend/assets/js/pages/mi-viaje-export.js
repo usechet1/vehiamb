@@ -59,6 +59,8 @@
         const partes = [];
         if (filtros.fecha_desde) partes.push(`Desde: ${window.VehiAmb.pdfExport.formatDateForPdf(filtros.fecha_desde)}`);
         if (filtros.fecha_hasta) partes.push(`Hasta: ${window.VehiAmb.pdfExport.formatDateForPdf(filtros.fecha_hasta)}`);
+        if (filtros.conductor_nombre) partes.push(`Conductor: ${filtros.conductor_nombre}`);
+        if (filtros.placa) partes.push(`Placa: ${filtros.placa}`);
         return partes.length ? partes.join("   |   ") : "Sin filtros aplicados (viajes más recientes)";
     }
 

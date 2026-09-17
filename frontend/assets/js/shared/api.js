@@ -1398,12 +1398,22 @@ window.VehiAmb.api = {
         const params = new URLSearchParams();
         if (filters.fecha_desde) params.set("fecha_desde", filters.fecha_desde);
         if (filters.fecha_hasta) params.set("fecha_hasta", filters.fecha_hasta);
+        if (filters.conductor_id) params.set("conductor_id", filters.conductor_id);
+        if (filters.placa) params.set("placa", filters.placa);
         const query = params.toString();
 
         return requestJson(
             `${window.VehiAmb.API_URL}/viajes/recientes-empresa${query ? `?${query}` : ""}`,
             undefined,
             "No se pudo cargar el historial de viajes"
+        );
+    },
+
+    getConductoresConViajesEmpresa() {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/viajes/conductores-empresa`,
+            undefined,
+            "No se pudieron cargar los conductores"
         );
     },
 

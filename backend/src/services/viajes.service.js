@@ -215,8 +215,8 @@ async function obtenerAsignacionManana(currentUser) {
 // pantalla (mi-viaje-export.js), por eso cada viaje trae tambien el detalle
 // item por item de su preoperacional e inspeccion preventiva (no solo si se
 // hizo o no).
-async function listarRecientesEmpresa(empresaId, { fechaDesde, fechaHasta } = {}) {
-  const viajes = await viajesRepository.findRecientesPorEmpresa(empresaId, { fechaDesde, fechaHasta });
+async function listarRecientesEmpresa(empresaId, { fechaDesde, fechaHasta, conductorId, placa } = {}) {
+  const viajes = await viajesRepository.findRecientesPorEmpresa(empresaId, { fechaDesde, fechaHasta, conductorId, placa });
   return viajes.map((viaje) => {
     const preoperacionalItems = viaje.preoperacional_items || [];
     const inspeccionItems = viaje.inspeccion_items || [];
@@ -233,6 +233,10 @@ async function listarRecientesEmpresa(empresaId, { fechaDesde, fechaHasta } = {}
       inspeccion_items_mal: inspeccionItems.filter((item) => item.estado === "mal").length
     };
   });
+}
+
+async function listarConductoresConViajes(empresaId) {
+  return viajesRepository.findConductoresConViajes(empresaId);
 }
 
 // Resumen de un viaje puntual para el drawer de "Viajes recientes"
@@ -369,6 +373,7 @@ module.exports = {
   listarRecientes,
   listarPorVehiculo,
   listarRecientesEmpresa,
+  listarConductoresConViajes,
   obtenerUltimoViajeControl,
   obtenerAsignacionHoy,
   obtenerAsignacionManana,

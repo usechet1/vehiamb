@@ -120,6 +120,21 @@
                 <video src="img/loader.mp4" autoplay loop muted playsinline></video>
             </div>
             <div id="mensaje" class="mensaje hidden"></div>
+
+            <div id="novedadDrawerBackdrop" class="drawer-backdrop hidden"></div>
+            <aside id="novedadDrawer" class="detail-drawer hidden" aria-hidden="true" aria-labelledby="novedadDrawerTitle">
+                <div class="detail-drawer-head">
+                    <div>
+                        <span class="form-step">Detalle de la novedad</span>
+                        <h2 id="novedadDrawerTitle">Novedad</h2>
+                        <p id="novedadDrawerSubtitle">Vehículo y fecha</p>
+                    </div>
+                    <div class="detail-drawer-actions">
+                        <button type="button" id="closeNovedadDrawer" class="drawer-close" aria-label="Cerrar detalle">×</button>
+                    </div>
+                </div>
+                <div id="novedadDrawerBody" class="detail-drawer-body"></div>
+            </aside>
         </main>
     </div>
 

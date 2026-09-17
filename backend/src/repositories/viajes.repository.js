@@ -67,7 +67,7 @@ async function findRecientesPorVehiculo(vehiculoId, empresaId, { limit = 10 } = 
 // para quedarse solo con la mas reciente de cada una, igual que ya hacen
 // inspeccionesRepository.findByViajeId/preoperacionalesRepository.findByViajeId
 // (ORDER BY id DESC LIMIT 1), y asi evitar que un viaje aparezca duplicado.
-async function findRecientesPorEmpresa(empresaId, { fechaDesde, fechaHasta, limit = 20 } = {}) {
+async function findRecientesPorEmpresa(empresaId, { fechaDesde, fechaHasta, conductorId, placa, limit = 20 } = {}) {
   const conditions = ["v.empresa_id = ?"];
   const values = [empresaId];
 
@@ -79,6 +79,16 @@ async function findRecientesPorEmpresa(empresaId, { fechaDesde, fechaHasta, limi
   if (fechaHasta) {
     conditions.push("v.creado_en <= ?");
     values.push(`${fechaHasta} 23:59:59`);
+  }
+
+  if (conductorId) {
+    conditions.push("v.usuario_id = ?");
+    values.push(conductorId);
+  }
+
+  if (placa) {
+    conditions.push("veh.placa = ?");
+    values.push(placa);
   }
 
   const sinFiltroDeFecha = !fechaDesde && !fechaHasta;
@@ -123,6 +133,23 @@ async function findRecientesPorEmpresa(empresaId, { fechaDesde, fechaHasta, limi
   );
 }
 
+// Catalogo del filtro "Conductor" en Viajes recientes (ver mi-viaje.js):
+// solo los usuarios que de verdad tienen al menos un viaje registrado, no
+// todo el catalogo de usuarios/conductores -- evita un filtro que en la
+// practica siempre da lista vacia.
+async function findConductoresConViajes(empresaId) {
+  return db.all(
+    `
+      SELECT DISTINCT u.id, u.nombre
+      FROM viajes v
+      INNER JOIN usuarios u ON u.id = v.usuario_id
+      WHERE v.empresa_id = ?
+      ORDER BY u.nombre ASC
+    `,
+    [empresaId]
+  );
+}
+
 // inspecciones_preventivas.viaje_id y preoperacionales.viaje_id son
 // ON DELETE SET NULL (ver database/init.js), asi que no hace falta limpiar
 // nada antes de borrar -- esos registros quedan huerfanos de viaje pero
@@ -137,5 +164,6 @@ module.exports = {
   findRecientesPorUsuario,
   findRecientesPorVehiculo,
   findRecientesPorEmpresa,
+  findConductoresConViajes,
   remove
 };
