@@ -1404,6 +1404,15 @@ label[for="loginPassword"] {
     gap: 16px;
 }
 
+/* Par "Desde/Hasta" de un filtro de rango de fechas: se queda en 2 columnas
+   siempre, incluso en movil (a diferencia de .form-grid, que colapsa a 1
+   columna ahi) -- son inputs cortos, tiene sentido que compartan la fila. */
+.form-grid-dates {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
 .form-vertical {
     display: flex;
     flex-direction: column;
