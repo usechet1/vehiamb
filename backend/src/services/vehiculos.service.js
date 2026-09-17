@@ -80,24 +80,28 @@ function toTrimmedOrNull(value) {
 
 function normalizePayload(payload) {
   const tipoVehiculo = toTrimmedOrNull(payload.tipo_vehiculo);
-  // El formulario de alta muestra solo Placa/Codigo/Tipo/Capacidad/Estado/
-  // Imagen para Montacargas (ver add.js) -- marca/modelo/kilometraje quedan
-  // sin diligenciar, asi que se completan con un valor por defecto en vez de
-  // exigirlos: son NOT NULL en la tabla y ademas se interpolan como texto en
-  // decenas de lugares (tarjetas, PDFs, WhatsApp, email) que asumen que
-  // siempre traen algo.
   const esMontacargas = tipoVehiculo === "Montacargas";
+  const placa = String(payload.placa || "").trim().toUpperCase();
 
+  // El formulario de alta muestra solo Placa/Codigo/Tipo/Capacidad/Estado/
+  // Imagen para Montacargas (ver add.js): marca/modelo quedan sin campo para
+  // diligenciar. Son NOT NULL en la tabla y se interpolan como texto en
+  // decenas de lugares (tarjetas, PDFs, WhatsApp, email), asi que se
+  // completan siempre -- no solo si vienen vacios -- con "Montacarga" como
+  // marca y la propia placa como "modelo": da un nombre distinto y legible
+  // por unidad (ej. "Montacarga AC004") sin pedir un campo mas, y como se
+  // recalcula en cada guardado (no solo al crear), basta con volver a
+  // guardar un montacargas ya creado para que tome el nombre correcto.
   return {
     codigo_interno: String(payload.codigo_interno || "").trim(),
-    marca: String(payload.marca || "").trim() || (esMontacargas ? "Montacargas" : ""),
-    modelo: String(payload.modelo || "").trim() || (esMontacargas ? "Montacargas" : ""),
+    marca: esMontacargas ? "Montacarga" : String(payload.marca || "").trim(),
+    modelo: esMontacargas ? placa : String(payload.modelo || "").trim(),
     anio: payload.anio,
     color: payload.color ? String(payload.color).trim() : null,
     combustible: payload.combustible ? String(payload.combustible).trim() : null,
     cilindraje: toNumberOrNull(payload.cilindraje),
     capacidad_carga: toNumberOrNull(payload.capacidad_carga),
-    placa: String(payload.placa || "").trim().toUpperCase(),
+    placa,
     kilometraje_actual: toNumberOrNull(payload.kilometraje_actual) ?? (esMontacargas ? 0 : null),
     tipo_vehiculo: tipoVehiculo,
     tipo_carroceria: toTrimmedOrNull(payload.tipo_carroceria),
