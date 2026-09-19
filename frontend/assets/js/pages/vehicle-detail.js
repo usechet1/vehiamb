@@ -232,7 +232,11 @@ function renderRepuestosMeta(value) {
 
 function renderFacts(vehiculo) {
     // Orden por importancia (como se identifica un carro primero), no por
-    // orden de columna en la base de datos.
+    // orden de columna en la base de datos. Se descartan los campos sin
+    // dato (null/undefined/"") -- un montacargas, por ejemplo, no tiene
+    // color/combustible/cilindraje/chasis, y mostrar una fila en "--" por
+    // cada uno solo agrega ruido. 0 SI se muestra (es un dato real, ej.
+    // capacidad de carga en 0), solo se descarta la ausencia de dato.
     const facts = [
         ["Marca", vehiculo.marca],
         ["Línea", vehiculo.modelo],
@@ -246,12 +250,12 @@ function renderFacts(vehiculo) {
         ["Número de motor", vehiculo.numero_motor],
         ["Número de chasis (VIN)", vehiculo.numero_chasis],
         ["Creado", formatDate(vehiculo.created_at?.slice(0, 10))]
-    ];
+    ].filter(([, value]) => value !== null && value !== undefined && value !== "");
 
     vehicleFacts.innerHTML = facts.map(([label, value]) => `
         <div>
             <dt>${escapeHtml(label)}</dt>
-            <dd>${escapeHtml(value) || "--"}</dd>
+            <dd>${escapeHtml(value)}</dd>
         </div>
     `).join("");
 }

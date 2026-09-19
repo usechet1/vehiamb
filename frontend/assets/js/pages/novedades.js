@@ -23,6 +23,11 @@ const novedadDrawerBody = document.getElementById("novedadDrawerBody");
 const closeNovedadDrawer = document.getElementById("closeNovedadDrawer");
 
 let novedadesState = [];
+// Conductor B opera un unico montacargas (user.vehiculo_asignado_id) -- se
+// fija aca en DOMContentLoaded para que cargarNovedades() (llamada tambien
+// tras crear/eliminar una novedad) sepa pedir siempre el listado acotado a
+// ese vehiculo, sin tener que repetir el chequeo de rol en cada call site.
+let novedadVehiculoAsignadoId = null;
 
 function hoyISO() {
     const hoy = new Date();
@@ -128,7 +133,9 @@ function renderNovedades() {
 
 async function cargarNovedades() {
     try {
-        novedadesState = await window.VehiAmb.api.getNovedades();
+        novedadesState = novedadVehiculoAsignadoId
+            ? await window.VehiAmb.api.getNovedadesByVehicle(novedadVehiculoAsignadoId)
+            : await window.VehiAmb.api.getNovedades();
         renderNovedades();
     } catch (error) {
         console.error(error);
@@ -383,7 +390,7 @@ clearNovedadesFiltersButton?.addEventListener("click", () => {
 });
 
 document.addEventListener("DOMContentLoaded", async () => {
-    await window.VehiAmb.auth.fetchCurrentUser();
+    const user = await window.VehiAmb.auth.fetchCurrentUser();
 
     if (!puedeCrear()) {
         registrarNovedadSection?.remove();
@@ -392,12 +399,32 @@ document.addEventListener("DOMContentLoaded", async () => {
         novedadFecha.value = hoyISO();
     }
 
+    // Conductor B solo tiene un vehiculo (su montacargas asignado): no tiene
+    // sentido ofrecerle el catalogo completo de la flota, ni al registrar ni
+    // al filtrar -- se le fija su propio vehiculo en ambos lados. El backend
+    // (novedades.service.js#exigirMontacargaPropio) tambien lo hace cumplir,
+    // esto es solo la UI correspondiente.
+    const esConductorB = user?.rol === "Conductor B";
+
     try {
         window.VehiAmb.ui.show(loader);
 
-        const vehiculos = await window.VehiAmb.api.getVehiculosCatalogo();
-        fillVehicleSelect(novedadVehiculo, vehiculos);
-        fillVehicleSelect(filterNovedadVehiculo, vehiculos, "Todos los vehículos");
+        if (esConductorB) {
+            document.getElementById("filterNovedadVehiculoGroup")?.classList.add("hidden");
+
+            if (user.vehiculo_asignado_id) {
+                novedadVehiculoAsignadoId = user.vehiculo_asignado_id;
+                const vehiculo = await window.VehiAmb.api.getVehiculo(user.vehiculo_asignado_id);
+                fillVehicleSelect(novedadVehiculo, [vehiculo]);
+                if (novedadVehiculo) novedadVehiculo.value = String(vehiculo.id);
+            } else {
+                registrarNovedadSection?.remove();
+            }
+        } else {
+            const vehiculos = await window.VehiAmb.api.getVehiculosCatalogo();
+            fillVehicleSelect(novedadVehiculo, vehiculos);
+            fillVehicleSelect(filterNovedadVehiculo, vehiculos, "Todos los vehículos");
+        }
 
         await cargarNovedades();
     } catch (error) {

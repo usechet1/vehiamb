@@ -5,16 +5,36 @@ const novedadesRepository = require("../repositories/novedades.repository");
 const vehiculosRepository = require("../repositories/vehiculos.repository");
 const notificacionComentariosRepository = require("../repositories/notificacion-comentarios.repository");
 
+const ROL_CONDUCTOR_B = "Conductor B";
+
 function toTrimmedOrNull(value) {
   if (value === undefined || value === null) return null;
   const trimmed = String(value).trim();
   return trimmed === "" ? null : trimmed;
 }
 
-async function listNovedades(filters, empresaId) {
+// Conductor B opera un unico montacargas (usuarios.vehiculo_asignado_id, ver
+// auth.service.js#toSafeUser) -- sin este chequeo, aunque el frontend solo le
+// ofrezca su propio vehiculo, nada le impedia pegarle directo a la API con el
+// id de otro montacargas/vehiculo de la flota. El resto de roles con
+// novedades.view (Administrador/Operador/Consulta/Lider) no tienen esta
+// restriccion, ven/registran de toda la flota como siempre.
+function exigirMontacargaPropio(currentUser, vehiculoId) {
+  if (currentUser.rol !== ROL_CONDUCTOR_B) return;
+  if (String(currentUser.vehiculo_asignado_id) !== String(vehiculoId)) {
+    throw new HttpError(403, "Solo puedes gestionar novedades de tu montacargas asignado");
+  }
+}
+
+async function listNovedades(filters, currentUser) {
+  const empresaId = currentUser.empresa_id;
+  const vehiculoId = currentUser.rol === ROL_CONDUCTOR_B
+    ? currentUser.vehiculo_asignado_id
+    : filters.vehiculo_id;
+
   return novedadesRepository.findAll(
     {
-      vehiculoId: filters.vehiculo_id,
+      vehiculoId,
       fechaDesde: filters.fecha_desde,
       fechaHasta: filters.fecha_hasta
     },
@@ -22,8 +42,9 @@ async function listNovedades(filters, empresaId) {
   );
 }
 
-async function listNovedadesByVehicle(vehiculoId, empresaId) {
-  return novedadesRepository.findByVehicle(vehiculoId, empresaId);
+async function listNovedadesByVehicle(vehiculoId, currentUser) {
+  exigirMontacargaPropio(currentUser, vehiculoId);
+  return novedadesRepository.findByVehicle(vehiculoId, currentUser.empresa_id);
 }
 
 async function createNovedad(payload, file, currentUser) {
@@ -33,6 +54,8 @@ async function createNovedad(payload, file, currentUser) {
   if (!Number.isInteger(vehiculoId) || vehiculoId <= 0) {
     throw new HttpError(400, "El vehiculo es obligatorio");
   }
+
+  exigirMontacargaPropio(currentUser, vehiculoId);
 
   const vehiculo = await vehiculosRepository.findById(vehiculoId, empresaId);
   if (!vehiculo) {
@@ -93,6 +116,7 @@ async function listarComentariosNovedad(id, currentUser) {
   if (!novedad) {
     throw new HttpError(404, "Novedad no encontrada");
   }
+  exigirMontacargaPropio(currentUser, novedad.vehiculo_id);
 
   return notificacionComentariosRepository.findByReferencia("novedad", id, empresaId);
 }

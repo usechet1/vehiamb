@@ -712,8 +712,12 @@ async function cargarSidebar() {
             // Conductor B ni siquiera pasa por Inicio: home.js lo redirige
             // directo a la ficha de su montacargas asignado, asi que el boton
             // no tiene ningun destino util (ver PAGINAS_BLOQUEADAS_POR_ROL en
-            // auth.js para el bloqueo real de acceso directo por URL).
-            "Conductor B": ["index.html"]
+            // auth.js para el bloqueo real de acceso directo por URL). Mismo
+            // caso que Conductor con "Ver vehiculos"/"Mantenimientos": tiene
+            // vehicles.view/maintenance.view solo para poder ver esas
+            // secciones DENTRO de la ficha de su propio montacargas, no para
+            // el listado completo de la flota.
+            "Conductor B": ["index.html", "dashboard.html", "mantenimientos.html"]
         };
 
         aside.querySelectorAll("button[data-permission]").forEach((btn) => {

@@ -1,12 +1,12 @@
 const novedadesService = require("../services/novedades.service");
 
 exports.getNovedades = async (req, res) => {
-  const novedades = await novedadesService.listNovedades(req.query, req.empresaId);
+  const novedades = await novedadesService.listNovedades(req.query, req.user);
   res.json(novedades);
 };
 
 exports.getNovedadesByVehicle = async (req, res) => {
-  const novedades = await novedadesService.listNovedadesByVehicle(req.params.vehiculoId, req.empresaId);
+  const novedades = await novedadesService.listNovedadesByVehicle(req.params.vehiculoId, req.user);
   res.json(novedades);
 };
 
