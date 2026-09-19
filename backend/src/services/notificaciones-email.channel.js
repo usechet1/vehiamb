@@ -13,7 +13,8 @@ const ACCION_RUTAS = {
   renovar_documento: (payload) => `documentos.html?documento_id=${payload?.documento_id}`,
   ver_usuario: (payload) => `admin-usuarios.html?usuario_id=${payload?.usuario_id}`,
   ver_repuesto: (payload) => `repuestos.html?repuesto_id=${payload?.repuesto_id}`,
-  ver_simit: (payload) => `simit.html?vehiculo_id=${payload?.vehiculo_id}`
+  ver_simit: (payload) => `simit.html?vehiculo_id=${payload?.vehiculo_id}`,
+  ver_novedad: (payload) => `novedades.html?novedad_id=${payload?.novedad_id}`
 };
 
 function debeEnviarPorPrioridad(prioridad) {

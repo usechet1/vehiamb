@@ -5,6 +5,8 @@ const simitComparendosRepository = require("../repositories/simit-comparendos.re
 const mantenimientosRepository = require("../repositories/mantenimientos.repository");
 const vehiculoDisponibilidadService = require("./vehiculo-disponibilidad.service");
 const notificacionComentariosRepository = require("../repositories/notificacion-comentarios.repository");
+const novedadesRepository = require("../repositories/novedades.repository");
+const vehiculosRepository = require("../repositories/vehiculos.repository");
 const notifConfig = require("../config/notificaciones.config");
 const emailChannel = require("./notificaciones-email.channel");
 const whatsappChannel = require("./notificaciones-whatsapp.channel");
@@ -110,7 +112,14 @@ async function notificar({
 // las alertas de todas las empresas a las que pertenece. Queda excluida del
 // reparto automatico; las notificaciones dirigidas a un usuario concreto
 // (notificar con usuario_id explicito) no pasan por aqui y no se ven afectadas.
-const ROLES_SIN_NOTIFICACION_AUTOMATICA = ["SuperAdministrador"];
+// Conductor B tiene maintenance.view/vehicles.view solo para poder ver esas
+// secciones DENTRO de la ficha de su propio montacargas (ver sidebar.js) --
+// sin esta exclusion, los jobs de "mantenimiento proximo"/"cambio de aceite
+// proximo" (que reparten por permiso maintenance.view) lo bombardeaban con
+// avisos de TODA la flota. Lo unico que debe llegarle es la notificacion
+// directa de respuesta a su propia novedad (ver comentarNotificacion), que
+// no pasa por aqui.
+const ROLES_SIN_NOTIFICACION_AUTOMATICA = ["SuperAdministrador", "Conductor B"];
 
 async function notificarUsuariosConPermiso(permissionCode, payload, empresaId) {
   const usuarios = await usuariosRepository.findByPermission(permissionCode, empresaId);
@@ -576,13 +585,41 @@ async function listarComentarios(referenciaTipo, referenciaId, currentUser) {
   return notificacionComentariosRepository.findByReferencia(referenciaTipo, referenciaId, currentUser.empresa_id);
 }
 
+// Avisa al conductor/usuario que registro una novedad cuando alguien le
+// responde -- antes esto no generaba ninguna notificacion, asi que Conductor
+// B (sin campana con ruido de otras alertas, ver ROLES_SIN_NOTIFICACION_AUTOMATICA
+// arriba) no tenia forma de enterarse salvo volviendo a entrar a Novedades a
+// revisar. Notificacion directa a un usuario puntual (no por permiso), asi
+// que no importa que Conductor B este excluido del reparto automatico. No se
+// notifica si el propio creador es quien esta respondiendo (ej. un
+// Administrador/Operador que registro y luego comenta su propia novedad).
+async function notificarRespuestaNovedad(novedadId, currentUser) {
+  const novedad = await novedadesRepository.findById(novedadId, currentUser.empresa_id);
+  if (!novedad || !novedad.creado_por_usuario_id) return;
+  if (String(novedad.creado_por_usuario_id) === String(currentUser.id)) return;
+
+  const vehiculo = await vehiculosRepository.findById(novedad.vehiculo_id, currentUser.empresa_id);
+  const vehiculoLabel = vehiculo?.placa || "tu vehículo";
+
+  await notificar({
+    usuario_id: novedad.creado_por_usuario_id,
+    tipo: "novedad_respondida",
+    mensaje: `${currentUser.nombre || "Alguien"} respondió a la novedad que registraste sobre ${vehiculoLabel}.`,
+    vehiculo_id: novedad.vehiculo_id,
+    referencia_tipo: "novedad",
+    referencia_id: novedadId,
+    accion: { tipo: "ver_novedad", payload: { novedad_id: Number(novedadId) } },
+    empresa_id: currentUser.empresa_id
+  });
+}
+
 async function comentarNotificacion(referenciaTipo, referenciaId, payload, file, currentUser) {
   const texto = String(payload.comentario || "").trim();
   if (!texto) {
     throw new HttpError(400, "El comentario no puede estar vacío");
   }
 
-  return notificacionComentariosRepository.create({
+  const comentario = await notificacionComentariosRepository.create({
     referencia_tipo: referenciaTipo,
     referencia_id: referenciaId,
     usuario_id: currentUser?.id ?? null,
@@ -592,6 +629,16 @@ async function comentarNotificacion(referenciaTipo, referenciaId, payload, file,
     foto_mime: file ? file.mimetype : null,
     empresa_id: currentUser.empresa_id
   });
+
+  if (referenciaTipo === "novedad") {
+    try {
+      await notificarRespuestaNovedad(referenciaId, currentUser);
+    } catch (error) {
+      console.error("Error notificando respuesta de novedad:", error.message);
+    }
+  }
+
+  return comentario;
 }
 
 module.exports = {

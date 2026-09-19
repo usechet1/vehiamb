@@ -49,6 +49,10 @@ const ACCIONES = {
     ver_simit: {
         label: "Ver comparendos",
         url: (payload) => `simit.html?vehiculo_id=${payload?.vehiculo_id}`
+    },
+    ver_novedad: {
+        label: "Ver novedad",
+        url: (payload) => `novedades.html?novedad_id=${payload?.novedad_id}`
     }
 };
 

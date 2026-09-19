@@ -427,6 +427,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         await cargarNovedades();
+
+        // Llegada desde una notificacion ("Ver novedad", ver
+        // notificaciones-config.js) -- abre de una vez el detalle de esa
+        // novedad puntual, mismo patron que documento_id en documentos.js.
+        const novedadIdParam = new URLSearchParams(window.location.search).get("novedad_id");
+        if (novedadIdParam) {
+            openNovedadResumen(novedadIdParam);
+        }
     } catch (error) {
         console.error(error);
         window.VehiAmb.ui.showMessage(mensaje, error.message || "No fue posible cargar la página", "error");

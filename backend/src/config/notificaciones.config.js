@@ -53,7 +53,8 @@ const TIPOS = {
   simit_estado_cambiado: { categoria: "incidente", prioridad: "media", titulo: "Cambio de estado en SIMIT" },
   simit_consulta_fallo: { categoria: "sistema", prioridad: "media", titulo: "Consulta SIMIT fallida" },
   inspeccion_con_hallazgos: { categoria: "inspeccion", prioridad: "alta", titulo: "Inspección con hallazgos" },
-  entrega_recibida_registrada: { categoria: "entrega", prioridad: "media", titulo: "Acta de vehículo registrada" }
+  entrega_recibida_registrada: { categoria: "entrega", prioridad: "media", titulo: "Acta de vehículo registrada" },
+  novedad_respondida: { categoria: "incidente", prioridad: "media", titulo: "Respuesta a tu novedad" }
 };
 
 // Umbrales (en días) para generar recordatorios automáticos de vencimiento.
