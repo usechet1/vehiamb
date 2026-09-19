@@ -3,6 +3,7 @@ const path = require("path");
 const HttpError = require("../errors/http-error");
 const novedadesRepository = require("../repositories/novedades.repository");
 const vehiculosRepository = require("../repositories/vehiculos.repository");
+const notificacionComentariosRepository = require("../repositories/notificacion-comentarios.repository");
 
 function toTrimmedOrNull(value) {
   if (value === undefined || value === null) return null;
@@ -78,9 +79,28 @@ async function deleteNovedad(id, currentUser) {
   await eliminarArchivo(novedad.foto_url);
 }
 
+// Hilo de comentarios de una novedad, en solo lectura para quien tiene
+// novedades.view -- antes esto se pedia por la ruta generica
+// /notificaciones/referencia/novedad/:id/comentarios (permiso
+// notificaciones.comentar, solo Administrador/Operador), asi que un rol como
+// Conductor B (tiene novedades.view pero no notificaciones.comentar) recibia
+// 403 y nunca veia las respuestas. Escribir sigue yendo por esa ruta
+// generica, sin cambios; esta solo agrega una via de LECTURA equivalente
+// (mismo criterio que viajes.service.js#listarComentariosViaje).
+async function listarComentariosNovedad(id, currentUser) {
+  const empresaId = currentUser.empresa_id;
+  const novedad = await novedadesRepository.findById(id, empresaId);
+  if (!novedad) {
+    throw new HttpError(404, "Novedad no encontrada");
+  }
+
+  return notificacionComentariosRepository.findByReferencia("novedad", id, empresaId);
+}
+
 module.exports = {
   listNovedades,
   listNovedadesByVehicle,
   createNovedad,
-  deleteNovedad
+  deleteNovedad,
+  listarComentariosNovedad
 };

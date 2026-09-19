@@ -341,6 +341,18 @@ window.VehiAmb.api = {
         );
     },
 
+    // Solo lectura -- a diferencia de getComentariosNotificacion (permiso
+    // notificaciones.comentar, Administrador/Operador), esta va por
+    // novedades.view, asi que roles como Conductor B tambien pueden ver el
+    // hilo de respuestas de una novedad, aunque no puedan responder.
+    getComentariosNovedad(novedadId) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/novedades/${novedadId}/comentarios`,
+            undefined,
+            "No se pudieron cargar las respuestas"
+        );
+    },
+
     getDocumentos() {
         return requestJson(`${window.VehiAmb.API_URL}/documentos`, undefined, "No se pudieron cargar los documentos");
     },

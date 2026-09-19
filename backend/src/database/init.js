@@ -444,14 +444,14 @@ const PERMISOS_NUEVOS_POR_ROL = {
   "seguridad.view": ["Administrador", "Operador", "Consulta"],
   "seguridad.create": ["Administrador", "Operador"],
   "seguridad.delete": ["Administrador"],
-  "notificaciones.comentar": ["Administrador", "Operador"],
+  "notificaciones.comentar": ["Administrador", "Operador", "Lider"],
   "maintenance.delete": ["Administrador"],
   "vehicles.edit_estado": ["Administrador", "Lider"],
   "maintenance.edit": ["Administrador", "Lider"],
   "gps.view": ["Administrador", "SuperAdministrador", "Operador", "Lider", "Consulta"],
   "gps.manage": ["Administrador", "SuperAdministrador"],
-  "novedades.view": ["Administrador", "Operador", "Consulta"],
-  "novedades.create": ["Administrador", "Operador"],
+  "novedades.view": ["Administrador", "Operador", "Consulta", "Lider"],
+  "novedades.create": ["Administrador", "Operador", "Lider"],
   "novedades.delete": ["Administrador"],
   "maintenance.alertas_cambio_aceite": ["Administrador", "Operador"]
 };

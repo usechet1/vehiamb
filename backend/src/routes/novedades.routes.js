@@ -10,6 +10,7 @@ const validateUpload = require("../middlewares/validate-upload");
 
 router.get("/", requirePermission("novedades.view"), asyncHandler(novedadesController.getNovedades));
 router.get("/vehiculo/:vehiculoId", requirePermission("novedades.view"), asyncHandler(novedadesController.getNovedadesByVehicle));
+router.get("/:id/comentarios", requirePermission("novedades.view"), asyncHandler(novedadesController.getComentarios));
 
 router.post(
   "/",

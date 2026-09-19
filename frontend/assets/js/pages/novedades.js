@@ -175,7 +175,7 @@ async function cargarComentariosNovedad(novedadId) {
     if (!hiloEl) return;
 
     try {
-        const comentarios = await window.VehiAmb.api.getComentariosNotificacion("novedad", novedadId);
+        const comentarios = await window.VehiAmb.api.getComentariosNovedad(novedadId);
         if (requestToken !== comentariosNovedadRequestToken) return;
         hiloEl.innerHTML = renderComentariosHilo(comentarios);
     } catch (error) {

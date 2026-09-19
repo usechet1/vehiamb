@@ -13,6 +13,7 @@ const vehicleFacts = document.getElementById("vehicleFacts");
 const maintenanceList = document.getElementById("vehicleMaintenanceList");
 const documentList = document.getElementById("vehicleDocumentList");
 const documentosResumen = document.getElementById("vehicleVencimientosResumen");
+const vehicleVencimientosSection = document.getElementById("vehicleVencimientosSection");
 const vehicleViajesSection = document.getElementById("vehicleViajesSection");
 const vehicleViajesList = document.getElementById("vehicleViajesList");
 const vehicleSimitSection = document.getElementById("vehicleSimitSection");
@@ -647,22 +648,39 @@ async function cargarDetalle() {
         vehicleViajesSection.classList.remove("hidden");
     }
 
+    // Conductor B (montacargas) no tiene documents.view -- sin este chequeo,
+    // getDocumentosByVehicle devolvia 403 y tumbaba el Promise.all de abajo
+    // COMPLETO, asi que ni siquiera el vehiculo/mantenimientos (que si puede
+    // ver) llegaban a cargar. La seccion queda oculta para quien no tiene el
+    // permiso, igual que ya se hace con SIMIT/Viajes arriba.
+    const puedeVerDocumentos = window.VehiAmb.auth?.hasPermission?.("documents.view");
+    if (vehicleVencimientosSection && !puedeVerDocumentos) {
+        vehicleVencimientosSection.classList.add("hidden");
+    }
+
     try {
         window.VehiAmb.ui.show(loader);
 
-        const [vehiculo, mantenimientos, documentos] = await Promise.all([
+        const [vehiculo, mantenimientos] = await Promise.all([
             window.VehiAmb.api.getVehiculo(vehicleId),
-            window.VehiAmb.api.getMantenimientosByVehicle(vehicleId),
-            window.VehiAmb.api.getDocumentosByVehicle(vehicleId)
+            window.VehiAmb.api.getMantenimientosByVehicle(vehicleId)
         ]);
 
         currentVehiculo = vehiculo;
         currentMantenimientos = mantenimientos;
-        currentDocumentos = documentos;
 
         renderVehiculo(vehiculo);
         renderMantenimientos(mantenimientos);
-        renderDocumentos(documentos);
+        if (puedeVerDocumentos) {
+            try {
+                const documentos = await window.VehiAmb.api.getDocumentosByVehicle(vehicleId);
+                currentDocumentos = documentos;
+                renderDocumentos(documentos);
+            } catch (error) {
+                console.error(error);
+                documentList.innerHTML = '<p class="dash-empty">No fue posible cargar los vencimientos</p>';
+            }
+        }
         if (!vehicleRepuestosSugeridosSection?.classList.contains("hidden")) {
             await cargarRepuestosSugeridosVehiculo(vehicleId);
         }

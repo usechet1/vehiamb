@@ -19,3 +19,8 @@ exports.deleteNovedad = async (req, res) => {
   await novedadesService.deleteNovedad(req.params.id, req.user);
   res.status(204).send();
 };
+
+exports.getComentarios = async (req, res) => {
+  const comentarios = await novedadesService.listarComentariosNovedad(req.params.id, req.user);
+  res.json(comentarios);
+};
