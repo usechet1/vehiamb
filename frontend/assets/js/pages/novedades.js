@@ -133,10 +133,12 @@ function renderNovedades() {
                     </div>
                     <span class="pill">${formatFecha(novedad.fecha)}</span>
                 </div>
+                <div class="record-top">
+                    <span class="record-title">${escapeHtml(novedad.creado_por_nombre) || "Usuario no registrado"}</span>
+                    <span class="pill">🕒 ${formatHora(novedad.created_at)}</span>
+                </div>
                 <div class="record-meta">
                     <span>${escapeHtml(novedad.descripcion)}</span>
-                    <span class="pill">👤 ${escapeHtml(novedad.creado_por_nombre) || "Usuario no registrado"}</span>
-                    <span class="pill">🕒 ${formatHora(novedad.created_at)}</span>
                     ${novedad.foto_url ? `<span class="pill">📷 Con foto</span>` : ""}
                 </div>
                 <div class="simit-card-actions">
