@@ -34,9 +34,10 @@ async function findAll(filters = {}, empresaId) {
 
   return db.all(
     `
-      SELECT n.*, v.placa, v.codigo_interno, v.marca, v.modelo
+      SELECT n.*, v.placa, v.codigo_interno, v.marca, v.modelo, u.nombre AS creado_por_nombre
       FROM novedades n
       INNER JOIN vehiculos v ON v.id = n.vehiculo_id
+      LEFT JOIN usuarios u ON u.id = n.creado_por_usuario_id
       ${whereClause}
       ORDER BY n.fecha DESC, n.id DESC
     `,
@@ -44,13 +45,19 @@ async function findAll(filters = {}, empresaId) {
   );
 }
 
+// Mismo JOIN a vehiculos/usuarios que findAll -- antes esta consulta hacia
+// SELECT * sin ninguno de los dos, asi que la tarjeta de novedad quedaba sin
+// placa/marca/modelo ni nombre de quien la registro para quien la consulta
+// por este camino (Conductor B, ver novedades.service.js#listNovedadesByVehicle).
 async function findByVehicle(vehiculoId, empresaId) {
   return db.all(
     `
-      SELECT *
-      FROM novedades
-      WHERE vehiculo_id = ? AND empresa_id = ?
-      ORDER BY fecha DESC, id DESC
+      SELECT n.*, v.placa, v.codigo_interno, v.marca, v.modelo, u.nombre AS creado_por_nombre
+      FROM novedades n
+      INNER JOIN vehiculos v ON v.id = n.vehiculo_id
+      LEFT JOIN usuarios u ON u.id = n.creado_por_usuario_id
+      WHERE n.vehiculo_id = ? AND n.empresa_id = ?
+      ORDER BY n.fecha DESC, n.id DESC
     `,
     [vehiculoId, empresaId]
   );
