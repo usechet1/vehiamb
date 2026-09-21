@@ -131,7 +131,7 @@ function renderNovedades() {
                         <span class="record-title">${escapeHtml(novedad.placa)}</span>
                         <span class="record-sub">${escapeHtml(novedad.marca || "")} ${escapeHtml(novedad.modelo || "")}</span>
                     </div>
-                    <span class="pill">${formatFecha(novedad.fecha)}</span>
+                    <span class="pill">${formatFecha(novedad.created_at)}</span>
                 </div>
                 <div class="record-top">
                     <span class="record-title">${escapeHtml(novedad.creado_por_nombre) || "Usuario no registrado"}</span>
@@ -263,9 +263,8 @@ function renderNovedadDrawerBody(novedad) {
         <section class="drawer-section">
             <dl class="detail-list detail-list-plain">
                 <div><dt>Vehículo</dt><dd>${escapeHtml(novedad.placa)} — ${escapeHtml(novedad.marca || "")} ${escapeHtml(novedad.modelo || "")}</dd></div>
-                <div><dt>Fecha</dt><dd>${formatFecha(novedad.fecha)}</dd></div>
                 <div><dt>Registrado por</dt><dd>${escapeHtml(novedad.creado_por_nombre) || "Usuario no registrado"}</dd></div>
-                <div><dt>Hora de registro</dt><dd>${formatFechaHora(novedad.created_at)}</dd></div>
+                <div><dt>Fecha de creación</dt><dd>${formatFechaHora(novedad.created_at)}</dd></div>
                 <div><dt>Descripción</dt><dd>${escapeHtml(novedad.descripcion)}</dd></div>
             </dl>
             ${novedad.foto_url ? `<a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(novedad.foto_url))}" target="_blank" rel="noreferrer">Ver foto adjunta</a>` : ""}
@@ -311,7 +310,7 @@ function openNovedadResumen(novedadId) {
     if (!novedad) return;
 
     novedadDrawerTitle.textContent = `${novedad.placa || "Vehículo"}`;
-    novedadDrawerSubtitle.textContent = `${formatFecha(novedad.fecha)}`;
+    novedadDrawerSubtitle.textContent = `${formatFechaHora(novedad.created_at)}`;
     novedadDrawerBody.innerHTML = renderNovedadDrawerBody(novedad);
 
     window.VehiAmb.ui.show(novedadDrawerBackdrop);
