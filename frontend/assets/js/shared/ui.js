@@ -289,5 +289,38 @@ window.VehiAmb.ui = {
                 // usuario solo tiene que volver a hacer clic.
             }
         });
+    },
+
+    // Agrega un boton "Tomar foto" junto a un <input type="file"> ya
+    // existente, sin tocar su name/accept ni el resto del formulario. En
+    // algunos telefonos (sobre todo Android con ciertos navegadores), un
+    // <input type="file"> sin el atributo "capture" no ofrece la camara en
+    // el selector, solo galeria/archivos -- este boton crea un input
+    // paralelo con capture="environment" y, al tomar la foto, la copia al
+    // input original via DataTransfer (asi FormData/el resto del codigo que
+    // ya lee ese input siguen funcionando igual, sin cambios). El input
+    // original sigue sirviendo para "elegir archivo" como siempre.
+    setupTomarFoto(fotoInput, tomarFotoButton) {
+        if (!fotoInput || !tomarFotoButton) return;
+
+        const camaraInput = document.createElement("input");
+        camaraInput.type = "file";
+        camaraInput.accept = fotoInput.accept || "image/*";
+        camaraInput.capture = "environment";
+        camaraInput.hidden = true;
+        fotoInput.insertAdjacentElement("afterend", camaraInput);
+
+        camaraInput.addEventListener("change", () => {
+            const archivo = camaraInput.files?.[0];
+            if (!archivo) return;
+
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(archivo);
+            fotoInput.files = dataTransfer.files;
+            fotoInput.dispatchEvent(new Event("change", { bubbles: true }));
+            camaraInput.value = "";
+        });
+
+        tomarFotoButton.addEventListener("click", () => camaraInput.click());
     }
 };

@@ -1730,6 +1730,20 @@ label[for="loginPassword"] {
     position: relative;
 }
 
+/* Input de foto + boton "Tomar foto" (ver ui.js#setupTomarFoto) en una
+   fila, envolviendo en pantallas angostas en vez de desbordar. */
+.foto-input-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.foto-input-row input[type="file"] {
+    flex: 1 1 200px;
+}
+
+
 .mnt-textarea-voice-wrap textarea {
     width: 100%;
     padding-right: 44px;

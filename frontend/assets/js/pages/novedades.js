@@ -5,6 +5,8 @@ const registrarNovedadSection = document.getElementById("registrarNovedadSection
 const novedadForm = document.getElementById("novedadForm");
 const novedadVehiculo = document.getElementById("novedadVehiculo");
 const novedadFecha = document.getElementById("novedadFecha");
+const novedadFoto = document.getElementById("novedadFoto");
+const novedadFotoCamaraButton = document.getElementById("novedadFotoCamaraButton");
 const novedadSubmitButton = document.getElementById("novedadSubmitButton");
 
 const novedadesTablaBody = document.getElementById("novedadesTablaBody");
@@ -21,6 +23,11 @@ const novedadDrawerTitle = document.getElementById("novedadDrawerTitle");
 const novedadDrawerSubtitle = document.getElementById("novedadDrawerSubtitle");
 const novedadDrawerBody = document.getElementById("novedadDrawerBody");
 const closeNovedadDrawer = document.getElementById("closeNovedadDrawer");
+
+// Boton "Tomar foto" del formulario de registro (fijo en el HTML, a
+// diferencia del de "Responder" mas abajo, que se re-crea cada vez que se
+// abre el drawer -- ver setupComentarioNovedadForm).
+window.VehiAmb.ui.setupTomarFoto(novedadFoto, novedadFotoCamaraButton);
 
 let novedadesState = [];
 // Conductor B opera un unico montacargas (user.vehiculo_asignado_id) -- se
@@ -74,6 +81,14 @@ function formatFechaHora(value) {
     });
 }
 
+// Solo la hora (para la tarjeta, que ya muestra la fecha aparte en su propio
+// pill) -- a diferencia de formatFechaHora, que trae fecha y hora completas
+// para el detalle del drawer.
+function formatHora(value) {
+    if (!value) return "-";
+    return new Date(value).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
+}
+
 function puedeCrear() {
     return Boolean(window.VehiAmb.auth?.hasPermission?.("novedades.create"));
 }
@@ -120,6 +135,8 @@ function renderNovedades() {
                 </div>
                 <div class="record-meta">
                     <span>${escapeHtml(novedad.descripcion)}</span>
+                    <span class="pill">👤 ${escapeHtml(novedad.creado_por_nombre) || "Usuario no registrado"}</span>
+                    <span class="pill">🕒 ${formatHora(novedad.created_at)}</span>
                     ${novedad.foto_url ? `<span class="pill">📷 Con foto</span>` : ""}
                 </div>
                 <div class="simit-card-actions">
@@ -205,6 +222,11 @@ function setupComentarioNovedadForm(novedadId) {
         document.getElementById("novedadComentarioVozHelp")
     );
 
+    window.VehiAmb.ui.setupTomarFoto(
+        document.getElementById("novedadComentarioFoto"),
+        document.getElementById("novedadComentarioFotoCamaraButton")
+    );
+
     enviarBtn.addEventListener("click", async () => {
         const textoInput = document.getElementById("novedadComentarioTexto");
         const fotoInput = document.getElementById("novedadComentarioFoto");
@@ -240,6 +262,8 @@ function renderNovedadDrawerBody(novedad) {
             <dl class="detail-list detail-list-plain">
                 <div><dt>Vehículo</dt><dd>${escapeHtml(novedad.placa)} — ${escapeHtml(novedad.marca || "")} ${escapeHtml(novedad.modelo || "")}</dd></div>
                 <div><dt>Fecha</dt><dd>${formatFecha(novedad.fecha)}</dd></div>
+                <div><dt>Registrado por</dt><dd>${escapeHtml(novedad.creado_por_nombre) || "Usuario no registrado"}</dd></div>
+                <div><dt>Hora de registro</dt><dd>${formatFechaHora(novedad.created_at)}</dd></div>
                 <div><dt>Descripción</dt><dd>${escapeHtml(novedad.descripcion)}</dd></div>
             </dl>
             ${novedad.foto_url ? `<a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(novedad.foto_url))}" target="_blank" rel="noreferrer">Ver foto adjunta</a>` : ""}
@@ -263,7 +287,10 @@ function renderNovedadDrawerBody(novedad) {
                 </div>
                 <div class="form-group">
                     <label>Foto (opcional)</label>
-                    <input type="file" id="novedadComentarioFoto" accept="image/png,image/jpeg,image/webp">
+                    <div class="foto-input-row">
+                        <input type="file" id="novedadComentarioFoto" accept="image/png,image/jpeg,image/webp">
+                        <button type="button" class="btn-secondary" id="novedadComentarioFotoCamaraButton">📷 Tomar foto</button>
+                    </div>
                 </div>
                 <button type="button" id="novedadComentarioEnviar" class="btn-primary">Enviar</button>
             ` : ""}
