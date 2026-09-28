@@ -394,7 +394,13 @@ async function setupNotificaciones(aside) {
     }
 
     bellButton.addEventListener("click", () => {
+        const estabaOculto = panel.classList.contains("hidden");
         panel.classList.toggle("hidden");
+        // Sin esto, abrir la campanita mostraba lo que quedo del ultimo
+        // refrescar() (hasta 60s de viejo, o mas si la pestana estuvo
+        // inactiva) -- una notificacion recien eliminada en otra parte
+        // (u otra pestana) seguia apareciendo hasta el siguiente poll.
+        if (estabaOculto) refrescar();
     });
 
     document.addEventListener("click", (event) => {
