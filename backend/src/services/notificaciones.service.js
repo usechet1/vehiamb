@@ -436,7 +436,15 @@ async function archivarNotificacion(id, usuarioId) {
 }
 
 async function eliminarNotificacion(id, usuarioId) {
-  return notificacionesRepository.remove(id, usuarioId);
+  const resultado = await notificacionesRepository.remove(id, usuarioId);
+  // remove() esta scopeado por usuario_id ademas de id -- si no borro nada,
+  // el id no existe o no pertenece a este usuario. Antes esto quedaba en
+  // silencio (el endpoint respondia "ok:true" igual), asi que un borrado
+  // que no borro nada se veia identico a uno exitoso en el frontend. Ahora
+  // se hace visible con un error en vez de reportar exito de mentiras.
+  if (!resultado.changes) {
+    throw new HttpError(404, "La notificación ya no existe o no te pertenece");
+  }
 }
 
 async function eliminarLeidas(usuarioId, empresaId, filters = {}) {
