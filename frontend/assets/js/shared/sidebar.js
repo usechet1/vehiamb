@@ -504,6 +504,14 @@ async function setupNotificaciones(aside) {
         card.click();
     });
 
+    // Expuesto para que otras paginas (ej. notificaciones.js, el centro
+    // completo) puedan forzar el refresco de la campanita apenas terminan
+    // una accion propia (leer/archivar/eliminar) -- sin esto, la campanita
+    // solo se enteraba en el proximo poll de 60s, y hasta entonces parecia
+    // que lo eliminado seguia ahi.
+    window.VehiAmb = window.VehiAmb || {};
+    window.VehiAmb.sidebar = { refrescarNotif: refrescar };
+
     await refrescar();
     setInterval(refrescar, 60000);
 }

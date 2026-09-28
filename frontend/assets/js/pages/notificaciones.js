@@ -393,6 +393,7 @@ notifMarkAllReadButton.addEventListener("click", async () => {
     try {
         await window.VehiAmb.api.marcarTodasNotificacionesLeidas();
         await Promise.all([cargarResumen(), cargarNotificaciones()]);
+        window.VehiAmb.sidebar?.refrescarNotif?.();
     } catch (error) {
         window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudieron marcar las notificaciones", "error");
     }
@@ -403,6 +404,7 @@ notifDeleteReadButton.addEventListener("click", async () => {
     try {
         await window.VehiAmb.api.eliminarNotificacionesLeidas(currentFilters());
         await Promise.all([cargarResumen(), cargarNotificaciones()]);
+        window.VehiAmb.sidebar?.refrescarNotif?.();
     } catch (error) {
         window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudieron eliminar las notificaciones", "error");
     }
@@ -429,6 +431,7 @@ notifDeleteAllButton.addEventListener("click", async () => {
     try {
         await window.VehiAmb.api.eliminarTodasNotificaciones(filtros);
         await Promise.all([cargarResumen(), cargarNotificaciones()]);
+        window.VehiAmb.sidebar?.refrescarNotif?.();
     } catch (error) {
         window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudieron eliminar las notificaciones", "error");
     }
@@ -458,6 +461,7 @@ notifCenterList.addEventListener("click", async (event) => {
             await window.VehiAmb.api.rechazarNotificacion(notifId);
         }
         await Promise.all([cargarResumen(), cargarNotificaciones()]);
+        window.VehiAmb.sidebar?.refrescarNotif?.();
     } catch (error) {
         console.error(error);
         window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo completar la accion", "error");
