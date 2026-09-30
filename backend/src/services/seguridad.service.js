@@ -32,6 +32,7 @@ const ITEMS_BOTIQUIN = [
   { codigo: "guantes_quirurgicos", label: "Guantes quirúrgicos desechables" },
   { codigo: "solucion_inyectable", label: "Solución inyectable 500 ml" },
   { codigo: "alcohol_antiseptico", label: "Alcohol antiséptico 70% - 120ml" },
+  { codigo: "solucion_yodopovidona", label: "Solución yodo-povidona 60ml" },
   { codigo: "jeringa_desechable", label: "Jeringa desechable estéril 5ml" },
   { codigo: "bajalenguas", label: "Bajalenguas de madera paqx10" },
   { codigo: "hisopos", label: "Hisopos punta de algodón paqx10" },
