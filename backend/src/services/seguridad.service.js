@@ -43,7 +43,6 @@ const ITEMS_BOTIQUIN = [
   { codigo: "toallas_higienicas", label: "Toallas higiénicas" },
   { codigo: "parche_ojos", label: "Parche para ojos" },
   { codigo: "tijeras", label: "Tijeras" },
-  { codigo: "sales_rehidratacion", label: "Sales de rehidratación oral 28.4g" },
   { codigo: "tapabocas", label: "Tapabocas desechables" },
   { codigo: "cinta_microporosa", label: "Cinta adhesiva microporosa" }
 ];
