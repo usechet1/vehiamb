@@ -1351,6 +1351,9 @@ async function ensurePostgresTables() {
       revisado_por_apellidos TEXT,
       revisado_por_cargo TEXT,
       observaciones TEXT,
+      archivo_url TEXT,
+      archivo_nombre TEXT,
+      archivo_mime TEXT,
       usuario_id BIGINT REFERENCES usuarios(id),
       empresa_id BIGINT NOT NULL REFERENCES empresas(id),
       creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -1736,7 +1739,10 @@ ensurePostgresTables()
     ensureColumn("asignaciones_ruta", "observaciones", "TEXT"),
     ensureColumn("extintores", "libras", "NUMERIC(5,1)"),
     ensureColumn("extintores", "consecutivo", "INTEGER"),
-    ensureColumn("herramientas_items", "codigo", "TEXT")
+    ensureColumn("herramientas_items", "codigo", "TEXT"),
+    ensureColumn("inspecciones_botiquin", "archivo_url", "TEXT"),
+    ensureColumn("inspecciones_botiquin", "archivo_nombre", "TEXT"),
+    ensureColumn("inspecciones_botiquin", "archivo_mime", "TEXT")
   ]))
   .then(backfillExtintoresConsecutivo)
   .then(migrarConductoresNombreSplit)

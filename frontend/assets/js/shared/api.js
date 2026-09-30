@@ -1600,8 +1600,7 @@ window.VehiAmb.api = {
             `${window.VehiAmb.API_URL}/seguridad/botiquin`,
             {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
+                body: payload
             },
             "No se pudo guardar la inspección de botiquín"
         );

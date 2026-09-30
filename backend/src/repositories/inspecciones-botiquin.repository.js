@@ -10,6 +10,9 @@ const INSPECCION_FIELDS = [
   "revisado_por_apellidos",
   "revisado_por_cargo",
   "observaciones",
+  "archivo_url",
+  "archivo_nombre",
+  "archivo_mime",
   "usuario_id",
   "empresa_id"
 ];

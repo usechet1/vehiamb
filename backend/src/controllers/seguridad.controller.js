@@ -42,7 +42,7 @@ exports.getInspeccionBotiquin = async (req, res) => {
 };
 
 exports.createInspeccionBotiquin = async (req, res) => {
-  const inspeccion = await seguridadService.crearInspeccion(req.body, req.user);
+  const inspeccion = await seguridadService.crearInspeccion(req.body, req.file, req.user);
   res.status(201).json(inspeccion);
 };
 

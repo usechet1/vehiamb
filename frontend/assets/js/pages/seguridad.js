@@ -36,6 +36,7 @@ const botiquinInspeccionadoCargo = document.getElementById("botiquinInspeccionad
 const botiquinRevisado = document.getElementById("botiquinRevisado");
 const botiquinChecklistBody = document.getElementById("botiquinChecklistBody");
 const botiquinObservaciones = document.getElementById("botiquinObservaciones");
+const botiquinArchivo = document.getElementById("botiquinArchivo");
 const botiquinCancelButton = document.getElementById("botiquinCancelButton");
 const botiquinMarcarTodoBueno = document.getElementById("botiquinMarcarTodoBueno");
 const registrarBotiquinSection = document.getElementById("registrarBotiquinSection");
@@ -476,17 +477,19 @@ botiquinForm?.addEventListener("submit", async (event) => {
     const { nombres: inspeccionadoNombres, apellidos: inspeccionadoApellidos } = leerUsuarioSeleccionado(botiquinInspeccionado);
     const { nombres: revisadoNombres, apellidos: revisadoApellidos } = leerUsuarioSeleccionado(botiquinRevisado);
 
-    const payload = {
-        vehiculo_id: botiquinVehiculo.value,
-        fecha: botiquinFecha.value,
-        inspeccionado_por_nombres: inspeccionadoNombres,
-        inspeccionado_por_apellidos: inspeccionadoApellidos,
-        inspeccionado_por_cargo: botiquinInspeccionadoCargo.value.trim(),
-        revisado_por_nombres: revisadoNombres,
-        revisado_por_apellidos: revisadoApellidos,
-        observaciones: botiquinObservaciones.value.trim(),
-        items: leerChecklist()
-    };
+    const payload = new FormData();
+    payload.set("vehiculo_id", botiquinVehiculo.value);
+    payload.set("fecha", botiquinFecha.value);
+    payload.set("inspeccionado_por_nombres", inspeccionadoNombres);
+    payload.set("inspeccionado_por_apellidos", inspeccionadoApellidos);
+    payload.set("inspeccionado_por_cargo", botiquinInspeccionadoCargo.value.trim());
+    payload.set("revisado_por_nombres", revisadoNombres);
+    payload.set("revisado_por_apellidos", revisadoApellidos);
+    payload.set("observaciones", botiquinObservaciones.value.trim());
+    payload.set("items", JSON.stringify(leerChecklist()));
+    if (botiquinArchivo.files?.[0]) {
+        payload.set("archivo", botiquinArchivo.files[0]);
+    }
 
     try {
         window.VehiAmb.ui.show(loader);
@@ -546,6 +549,9 @@ function abrirDrawer(inspeccion) {
 
         <dl class="detail-list drawer-detail-list">
             <div><dt>Observaciones generales</dt><dd>${inspeccion.observaciones ? escapeHtml(inspeccion.observaciones) : "Sin observaciones"}</dd></div>
+            <div><dt>Soporte</dt><dd>${inspeccion.archivo_url
+                ? `<a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(inspeccion.archivo_url))}" target="_blank" rel="noreferrer">${escapeHtml(inspeccion.archivo_nombre) || "Ver archivo"}</a>`
+                : "Sin soporte adjunto"}</dd></div>
         </dl>
     `;
 

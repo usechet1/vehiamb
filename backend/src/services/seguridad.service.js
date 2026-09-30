@@ -1,3 +1,5 @@
+const fs = require("fs/promises");
+const path = require("path");
 const HttpError = require("../errors/http-error");
 const vehiculosRepository = require("../repositories/vehiculos.repository");
 const extintoresRepository = require("../repositories/extintores.repository");
@@ -5,6 +7,17 @@ const inspeccionesBotiquinRepository = require("../repositories/inspecciones-bot
 const botiquinItemsRepository = require("../repositories/botiquin-items.repository");
 const inspeccionesHerramientasRepository = require("../repositories/inspecciones-herramientas.repository");
 const herramientasItemsRepository = require("../repositories/herramientas-items.repository");
+
+const UPLOADS_ROOT = path.resolve(__dirname, "..", "..", "uploads");
+
+async function eliminarArchivoAnterior(archivoUrl) {
+  if (!archivoUrl) return;
+  try {
+    await fs.unlink(path.join(UPLOADS_ROOT, archivoUrl.replace(/^\/uploads[\\/]/, "")));
+  } catch (error) {
+    // El archivo ya pudo haber sido borrado o movido; no bloquea la operacion.
+  }
+}
 
 // Catalogo fijo del "FORMATO INSPECCION DE BOTIQUINES VEHICULOS"
 // (SG-SST-FT, version 001 del 21-10-2024). El orden de esta lista es el orden
@@ -248,6 +261,8 @@ function toSafeInspeccion(inspeccion) {
     revisado_por_apellidos: inspeccion.revisado_por_apellidos,
     revisado_por_cargo: inspeccion.revisado_por_cargo,
     observaciones: inspeccion.observaciones,
+    archivo_url: inspeccion.archivo_url,
+    archivo_nombre: inspeccion.archivo_nombre,
     total_items: Number(inspeccion.total_items || 0),
     total_items_malos: Number(inspeccion.total_items_malos || 0),
     creado_en: inspeccion.creado_en
@@ -270,7 +285,7 @@ async function obtenerInspeccion(id, empresaId) {
   return { ...toSafeInspeccion(inspeccion), items: items.map(toSafeItem) };
 }
 
-async function crearInspeccion(payload, currentUser) {
+async function crearInspeccion(payload, file, currentUser) {
   const empresaId = currentUser.empresa_id;
   const vehiculoId = payload.vehiculo_id ? Number(payload.vehiculo_id) : null;
   await asegurarVehiculo(vehiculoId, empresaId);
@@ -281,7 +296,20 @@ async function crearInspeccion(payload, currentUser) {
     throw new HttpError(400, "Los nombres y apellidos de quien inspecciona son obligatorios");
   }
 
-  const items = normalizarItemsChecklist(payload.items, ITEMS_POR_CODIGO, "botiquín", (item, catalogoItem) => ({
+  // El endpoint ahora es multipart/form-data (para poder adjuntar el
+  // archivo), asi que "items" llega como texto JSON en vez de un array real
+  // (el body parser de Express no lo decodifica, a diferencia del JSON plano
+  // de antes) -- se parsea aca antes de normalizar.
+  let itemsPayload = payload.items;
+  if (typeof itemsPayload === "string") {
+    try {
+      itemsPayload = JSON.parse(itemsPayload);
+    } catch (error) {
+      throw new HttpError(400, "El listado del checklist de botiquín es inválido");
+    }
+  }
+
+  const items = normalizarItemsChecklist(itemsPayload, ITEMS_POR_CODIGO, "botiquín", (item, catalogoItem) => ({
     fecha_vencimiento: fechaOpcional(item.fecha_vencimiento, `La fecha de vencimiento de "${catalogoItem.label}"`)
   }));
 
@@ -295,6 +323,9 @@ async function crearInspeccion(payload, currentUser) {
     revisado_por_apellidos: texto(payload.revisado_por_apellidos, 80),
     revisado_por_cargo: texto(payload.revisado_por_cargo, 80),
     observaciones: texto(payload.observaciones, 1000),
+    archivo_url: file ? `/uploads/botiquin/${file.filename}` : null,
+    archivo_nombre: file ? file.originalname : null,
+    archivo_mime: file ? file.mimetype : null,
     usuario_id: currentUser?.id ?? null,
     empresa_id: empresaId
   });
@@ -320,6 +351,7 @@ async function eliminarInspeccion(id, empresaId) {
   // botiquin_items tiene ON DELETE CASCADE, asi que los renglones se van con
   // la cabecera sin borrarlos a mano.
   await inspeccionesBotiquinRepository.remove(id, empresaId);
+  await eliminarArchivoAnterior(existente.archivo_url);
 }
 
 // ─────────────────────── Inspecciones de kit de herramientas ───────────────────────

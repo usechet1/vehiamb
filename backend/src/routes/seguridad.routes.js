@@ -4,6 +4,9 @@ const router = express.Router();
 const seguridadController = require("../controllers/seguridad.controller");
 const asyncHandler = require("../middlewares/async-handler");
 const requirePermission = require("../middlewares/require-permission");
+const uploadBotiquin = require("../middlewares/upload-botiquin");
+const compressImage = require("../middlewares/compress-image");
+const validateUpload = require("../middlewares/validate-upload");
 
 router.get("/botiquin/catalogo", requirePermission("seguridad.view"), asyncHandler(seguridadController.getCatalogoBotiquin));
 
@@ -14,7 +17,14 @@ router.delete("/extintores/:id", requirePermission("seguridad.delete"), asyncHan
 
 router.get("/botiquin", requirePermission("seguridad.view"), asyncHandler(seguridadController.getInspeccionesBotiquin));
 router.get("/botiquin/:id", requirePermission("seguridad.view"), asyncHandler(seguridadController.getInspeccionBotiquin));
-router.post("/botiquin", requirePermission("seguridad.create"), asyncHandler(seguridadController.createInspeccionBotiquin));
+router.post(
+  "/botiquin",
+  requirePermission("seguridad.create"),
+  uploadBotiquin.single("archivo"),
+  asyncHandler(validateUpload),
+  asyncHandler(compressImage),
+  asyncHandler(seguridadController.createInspeccionBotiquin)
+);
 router.delete("/botiquin/:id", requirePermission("seguridad.delete"), asyncHandler(seguridadController.deleteInspeccionBotiquin));
 
 router.get("/herramientas/catalogo", requirePermission("seguridad.view"), asyncHandler(seguridadController.getCatalogoHerramientas));
