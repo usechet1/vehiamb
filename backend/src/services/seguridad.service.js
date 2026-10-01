@@ -30,7 +30,7 @@ const ITEMS_BOTIQUIN = [
   { codigo: "venda_elastica", label: 'Venda elástica 2"x 5 yardas' },
   { codigo: "inmovilizador_cuello", label: "Inmovilizador de cuello" },
   { codigo: "guantes_quirurgicos", label: "Guantes quirúrgicos desechables" },
-  { codigo: "solucion_inyectable", label: "Solución inyectable 500 ml" },
+  { codigo: "solucion_inyectable", label: "Solución inyectable 100 ml" },
   { codigo: "alcohol_antiseptico", label: "Alcohol antiséptico 70% - 120ml" },
   { codigo: "solucion_yodopovidona", label: "Solución yodo-povidona 60ml" },
   { codigo: "jeringa_desechable", label: "Jeringa desechable estéril 5ml" },
