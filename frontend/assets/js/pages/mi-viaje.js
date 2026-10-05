@@ -253,9 +253,7 @@ function renderInspeccionResumenRapido(viaje) {
     }
 
     const hayMalos = viaje.inspeccion_items_mal > 0;
-    const resumenTexto = hayMalos
-        ? `${viaje.inspeccion_items_mal} ítem(s) en mal estado`
-        : "Inspección sin novedades";
+    const resumenTexto = `${viaje.inspeccion_items_mal} ítem(s) en mal estado`;
 
     const pills = viaje.inspeccion_items.map((item) => `
         <span class="pill ${item.estado === "mal" ? "pill-danger" : "pill-success"}">${escapeHtml(item.item_label)}</span>
