@@ -240,6 +240,35 @@ function renderConductor(conductor) {
         : '<p class="dash-empty">Este conductor no tiene licencias registradas.</p>';
 }
 
+// Resumen plegable de la inspeccion preventiva, directo en la fila del
+// viaje -- antes, para saber que items quedaron en mal/bien estado habia
+// que abrir el drawer "Ver resumen" viaje por viaje. listarRecientesEmpresa
+// ya trae inspeccion_items completo (lo usaba solo el exportable PDF/Excel),
+// asi que esto no pide nada nuevo al backend. El listado propio del
+// conductor (listarRecientes) no trae ese detalle -- ahi simplemente no
+// se muestra nada, en vez de romper.
+function renderInspeccionResumenRapido(viaje) {
+    if (!viaje.inspeccion_realizada || !Array.isArray(viaje.inspeccion_items) || !viaje.inspeccion_items.length) {
+        return "";
+    }
+
+    const hayMalos = viaje.inspeccion_items_mal > 0;
+    const resumenTexto = hayMalos
+        ? `${viaje.inspeccion_items_mal} ítem(s) en mal estado`
+        : "Inspección sin novedades";
+
+    const pills = viaje.inspeccion_items.map((item) => `
+        <span class="pill ${item.estado === "mal" ? "pill-danger" : "pill-success"}">${escapeHtml(item.item_label)}</span>
+    `).join("");
+
+    return `
+        <details class="record-inspeccion-resumen ${hayMalos ? "has-malos" : ""}">
+            <summary>${resumenTexto}</summary>
+            <div class="record-meta">${pills}</div>
+        </details>
+    `;
+}
+
 function renderViajesList(viajes, contenedor, vacioHtml, onDeleted) {
     if (!viajes.length) {
         contenedor.innerHTML = vacioHtml;
@@ -257,6 +286,7 @@ function renderViajesList(viajes, contenedor, vacioHtml, onDeleted) {
                 </div>
                 <span class="pill">${formatFechaHora(viaje.creado_en)}</span>
             </div>
+            ${renderInspeccionResumenRapido(viaje)}
             <div class="record-actions">
                 <button type="button" class="record-link btn-ver-resumen" data-viaje-id="${escapeHtml(viaje.id)}">Ver resumen</button>
                 ${puedeEliminar ? `<button type="button" class="record-link btn-eliminar-viaje" data-viaje-id="${escapeHtml(viaje.id)}">Eliminar</button>` : ""}

@@ -4826,6 +4826,45 @@ label[for="loginPassword"] {
     margin-top: 10px;
 }
 
+/* Resumen plegable de la inspeccion preventiva en la fila de "Viajes
+   recientes" -- el texto del <summary> ya adelanta si hubo novedades, sin
+   tener que desplegarlo; .pill-danger/.pill-success de cada item solo se
+   ven al abrirlo. */
+.record-inspeccion-resumen {
+    margin-top: 10px;
+}
+
+.record-inspeccion-resumen summary {
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--color-ink-soft);
+    list-style: none;
+}
+
+.record-inspeccion-resumen summary::-webkit-details-marker {
+    display: none;
+}
+
+.record-inspeccion-resumen summary::before {
+    content: "▸";
+    display: inline-block;
+    width: 1em;
+    transition: transform var(--transition);
+}
+
+.record-inspeccion-resumen[open] summary::before {
+    transform: rotate(90deg);
+}
+
+.record-inspeccion-resumen.has-malos summary {
+    color: var(--color-primary);
+}
+
+.record-inspeccion-resumen .record-meta {
+    margin-left: 1em;
+}
+
 /* .record-link ya trae su propio margin-top (para cuando va solo, sin
    .record-actions) -- dentro de .record-actions se resetea para no sumar
    los dos margenes. */
