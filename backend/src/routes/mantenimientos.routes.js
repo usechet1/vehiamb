@@ -9,6 +9,7 @@ const compressImage = require("../middlewares/compress-image");
 const validateUpload = require("../middlewares/validate-upload");
 const { renameUpload } = require("../middlewares/rename-upload");
 const vehiculosRepository = require("../repositories/vehiculos.repository");
+const withMulterErrorHandling = require("../middlewares/with-multer-error-handling");
 
 async function construirNombreMantenimiento(req) {
   const vehiculo = req.body.vehiculo_id
@@ -25,7 +26,7 @@ router.get("/:id", requirePermission("maintenance.view"), asyncHandler(mantenimi
 router.post(
   "/",
   requirePermission("maintenance.create"),
-  uploadMantenimiento.single("soporte"),
+  withMulterErrorHandling(uploadMantenimiento.single("soporte"), "5MB"),
   asyncHandler(validateUpload),
   asyncHandler(renameUpload(construirNombreMantenimiento)),
   asyncHandler(compressImage),
@@ -35,7 +36,7 @@ router.post(
 router.post(
   "/:id/salida-inventario",
   requirePermission("maintenance.create"),
-  uploadMantenimiento.single("salida_inventario"),
+  withMulterErrorHandling(uploadMantenimiento.single("salida_inventario"), "5MB"),
   asyncHandler(validateUpload),
   asyncHandler(compressImage),
   asyncHandler(mantenimientosController.subirSalidaInventario)

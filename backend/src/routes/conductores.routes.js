@@ -10,6 +10,7 @@ const validateUpload = require("../middlewares/validate-upload");
 const { renameUpload, fechaCorta } = require("../middlewares/rename-upload");
 const conductoresRepository = require("../repositories/conductores.repository");
 const conductorLicenciasRepository = require("../repositories/conductor-licencias.repository");
+const withMulterErrorHandling = require("../middlewares/with-multer-error-handling");
 
 router.get("/", requirePermission("conductores.view"), asyncHandler(conductoresController.getConductores));
 router.get("/catalogo", requirePermission("conductores.view"), asyncHandler(conductoresController.getCatalogo));
@@ -42,7 +43,7 @@ router.get(
 router.post(
   "/:conductorId/licencias",
   requirePermission("conductores.manage"),
-  uploadConductor.single("archivo"),
+  withMulterErrorHandling(uploadConductor.single("archivo"), "5MB"),
   asyncHandler(validateUpload),
   asyncHandler(renameUpload(construirNombreLicencia)),
   asyncHandler(conductorLicenciasController.createLicencia)
@@ -50,7 +51,7 @@ router.post(
 router.put(
   "/licencias/:id",
   requirePermission("conductores.manage"),
-  uploadConductor.single("archivo"),
+  withMulterErrorHandling(uploadConductor.single("archivo"), "5MB"),
   asyncHandler(validateUpload),
   asyncHandler(renameUpload(construirNombreLicencia)),
   asyncHandler(conductorLicenciasController.updateLicencia)

@@ -8,6 +8,7 @@ const uploadVehiculo = require("../middlewares/upload-vehiculo");
 const compressImage = require("../middlewares/compress-image");
 const validateUpload = require("../middlewares/validate-upload");
 const { renameUpload, fechaCorta } = require("../middlewares/rename-upload");
+const withMulterErrorHandling = require("../middlewares/with-multer-error-handling");
 
 function construirNombreVehiculo(req) {
   return [req.body.placa, "FOTO", fechaCorta()];
@@ -29,7 +30,7 @@ router.get("/:id", requirePermission("vehicles.view"), asyncHandler(vehiculosCon
 router.post(
   "/",
   requirePermission("vehicles.create"),
-  uploadVehiculo.single("imagen"),
+  withMulterErrorHandling(uploadVehiculo.single("imagen"), "5MB"),
   asyncHandler(validateUpload),
   asyncHandler(renameUpload(construirNombreVehiculo)),
   asyncHandler(compressImage),
@@ -40,7 +41,7 @@ router.post(
 router.put(
   "/:id",
   requirePermission("vehicles.edit"),
-  uploadVehiculo.single("imagen"),
+  withMulterErrorHandling(uploadVehiculo.single("imagen"), "5MB"),
   asyncHandler(validateUpload),
   asyncHandler(renameUpload(construirNombreVehiculo)),
   asyncHandler(compressImage),

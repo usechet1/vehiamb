@@ -30,6 +30,13 @@ module.exports = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024
+    // Fotos de evidencia tomadas con la camara del celular del conductor en
+    // el momento, sin pasar por ningun editor que las achique -- 5MB se
+    // quedaba corto para una foto de camara trasera a resolucion completa
+    // (varios conductores lo reportaron fallando seguido durante la
+    // inspeccion). Se comprimen de todas formas despues (ver compressImage
+    // en inspecciones.routes.js), esto solo evita rechazar el archivo de
+    // entrada antes de llegar a esa compresion.
+    fileSize: 15 * 1024 * 1024
   }
 });

@@ -9,6 +9,7 @@ const compressImage = require("../middlewares/compress-image");
 const validateUpload = require("../middlewares/validate-upload");
 const { renameUpload, fechaCorta } = require("../middlewares/rename-upload");
 const vehiculosRepository = require("../repositories/vehiculos.repository");
+const withMulterErrorHandling = require("../middlewares/with-multer-error-handling");
 
 async function construirNombreEntrega(req, file) {
   const vehiculo = await vehiculosRepository.findById(req.params.vehiculoId, req.empresaId);
@@ -23,7 +24,7 @@ router.get("/:id", requirePermission("delivery.view"), asyncHandler(entregasCont
 router.post(
   "/vehiculo/:vehiculoId",
   requirePermission("delivery.create"),
-  uploadEntrega.any(),
+  withMulterErrorHandling(uploadEntrega.any(), "15MB"),
   asyncHandler(validateUpload),
   asyncHandler(renameUpload(construirNombreEntrega)),
   asyncHandler(compressImage),

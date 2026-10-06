@@ -8,6 +8,7 @@ const uploadUsuario = require("../middlewares/upload-usuario");
 const compressImage = require("../middlewares/compress-image");
 const validateUpload = require("../middlewares/validate-upload");
 const { renameUpload, fechaCorta } = require("../middlewares/rename-upload");
+const withMulterErrorHandling = require("../middlewares/with-multer-error-handling");
 
 function construirNombreUsuario(req) {
   return [req.body.nombre, "FOTO", fechaCorta()];
@@ -25,7 +26,7 @@ router.use(requirePermission("users.manage"));
 router.get("/", asyncHandler(usuariosController.getUsuarios));
 router.post(
   "/",
-  uploadUsuario.single("foto"),
+  withMulterErrorHandling(uploadUsuario.single("foto"), "5MB"),
   asyncHandler(validateUpload),
   asyncHandler(renameUpload(construirNombreUsuario)),
   asyncHandler(compressImage),
@@ -33,7 +34,7 @@ router.post(
 );
 router.put(
   "/:id",
-  uploadUsuario.single("foto"),
+  withMulterErrorHandling(uploadUsuario.single("foto"), "5MB"),
   asyncHandler(validateUpload),
   asyncHandler(renameUpload(construirNombreUsuario)),
   asyncHandler(compressImage),

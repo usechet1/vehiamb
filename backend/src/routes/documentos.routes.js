@@ -10,7 +10,7 @@ const compressImage = require("../middlewares/compress-image");
 const validateUpload = require("../middlewares/validate-upload");
 const { renameUpload, fechaCorta } = require("../middlewares/rename-upload");
 const vehiculosRepository = require("../repositories/vehiculos.repository");
-const HttpError = require("../errors/http-error");
+const withMulterErrorHandling = require("../middlewares/with-multer-error-handling");
 
 // Insumo temporal solo para extraer texto (no es el documento final, ese
 // pasa por uploadDocumento y sí se guarda en disco) -- se procesa en
@@ -27,22 +27,6 @@ const uploadParaExtraccion = multer({
   }
 });
 
-// uploadParaExtraccion.single(...) usa el callback propio de multer, no una
-// promesa -- sus errores (mimetype no permitido, archivo >15MB) no pasan por
-// asyncHandler. Sin este envoltorio caerian con status 500 generico en vez
-// de un 400 claro para el usuario (mismo motivo que en automation.routes.js).
-function withMulterErrorHandling(uploadMiddleware) {
-  return (req, res, next) => {
-    uploadMiddleware(req, res, (err) => {
-      if (!err) return next();
-      const message = err.code === "LIMIT_FILE_SIZE"
-        ? "El archivo supera el tamaño máximo permitido (15MB)"
-        : err.message || "Archivo inválido";
-      next(new HttpError(400, message));
-    });
-  };
-}
-
 async function construirNombreDocumento(req) {
   const vehiculo = req.body.vehiculo_id
     ? await vehiculosRepository.findById(req.body.vehiculo_id, req.empresaId)
@@ -53,7 +37,7 @@ async function construirNombreDocumento(req) {
 router.post(
   "/extraer",
   requirePermission("documents.create"),
-  withMulterErrorHandling(uploadParaExtraccion.single("archivo")),
+  withMulterErrorHandling(uploadParaExtraccion.single("archivo"), "15MB"),
   asyncHandler(documentosController.extraerDatos)
 );
 router.get("/", requirePermission("documents.view"), asyncHandler(documentosController.getDocumentos));
@@ -61,7 +45,7 @@ router.get("/vehiculo/:vehiculoId", requirePermission("documents.view"), asyncHa
 router.post(
   "/",
   requirePermission("documents.create"),
-  uploadDocumento.single("archivo"),
+  withMulterErrorHandling(uploadDocumento.single("archivo"), "5MB"),
   asyncHandler(validateUpload),
   asyncHandler(renameUpload(construirNombreDocumento)),
   asyncHandler(compressImage),
@@ -70,7 +54,7 @@ router.post(
 router.put(
   "/:id",
   requirePermission("documents.create"),
-  uploadDocumento.single("archivo"),
+  withMulterErrorHandling(uploadDocumento.single("archivo"), "5MB"),
   asyncHandler(validateUpload),
   asyncHandler(renameUpload(construirNombreDocumento)),
   asyncHandler(compressImage),

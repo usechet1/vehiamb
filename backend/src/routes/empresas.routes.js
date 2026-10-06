@@ -8,6 +8,7 @@ const uploadEmpresa = require("../middlewares/upload-empresa");
 const compressImage = require("../middlewares/compress-image");
 const validateUpload = require("../middlewares/validate-upload");
 const { renameUpload, fechaCorta } = require("../middlewares/rename-upload");
+const withMulterErrorHandling = require("../middlewares/with-multer-error-handling");
 
 function construirNombreEmpresa(req) {
   return [req.body.nombre, "LOGO", fechaCorta()];
@@ -19,7 +20,7 @@ router.get("/me", requirePermission("empresa.manage"), asyncHandler(empresasCont
 router.put(
   "/me",
   requirePermission("empresa.manage"),
-  uploadEmpresa.single("logo"),
+  withMulterErrorHandling(uploadEmpresa.single("logo"), "5MB"),
   asyncHandler(validateUpload),
   asyncHandler(renameUpload(construirNombreEmpresa)),
   asyncHandler(compressImage),

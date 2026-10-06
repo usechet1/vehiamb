@@ -9,6 +9,7 @@ const compressImage = require("../middlewares/compress-image");
 const validateUpload = require("../middlewares/validate-upload");
 const { renameUpload, fechaCorta } = require("../middlewares/rename-upload");
 const vehiculosRepository = require("../repositories/vehiculos.repository");
+const withMulterErrorHandling = require("../middlewares/with-multer-error-handling");
 
 async function construirNombrePreoperacional(req, file) {
   const vehiculo = await vehiculosRepository.findById(req.params.vehiculoId, req.empresaId);
@@ -22,7 +23,7 @@ router.get("/:id", requirePermission("preoperacional.view"), asyncHandler(preope
 router.post(
   "/vehiculo/:vehiculoId",
   requirePermission("preoperacional.create"),
-  uploadPreoperacional.any(),
+  withMulterErrorHandling(uploadPreoperacional.any(), "5MB"),
   asyncHandler(validateUpload),
   asyncHandler(renameUpload(construirNombrePreoperacional)),
   asyncHandler(compressImage),

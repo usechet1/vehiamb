@@ -7,6 +7,7 @@ const requirePermission = require("../middlewares/require-permission");
 const uploadBotiquin = require("../middlewares/upload-botiquin");
 const compressImage = require("../middlewares/compress-image");
 const validateUpload = require("../middlewares/validate-upload");
+const withMulterErrorHandling = require("../middlewares/with-multer-error-handling");
 
 router.get("/botiquin/catalogo", requirePermission("seguridad.view"), asyncHandler(seguridadController.getCatalogoBotiquin));
 
@@ -20,7 +21,7 @@ router.get("/botiquin/:id", requirePermission("seguridad.view"), asyncHandler(se
 router.post(
   "/botiquin",
   requirePermission("seguridad.create"),
-  uploadBotiquin.single("archivo"),
+  withMulterErrorHandling(uploadBotiquin.single("archivo"), "5MB"),
   asyncHandler(validateUpload),
   asyncHandler(compressImage),
   asyncHandler(seguridadController.createInspeccionBotiquin)

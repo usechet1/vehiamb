@@ -8,6 +8,7 @@ const uploadRepuesto = require("../middlewares/upload-repuesto");
 const compressImage = require("../middlewares/compress-image");
 const validateUpload = require("../middlewares/validate-upload");
 const { renameUpload, fechaCorta } = require("../middlewares/rename-upload");
+const withMulterErrorHandling = require("../middlewares/with-multer-error-handling");
 
 function construirNombreRepuesto(req) {
   return [req.body.nombre, "FOTO", fechaCorta()];
@@ -29,7 +30,7 @@ router.get("/:id", requirePermission("inventory.view"), asyncHandler(repuestosCo
 router.post(
   "/",
   requirePermission("inventory.manage"),
-  uploadRepuesto.single("foto"),
+  withMulterErrorHandling(uploadRepuesto.single("foto"), "5MB"),
   asyncHandler(validateUpload),
   asyncHandler(renameUpload(construirNombreRepuesto)),
   asyncHandler(compressImage),
@@ -40,7 +41,7 @@ router.post(
 router.put(
   "/:id",
   requirePermission("inventory.manage"),
-  uploadRepuesto.single("foto"),
+  withMulterErrorHandling(uploadRepuesto.single("foto"), "5MB"),
   asyncHandler(validateUpload),
   asyncHandler(renameUpload(construirNombreRepuesto)),
   asyncHandler(compressImage),

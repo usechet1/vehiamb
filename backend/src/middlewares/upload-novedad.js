@@ -36,6 +36,8 @@ module.exports = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024
+    // Mismo motivo que upload-inspeccion.js: foto tomada con la camara del
+    // celular en el momento de reportar la novedad.
+    fileSize: 15 * 1024 * 1024
   }
 });
