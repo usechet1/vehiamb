@@ -5,6 +5,7 @@ const vehiculosRepository = require("../repositories/vehiculos.repository");
 const extintoresRepository = require("../repositories/extintores.repository");
 const inspeccionesBotiquinRepository = require("../repositories/inspecciones-botiquin.repository");
 const botiquinItemsRepository = require("../repositories/botiquin-items.repository");
+const botiquinArchivosRepository = require("../repositories/inspeccion-botiquin-archivos.repository");
 const inspeccionesHerramientasRepository = require("../repositories/inspecciones-herramientas.repository");
 const herramientasItemsRepository = require("../repositories/herramientas-items.repository");
 
@@ -261,8 +262,6 @@ function toSafeInspeccion(inspeccion) {
     revisado_por_apellidos: inspeccion.revisado_por_apellidos,
     revisado_por_cargo: inspeccion.revisado_por_cargo,
     observaciones: inspeccion.observaciones,
-    archivo_url: inspeccion.archivo_url,
-    archivo_nombre: inspeccion.archivo_nombre,
     total_items: Number(inspeccion.total_items || 0),
     total_items_malos: Number(inspeccion.total_items_malos || 0),
     creado_en: inspeccion.creado_en
@@ -280,9 +279,29 @@ async function obtenerInspeccion(id, empresaId) {
     throw new HttpError(404, "Inspección de botiquín no encontrada");
   }
 
-  const items = await botiquinItemsRepository.findByInspeccion(id, empresaId);
+  const [items, archivos] = await Promise.all([
+    botiquinItemsRepository.findByInspeccion(id, empresaId),
+    botiquinArchivosRepository.findByInspeccion(id, empresaId)
+  ]);
 
-  return { ...toSafeInspeccion(inspeccion), items: items.map(toSafeItem) };
+  return { ...toSafeInspeccion(inspeccion), items: items.map(toSafeItem), archivos: archivos.map(toSafeArchivo) };
+}
+
+function toSafeArchivo(archivo) {
+  return {
+    id: archivo.id,
+    archivo_url: archivo.archivo_url,
+    archivo_nombre: archivo.archivo_nombre,
+    archivo_mime: archivo.archivo_mime
+  };
+}
+
+function archivosSubidos(files) {
+  return (files || []).map((file) => ({
+    archivo_url: `/uploads/botiquin/${file.filename}`,
+    archivo_nombre: file.originalname,
+    archivo_mime: file.mimetype
+  }));
 }
 
 // Validaciones compartidas por crear/actualizar: vehiculo valido, nombres y
@@ -317,7 +336,7 @@ async function prepararDatosInspeccion(payload, empresaId) {
   return { vehiculoId, nombres, apellidos, items };
 }
 
-async function crearInspeccion(payload, file, currentUser) {
+async function crearInspeccion(payload, files, currentUser) {
   const empresaId = currentUser.empresa_id;
   const { vehiculoId, nombres, apellidos, items } = await prepararDatosInspeccion(payload, empresaId);
 
@@ -331,14 +350,14 @@ async function crearInspeccion(payload, file, currentUser) {
     revisado_por_apellidos: texto(payload.revisado_por_apellidos, 80),
     revisado_por_cargo: texto(payload.revisado_por_cargo, 80),
     observaciones: texto(payload.observaciones, 1000),
-    archivo_url: file ? `/uploads/botiquin/${file.filename}` : null,
-    archivo_nombre: file ? file.originalname : null,
-    archivo_mime: file ? file.mimetype : null,
     usuario_id: currentUser?.id ?? null,
     empresa_id: empresaId
   });
 
-  const itemsCreados = await botiquinItemsRepository.bulkCreate(inspeccion.id, items, empresaId);
+  const [itemsCreados, archivosCreados] = await Promise.all([
+    botiquinItemsRepository.bulkCreate(inspeccion.id, items, empresaId),
+    botiquinArchivosRepository.bulkCreate(inspeccion.id, archivosSubidos(files), empresaId)
+  ]);
 
   return {
     ...toSafeInspeccion({
@@ -346,17 +365,17 @@ async function crearInspeccion(payload, file, currentUser) {
       total_items: itemsCreados.length,
       total_items_malos: itemsCreados.filter((item) => item.estado === "malo").length
     }),
-    items: itemsCreados.map(toSafeItem)
+    items: itemsCreados.map(toSafeItem),
+    archivos: archivosCreados.map(toSafeArchivo)
   };
 }
 
-// Un archivo nuevo reemplaza al anterior (y borra el viejo del disco);
-// "eliminar_archivo" lo quita sin reemplazo; si no llega ninguno de los
-// dos, se conserva el que ya tenia. El checklist siempre se reemplaza
-// completo (ver botiquinItemsRepository.removeByInspeccion) porque llega
-// entero desde el formulario, igual que al crear -- no hay items parciales
-// que conservar.
-async function actualizarInspeccion(id, payload, file, currentUser) {
+// Los archivos nuevos se suman a los que ya tenia; "eliminar_archivos" (ids
+// en JSON) quita los que el usuario marco, borrandolos tambien del disco.
+// El checklist siempre se reemplaza completo (ver
+// botiquinItemsRepository.removeByInspeccion) porque llega entero desde el
+// formulario, igual que al crear -- no hay items parciales que conservar.
+async function actualizarInspeccion(id, payload, files, currentUser) {
   const empresaId = currentUser.empresa_id;
   const existente = await inspeccionesBotiquinRepository.findById(id, empresaId);
   if (!existente) {
@@ -365,19 +384,13 @@ async function actualizarInspeccion(id, payload, file, currentUser) {
 
   const { vehiculoId, nombres, apellidos, items } = await prepararDatosInspeccion(payload, empresaId);
 
-  let archivoUrl = existente.archivo_url;
-  let archivoNombre = existente.archivo_nombre;
-  let archivoMime = existente.archivo_mime;
-  if (file) {
-    await eliminarArchivoAnterior(existente.archivo_url);
-    archivoUrl = `/uploads/botiquin/${file.filename}`;
-    archivoNombre = file.originalname;
-    archivoMime = file.mimetype;
-  } else if (payload.eliminar_archivo === "true") {
-    await eliminarArchivoAnterior(existente.archivo_url);
-    archivoUrl = null;
-    archivoNombre = null;
-    archivoMime = null;
+  let idsAEliminar = [];
+  if (payload.eliminar_archivos) {
+    try {
+      idsAEliminar = JSON.parse(payload.eliminar_archivos);
+    } catch (error) {
+      throw new HttpError(400, "El listado de adjuntos a eliminar es inválido");
+    }
   }
 
   const inspeccion = await inspeccionesBotiquinRepository.update(
@@ -392,17 +405,24 @@ async function actualizarInspeccion(id, payload, file, currentUser) {
       revisado_por_apellidos: texto(payload.revisado_por_apellidos, 80),
       revisado_por_cargo: texto(payload.revisado_por_cargo, 80),
       observaciones: texto(payload.observaciones, 1000),
-      archivo_url: archivoUrl,
-      archivo_nombre: archivoNombre,
-      archivo_mime: archivoMime,
       usuario_id: existente.usuario_id,
       empresa_id: empresaId
     },
     empresaId
   );
 
+  const idsValidos = (Array.isArray(idsAEliminar) ? idsAEliminar : []).map(Number).filter(Number.isInteger);
+  for (const archivoId of idsValidos) {
+    const eliminado = await botiquinArchivosRepository.removeById(archivoId, id, empresaId);
+    if (eliminado) await eliminarArchivoAnterior(eliminado.archivo_url);
+  }
+  await botiquinArchivosRepository.bulkCreate(id, archivosSubidos(files), empresaId);
+
   await botiquinItemsRepository.removeByInspeccion(id, empresaId);
-  const itemsCreados = await botiquinItemsRepository.bulkCreate(id, items, empresaId);
+  const [itemsCreados, archivos] = await Promise.all([
+    botiquinItemsRepository.bulkCreate(id, items, empresaId),
+    botiquinArchivosRepository.findByInspeccion(id, empresaId)
+  ]);
 
   return {
     ...toSafeInspeccion({
@@ -410,7 +430,8 @@ async function actualizarInspeccion(id, payload, file, currentUser) {
       total_items: itemsCreados.length,
       total_items_malos: itemsCreados.filter((item) => item.estado === "malo").length
     }),
-    items: itemsCreados.map(toSafeItem)
+    items: itemsCreados.map(toSafeItem),
+    archivos: archivos.map(toSafeArchivo)
   };
 }
 
@@ -420,10 +441,14 @@ async function eliminarInspeccion(id, empresaId) {
     throw new HttpError(404, "Inspección de botiquín no encontrada");
   }
 
-  // botiquin_items tiene ON DELETE CASCADE, asi que los renglones se van con
-  // la cabecera sin borrarlos a mano.
+  // botiquin_items e inspeccion_botiquin_archivos tienen ON DELETE CASCADE,
+  // asi que sus filas se van con la cabecera -- los archivos en disco si
+  // hay que borrarlos a mano.
+  const archivos = await botiquinArchivosRepository.findByInspeccion(id, empresaId);
   await inspeccionesBotiquinRepository.remove(id, empresaId);
-  await eliminarArchivoAnterior(existente.archivo_url);
+  for (const archivo of archivos) {
+    await eliminarArchivoAnterior(archivo.archivo_url);
+  }
 }
 
 // ─────────────────────── Inspecciones de kit de herramientas ───────────────────────

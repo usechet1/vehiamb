@@ -6862,6 +6862,37 @@ button.record-link {
     margin-bottom: 8px;
 }
 
+/* Panel de edicion de botiquin: el checklist editable (radios + cantidad +
+   fecha por fila) no cabe en los 560px del detalle de solo lectura. */
+.detail-drawer.is-wide {
+    width: min(880px, 100vw);
+}
+
+.botiquin-archivos-lista {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 8px;
+    list-style: none;
+}
+
+.botiquin-archivos-lista li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.botiquin-archivos-lista .record-link {
+    margin-top: 0;
+}
+
+/* Adjunto marcado para quitar en el panel de edicion -- se borra recien al
+   guardar, asi "Cancelar"/"Deshacer" lo recuperan. */
+.botiquin-archivos-lista li.is-quitado a {
+    text-decoration: line-through;
+    opacity: 0.5;
+}
+
 .botiquin-estado {
     display: flex;
     gap: 12px;

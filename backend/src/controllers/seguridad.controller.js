@@ -42,12 +42,12 @@ exports.getInspeccionBotiquin = async (req, res) => {
 };
 
 exports.createInspeccionBotiquin = async (req, res) => {
-  const inspeccion = await seguridadService.crearInspeccion(req.body, req.file, req.user);
+  const inspeccion = await seguridadService.crearInspeccion(req.body, req.files, req.user);
   res.status(201).json(inspeccion);
 };
 
 exports.updateInspeccionBotiquin = async (req, res) => {
-  const inspeccion = await seguridadService.actualizarInspeccion(req.params.id, req.body, req.file, req.user);
+  const inspeccion = await seguridadService.actualizarInspeccion(req.params.id, req.body, req.files, req.user);
   res.json(inspeccion);
 };
 

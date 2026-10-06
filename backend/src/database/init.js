@@ -108,6 +108,27 @@ async function migrarLicenciasConductorATablaPropia() {
   await db.run("ALTER TABLE conductores DROP COLUMN licencia_archivo_mime");
 }
 
+// inspecciones_botiquin.archivo_url/nombre/mime (un solo adjunto por
+// inspeccion) se reemplazan por la tabla inspeccion_botiquin_archivos (N
+// adjuntos: foto del botiquin + formato firmado, etc.). Mismo criterio que
+// migrarLicenciasConductorATablaPropia: se pasa el adjunto existente a una
+// fila nueva y se eliminan las columnas viejas. En una instalacion nueva
+// las columnas nunca existieron y esto no hace nada.
+async function migrarArchivoBotiquinATablaPropia() {
+  if (!(await columnExists("inspecciones_botiquin", "archivo_url"))) return;
+
+  await db.run(`
+    INSERT INTO inspeccion_botiquin_archivos (inspeccion_id, archivo_url, archivo_nombre, archivo_mime, empresa_id)
+    SELECT id, archivo_url, archivo_nombre, archivo_mime, empresa_id
+    FROM inspecciones_botiquin
+    WHERE archivo_url IS NOT NULL
+  `);
+
+  await db.run("ALTER TABLE inspecciones_botiquin DROP COLUMN archivo_url");
+  await db.run("ALTER TABLE inspecciones_botiquin DROP COLUMN archivo_nombre");
+  await db.run("ALTER TABLE inspecciones_botiquin DROP COLUMN archivo_mime");
+}
+
 // "Quien entrega" / "quien recibe" el vehiculo dejo de limitarse al catalogo
 // de Conductores (cedula/licencia) y ahora puede ser cualquier usuario de la
 // empresa (un conductor le puede entregar el vehiculo a su jefe y viceversa).
@@ -1351,10 +1372,21 @@ async function ensurePostgresTables() {
       revisado_por_apellidos TEXT,
       revisado_por_cargo TEXT,
       observaciones TEXT,
-      archivo_url TEXT,
+      usuario_id BIGINT REFERENCES usuarios(id),
+      empresa_id BIGINT NOT NULL REFERENCES empresas(id),
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  // Soportes de una inspeccion de botiquin (foto del botiquin, formato
+  // firmado escaneado, etc.) -- N por inspeccion.
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS inspeccion_botiquin_archivos (
+      id BIGSERIAL PRIMARY KEY,
+      inspeccion_id BIGINT NOT NULL REFERENCES inspecciones_botiquin(id) ON DELETE CASCADE,
+      archivo_url TEXT NOT NULL,
       archivo_nombre TEXT,
       archivo_mime TEXT,
-      usuario_id BIGINT REFERENCES usuarios(id),
       empresa_id BIGINT NOT NULL REFERENCES empresas(id),
       creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
@@ -1476,6 +1508,7 @@ async function ensurePostgresTables() {
   await db.run("CREATE INDEX IF NOT EXISTS idx_inspecciones_botiquin_vehiculo_id ON inspecciones_botiquin (vehiculo_id, fecha DESC)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_inspecciones_botiquin_empresa_id ON inspecciones_botiquin (empresa_id, fecha DESC)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_botiquin_items_inspeccion_id ON botiquin_items (inspeccion_id)");
+  await db.run("CREATE INDEX IF NOT EXISTS idx_inspeccion_botiquin_archivos_inspeccion_id ON inspeccion_botiquin_archivos (inspeccion_id)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_inspecciones_herramientas_vehiculo_id ON inspecciones_herramientas (vehiculo_id, fecha DESC)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_inspecciones_herramientas_empresa_id ON inspecciones_herramientas (empresa_id, fecha DESC)");
   await db.run("CREATE INDEX IF NOT EXISTS idx_herramientas_items_inspeccion_id ON herramientas_items (inspeccion_id)");
@@ -1739,11 +1772,9 @@ ensurePostgresTables()
     ensureColumn("asignaciones_ruta", "observaciones", "TEXT"),
     ensureColumn("extintores", "libras", "NUMERIC(5,1)"),
     ensureColumn("extintores", "consecutivo", "INTEGER"),
-    ensureColumn("herramientas_items", "codigo", "TEXT"),
-    ensureColumn("inspecciones_botiquin", "archivo_url", "TEXT"),
-    ensureColumn("inspecciones_botiquin", "archivo_nombre", "TEXT"),
-    ensureColumn("inspecciones_botiquin", "archivo_mime", "TEXT")
+    ensureColumn("herramientas_items", "codigo", "TEXT")
   ]))
+  .then(migrarArchivoBotiquinATablaPropia)
   .then(backfillExtintoresConsecutivo)
   .then(migrarConductoresNombreSplit)
   .then(migrarEntregasConductorAUsuario)

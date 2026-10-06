@@ -29,8 +29,6 @@ const extintoresFilterForm = document.getElementById("extintoresFilterForm");
 
 // ── Botiquín ──
 const botiquinForm = document.getElementById("botiquinForm");
-const botiquinId = document.getElementById("botiquinId");
-const botiquinFormTitle = document.getElementById("botiquinFormTitle");
 const botiquinVehiculo = document.getElementById("botiquinVehiculo");
 const botiquinFecha = document.getElementById("botiquinFecha");
 const botiquinInspeccionado = document.getElementById("botiquinInspeccionado");
@@ -39,9 +37,7 @@ const botiquinRevisado = document.getElementById("botiquinRevisado");
 const botiquinChecklistBody = document.getElementById("botiquinChecklistBody");
 const botiquinObservaciones = document.getElementById("botiquinObservaciones");
 const botiquinArchivo = document.getElementById("botiquinArchivo");
-const botiquinArchivoActual = document.getElementById("botiquinArchivoActual");
 const botiquinCancelButton = document.getElementById("botiquinCancelButton");
-const botiquinSubmitButton = document.getElementById("botiquinSubmitButton");
 const botiquinMarcarTodoBueno = document.getElementById("botiquinMarcarTodoBueno");
 const registrarBotiquinSection = document.getElementById("registrarBotiquinSection");
 const botiquinTablaBody = document.getElementById("botiquinTablaBody");
@@ -76,6 +72,8 @@ const herramientasFilterForm = document.getElementById("herramientasFilterForm")
 const botiquinDrawer = document.getElementById("botiquinDrawer");
 const botiquinDrawerBackdrop = document.getElementById("botiquinDrawerBackdrop");
 const botiquinDrawerBody = document.getElementById("botiquinDrawerBody");
+const botiquinDrawerTitle = document.getElementById("botiquinDrawerTitle");
+const botiquinDrawerKicker = document.getElementById("botiquinDrawerKicker");
 const botiquinDrawerSubtitle = document.getElementById("botiquinDrawerSubtitle");
 const botiquinDrawerClose = document.getElementById("botiquinDrawerClose");
 const botiquinDrawerExportButton = document.getElementById("botiquinDrawerExportButton");
@@ -403,13 +401,16 @@ clearExtintoresFiltersButton?.addEventListener("click", () => {
 
 // ─────────────────────── Inspecciones de botiquín ───────────────────────
 
-function renderChecklist() {
+// tbody: el del formulario de alta (botiquinChecklistBody) o el del panel de
+// edicion -- cada uno vive dentro de su propio <form>, asi que los radios
+// "estado_<codigo>" no chocan entre si aunque compartan nombre.
+function renderChecklist(tbody = botiquinChecklistBody) {
     if (!catalogoBotiquin.length) {
-        botiquinChecklistBody.innerHTML = '<tr><td colspan="4" class="dash-empty">No fue posible cargar los insumos</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="dash-empty">No fue posible cargar los insumos</td></tr>';
         return;
     }
 
-    botiquinChecklistBody.innerHTML = catalogoBotiquin.map((item) => `
+    tbody.innerHTML = catalogoBotiquin.map((item) => `
         <tr data-item-codigo="${escapeHtml(item.codigo)}">
             <td>${escapeHtml(item.label)}</td>
             <td data-label="Estado">
@@ -425,11 +426,11 @@ function renderChecklist() {
     `).join("");
 }
 
-function leerChecklist() {
+function leerChecklist(tbody = botiquinChecklistBody) {
     return catalogoBotiquin.map((item) => {
-        const estadoInput = botiquinChecklistBody.querySelector(`input[name="estado_${CSS.escape(item.codigo)}"]:checked`);
-        const cantidadInput = botiquinChecklistBody.querySelector(`[data-cantidad="${CSS.escape(item.codigo)}"]`);
-        const vencimientoInput = botiquinChecklistBody.querySelector(`[data-vencimiento="${CSS.escape(item.codigo)}"]`);
+        const estadoInput = tbody.querySelector(`input[name="estado_${CSS.escape(item.codigo)}"]:checked`);
+        const cantidadInput = tbody.querySelector(`[data-cantidad="${CSS.escape(item.codigo)}"]`);
+        const vencimientoInput = tbody.querySelector(`[data-vencimiento="${CSS.escape(item.codigo)}"]`);
 
         return {
             item_codigo: item.codigo,
@@ -445,62 +446,60 @@ function leerChecklist() {
 // por defecto, esto solo pisa las que tengan un valor guardado distinto.
 // Un item que ya no existe en el catalogo actual (se quito despues de esa
 // inspeccion) simplemente no tiene fila que pisar, sin romper nada.
-function aplicarChecklist(items) {
+function aplicarChecklist(tbody, items) {
     (items || []).forEach((item) => {
-        const estadoInput = botiquinChecklistBody.querySelector(
+        const estadoInput = tbody.querySelector(
             `input[name="estado_${CSS.escape(item.item_codigo)}"][value="${CSS.escape(item.estado)}"]`
         );
         if (estadoInput) estadoInput.checked = true;
 
-        const cantidadInput = botiquinChecklistBody.querySelector(`[data-cantidad="${CSS.escape(item.item_codigo)}"]`);
+        const cantidadInput = tbody.querySelector(`[data-cantidad="${CSS.escape(item.item_codigo)}"]`);
         if (cantidadInput) cantidadInput.value = item.cantidad ?? "";
 
-        const vencimientoInput = botiquinChecklistBody.querySelector(`[data-vencimiento="${CSS.escape(item.item_codigo)}"]`);
+        const vencimientoInput = tbody.querySelector(`[data-vencimiento="${CSS.escape(item.item_codigo)}"]`);
         if (vencimientoInput) vencimientoInput.value = item.fecha_vencimiento || "";
     });
 }
 
 function resetBotiquinForm() {
     botiquinForm.reset();
-    botiquinId.value = "";
     renderChecklist();
     botiquinFecha.value = new Date().toISOString().slice(0, 10);
-    botiquinFormTitle.textContent = "Nueva inspección de botiquín";
-    botiquinSubmitButton.textContent = "Guardar inspección";
-    botiquinCancelButton.textContent = "Limpiar formulario";
-    botiquinArchivoActual.classList.add("hidden");
-    botiquinArchivoActual.innerHTML = "";
 }
 
-// Lleva una inspeccion ya guardada al formulario de arriba para editarla --
-// mismo formulario que "Nueva inspeccion", en modo edicion (botiquinId con
-// el id real hace que el submit haga PUT en vez de POST).
-function cargarInspeccionBotiquinEnFormulario(inspeccion) {
-    botiquinId.value = inspeccion.id;
-    botiquinVehiculo.value = inspeccion.vehiculo_id;
-    botiquinFecha.value = String(inspeccion.fecha || "").slice(0, 10);
-    seleccionarUsuarioPorNombre(botiquinInspeccionado, inspeccion.inspeccionado_por_nombres, inspeccion.inspeccionado_por_apellidos);
-    botiquinInspeccionadoCargo.value = inspeccion.inspeccionado_por_cargo || "";
-    seleccionarUsuarioPorNombre(botiquinRevisado, inspeccion.revisado_por_nombres, inspeccion.revisado_por_apellidos);
-    botiquinObservaciones.value = inspeccion.observaciones || "";
-    botiquinArchivo.value = "";
+function renderArchivosLista(archivos, { editable = false } = {}) {
+    if (!archivos?.length) return '<p class="field-help">Sin soportes adjuntos</p>';
 
-    renderChecklist();
-    aplicarChecklist(inspeccion.items);
+    return `
+        <ul class="botiquin-archivos-lista">
+            ${archivos.map((archivo) => `
+                <li data-archivo-id="${archivo.id}">
+                    <a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(archivo.archivo_url))}" target="_blank" rel="noreferrer">${escapeHtml(archivo.archivo_nombre) || "Ver archivo"}</a>
+                    ${editable ? `<button type="button" class="record-link btn-quitar-archivo" data-quitar-archivo="${archivo.id}">Quitar</button>` : ""}
+                </li>
+            `).join("")}
+        </ul>
+    `;
+}
 
-    if (inspeccion.archivo_url) {
-        botiquinArchivoActual.innerHTML = `Archivo actual: <a href="${escapeHtml(window.VehiAmb.api.getAssetUrl(inspeccion.archivo_url))}" target="_blank" rel="noreferrer">${escapeHtml(inspeccion.archivo_nombre) || "ver archivo"}</a> (sube uno nuevo para reemplazarlo)`;
-        botiquinArchivoActual.classList.remove("hidden");
-    } else {
-        botiquinArchivoActual.classList.add("hidden");
-        botiquinArchivoActual.innerHTML = "";
-    }
+// Arma el FormData comun a crear/editar a partir de los campos de un
+// formulario de inspeccion (el de alta o el del panel de edicion).
+function construirPayloadBotiquin({ vehiculo, fecha, inspeccionado, cargo, revisado, observaciones, tbody, archivosInput }) {
+    const { nombres: inspeccionadoNombres, apellidos: inspeccionadoApellidos } = leerUsuarioSeleccionado(inspeccionado);
+    const { nombres: revisadoNombres, apellidos: revisadoApellidos } = leerUsuarioSeleccionado(revisado);
 
-    botiquinFormTitle.textContent = "Editar inspección de botiquín";
-    botiquinSubmitButton.textContent = "Actualizar inspección";
-    botiquinCancelButton.textContent = "Cancelar edición";
-
-    registrarBotiquinSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    const payload = new FormData();
+    payload.set("vehiculo_id", vehiculo.value);
+    payload.set("fecha", fecha.value);
+    payload.set("inspeccionado_por_nombres", inspeccionadoNombres);
+    payload.set("inspeccionado_por_apellidos", inspeccionadoApellidos);
+    payload.set("inspeccionado_por_cargo", cargo.value.trim());
+    payload.set("revisado_por_nombres", revisadoNombres);
+    payload.set("revisado_por_apellidos", revisadoApellidos);
+    payload.set("observaciones", observaciones.value.trim());
+    payload.set("items", JSON.stringify(leerChecklist(tbody)));
+    Array.from(archivosInput.files || []).forEach((file) => payload.append("archivos", file));
+    return payload;
 }
 
 function renderInspecciones(inspecciones) {
@@ -549,34 +548,21 @@ async function cargarInspecciones() {
 botiquinForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    const { nombres: inspeccionadoNombres, apellidos: inspeccionadoApellidos } = leerUsuarioSeleccionado(botiquinInspeccionado);
-    const { nombres: revisadoNombres, apellidos: revisadoApellidos } = leerUsuarioSeleccionado(botiquinRevisado);
-
-    const payload = new FormData();
-    payload.set("vehiculo_id", botiquinVehiculo.value);
-    payload.set("fecha", botiquinFecha.value);
-    payload.set("inspeccionado_por_nombres", inspeccionadoNombres);
-    payload.set("inspeccionado_por_apellidos", inspeccionadoApellidos);
-    payload.set("inspeccionado_por_cargo", botiquinInspeccionadoCargo.value.trim());
-    payload.set("revisado_por_nombres", revisadoNombres);
-    payload.set("revisado_por_apellidos", revisadoApellidos);
-    payload.set("observaciones", botiquinObservaciones.value.trim());
-    payload.set("items", JSON.stringify(leerChecklist()));
-    if (botiquinArchivo.files?.[0]) {
-        payload.set("archivo", botiquinArchivo.files[0]);
-    }
+    const payload = construirPayloadBotiquin({
+        vehiculo: botiquinVehiculo,
+        fecha: botiquinFecha,
+        inspeccionado: botiquinInspeccionado,
+        cargo: botiquinInspeccionadoCargo,
+        revisado: botiquinRevisado,
+        observaciones: botiquinObservaciones,
+        tbody: botiquinChecklistBody,
+        archivosInput: botiquinArchivo
+    });
 
     try {
         window.VehiAmb.ui.show(loader);
-
-        if (botiquinId.value) {
-            await window.VehiAmb.api.actualizarInspeccionBotiquin(botiquinId.value, payload);
-            window.VehiAmb.ui.showMessage(mensaje, "Inspección de botiquín actualizada correctamente");
-        } else {
-            await window.VehiAmb.api.crearInspeccionBotiquin(payload);
-            window.VehiAmb.ui.showMessage(mensaje, "Inspección de botiquín registrada correctamente");
-        }
-
+        await window.VehiAmb.api.crearInspeccionBotiquin(payload);
+        window.VehiAmb.ui.showMessage(mensaje, "Inspección de botiquín registrada correctamente");
         resetBotiquinForm();
         await cargarInspecciones();
     } catch (error) {
@@ -595,9 +581,19 @@ botiquinMarcarTodoBueno?.addEventListener("click", () => {
     });
 });
 
+function mostrarDrawer() {
+    window.VehiAmb.ui.show(botiquinDrawer);
+    window.VehiAmb.ui.show(botiquinDrawerBackdrop);
+    botiquinDrawer.setAttribute("aria-hidden", "false");
+}
+
 function abrirDrawer(inspeccion) {
     inspeccionAbierta = inspeccion;
 
+    botiquinDrawer.classList.remove("is-wide");
+    botiquinDrawerKicker.textContent = "Detalle de la inspección";
+    botiquinDrawerTitle.textContent = "Inspección de botiquín";
+    botiquinDrawerExportButton.classList.remove("hidden");
     botiquinDrawerSubtitle.textContent = `${inspeccion.placa} — ${formatearFecha(inspeccion.fecha)}`;
 
     const responsable = `${inspeccion.inspeccionado_por_nombres || ""} ${inspeccion.inspeccionado_por_apellidos || ""}`.trim();
@@ -631,15 +627,158 @@ function abrirDrawer(inspeccion) {
 
         <dl class="detail-list drawer-detail-list">
             <div><dt>Observaciones generales</dt><dd>${inspeccion.observaciones ? escapeHtml(inspeccion.observaciones) : "Sin observaciones"}</dd></div>
-            <div><dt>Soporte</dt><dd>${inspeccion.archivo_url
-                ? `<a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(inspeccion.archivo_url))}" target="_blank" rel="noreferrer">${escapeHtml(inspeccion.archivo_nombre) || "Ver archivo"}</a>`
-                : "Sin soporte adjunto"}</dd></div>
+            <div><dt>Soportes</dt><dd>${renderArchivosLista(inspeccion.archivos)}</dd></div>
         </dl>
     `;
 
-    window.VehiAmb.ui.show(botiquinDrawer);
-    window.VehiAmb.ui.show(botiquinDrawerBackdrop);
-    botiquinDrawer.setAttribute("aria-hidden", "false");
+    mostrarDrawer();
+}
+
+// Edicion en el mismo panel lateral del detalle (no en el formulario de
+// alta de arriba, que puede estar colapsado). Selects de vehiculo/usuarios
+// se copian del formulario de alta para no volver a pedirlos al backend.
+function abrirDrawerEdicion(inspeccion) {
+    inspeccionAbierta = null;
+    const archivosAQuitar = new Set();
+
+    botiquinDrawer.classList.add("is-wide");
+    botiquinDrawerKicker.textContent = "Edición";
+    botiquinDrawerTitle.textContent = "Editar inspección de botiquín";
+    botiquinDrawerExportButton.classList.add("hidden");
+    botiquinDrawerSubtitle.textContent = `${inspeccion.placa} — ${formatearFecha(inspeccion.fecha)}`;
+
+    botiquinDrawerBody.innerHTML = `
+        <form id="botiquinEditForm" class="compact-form">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Vehículo</label>
+                    <select id="botiquinEditVehiculo" required>${botiquinVehiculo.innerHTML}</select>
+                </div>
+                <div class="form-group">
+                    <label>Fecha de la inspección</label>
+                    <input type="date" id="botiquinEditFecha" required>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Inspeccionado por</label>
+                    <select id="botiquinEditInspeccionado" required>${botiquinInspeccionado.innerHTML}</select>
+                </div>
+                <div class="form-group">
+                    <label>Cargo</label>
+                    <input type="text" id="botiquinEditCargo">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Revisado por</label>
+                <select id="botiquinEditRevisado">${botiquinRevisado.innerHTML}</select>
+            </div>
+
+            <div class="form-group">
+                <label>Contenido del botiquín</label>
+                <div class="botiquin-checklist-actions">
+                    <button type="button" class="btn-secondary" id="botiquinEditMarcarTodoBueno">Marcar todo como bueno</button>
+                </div>
+                <div class="table-scroll">
+                    <table class="import-table botiquin-checklist">
+                        <thead><tr><th>Insumo</th><th>Estado</th><th>Cantidad</th><th>Vencimiento (si aplica)</th></tr></thead>
+                        <tbody id="botiquinEditChecklistBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Observaciones generales</label>
+                <textarea id="botiquinEditObservaciones" rows="3" maxlength="1000"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Soportes</label>
+                <div id="botiquinEditArchivosActuales">${renderArchivosLista(inspeccion.archivos, { editable: true })}</div>
+                <input type="file" id="botiquinEditArchivosNuevos" multiple accept=".pdf,image/png,image/jpeg,image/webp">
+                <p class="field-help">Agrega uno o varios (foto y/o documento): PDF, PNG, JPG o WEBP hasta 5 MB cada uno.</p>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" id="botiquinEditCancelar">Cancelar</button>
+                <button type="submit" class="btn-primary">Guardar cambios</button>
+            </div>
+        </form>
+    `;
+
+    const form = document.getElementById("botiquinEditForm");
+    const campos = {
+        vehiculo: document.getElementById("botiquinEditVehiculo"),
+        fecha: document.getElementById("botiquinEditFecha"),
+        inspeccionado: document.getElementById("botiquinEditInspeccionado"),
+        cargo: document.getElementById("botiquinEditCargo"),
+        revisado: document.getElementById("botiquinEditRevisado"),
+        observaciones: document.getElementById("botiquinEditObservaciones"),
+        tbody: document.getElementById("botiquinEditChecklistBody"),
+        archivosInput: document.getElementById("botiquinEditArchivosNuevos")
+    };
+
+    campos.vehiculo.value = inspeccion.vehiculo_id;
+    campos.fecha.value = String(inspeccion.fecha || "").slice(0, 10);
+    seleccionarUsuarioPorNombre(campos.inspeccionado, inspeccion.inspeccionado_por_nombres, inspeccion.inspeccionado_por_apellidos);
+    campos.cargo.value = inspeccion.inspeccionado_por_cargo || "";
+    seleccionarUsuarioPorNombre(campos.revisado, inspeccion.revisado_por_nombres, inspeccion.revisado_por_apellidos);
+    campos.observaciones.value = inspeccion.observaciones || "";
+    renderChecklist(campos.tbody);
+    aplicarChecklist(campos.tbody, inspeccion.items);
+
+    document.getElementById("botiquinEditMarcarTodoBueno").addEventListener("click", () => {
+        campos.tbody.querySelectorAll('input[type="radio"][value="bueno"]').forEach((radio) => {
+            radio.checked = true;
+        });
+    });
+
+    // "Quitar" solo marca el adjunto (tachado) -- se borra de verdad al
+    // guardar, asi "Cancelar" lo deja como estaba.
+    document.getElementById("botiquinEditArchivosActuales").addEventListener("click", (event) => {
+        const boton = event.target.closest("[data-quitar-archivo]");
+        if (!boton) return;
+
+        const id = boton.dataset.quitarArchivo;
+        const item = boton.closest("li");
+        if (archivosAQuitar.has(id)) {
+            archivosAQuitar.delete(id);
+            item.classList.remove("is-quitado");
+            boton.textContent = "Quitar";
+        } else {
+            archivosAQuitar.add(id);
+            item.classList.add("is-quitado");
+            boton.textContent = "Deshacer";
+        }
+    });
+
+    document.getElementById("botiquinEditCancelar").addEventListener("click", cerrarDrawer);
+
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const payload = construirPayloadBotiquin(campos);
+        if (archivosAQuitar.size) {
+            payload.set("eliminar_archivos", JSON.stringify([...archivosAQuitar]));
+        }
+
+        try {
+            window.VehiAmb.ui.show(loader);
+            await window.VehiAmb.api.actualizarInspeccionBotiquin(inspeccion.id, payload);
+            window.VehiAmb.ui.showMessage(mensaje, "Inspección de botiquín actualizada correctamente");
+            cerrarDrawer();
+            await cargarInspecciones();
+        } catch (error) {
+            console.error(error);
+            window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo actualizar la inspección", "error");
+        } finally {
+            window.VehiAmb.ui.hide(loader);
+        }
+    });
+
+    mostrarDrawer();
 }
 
 function cerrarDrawer() {
@@ -687,7 +826,7 @@ botiquinTablaBody?.addEventListener("click", async (event) => {
         try {
             window.VehiAmb.ui.show(loader);
             const inspeccion = await window.VehiAmb.api.getInspeccionBotiquin(editarButtonInspeccion.dataset.editarInspeccion);
-            cargarInspeccionBotiquinEnFormulario(inspeccion);
+            abrirDrawerEdicion(inspeccion);
         } catch (error) {
             console.error(error);
             window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo cargar la inspección", "error");
@@ -712,7 +851,6 @@ botiquinTablaBody?.addEventListener("click", async (event) => {
         await window.VehiAmb.api.eliminarInspeccionBotiquin(eliminarButton.dataset.eliminarInspeccion);
         window.VehiAmb.ui.showMessage(mensaje, "Inspección eliminada correctamente");
         cerrarDrawer();
-        if (botiquinId.value === eliminarButton.dataset.eliminarInspeccion) resetBotiquinForm();
         await cargarInspecciones();
     } catch (error) {
         console.error(error);

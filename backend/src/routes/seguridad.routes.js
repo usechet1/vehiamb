@@ -21,7 +21,7 @@ router.get("/botiquin/:id", requirePermission("seguridad.view"), asyncHandler(se
 router.post(
   "/botiquin",
   requirePermission("seguridad.create"),
-  withMulterErrorHandling(uploadBotiquin.single("archivo"), "5MB"),
+  withMulterErrorHandling(uploadBotiquin.array("archivos", 10), "5MB"),
   asyncHandler(validateUpload),
   asyncHandler(compressImage),
   asyncHandler(seguridadController.createInspeccionBotiquin)
@@ -29,7 +29,7 @@ router.post(
 router.put(
   "/botiquin/:id",
   requirePermission("seguridad.create"),
-  withMulterErrorHandling(uploadBotiquin.single("archivo"), "5MB"),
+  withMulterErrorHandling(uploadBotiquin.array("archivos", 10), "5MB"),
   asyncHandler(validateUpload),
   asyncHandler(compressImage),
   asyncHandler(seguridadController.updateInspeccionBotiquin)
