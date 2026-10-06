@@ -26,6 +26,14 @@ router.post(
   asyncHandler(compressImage),
   asyncHandler(seguridadController.createInspeccionBotiquin)
 );
+router.put(
+  "/botiquin/:id",
+  requirePermission("seguridad.create"),
+  withMulterErrorHandling(uploadBotiquin.single("archivo"), "5MB"),
+  asyncHandler(validateUpload),
+  asyncHandler(compressImage),
+  asyncHandler(seguridadController.updateInspeccionBotiquin)
+);
 router.delete("/botiquin/:id", requirePermission("seguridad.delete"), asyncHandler(seguridadController.deleteInspeccionBotiquin));
 
 router.get("/herramientas/catalogo", requirePermission("seguridad.view"), asyncHandler(seguridadController.getCatalogoHerramientas));

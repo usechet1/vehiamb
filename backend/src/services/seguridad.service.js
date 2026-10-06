@@ -285,8 +285,13 @@ async function obtenerInspeccion(id, empresaId) {
   return { ...toSafeInspeccion(inspeccion), items: items.map(toSafeItem) };
 }
 
-async function crearInspeccion(payload, file, currentUser) {
-  const empresaId = currentUser.empresa_id;
+// Validaciones compartidas por crear/actualizar: vehiculo valido, nombres y
+// apellidos de quien inspecciona, y el checklist ya normalizado. El endpoint
+// es multipart/form-data (para poder adjuntar el archivo), asi que "items"
+// llega como texto JSON en vez de un array real (el body parser de Express
+// no lo decodifica, a diferencia del JSON plano de antes) -- se parsea aca
+// antes de normalizar.
+async function prepararDatosInspeccion(payload, empresaId) {
   const vehiculoId = payload.vehiculo_id ? Number(payload.vehiculo_id) : null;
   await asegurarVehiculo(vehiculoId, empresaId);
 
@@ -296,10 +301,6 @@ async function crearInspeccion(payload, file, currentUser) {
     throw new HttpError(400, "Los nombres y apellidos de quien inspecciona son obligatorios");
   }
 
-  // El endpoint ahora es multipart/form-data (para poder adjuntar el
-  // archivo), asi que "items" llega como texto JSON en vez de un array real
-  // (el body parser de Express no lo decodifica, a diferencia del JSON plano
-  // de antes) -- se parsea aca antes de normalizar.
   let itemsPayload = payload.items;
   if (typeof itemsPayload === "string") {
     try {
@@ -312,6 +313,13 @@ async function crearInspeccion(payload, file, currentUser) {
   const items = normalizarItemsChecklist(itemsPayload, ITEMS_POR_CODIGO, "botiquín", (item, catalogoItem) => ({
     fecha_vencimiento: fechaOpcional(item.fecha_vencimiento, `La fecha de vencimiento de "${catalogoItem.label}"`)
   }));
+
+  return { vehiculoId, nombres, apellidos, items };
+}
+
+async function crearInspeccion(payload, file, currentUser) {
+  const empresaId = currentUser.empresa_id;
+  const { vehiculoId, nombres, apellidos, items } = await prepararDatosInspeccion(payload, empresaId);
 
   const inspeccion = await inspeccionesBotiquinRepository.create({
     vehiculo_id: vehiculoId,
@@ -331,6 +339,70 @@ async function crearInspeccion(payload, file, currentUser) {
   });
 
   const itemsCreados = await botiquinItemsRepository.bulkCreate(inspeccion.id, items, empresaId);
+
+  return {
+    ...toSafeInspeccion({
+      ...inspeccion,
+      total_items: itemsCreados.length,
+      total_items_malos: itemsCreados.filter((item) => item.estado === "malo").length
+    }),
+    items: itemsCreados.map(toSafeItem)
+  };
+}
+
+// Un archivo nuevo reemplaza al anterior (y borra el viejo del disco);
+// "eliminar_archivo" lo quita sin reemplazo; si no llega ninguno de los
+// dos, se conserva el que ya tenia. El checklist siempre se reemplaza
+// completo (ver botiquinItemsRepository.removeByInspeccion) porque llega
+// entero desde el formulario, igual que al crear -- no hay items parciales
+// que conservar.
+async function actualizarInspeccion(id, payload, file, currentUser) {
+  const empresaId = currentUser.empresa_id;
+  const existente = await inspeccionesBotiquinRepository.findById(id, empresaId);
+  if (!existente) {
+    throw new HttpError(404, "Inspección de botiquín no encontrada");
+  }
+
+  const { vehiculoId, nombres, apellidos, items } = await prepararDatosInspeccion(payload, empresaId);
+
+  let archivoUrl = existente.archivo_url;
+  let archivoNombre = existente.archivo_nombre;
+  let archivoMime = existente.archivo_mime;
+  if (file) {
+    await eliminarArchivoAnterior(existente.archivo_url);
+    archivoUrl = `/uploads/botiquin/${file.filename}`;
+    archivoNombre = file.originalname;
+    archivoMime = file.mimetype;
+  } else if (payload.eliminar_archivo === "true") {
+    await eliminarArchivoAnterior(existente.archivo_url);
+    archivoUrl = null;
+    archivoNombre = null;
+    archivoMime = null;
+  }
+
+  const inspeccion = await inspeccionesBotiquinRepository.update(
+    id,
+    {
+      vehiculo_id: vehiculoId,
+      fecha: fechaObligatoria(payload.fecha, "La fecha de la inspección"),
+      inspeccionado_por_nombres: nombres,
+      inspeccionado_por_apellidos: apellidos,
+      inspeccionado_por_cargo: texto(payload.inspeccionado_por_cargo, 80),
+      revisado_por_nombres: texto(payload.revisado_por_nombres, 80),
+      revisado_por_apellidos: texto(payload.revisado_por_apellidos, 80),
+      revisado_por_cargo: texto(payload.revisado_por_cargo, 80),
+      observaciones: texto(payload.observaciones, 1000),
+      archivo_url: archivoUrl,
+      archivo_nombre: archivoNombre,
+      archivo_mime: archivoMime,
+      usuario_id: existente.usuario_id,
+      empresa_id: empresaId
+    },
+    empresaId
+  );
+
+  await botiquinItemsRepository.removeByInspeccion(id, empresaId);
+  const itemsCreados = await botiquinItemsRepository.bulkCreate(id, items, empresaId);
 
   return {
     ...toSafeInspeccion({
@@ -437,6 +509,7 @@ module.exports = {
   listarInspecciones,
   obtenerInspeccion,
   crearInspeccion,
+  actualizarInspeccion,
   eliminarInspeccion,
   listarInspeccionesHerramientas,
   obtenerInspeccionHerramientas,

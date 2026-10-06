@@ -142,11 +142,13 @@
                 <section class="section-card hidden" id="registrarBotiquinSection">
                     <details class="section-card-collapsible" open>
                         <summary class="section-card-head">
-                            <h2>Nueva inspección de botiquín</h2>
+                            <h2 id="botiquinFormTitle">Nueva inspección de botiquín</h2>
                             <p>Formato de inspección de botiquines de vehículos (SG-SST).</p>
                         </summary>
                         <div class="section-card-body">
                             <form id="botiquinForm" class="compact-form">
+                                <input type="hidden" id="botiquinId">
+
                                 <div class="form-grid">
                                     <div class="form-group">
                                         <label>Vehículo</label>
@@ -215,6 +217,7 @@
                                     <label>Soporte (opcional)</label>
                                     <input type="file" id="botiquinArchivo" accept=".pdf,image/png,image/jpeg,image/webp">
                                     <p class="field-help">Soporta PDF, PNG, JPG o WEBP hasta 5 MB. Ej: foto del botiquín o del formato firmado.</p>
+                                    <div id="botiquinArchivoActual" class="field-help hidden"></div>
                                 </div>
 
                                 <div class="form-actions">

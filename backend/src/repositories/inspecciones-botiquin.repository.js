@@ -78,6 +78,16 @@ async function create(inspeccion) {
   );
 }
 
+async function update(id, inspeccion, empresaId) {
+  const assignments = INSPECCION_FIELDS.map((field) => `${field} = ?`).join(", ");
+  const values = INSPECCION_FIELDS.map((field) => inspeccion[field] ?? null);
+
+  return db.get(
+    `UPDATE inspecciones_botiquin SET ${assignments} WHERE id = ? AND empresa_id = ? RETURNING *`,
+    [...values, id, empresaId]
+  );
+}
+
 async function remove(id, empresaId) {
   return db.run("DELETE FROM inspecciones_botiquin WHERE id = ? AND empresa_id = ?", [id, empresaId]);
 }
@@ -86,5 +96,6 @@ module.exports = {
   findAll,
   findById,
   create,
+  update,
   remove
 };

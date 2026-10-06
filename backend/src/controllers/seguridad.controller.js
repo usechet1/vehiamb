@@ -46,6 +46,11 @@ exports.createInspeccionBotiquin = async (req, res) => {
   res.status(201).json(inspeccion);
 };
 
+exports.updateInspeccionBotiquin = async (req, res) => {
+  const inspeccion = await seguridadService.actualizarInspeccion(req.params.id, req.body, req.file, req.user);
+  res.json(inspeccion);
+};
+
 exports.deleteInspeccionBotiquin = async (req, res) => {
   await seguridadService.eliminarInspeccion(req.params.id, req.empresaId);
   res.status(204).send();

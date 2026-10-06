@@ -1606,6 +1606,17 @@ window.VehiAmb.api = {
         );
     },
 
+    actualizarInspeccionBotiquin(id, payload) {
+        return requestJson(
+            `${window.VehiAmb.API_URL}/seguridad/botiquin/${id}`,
+            {
+                method: "PUT",
+                body: payload
+            },
+            "No se pudo actualizar la inspección de botiquín"
+        );
+    },
+
     eliminarInspeccionBotiquin(id) {
         return requestJson(
             `${window.VehiAmb.API_URL}/seguridad/botiquin/${id}`,

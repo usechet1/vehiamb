@@ -29,6 +29,8 @@ const extintoresFilterForm = document.getElementById("extintoresFilterForm");
 
 // ── Botiquín ──
 const botiquinForm = document.getElementById("botiquinForm");
+const botiquinId = document.getElementById("botiquinId");
+const botiquinFormTitle = document.getElementById("botiquinFormTitle");
 const botiquinVehiculo = document.getElementById("botiquinVehiculo");
 const botiquinFecha = document.getElementById("botiquinFecha");
 const botiquinInspeccionado = document.getElementById("botiquinInspeccionado");
@@ -37,7 +39,9 @@ const botiquinRevisado = document.getElementById("botiquinRevisado");
 const botiquinChecklistBody = document.getElementById("botiquinChecklistBody");
 const botiquinObservaciones = document.getElementById("botiquinObservaciones");
 const botiquinArchivo = document.getElementById("botiquinArchivo");
+const botiquinArchivoActual = document.getElementById("botiquinArchivoActual");
 const botiquinCancelButton = document.getElementById("botiquinCancelButton");
+const botiquinSubmitButton = document.getElementById("botiquinSubmitButton");
 const botiquinMarcarTodoBueno = document.getElementById("botiquinMarcarTodoBueno");
 const registrarBotiquinSection = document.getElementById("registrarBotiquinSection");
 const botiquinTablaBody = document.getElementById("botiquinTablaBody");
@@ -198,6 +202,19 @@ function splitNombreCompleto(nombreCompleto) {
 function leerUsuarioSeleccionado(select) {
     const usuario = usuariosState.find((candidato) => String(candidato.id) === select.value);
     return splitNombreCompleto(usuario?.nombre);
+}
+
+// Al editar, la inspeccion solo guardo nombres/apellidos como texto plano
+// (no el id del usuario que se eligio en su momento -- ver
+// leerUsuarioSeleccionado), asi que se busca "mejor esfuerzo" un usuario del
+// catalogo actual cuyo nombre completo coincida. Si no aparece (la cuenta se
+// desactivo, o el nombre no calza exacto), el select queda vacio y hay que
+// volver a elegirlo antes de poder guardar -- el campo sigue siendo
+// obligatorio.
+function seleccionarUsuarioPorNombre(select, nombres, apellidos) {
+    const nombreCompleto = `${nombres} ${apellidos}`.trim().toLowerCase();
+    const encontrado = usuariosState.find((usuario) => String(usuario.nombre || "").trim().toLowerCase() === nombreCompleto);
+    select.value = encontrado ? String(encontrado.id) : "";
 }
 
 // ───────────────────────────── Extintores ─────────────────────────────
@@ -423,10 +440,67 @@ function leerChecklist() {
     });
 }
 
+// Prellena el checklist al editar, a partir de los items ya guardados de
+// esa inspeccion -- renderChecklist() ya dejo todas las filas en "bueno"
+// por defecto, esto solo pisa las que tengan un valor guardado distinto.
+// Un item que ya no existe en el catalogo actual (se quito despues de esa
+// inspeccion) simplemente no tiene fila que pisar, sin romper nada.
+function aplicarChecklist(items) {
+    (items || []).forEach((item) => {
+        const estadoInput = botiquinChecklistBody.querySelector(
+            `input[name="estado_${CSS.escape(item.item_codigo)}"][value="${CSS.escape(item.estado)}"]`
+        );
+        if (estadoInput) estadoInput.checked = true;
+
+        const cantidadInput = botiquinChecklistBody.querySelector(`[data-cantidad="${CSS.escape(item.item_codigo)}"]`);
+        if (cantidadInput) cantidadInput.value = item.cantidad ?? "";
+
+        const vencimientoInput = botiquinChecklistBody.querySelector(`[data-vencimiento="${CSS.escape(item.item_codigo)}"]`);
+        if (vencimientoInput) vencimientoInput.value = item.fecha_vencimiento || "";
+    });
+}
+
 function resetBotiquinForm() {
     botiquinForm.reset();
+    botiquinId.value = "";
     renderChecklist();
     botiquinFecha.value = new Date().toISOString().slice(0, 10);
+    botiquinFormTitle.textContent = "Nueva inspección de botiquín";
+    botiquinSubmitButton.textContent = "Guardar inspección";
+    botiquinCancelButton.textContent = "Limpiar formulario";
+    botiquinArchivoActual.classList.add("hidden");
+    botiquinArchivoActual.innerHTML = "";
+}
+
+// Lleva una inspeccion ya guardada al formulario de arriba para editarla --
+// mismo formulario que "Nueva inspeccion", en modo edicion (botiquinId con
+// el id real hace que el submit haga PUT en vez de POST).
+function cargarInspeccionBotiquinEnFormulario(inspeccion) {
+    botiquinId.value = inspeccion.id;
+    botiquinVehiculo.value = inspeccion.vehiculo_id;
+    botiquinFecha.value = String(inspeccion.fecha || "").slice(0, 10);
+    seleccionarUsuarioPorNombre(botiquinInspeccionado, inspeccion.inspeccionado_por_nombres, inspeccion.inspeccionado_por_apellidos);
+    botiquinInspeccionadoCargo.value = inspeccion.inspeccionado_por_cargo || "";
+    seleccionarUsuarioPorNombre(botiquinRevisado, inspeccion.revisado_por_nombres, inspeccion.revisado_por_apellidos);
+    botiquinObservaciones.value = inspeccion.observaciones || "";
+    botiquinArchivo.value = "";
+
+    renderChecklist();
+    aplicarChecklist(inspeccion.items);
+
+    if (inspeccion.archivo_url) {
+        botiquinArchivoActual.innerHTML = `Archivo actual: <a href="${escapeHtml(window.VehiAmb.api.getAssetUrl(inspeccion.archivo_url))}" target="_blank" rel="noreferrer">${escapeHtml(inspeccion.archivo_nombre) || "ver archivo"}</a> (sube uno nuevo para reemplazarlo)`;
+        botiquinArchivoActual.classList.remove("hidden");
+    } else {
+        botiquinArchivoActual.classList.add("hidden");
+        botiquinArchivoActual.innerHTML = "";
+    }
+
+    botiquinFormTitle.textContent = "Editar inspección de botiquín";
+    botiquinSubmitButton.textContent = "Actualizar inspección";
+    botiquinCancelButton.textContent = "Cancelar edición";
+
+    registrarBotiquinSection.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function renderInspecciones(inspecciones) {
@@ -450,6 +524,7 @@ function renderInspecciones(inspecciones) {
                 <td>${malos > 0 ? `<span class="badge-rojo">${malos}</span>` : '<span class="badge-verde">0</span>'}</td>
                 <td class="table-actions">
                     <button type="button" class="btn-secondary" data-ver-inspeccion="${inspeccion.id}">Ver</button>
+                    ${puedeCrear() ? `<button type="button" class="btn-secondary" data-editar-inspeccion="${inspeccion.id}">Editar</button>` : ""}
                     ${puedeEliminar() ? `<button type="button" class="btn-secondary btn-danger" data-eliminar-inspeccion="${inspeccion.id}">Eliminar</button>` : ""}
                 </td>
             </tr>
@@ -493,8 +568,15 @@ botiquinForm?.addEventListener("submit", async (event) => {
 
     try {
         window.VehiAmb.ui.show(loader);
-        await window.VehiAmb.api.crearInspeccionBotiquin(payload);
-        window.VehiAmb.ui.showMessage(mensaje, "Inspección de botiquín registrada correctamente");
+
+        if (botiquinId.value) {
+            await window.VehiAmb.api.actualizarInspeccionBotiquin(botiquinId.value, payload);
+            window.VehiAmb.ui.showMessage(mensaje, "Inspección de botiquín actualizada correctamente");
+        } else {
+            await window.VehiAmb.api.crearInspeccionBotiquin(payload);
+            window.VehiAmb.ui.showMessage(mensaje, "Inspección de botiquín registrada correctamente");
+        }
+
         resetBotiquinForm();
         await cargarInspecciones();
     } catch (error) {
@@ -600,6 +682,21 @@ botiquinTablaBody?.addEventListener("click", async (event) => {
         return;
     }
 
+    const editarButtonInspeccion = event.target.closest("[data-editar-inspeccion]");
+    if (editarButtonInspeccion) {
+        try {
+            window.VehiAmb.ui.show(loader);
+            const inspeccion = await window.VehiAmb.api.getInspeccionBotiquin(editarButtonInspeccion.dataset.editarInspeccion);
+            cargarInspeccionBotiquinEnFormulario(inspeccion);
+        } catch (error) {
+            console.error(error);
+            window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo cargar la inspección", "error");
+        } finally {
+            window.VehiAmb.ui.hide(loader);
+        }
+        return;
+    }
+
     const eliminarButton = event.target.closest("[data-eliminar-inspeccion]");
     if (!eliminarButton) return;
 
@@ -615,6 +712,7 @@ botiquinTablaBody?.addEventListener("click", async (event) => {
         await window.VehiAmb.api.eliminarInspeccionBotiquin(eliminarButton.dataset.eliminarInspeccion);
         window.VehiAmb.ui.showMessage(mensaje, "Inspección eliminada correctamente");
         cerrarDrawer();
+        if (botiquinId.value === eliminarButton.dataset.eliminarInspeccion) resetBotiquinForm();
         await cargarInspecciones();
     } catch (error) {
         console.error(error);

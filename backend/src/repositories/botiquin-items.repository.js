@@ -37,4 +37,12 @@ async function findByInspeccion(inspeccionId, empresaId) {
   );
 }
 
-module.exports = { bulkCreate, findByInspeccion };
+// Usado al editar una inspeccion: se borran los renglones viejos y se
+// vuelven a crear con bulkCreate en vez de hacer un diff item por item --
+// el checklist siempre llega completo del formulario (igual que al crear),
+// asi que no hay nada que conservar de las filas anteriores.
+async function removeByInspeccion(inspeccionId, empresaId) {
+  return db.run("DELETE FROM botiquin_items WHERE inspeccion_id = ? AND empresa_id = ?", [inspeccionId, empresaId]);
+}
+
+module.exports = { bulkCreate, findByInspeccion, removeByInspeccion };
