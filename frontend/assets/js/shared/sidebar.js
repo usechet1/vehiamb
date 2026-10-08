@@ -634,7 +634,9 @@ function renderAppFooter() {
     const main = document.querySelector("main.content");
     if (!main || main.querySelector(".app-footer")) return;
 
+    main.classList.add("has-app-footer");
     main.insertAdjacentHTML("beforeend", `
+        <div class="app-footer-spacer" aria-hidden="true"></div>
         <footer class="app-footer">
             <p>© ${new Date().getFullYear()} Vehiamb. All rights reserved. Developed by usechet.</p>
         </footer>
