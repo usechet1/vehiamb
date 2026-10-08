@@ -625,9 +625,25 @@ async function setupEmpresaSwitcher(aside, user) {
     }
 }
 
+// Se inyecta desde aca (y no en cada HTML) porque sidebar.js ya lo cargan
+// todas las pantallas internas, que comparten el mismo <main class="content">.
+function renderAppFooter() {
+    const main = document.querySelector("main.content");
+    if (!main || main.querySelector(".app-footer")) return;
+
+    main.insertAdjacentHTML("beforeend", `
+        <footer class="app-footer">
+            <p>© ${new Date().getFullYear()} Vehiamb. All rights reserved.</p>
+            <p>Developed by usechet.</p>
+        </footer>
+    `);
+}
+
 async function cargarSidebar() {
     const aside = document.getElementById("sidebar");
     if (!aside) return;
+
+    renderAppFooter();
 
     try {
         const res = await fetch(`components/sidebar.html?v=${Date.now()}`, {

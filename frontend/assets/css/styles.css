@@ -159,6 +159,19 @@ label[for="loginPassword"] {
     padding: 12px clamp(22px, 4vw, 54px);
 }
 
+.app-footer {
+    margin-top: 48px;
+    padding: 18px 0 8px;
+    border-top: 1px solid var(--color-border);
+    color: var(--color-muted);
+    font-size: 0.78rem;
+    text-align: center;
+}
+
+.app-footer p + p {
+    margin-top: 2px;
+}
+
 .page-header,
 .dash-header {
     display: flex;
