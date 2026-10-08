@@ -92,8 +92,17 @@ a {
 .login-shell {
     min-height: 100vh;
     display: grid;
+    grid-template-rows: 1fr auto;
     place-items: center;
     padding: 24px;
+}
+
+/* En el login el footer va pegado al fondo de la pantalla (fila "auto" de
+   .login-shell), no despues del contenido como en las pantallas internas. */
+.login-shell .app-footer {
+    margin-top: 0;
+    padding-top: 12px;
+    border-top: none;
 }
 
 .login-panel {

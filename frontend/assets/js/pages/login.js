@@ -9,6 +9,8 @@ const togglePasswordButton = document.getElementById("togglePasswordButton");
 const iconEye = togglePasswordButton.querySelector(".icon-eye");
 const iconEyeOff = togglePasswordButton.querySelector(".icon-eye-off");
 
+document.getElementById("footerAnio").textContent = new Date().getFullYear();
+
 togglePasswordButton.addEventListener("click", () => {
     const isVisible = loginPassword.type === "text";
 
