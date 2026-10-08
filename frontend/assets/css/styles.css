@@ -177,10 +177,6 @@ label[for="loginPassword"] {
     text-align: center;
 }
 
-.app-footer p + p {
-    margin-top: 2px;
-}
-
 .page-header,
 .dash-header {
     display: flex;

@@ -636,8 +636,7 @@ function renderAppFooter() {
 
     main.insertAdjacentHTML("beforeend", `
         <footer class="app-footer">
-            <p>© ${new Date().getFullYear()} Vehiamb. All rights reserved.</p>
-            <p>Developed by usechet.</p>
+            <p>© ${new Date().getFullYear()} Vehiamb. All rights reserved. Developed by usechet.</p>
         </footer>
     `);
 }
