@@ -165,11 +165,20 @@ function fillVehicleSelect(select, vehiculos, placeholder = "Selecciona un vehí
     select.value = seleccionado;
 }
 
-function fillUserSelect(select, usuarios, placeholder = "Selecciona un usuario") {
+// "Revisado por" del botiquin admite TODOS (todo el equipo queda como
+// responsable). Se guarda como el texto "TODOS" en revisado_por_nombres --
+// no es un usuario real, asi que no tiene id del catalogo.
+const OPCION_TODOS = "__todos__";
+const TEXTO_TODOS = "TODOS";
+
+function fillUserSelect(select, usuarios, placeholder = "Selecciona un usuario", { incluirTodos = false } = {}) {
     if (!select) return;
 
     const seleccionado = select.value;
     select.innerHTML = `<option value="">${placeholder}</option>`;
+    if (incluirTodos) {
+        select.insertAdjacentHTML("beforeend", `<option value="${OPCION_TODOS}">${TEXTO_TODOS}</option>`);
+    }
 
     usuarios.forEach((usuario) => {
         const option = document.createElement("option");
@@ -198,6 +207,7 @@ function splitNombreCompleto(nombreCompleto) {
 // vacio simplemente devuelve nombres/apellidos vacios (el backend ya trata
 // esos campos como opcionales para revisado_por).
 function leerUsuarioSeleccionado(select) {
+    if (select.value === OPCION_TODOS) return { nombres: TEXTO_TODOS, apellidos: "" };
     const usuario = usuariosState.find((candidato) => String(candidato.id) === select.value);
     return splitNombreCompleto(usuario?.nombre);
 }
@@ -210,6 +220,10 @@ function leerUsuarioSeleccionado(select) {
 // volver a elegirlo antes de poder guardar -- el campo sigue siendo
 // obligatorio.
 function seleccionarUsuarioPorNombre(select, nombres, apellidos) {
+    if (nombres === TEXTO_TODOS && !apellidos && select.querySelector(`option[value="${OPCION_TODOS}"]`)) {
+        select.value = OPCION_TODOS;
+        return;
+    }
     const nombreCompleto = `${nombres} ${apellidos}`.trim().toLowerCase();
     const encontrado = usuariosState.find((usuario) => String(usuario.nombre || "").trim().toLowerCase() === nombreCompleto);
     select.value = encontrado ? String(encontrado.id) : "";
@@ -1180,7 +1194,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             usuariosState = await window.VehiAmb.api.getUsuariosCatalogo();
             fillUserSelect(botiquinInspeccionado, usuariosState);
             fillUserSelect(herramientasInspeccionado, usuariosState);
-            fillUserSelect(botiquinRevisado, usuariosState, "Sin revisar");
+            fillUserSelect(botiquinRevisado, usuariosState, "Sin revisar", { incluirTodos: true });
             fillUserSelect(herramientasRevisado, usuariosState, "Sin revisar");
 
             catalogoBotiquin = await window.VehiAmb.api.getCatalogoBotiquin();
