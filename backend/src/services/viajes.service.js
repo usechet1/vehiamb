@@ -245,6 +245,254 @@ async function listarRecientesEmpresa(empresaId, { fechaDesde, fechaHasta, condu
   });
 }
 
+// ── Resumen del dia (boton "Resumen del dia" de Viajes recientes) ──────────
+//
+// Agrupa los hallazgos de la jornada por TIPO (no item por item) para
+// responder "que esta fallando" sin abrir viaje por viaje. Un hallazgo es un
+// item de la inspeccion preventiva en estado "mal" o una pregunta del
+// preoperacional respondida "no" (ver los catalogos en inspecciones.service.js
+// y preoperacionales.service.js). Severidad: "critica" = impide operar
+// (llantas, luces, liquidos, condicion del conductor); "atencion" = hay que
+// resolverlo pero no detiene el vehiculo (kit, equipo, documentacion, etc.).
+const GRUPOS_HALLAZGO = {
+  llantas: { tipo: "Llantas", corto: "llantas", severidad: "critica" },
+  luces: { tipo: "Luces", corto: "luces", severidad: "critica" },
+  liquidos: { tipo: "Nivel de líquidos", corto: "líquidos", severidad: "critica" },
+  conductor: { tipo: "Condición del conductor", corto: "conductor", severidad: "critica" },
+  kit: { tipo: "Kit de herramientas", corto: "kit", severidad: "atencion" },
+  extintor: { tipo: "Extintor", corto: "extintor", severidad: "atencion" },
+  botiquin: { tipo: "Botiquín", corto: "botiquín", severidad: "atencion" },
+  documentacion: { tipo: "Documentación", corto: "documentos", severidad: "atencion" },
+  ruta: { tipo: "Conocimiento de la ruta", corto: "ruta", severidad: "atencion" },
+  comunicacion: { tipo: "Celular cargado", corto: "celular", severidad: "atencion" },
+  limpieza: { tipo: "Limpieza y orden", corto: "limpieza", severidad: "atencion" }
+};
+
+const GRUPO_POR_CODIGO_INSPECCION = {
+  aceite: "liquidos",
+  luces: "luces",
+  luces_traseras: "luces",
+  extintor: "extintor",
+  botiquin: "botiquin"
+};
+
+const GRUPO_POR_CODIGO_PREOPERACIONAL = {
+  descanso: "conductor",
+  libre_sustancias: "conductor",
+  estado_salud: "conductor",
+  licencia_conduccion: "documentacion",
+  cedula: "documentacion",
+  soat: "documentacion",
+  rtm: "documentacion",
+  conoce_ruta: "ruta",
+  celular_cargado: "comunicacion",
+  limpieza_orden: "limpieza"
+};
+
+const FECHA_ISO_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+function sumarDias(fechaIso, dias) {
+  const fecha = new Date(`${fechaIso}T00:00:00Z`);
+  fecha.setUTCDate(fecha.getUTCDate() + dias);
+  return fecha.toISOString().slice(0, 10);
+}
+
+function diasEntre(desde, hasta) {
+  return Math.round((Date.parse(`${hasta}T00:00:00Z`) - Date.parse(`${desde}T00:00:00Z`)) / 86400000);
+}
+
+// Sin filtro de fecha el resumen es el de HOY (calendario de Bogota). Con
+// solo "Desde" va hasta hoy; con solo "Hasta" se toma ese unico dia -- un
+// resumen "desde siempre" no tiene sentido para esta vista.
+function resolverRangoResumen({ fechaDesde, fechaHasta }) {
+  [fechaDesde, fechaHasta].forEach((fecha) => {
+    if (fecha && !FECHA_ISO_REGEX.test(fecha)) {
+      throw new HttpError(400, "Formato de fecha inválido (se espera AAAA-MM-DD)");
+    }
+  });
+
+  const hoy = hoyIso();
+  const desde = fechaDesde || fechaHasta || hoy;
+  const hasta = fechaHasta || (desde > hoy ? desde : hoy);
+  if (desde > hasta) {
+    throw new HttpError(400, "La fecha 'Desde' no puede ser posterior a 'Hasta'");
+  }
+  return { desde, hasta };
+}
+
+// Item de un catalogo que ya no existe (o de datos viejos sin codigo): se
+// agrupa solo, con su propio texto, en vez de perderse.
+function grupoFueraDeCatalogo(fuente, item) {
+  const etiqueta = item.item_label || item.item_codigo || "Otro";
+  return { clave: `${fuente}:${item.item_codigo || etiqueta}`, tipo: etiqueta, corto: etiqueta.toLowerCase(), severidad: "atencion" };
+}
+
+function grupoDeInspeccion(item) {
+  const codigo = String(item.item_codigo || "");
+  const clave = codigo.startsWith("llanta_")
+    ? "llantas"
+    : codigo.startsWith("kit_")
+      ? "kit"
+      : GRUPO_POR_CODIGO_INSPECCION[codigo];
+  return clave ? { clave, ...GRUPOS_HALLAZGO[clave] } : grupoFueraDeCatalogo("inspeccion", item);
+}
+
+function grupoDePreoperacional(item) {
+  const clave = GRUPO_POR_CODIGO_PREOPERACIONAL[String(item.item_codigo || "")];
+  return clave ? { clave, ...GRUPOS_HALLAZGO[clave] } : grupoFueraDeCatalogo("preoperacional", item);
+}
+
+// Un mismo item malo reportado en dos viajes del mismo vehiculo dentro del
+// rango cuenta UNA vez (es el mismo problema, no dos) -- por eso los
+// hallazgos se indexan por vehiculo + item, no por viaje.
+function consolidarViajes(viajes) {
+  const vehiculos = new Map();
+  const conductores = new Set();
+  const viajesSinPreoperacional = [];
+  let preoperacionalesHechos = 0;
+
+  for (const viaje of viajes) {
+    if (viaje.usuario_id !== null && viaje.usuario_id !== undefined) conductores.add(String(viaje.usuario_id));
+
+    const tienePreoperacional = viaje.preoperacional_id !== null && viaje.preoperacional_id !== undefined;
+    const tieneInspeccion = viaje.inspeccion_id !== null && viaje.inspeccion_id !== undefined;
+    if (tienePreoperacional) {
+      preoperacionalesHechos += 1;
+    } else {
+      viajesSinPreoperacional.push(viaje.id);
+    }
+
+    const vehiculoKey = String(viaje.vehiculo_id);
+    if (!vehiculos.has(vehiculoKey)) {
+      vehiculos.set(vehiculoKey, { vehiculoId: viaje.vehiculo_id, placa: viaje.vehiculo_placa || null, conRegistro: false, hallazgos: new Map() });
+    }
+    const vehiculo = vehiculos.get(vehiculoKey);
+    if (tienePreoperacional || tieneInspeccion) vehiculo.conRegistro = true;
+
+    (viaje.inspeccion_items || [])
+      .filter((item) => item.estado === "mal")
+      .forEach((item) => vehiculo.hallazgos.set(`inspeccion:${item.item_codigo || item.item_label}`, grupoDeInspeccion(item)));
+
+    (viaje.preoperacional_items || [])
+      .filter((item) => item.respuesta === "no")
+      .forEach((item) => vehiculo.hallazgos.set(`preoperacional:${item.item_codigo || item.item_label}`, grupoDePreoperacional(item)));
+  }
+
+  const porTipo = new Map();
+  const afectados = [];
+
+  for (const vehiculo of vehiculos.values()) {
+    if (!vehiculo.hallazgos.size) continue;
+
+    const gruposVehiculo = new Map();
+    for (const grupo of vehiculo.hallazgos.values()) {
+      const actual = gruposVehiculo.get(grupo.clave) || { ...grupo, cantidad: 0 };
+      actual.cantidad += 1;
+      gruposVehiculo.set(grupo.clave, actual);
+
+      const tipo = porTipo.get(grupo.clave) || { ...grupo, vehiculos: new Set(), hallazgos: 0 };
+      tipo.vehiculos.add(String(vehiculo.vehiculoId));
+      tipo.hallazgos += 1;
+      porTipo.set(grupo.clave, tipo);
+    }
+
+    const grupos = [...gruposVehiculo.values()].sort((a, b) =>
+      (a.severidad === "critica" ? 0 : 1) - (b.severidad === "critica" ? 0 : 1) || b.cantidad - a.cantidad
+    );
+
+    afectados.push({
+      vehiculoId: vehiculo.vehiculoId,
+      placa: vehiculo.placa,
+      tipos: grupos.map((grupo) => grupo.corto),
+      total: vehiculo.hallazgos.size,
+      severidad: grupos.some((grupo) => grupo.severidad === "critica") ? "critica" : "atencion",
+      kitIncompleto: gruposVehiculo.has("kit")
+    });
+  }
+
+  afectados.sort((a, b) => b.total - a.total || String(a.placa || "").localeCompare(String(b.placa || "")));
+
+  const hallazgosPorTipo = [...porTipo.values()]
+    .map((tipo) => ({
+      codigo: tipo.clave,
+      tipo: tipo.tipo,
+      corto: tipo.corto,
+      severidad: tipo.severidad,
+      vehiculos: tipo.vehiculos.size,
+      hallazgos: tipo.hallazgos
+    }))
+    .sort((a, b) =>
+      b.vehiculos - a.vehiculos ||
+      b.hallazgos - a.hallazgos ||
+      (a.severidad === "critica" ? 0 : 1) - (b.severidad === "critica" ? 0 : 1) ||
+      a.tipo.localeCompare(b.tipo)
+    );
+
+  const listaVehiculos = [...vehiculos.values()];
+  const sinNovedad = listaVehiculos.filter((vehiculo) => vehiculo.conRegistro && !vehiculo.hallazgos.size);
+  const kitIncompleto = afectados.filter((vehiculo) => vehiculo.kitIncompleto);
+
+  return {
+    totales: {
+      viajes: viajes.length,
+      conductores: conductores.size,
+      preoperacionalesHechos,
+      preoperacionalesEsperados: viajes.length,
+      hallazgos: afectados.reduce((total, vehiculo) => total + vehiculo.total, 0),
+      vehiculos: listaVehiculos.length,
+      vehiculosConHallazgos: afectados.length,
+      vehiculosKitIncompleto: kitIncompleto.length,
+      vehiculosSinNovedad: sinNovedad.length,
+      // Viajes sin inspeccion NI preoperacional: no son "sin novedad" (no
+      // hay con que afirmarlo) ni tienen hallazgos -- se reportan aparte.
+      vehiculosSinRegistro: listaVehiculos.filter((vehiculo) => !vehiculo.conRegistro).length
+    },
+    hallazgosPorTipo,
+    vehiculosAfectados: afectados,
+    // Ids para que cada metrica del panel filtre la lista de viajes.
+    filtros: {
+      conHallazgos: afectados.map((vehiculo) => vehiculo.vehiculoId),
+      kitIncompleto: kitIncompleto.map((vehiculo) => vehiculo.vehiculoId),
+      sinNovedad: sinNovedad.map((vehiculo) => vehiculo.vehiculoId),
+      sinPreoperacional: viajesSinPreoperacional
+    }
+  };
+}
+
+// Consolidado de la jornada (o del rango filtrado) para Administrador/
+// Operador. Respeta tambien los filtros de conductor/placa activos en la
+// pantalla, y compara contra el periodo inmediatamente anterior de la misma
+// duracion (ayer, si el rango es un solo dia).
+async function obtenerResumenDia(empresaId, currentUser, { fechaDesde, fechaHasta, conductorId, placa } = {}) {
+  if (currentUser?.rol === "Conductor") {
+    throw new HttpError(403, "No tienes permiso para ver el resumen de la empresa");
+  }
+
+  const { desde, hasta } = resolverRangoResumen({ fechaDesde, fechaHasta });
+  const anteriorHasta = sumarDias(desde, -1);
+  const anteriorDesde = sumarDias(anteriorHasta, -diasEntre(desde, hasta));
+
+  const [viajes, viajesAnteriores] = await Promise.all([
+    viajesRepository.findRecientesPorEmpresa(empresaId, { fechaDesde: desde, fechaHasta: hasta, conductorId, placa }),
+    viajesRepository.findRecientesPorEmpresa(empresaId, { fechaDesde: anteriorDesde, fechaHasta: anteriorHasta, conductorId, placa })
+  ]);
+
+  const actual = consolidarViajes(viajes);
+  const anterior = consolidarViajes(viajesAnteriores);
+
+  return {
+    rango: { desde, hasta, esHoy: desde === hasta && hasta === hoyIso() },
+    ...actual,
+    periodoAnterior: {
+      desde: anteriorDesde,
+      hasta: anteriorHasta,
+      viajes: anterior.totales.viajes,
+      hallazgos: anterior.totales.hallazgos,
+      vehiculos: anterior.totales.vehiculosConHallazgos
+    }
+  };
+}
+
 async function listarConductoresConViajes(empresaId) {
   return viajesRepository.findConductoresConViajes(empresaId);
 }
@@ -385,6 +633,7 @@ module.exports = {
   listarRecientes,
   listarPorVehiculo,
   listarRecientesEmpresa,
+  obtenerResumenDia,
   listarConductoresConViajes,
   obtenerUltimoViajeControl,
   obtenerAsignacionHoy,

@@ -7083,3 +7083,481 @@ button.record-link {
 .notif-comentarios-hilo .dash-empty {
     padding: 14px 12px;
 }
+
+/* ── Resumen del dia (Viajes recientes, ver mi-viaje.js) ─────────
+   Panel lateral en escritorio, modal centrado por debajo de 900px. Color
+   por severidad: rojo solo para lo que impide operar, ambar para lo que
+   requiere atencion; lo normal va neutro. */
+.resumen-dia-drawer {
+    width: min(720px, 100vw);
+}
+
+.resumen-dia-head-texto {
+    min-width: 0;
+}
+
+.resumen-dia-body {
+    container-type: inline-size;
+    gap: 20px;
+}
+
+.resumen-num {
+    font-variant-numeric: tabular-nums;
+}
+
+.detail-drawer-actions .resumen-dia-compartir {
+    gap: 6px;
+}
+
+.resumen-dia-compartir.is-copiado {
+    border-color: var(--color-success);
+    color: var(--color-success);
+}
+
+.detail-drawer-actions .resumen-dia-icon-btn {
+    width: 36px;
+    padding: 0;
+}
+
+.resumen-dia-drawer .btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.resumen-dia-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+.resumen-dia-metricas {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+@container (max-width: 560px) {
+    .resumen-dia-metricas {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@container (max-width: 300px) {
+    .resumen-dia-metricas {
+        grid-template-columns: 1fr;
+    }
+}
+
+.resumen-metrica {
+    display: grid;
+    align-content: start;
+    gap: 4px;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    text-align: left;
+    transition: var(--transition);
+}
+
+.resumen-metrica:hover:not(:disabled) {
+    border-color: var(--color-ink-soft);
+    box-shadow: 0 6px 16px rgba(24, 32, 43, 0.08);
+}
+
+.resumen-metrica:focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+}
+
+.resumen-metrica:disabled {
+    cursor: default;
+}
+
+.resumen-metrica.is-critica {
+    border-color: #f4c7cc;
+    background: #fdecee;
+}
+
+.resumen-metrica.is-critica .resumen-metrica-valor,
+.resumen-metrica.is-critica .resumen-metrica-nota {
+    color: var(--color-primary-dark);
+}
+
+.resumen-metrica.is-atencion {
+    border-color: #f1d79f;
+    background: var(--color-warning-bg);
+}
+
+.resumen-metrica.is-atencion .resumen-metrica-valor,
+.resumen-metrica.is-atencion .resumen-metrica-nota {
+    color: var(--color-warning);
+}
+
+.resumen-metrica-etiqueta {
+    overflow: hidden;
+    color: var(--color-ink-soft);
+    font-size: 0.84rem;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.resumen-metrica-valor {
+    font-size: 1.7rem;
+    font-weight: 750;
+    line-height: 1.1;
+}
+
+.resumen-metrica-valor .is-atencion {
+    color: var(--color-warning);
+}
+
+.resumen-metrica-de {
+    color: var(--color-muted);
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.resumen-metrica-nota {
+    color: var(--color-muted);
+    font-size: 0.78rem;
+}
+
+.resumen-metrica-nota.is-ok {
+    color: var(--color-success);
+    font-weight: 700;
+}
+
+.resumen-metrica-nota.is-atencion {
+    color: var(--color-warning);
+    font-weight: 700;
+}
+
+.resumen-dia-nota {
+    margin-top: -10px;
+    color: var(--color-muted);
+    font-size: 0.82rem;
+}
+
+.resumen-dia-bloque {
+    display: grid;
+    gap: 2px;
+}
+
+.resumen-dia-bloque h3 {
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-ink-soft);
+    font-size: 0.88rem;
+    font-weight: 650;
+}
+
+.resumen-tipos,
+.resumen-vehiculos {
+    display: grid;
+    list-style: none;
+}
+
+.resumen-tipo {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(60px, 110px) 56px;
+    align-items: center;
+    gap: 12px;
+    padding: 7px 2px;
+}
+
+.resumen-tipo-nombre {
+    overflow: hidden;
+    color: var(--color-ink);
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.resumen-tipo-barra {
+    height: 6px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #e6eaf0;
+}
+
+.resumen-tipo-barra > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+}
+
+.resumen-tipo-barra.is-critica > span {
+    background: #d9434f;
+}
+
+.resumen-tipo-barra.is-atencion > span {
+    background: #e59a2b;
+}
+
+.resumen-tipo-cantidad {
+    color: var(--color-muted);
+    font-size: 0.85rem;
+    text-align: right;
+}
+
+.resumen-ver-todos {
+    justify-self: start;
+    margin-top: 4px;
+}
+
+.resumen-vehiculo {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 4px;
+    border-bottom: 1px solid var(--color-border);
+    transition: var(--transition);
+}
+
+.resumen-vehiculos li:last-child .resumen-vehiculo {
+    border-bottom: 0;
+}
+
+.resumen-vehiculo:hover,
+.resumen-vehiculo:focus-visible {
+    background: var(--color-surface-2);
+}
+
+.resumen-vehiculo:focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: -2px;
+}
+
+.plate.resumen-plate {
+    min-width: 78px;
+    min-height: 26px;
+    padding: 2px 8px;
+    font-size: 0.86rem;
+}
+
+.resumen-vehiculo-tipos {
+    overflow: hidden;
+    color: var(--color-muted);
+    font-size: 0.86rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.resumen-badge {
+    min-width: 28px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-align: center;
+}
+
+.resumen-badge.is-critica {
+    background: #fff0f2;
+    color: var(--color-primary);
+}
+
+.resumen-badge.is-atencion {
+    background: var(--color-warning-bg);
+    color: var(--color-warning);
+}
+
+.resumen-dia-pie {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid var(--color-border);
+}
+
+.resumen-dia-comparacion {
+    color: var(--color-muted);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.btn-secondary.resumen-dia-programar {
+    min-height: 38px;
+    padding: 8px 14px;
+    font-size: 0.86rem;
+}
+
+.resumen-dia-positivo {
+    padding: 16px;
+    border-radius: var(--radius-md);
+    background: var(--color-success-bg);
+    color: var(--color-success);
+    font-weight: 700;
+}
+
+.resumen-dia-positivo.is-neutro {
+    background: var(--color-surface-2);
+    color: var(--color-ink-soft);
+}
+
+.resumen-dia-estado {
+    display: grid;
+    justify-items: start;
+    gap: 10px;
+    padding: 18px 0;
+    color: var(--color-ink-soft);
+}
+
+.resumen-dia-skeleton {
+    display: grid;
+    gap: 12px;
+}
+
+.resumen-skel {
+    display: block;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(90deg, #eef1f5 25%, #f7f9fb 50%, #eef1f5 75%);
+    background-size: 200% 100%;
+    animation: resumenSkel 1.2s ease-in-out infinite;
+}
+
+.resumen-skel-metrica {
+    height: 84px;
+}
+
+.resumen-skel-titulo {
+    width: 45%;
+    height: 14px;
+    margin-top: 8px;
+}
+
+.resumen-skel-fila {
+    height: 22px;
+}
+
+.resumen-skel-pie {
+    height: 38px;
+    margin-top: 8px;
+}
+
+@keyframes resumenSkel {
+    from {
+        background-position: 100% 0;
+    }
+    to {
+        background-position: -100% 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .resumen-skel {
+        animation: none;
+    }
+}
+
+/* Aviso sobre la lista cuando una metrica del resumen la esta filtrando. */
+.resumen-filtro-activo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 12px 0;
+    padding: 8px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-2);
+    color: var(--color-ink-soft);
+    font-size: 0.85rem;
+    font-weight: 650;
+}
+
+.resumen-filtro-activo .record-link {
+    margin-top: 0;
+}
+
+/* Cola de vehiculos que llegan a Mantenimientos desde el resumen. */
+.mnt-cola-resumen {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 10px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-2);
+}
+
+.mnt-cola-resumen-titulo {
+    color: var(--color-ink-soft);
+    font-size: 0.85rem;
+    font-weight: 650;
+}
+
+.mnt-cola-resumen-item {
+    padding: 2px;
+    border: 2px solid transparent;
+    border-radius: 7px;
+    background: none;
+}
+
+.mnt-cola-resumen-item .plate {
+    min-width: 0;
+    min-height: 26px;
+    padding: 2px 8px;
+    font-size: 0.86rem;
+}
+
+.mnt-cola-resumen-item.is-active {
+    border-color: var(--color-ink);
+}
+
+@media (max-width: 900px) {
+    .resumen-dia-drawer {
+        top: 12px;
+        right: 12px;
+        bottom: auto;
+        left: 12px;
+        width: auto;
+        height: auto;
+        max-height: calc(100vh - 24px);
+        max-height: calc(100dvh - 24px);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        animation: fadeIn 0.18s ease;
+    }
+}
+
+@media (max-width: 480px) {
+    .resumen-dia-drawer .detail-drawer-head {
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 16px;
+    }
+
+    .resumen-dia-drawer .detail-drawer-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .resumen-dia-body {
+        padding: 16px;
+    }
+
+    .resumen-dia-pie .resumen-dia-programar {
+        width: 100%;
+    }
+
+    .resumen-tipo {
+        grid-template-columns: minmax(0, 1fr) 64px 52px;
+        gap: 8px;
+    }
+}

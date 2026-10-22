@@ -49,12 +49,18 @@
                         <div class="filter-actions">
                             <span id="viajesFiltroSummary" class="field-help">Cargando...</span>
                             <div class="filter-actions-buttons">
+                                <button type="button" id="resumenDiaButton" class="btn-secondary" aria-haspopup="dialog" aria-controls="resumenDiaDrawer">Resumen del día</button>
                                 <button type="button" id="exportViajesPdfButton" class="btn-secondary btn-pdf">Exportar PDF</button>
                                 <button type="button" id="exportViajesExcelButton" class="btn-secondary btn-excel">Exportar Excel</button>
                                 <button type="button" id="viajesFiltroClearButton" class="btn-secondary">Limpiar filtros</button>
                             </div>
                         </div>
                     </form>
+
+                    <div id="viajesResumenFiltro" class="resumen-filtro-activo hidden" role="status">
+                        <span id="viajesResumenFiltroTexto"></span>
+                        <button type="button" id="viajesResumenFiltroQuitar" class="record-link">Quitar filtro</button>
+                    </div>
 
                     <div id="viajesEmpresaList" class="records-list">
                         <p class="dash-empty">Cargando...</p>
@@ -165,6 +171,28 @@
                     </div>
                 </div>
                 <div id="viajeDrawerBody" class="detail-drawer-body"></div>
+            </aside>
+
+            <div id="resumenDiaBackdrop" class="drawer-backdrop hidden"></div>
+            <aside id="resumenDiaDrawer" class="detail-drawer resumen-dia-drawer hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="resumenDiaTitle">
+                <div class="detail-drawer-head">
+                    <div class="resumen-dia-head-texto">
+                        <h2 id="resumenDiaTitle">Resumen del día</h2>
+                        <p id="resumenDiaSubtitle">Cargando...</p>
+                    </div>
+                    <div class="detail-drawer-actions">
+                        <button type="button" id="resumenDiaCompartir" class="btn-secondary resumen-dia-compartir" disabled>
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg>
+                            <span id="resumenDiaCompartirTexto">Compartir</span>
+                        </button>
+                        <button type="button" id="resumenDiaPdf" class="btn-secondary btn-pdf resumen-dia-icon-btn" aria-label="Exportar resumen a PDF" title="Exportar a PDF" disabled>
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="12" x2="12" y2="18"/><polyline points="9 15 12 18 15 15"/></svg>
+                        </button>
+                        <button type="button" id="closeResumenDia" class="drawer-close" aria-label="Cerrar resumen del día">×</button>
+                    </div>
+                </div>
+                <div id="resumenDiaBody" class="detail-drawer-body resumen-dia-body"></div>
+                <span id="resumenDiaLive" class="resumen-dia-sr" aria-live="polite"></span>
             </aside>
         </main>
     </div>

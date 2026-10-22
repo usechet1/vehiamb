@@ -431,6 +431,184 @@
         doc.save(buildFileName("pdf"));
     }
 
+    // ── PDF del "Resumen del dia" (panel de mi-viaje.js) ──────────────────
+    // Mismo encabezado (logo de la empresa + filtros) y mismo pie con el
+    // membrete que el reporte de viajes. Los textos que dependen de la fecha
+    // (titulo, subtitulo, comparacion) llegan ya armados desde mi-viaje.js
+    // para no duplicar aqui el formateo del panel.
+    const AMBAR_ATENCION = [161, 92, 9];
+    const AMBAR_FONDO = [255, 243, 218];
+    const GRIS_TEXTO = [105, 115, 134];
+    const TINTA = [24, 32, 43];
+
+    function colorSeveridad(severidad) {
+        return severidad === "critica" ? ROJO_MAL : AMBAR_ATENCION;
+    }
+
+    function addMetricasResumen(doc, layout, metricas) {
+        const gap = 10;
+        const alto = 56;
+        const ancho = (layout.pageWidth - MARGIN_X * 2 - gap * (metricas.length - 1)) / metricas.length;
+
+        metricas.forEach((metrica, index) => {
+            const x = MARGIN_X + index * (ancho + gap);
+            const fondo = metrica.tono === "critica" ? ROJO_MAL_FONDO : metrica.tono === "atencion" ? AMBAR_FONDO : [248, 250, 252];
+            doc.setFillColor(...fondo);
+            doc.setDrawColor(220, 226, 234);
+            doc.rect(x, layout.y, ancho, alto, metrica.tono ? "F" : "FD");
+
+            doc.setFontSize(8.5);
+            doc.setFont(undefined, "normal");
+            doc.setTextColor(...TINTA);
+            doc.text(metrica.etiqueta, x + 8, layout.y + 14);
+            doc.setFontSize(16);
+            doc.setFont(undefined, "bold");
+            doc.setTextColor(...(metrica.tono ? colorSeveridad(metrica.tono) : TINTA));
+            doc.text(metrica.valor, x + 8, layout.y + 34);
+            doc.setFontSize(8);
+            doc.setFont(undefined, "normal");
+            doc.setTextColor(...GRIS_TEXTO);
+            doc.text(doc.splitTextToSize(metrica.nota, ancho - 16)[0] || "", x + 8, layout.y + 48);
+        });
+
+        doc.setTextColor(...TINTA);
+        layout.y += alto + 24;
+    }
+
+    // Tabla simple con cifras alineadas a la derecha (align: "right" por
+    // columna) y color por severidad en la celda que se indique.
+    function addTablaResumen(doc, layout, bottomLimit, columnas, filas) {
+        let x = MARGIN_X;
+        const posicionadas = columnas.map((columna) => {
+            const positioned = { ...columna, x };
+            x += columna.width;
+            return positioned;
+        });
+
+        const textoEnColumna = (lineas, columna) => {
+            if (columna.align === "right") {
+                doc.text(lineas, columna.x + columna.width - 6, layout.y, { align: "right" });
+            } else {
+                doc.text(lineas, columna.x + 6, layout.y);
+            }
+        };
+
+        const encabezado = () => {
+            doc.setFontSize(8.5);
+            doc.setFont(undefined, "bold");
+            doc.setFillColor(248, 250, 252);
+            doc.rect(MARGIN_X, layout.y - 12, layout.pageWidth - MARGIN_X * 2, ROW_HEIGHT, "F");
+            posicionadas.forEach((columna) => textoEnColumna(columna.label, columna));
+            layout.y += 18;
+            doc.setFont(undefined, "normal");
+        };
+
+        encabezado();
+
+        filas.forEach((fila) => {
+            const lineas = posicionadas.map((columna, index) => doc.splitTextToSize(String(fila.celdas[index]), columna.width - 12));
+            const maxLines = Math.max(1, ...lineas.map((linea) => linea.length));
+            const rowHeight = Math.max(16, maxLines * ROW_LINE_HEIGHT + 4);
+
+            if (layout.y + rowHeight > bottomLimit) {
+                doc.addPage();
+                layout.y = 40;
+                encabezado();
+            }
+
+            doc.setFontSize(8.5);
+            posicionadas.forEach((columna, index) => {
+                const conColor = fila.severidad && index === fila.celdaSeveridad;
+                doc.setTextColor(...(conColor ? colorSeveridad(fila.severidad) : TINTA));
+                doc.setFont(undefined, conColor ? "bold" : "normal");
+                textoEnColumna(lineas[index], columna);
+            });
+            doc.setFont(undefined, "normal");
+            doc.setTextColor(...TINTA);
+
+            doc.setDrawColor(236, 240, 245);
+            doc.line(MARGIN_X, layout.y + rowHeight - 12, layout.pageWidth - MARGIN_X, layout.y + rowHeight - 12);
+            layout.y += rowHeight;
+        });
+
+        layout.y += 12;
+    }
+
+    function addLineaTexto(doc, layout, bottomLimit, texto, { color = GRIS_TEXTO, bold = false } = {}) {
+        const lineas = doc.splitTextToSize(texto, layout.pageWidth - MARGIN_X * 2);
+        if (layout.y + lineas.length * ROW_LINE_HEIGHT > bottomLimit) {
+            doc.addPage();
+            layout.y = 40;
+        }
+        doc.setFontSize(9);
+        doc.setFont(undefined, bold ? "bold" : "normal");
+        doc.setTextColor(...color);
+        doc.text(lineas, MARGIN_X, layout.y);
+        doc.setFont(undefined, "normal");
+        doc.setTextColor(...TINTA);
+        layout.y += lineas.length * ROW_LINE_HEIGHT + 8;
+    }
+
+    async function exportResumenDiaPdf(resumen, filtros, textos) {
+        if (!resumen || !resumen.totales?.viajes) {
+            throw new Error("No hay viajes registrados en este período");
+        }
+
+        const doc = await window.VehiAmb.pdfExport.createDocument({ orientation: "portrait" });
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const bottomLimit = doc.internal.pageSize.getHeight() - 130;
+        const branding = await window.VehiAmb.pdfExport.getEmpresaBranding();
+
+        let y = 40;
+        const layout = {
+            get y() { return y; },
+            set y(value) { y = value; },
+            pageWidth
+        };
+
+        await addHeader(doc, layout, filtros, resumen.totales.viajes, branding, textos.titulo);
+        addLineaTexto(doc, layout, bottomLimit, textos.subtitulo, { color: TINTA, bold: true });
+        layout.y += 4;
+        addMetricasResumen(doc, layout, textos.metricas);
+
+        if (textos.notaSinRegistro) {
+            addLineaTexto(doc, layout, bottomLimit, textos.notaSinRegistro);
+        }
+
+        if (resumen.hallazgosPorTipo.length) {
+            addSeccionTitulo(doc, layout, bottomLimit, { titulo: "Qué se está repitiendo", color: [238, 241, 245], subtitulo: "Agrupado por tipo de hallazgo" });
+            addTablaResumen(doc, layout, bottomLimit, [
+                { label: "Tipo de hallazgo", width: 245 },
+                { label: "Severidad", width: 120 },
+                { label: "Vehículos", width: 75, align: "right" },
+                { label: "Hallazgos", width: pageWidth - MARGIN_X * 2 - 440, align: "right" }
+            ], resumen.hallazgosPorTipo.map((tipo) => ({
+                celdas: [tipo.tipo, tipo.severidad === "critica" ? "Impide operar" : "Requiere atención", tipo.vehiculos, tipo.hallazgos],
+                severidad: tipo.severidad,
+                celdaSeveridad: 1
+            })));
+
+            addSeccionTitulo(doc, layout, bottomLimit, { titulo: "Vehículos que requieren atención", color: [238, 241, 245], subtitulo: "De mayor a menor cantidad de hallazgos" });
+            addTablaResumen(doc, layout, bottomLimit, [
+                { label: "Placa", width: 80 },
+                { label: "Tipos de hallazgo", width: pageWidth - MARGIN_X * 2 - 160 },
+                { label: "Hallazgos", width: 80, align: "right" }
+            ], resumen.vehiculosAfectados.map((vehiculo) => ({
+                celdas: [safe(vehiculo.placa, "Sin placa"), vehiculo.tipos.join(", "), vehiculo.total],
+                severidad: vehiculo.severidad,
+                celdaSeveridad: 2
+            })));
+        } else {
+            addLineaTexto(doc, layout, bottomLimit, textos.mensajeSinHallazgos, { color: [20, 122, 69], bold: true });
+        }
+
+        addLineaTexto(doc, layout, bottomLimit, textos.comparacion);
+
+        await addFooter(doc, branding);
+
+        doc.save(`Resumen_viajes_${resumen.rango.desde}${resumen.rango.hasta !== resumen.rango.desde ? `_a_${resumen.rango.hasta}` : ""}.pdf`);
+    }
+
     async function exportViajesExcel(items, filtros = {}) {
         if (!items || !items.length) {
             throw new Error("No hay viajes para exportar con los filtros actuales");
@@ -551,5 +729,5 @@
     }
 
     window.VehiAmb = window.VehiAmb || {};
-    window.VehiAmb.miViajeExport = { exportViajesPdf, exportViajesExcel };
+    window.VehiAmb.miViajeExport = { exportViajesPdf, exportViajesExcel, exportResumenDiaPdf };
 })();

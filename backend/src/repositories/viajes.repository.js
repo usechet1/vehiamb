@@ -67,6 +67,8 @@ async function findRecientesPorVehiculo(vehiculoId, empresaId, { limit = 10 } = 
 // para quedarse solo con la mas reciente de cada una, igual que ya hacen
 // inspeccionesRepository.findByViajeId/preoperacionalesRepository.findByViajeId
 // (ORDER BY id DESC LIMIT 1), y asi evitar que un viaje aparezca duplicado.
+// item_codigo va tambien en cada item para que el "Resumen del dia"
+// (viajes.service.js#obtenerResumenDia) agrupe por codigo y no por texto.
 async function findRecientesPorEmpresa(empresaId, { fechaDesde, fechaHasta, conductorId, placa, limit = 20 } = {}) {
   const conditions = ["v.empresa_id = ?"];
   const values = [empresaId];
@@ -106,7 +108,7 @@ async function findRecientesPorEmpresa(empresaId, { fechaDesde, fechaHasta, cond
         p.fecha AS preoperacional_fecha,
         p.observaciones AS preoperacional_observaciones,
         (
-          SELECT COALESCE(json_agg(jsonb_build_object('item_label', pi.item_label, 'respuesta', pi.respuesta, 'observacion', pi.observacion) ORDER BY pi.id), '[]'::json)
+          SELECT COALESCE(json_agg(jsonb_build_object('item_codigo', pi.item_codigo, 'item_label', pi.item_label, 'respuesta', pi.respuesta, 'observacion', pi.observacion) ORDER BY pi.id), '[]'::json)
           FROM preoperacional_items pi
           WHERE pi.preoperacional_id = p.id
         ) AS preoperacional_items,
@@ -114,7 +116,7 @@ async function findRecientesPorEmpresa(empresaId, { fechaDesde, fechaHasta, cond
         insp.fecha AS inspeccion_fecha,
         insp.observaciones AS inspeccion_observaciones,
         (
-          SELECT COALESCE(json_agg(jsonb_build_object('item_label', ii.item_label, 'estado', ii.estado, 'comentario', ii.comentario) ORDER BY ii.id), '[]'::json)
+          SELECT COALESCE(json_agg(jsonb_build_object('item_codigo', ii.item_codigo, 'item_label', ii.item_label, 'estado', ii.estado, 'comentario', ii.comentario) ORDER BY ii.id), '[]'::json)
           FROM inspeccion_items ii
           WHERE ii.inspeccion_id = insp.id
         ) AS inspeccion_items

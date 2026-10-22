@@ -11,6 +11,20 @@ const viajesFiltroClearButton = document.getElementById("viajesFiltroClearButton
 const exportViajesPdfButton = document.getElementById("exportViajesPdfButton");
 const exportViajesExcelButton = document.getElementById("exportViajesExcelButton");
 const viajesEmpresaList = document.getElementById("viajesEmpresaList");
+const viajesResumenFiltro = document.getElementById("viajesResumenFiltro");
+const viajesResumenFiltroTexto = document.getElementById("viajesResumenFiltroTexto");
+const viajesResumenFiltroQuitar = document.getElementById("viajesResumenFiltroQuitar");
+const resumenDiaButton = document.getElementById("resumenDiaButton");
+const resumenDiaDrawer = document.getElementById("resumenDiaDrawer");
+const resumenDiaBackdrop = document.getElementById("resumenDiaBackdrop");
+const resumenDiaTitle = document.getElementById("resumenDiaTitle");
+const resumenDiaSubtitle = document.getElementById("resumenDiaSubtitle");
+const resumenDiaBody = document.getElementById("resumenDiaBody");
+const resumenDiaCompartir = document.getElementById("resumenDiaCompartir");
+const resumenDiaCompartirTexto = document.getElementById("resumenDiaCompartirTexto");
+const resumenDiaPdf = document.getElementById("resumenDiaPdf");
+const resumenDiaLive = document.getElementById("resumenDiaLive");
+const closeResumenDia = document.getElementById("closeResumenDia");
 const controlViajeEmpty = document.getElementById("controlViajeEmpty");
 const controlViajeContent = document.getElementById("controlViajeContent");
 const controlPlaca = document.getElementById("controlPlaca");
@@ -592,8 +606,11 @@ async function openViajeResumen(viajeId) {
 closeViajeDrawer.addEventListener("click", closeViajeResumen);
 viajeDrawerBackdrop.addEventListener("click", closeViajeResumen);
 document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && !viajeDrawer.classList.contains("hidden")) {
+    if (event.key !== "Escape") return;
+    if (!viajeDrawer.classList.contains("hidden")) {
         closeViajeResumen();
+    } else if (!resumenDiaDrawer.classList.contains("hidden")) {
+        cerrarResumenDia();
     }
 });
 
@@ -643,6 +660,35 @@ async function cargarFiltrosViajesEmpresa() {
     }
 }
 
+// Filtro que aplica una metrica del "Resumen del dia" (ej. "Hallazgos") sobre
+// la lista ya cargada: se queda solo con los viajes de esos vehiculos (o de
+// esos viajes, para "sin preoperacional"). No va al backend -- los ids ya
+// vienen en el propio resumen -- y se descarta apenas cambia cualquier
+// filtro normal de la pantalla.
+let viajesFiltroResumen = null;
+
+function viajesVisibles() {
+    if (!viajesFiltroResumen) return viajesEmpresaState;
+    const { vehiculoIds, viajeIds } = viajesFiltroResumen;
+    return viajesEmpresaState.filter((viaje) =>
+        (!vehiculoIds || vehiculoIds.has(String(viaje.vehiculo_id))) &&
+        (!viajeIds || viajeIds.has(String(viaje.id)))
+    );
+}
+
+function pintarViajesEmpresa() {
+    const visibles = viajesVisibles();
+    const vacioHtml = viajesFiltroResumen
+        ? '<p class="dash-empty">Ningún viaje coincide con el filtro del resumen.</p>'
+        : '<p class="dash-empty">Todavía no hay viajes registrados por los conductores.</p>';
+
+    renderViajesList(visibles, viajesEmpresaList, vacioHtml, cargarViajesEmpresa);
+    updateViajesFiltroSummary(visibles.length);
+
+    viajesResumenFiltroTexto.textContent = viajesFiltroResumen ? `Filtro del resumen: ${viajesFiltroResumen.etiqueta}` : "";
+    viajesResumenFiltro.classList.toggle("hidden", !viajesFiltroResumen);
+}
+
 async function cargarViajesEmpresa() {
     const requestToken = ++viajesEmpresaRequestToken;
 
@@ -653,8 +699,7 @@ async function cargarViajesEmpresa() {
 
         viajesEmpresaSection.classList.remove("hidden");
         viajesEmpresaState = viajes || [];
-        renderViajesList(viajesEmpresaState, viajesEmpresaList, '<p class="dash-empty">Todavía no hay viajes registrados por los conductores.</p>', cargarViajesEmpresa);
-        updateViajesFiltroSummary(viajesEmpresaState.length);
+        pintarViajesEmpresa();
     } catch (error) {
         if (requestToken !== viajesEmpresaRequestToken) return;
 
@@ -685,15 +730,26 @@ async function cargarConductorViajesRecientes() {
 viajesEmpresaFilterForm.addEventListener("submit", (event) => event.preventDefault());
 
 [viajesFiltroDesde, viajesFiltroHasta, viajesFiltroConductor, viajesFiltroPlaca].forEach((input) => {
-    input.addEventListener("change", cargarViajesEmpresa);
+    input.addEventListener("change", () => {
+        viajesFiltroResumen = null;
+        cargarViajesEmpresa();
+    });
 });
 
-viajesFiltroClearButton.addEventListener("click", () => {
+function limpiarFiltrosViajes() {
     viajesFiltroDesde.value = "";
     viajesFiltroHasta.value = "";
     viajesFiltroConductor.value = "";
     viajesFiltroPlaca.value = "";
-    cargarViajesEmpresa();
+    viajesFiltroResumen = null;
+    return cargarViajesEmpresa();
+}
+
+viajesFiltroClearButton.addEventListener("click", limpiarFiltrosViajes);
+
+viajesResumenFiltroQuitar.addEventListener("click", () => {
+    viajesFiltroResumen = null;
+    pintarViajesEmpresa();
 });
 
 async function exportarViajes(boton, exportFn) {
@@ -702,7 +758,7 @@ async function exportarViajes(boton, exportFn) {
     boton.textContent = "Generando...";
 
     try {
-        await exportFn(viajesEmpresaState, currentViajesFilters());
+        await exportFn(viajesVisibles(), currentViajesFilters());
     } catch (error) {
         console.error(error);
         window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo exportar el historial de viajes", "error");
@@ -714,6 +770,477 @@ async function exportarViajes(boton, exportFn) {
 
 exportViajesPdfButton.addEventListener("click", () => exportarViajes(exportViajesPdfButton, window.VehiAmb.miViajeExport.exportViajesPdf));
 exportViajesExcelButton.addEventListener("click", () => exportarViajes(exportViajesExcelButton, window.VehiAmb.miViajeExport.exportViajesExcel));
+
+// ── Resumen del dia ───────────────────────────────────────────────────────
+// Consolidado de la jornada (o del rango filtrado) para no tener que abrir
+// viaje por viaje: que se esta repitiendo y que vehiculos requieren
+// atencion. Se calcula en el backend (GET /viajes/resumen-dia, ver
+// viajes.service.js#obtenerResumenDia) con los mismos filtros activos de la
+// lista; sin filtro de fecha, el backend usa el dia de hoy.
+const RESUMEN_TIPOS_VISIBLES = 6;
+const RESUMEN_TIPOS_POR_VEHICULO = 3;
+let resumenDiaState = null;
+let resumenDiaFiltros = null;
+let resumenDiaRequestToken = 0;
+let resumenDiaVerTodosTipos = false;
+let resumenDiaCopiadoTimer = null;
+
+function plural(cantidad, singular, pluralTexto) {
+    return `${cantidad} ${cantidad === 1 ? singular : pluralTexto}`;
+}
+
+function fechaIsoLocal(fechaIso) {
+    return new Date(`${fechaIso}T00:00:00`);
+}
+
+// "Jueves 22 de octubre" (sin la coma que mete es-CO entre dia y fecha).
+function formatFechaLarga(fechaIso) {
+    const fecha = fechaIsoLocal(fechaIso);
+    const texto = `${fecha.toLocaleDateString("es-CO", { weekday: "long" })} ${fecha.getDate()} de ${fecha.toLocaleDateString("es-CO", { month: "long" })}`;
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
+// "22 oct" o, con conDia, "jue 22 oct" -- para el texto de Compartir.
+function formatFechaCorta(fechaIso, { conDia = false } = {}) {
+    const fecha = fechaIsoLocal(fechaIso);
+    const mes = fecha.toLocaleDateString("es-CO", { month: "short" }).replace(".", "");
+    const dia = conDia ? `${fecha.toLocaleDateString("es-CO", { weekday: "short" }).replace(".", "")} ` : "";
+    return `${dia}${fecha.getDate()} ${mes}`;
+}
+
+function esRangoDeUnDia(rango) {
+    return rango.desde === rango.hasta;
+}
+
+function describirRangoResumen(rango, { corto = false } = {}) {
+    if (esRangoDeUnDia(rango)) {
+        return corto ? formatFechaCorta(rango.desde, { conDia: true }) : formatFechaLarga(rango.desde);
+    }
+    return `${formatFechaCorta(rango.desde)} – ${formatFechaCorta(rango.hasta)}`;
+}
+
+function tituloResumen(rango) {
+    return esRangoDeUnDia(rango) ? "Resumen del día" : "Resumen del período";
+}
+
+function textoComparacionResumen(resumen) {
+    const { rango, periodoAnterior } = resumen;
+    const etiqueta = esRangoDeUnDia(rango)
+        ? (rango.esHoy ? "Ayer" : `Día anterior (${formatFechaCorta(periodoAnterior.desde)})`)
+        : `Período anterior (${formatFechaCorta(periodoAnterior.desde)} – ${formatFechaCorta(periodoAnterior.hasta)})`;
+
+    if (!periodoAnterior.viajes) return `${etiqueta}: sin viajes registrados`;
+    if (!periodoAnterior.hallazgos) return `${etiqueta}: sin hallazgos en ${plural(periodoAnterior.viajes, "viaje", "viajes")}`;
+    return `${etiqueta}: ${plural(periodoAnterior.hallazgos, "hallazgo", "hallazgos")} en ${plural(periodoAnterior.vehiculos, "vehículo", "vehículos")}`;
+}
+
+function mensajeSinHallazgos(totales) {
+    return totales.vehiculosSinNovedad
+        ? "Todos los vehículos salieron sin novedades"
+        : "Ningún viaje del período tiene inspección ni preoperacional registrados";
+}
+
+function notaSinRegistro(totales) {
+    if (!totales.vehiculosSinRegistro) return "";
+    return `${plural(totales.vehiculosSinRegistro, "vehículo", "vehículos")} sin inspección ni preoperacional registrados (no se cuentan como "sin novedad").`;
+}
+
+// Tono de una metrica: rojo solo si algo impide operar, ambar si requiere
+// atencion, nada (neutro) si es normal -- ver reglas de color del panel.
+function metricasResumen(resumen) {
+    const totales = resumen.totales;
+    const faltan = totales.preoperacionalesEsperados - totales.preoperacionalesHechos;
+    const hayCriticos = resumen.vehiculosAfectados.some((vehiculo) => vehiculo.severidad === "critica");
+
+    return [
+        {
+            clave: "preoperacionales",
+            etiqueta: "Preoperacionales",
+            valor: `${totales.preoperacionalesHechos}/${totales.preoperacionalesEsperados}`,
+            valorHtml: `<span class="${faltan ? "is-atencion" : ""}">${totales.preoperacionalesHechos}</span><span class="resumen-metrica-de">/${totales.preoperacionalesEsperados}</span>`,
+            nota: faltan ? `${plural(faltan, "falta", "faltan")} por registrar` : "todos hechos",
+            notaClase: faltan ? "is-atencion" : "is-ok",
+            tono: "",
+            habilitada: true
+        },
+        {
+            clave: "hallazgos",
+            etiqueta: "Hallazgos",
+            valor: String(totales.hallazgos),
+            nota: totales.hallazgos ? `en ${plural(totales.vehiculosConHallazgos, "vehículo", "vehículos")}` : "ningún ítem en mal estado",
+            tono: totales.hallazgos ? (hayCriticos ? "critica" : "atencion") : "",
+            habilitada: totales.hallazgos > 0
+        },
+        {
+            clave: "kit",
+            etiqueta: "Kit incompleto",
+            valor: String(totales.vehiculosKitIncompleto),
+            nota: totales.vehiculosKitIncompleto === 1 ? "vehículo" : "vehículos",
+            tono: totales.vehiculosKitIncompleto ? "atencion" : "",
+            habilitada: totales.vehiculosKitIncompleto > 0
+        },
+        {
+            clave: "sinNovedad",
+            etiqueta: "Sin novedad",
+            valor: String(totales.vehiculosSinNovedad),
+            nota: totales.vehiculosSinNovedad === 1 ? "vehículo" : "vehículos",
+            tono: "",
+            habilitada: totales.vehiculosSinNovedad > 0
+        }
+    ];
+}
+
+function renderResumenMetricas(resumen) {
+    const tarjetas = metricasResumen(resumen).map((metrica) => `
+        <button type="button" class="resumen-metrica ${metrica.tono ? `is-${metrica.tono}` : ""}" data-resumen-metrica="${metrica.clave}" ${metrica.habilitada ? "" : "disabled"}
+            aria-label="${escapeHtml(`${metrica.etiqueta}: ${metrica.valor}, ${metrica.nota}${metrica.habilitada ? ". Filtrar la lista de viajes" : ""}`)}">
+            <span class="resumen-metrica-etiqueta">${escapeHtml(metrica.etiqueta)}</span>
+            <span class="resumen-metrica-valor resumen-num">${metrica.valorHtml || escapeHtml(metrica.valor)}</span>
+            <span class="resumen-metrica-nota ${metrica.notaClase || ""}">${escapeHtml(metrica.nota)}</span>
+        </button>
+    `).join("");
+
+    const nota = notaSinRegistro(resumen.totales);
+    return `
+        <div class="resumen-dia-metricas">${tarjetas}</div>
+        ${nota ? `<p class="resumen-dia-nota">${escapeHtml(nota)}</p>` : ""}
+    `;
+}
+
+function renderResumenTipos(resumen) {
+    const tipos = resumen.hallazgosPorTipo;
+    const maximo = Math.max(1, ...tipos.map((tipo) => tipo.vehiculos));
+    const visibles = resumenDiaVerTodosTipos ? tipos : tipos.slice(0, RESUMEN_TIPOS_VISIBLES);
+
+    return `
+        <section class="resumen-dia-bloque" aria-labelledby="resumenTiposTitulo">
+            <h3 id="resumenTiposTitulo">Qué se está repitiendo</h3>
+            <ul class="resumen-tipos">
+                ${visibles.map((tipo) => `
+                    <li class="resumen-tipo">
+                        <span class="resumen-tipo-nombre">${escapeHtml(tipo.tipo)}</span>
+                        <span class="resumen-tipo-barra is-${tipo.severidad}" aria-hidden="true"><span style="width: ${Math.round((tipo.vehiculos / maximo) * 100)}%"></span></span>
+                        <span class="resumen-num resumen-tipo-cantidad">${tipo.vehiculos} veh.</span>
+                    </li>
+                `).join("")}
+            </ul>
+            ${tipos.length > RESUMEN_TIPOS_VISIBLES
+                ? `<button type="button" class="record-link resumen-ver-todos" data-resumen-accion="ver-todos" aria-expanded="${resumenDiaVerTodosTipos}">${resumenDiaVerTodosTipos ? "Ver menos" : `Ver todos (${tipos.length})`}</button>`
+                : ""}
+        </section>
+    `;
+}
+
+function renderResumenVehiculos(resumen) {
+    return `
+        <section class="resumen-dia-bloque" aria-labelledby="resumenVehiculosTitulo">
+            <h3 id="resumenVehiculosTitulo">Vehículos que requieren atención</h3>
+            <ul class="resumen-vehiculos">
+                ${resumen.vehiculosAfectados.map((vehiculo) => {
+                    const tiposTexto = vehiculo.tipos.slice(0, RESUMEN_TIPOS_POR_VEHICULO).join(", ")
+                        + (vehiculo.tipos.length > RESUMEN_TIPOS_POR_VEHICULO ? "…" : "");
+                    return `
+                        <li>
+                            <a class="resumen-vehiculo" href="vehiculo.html?id=${encodeURIComponent(vehiculo.vehiculoId)}" title="${escapeHtml(vehiculo.tipos.join(", "))}">
+                                <span class="plate resumen-plate">${escapeHtml(vehiculo.placa) || "SIN PLACA"}</span>
+                                <span class="resumen-vehiculo-tipos">${escapeHtml(tiposTexto)}</span>
+                                <span class="resumen-badge resumen-num is-${vehiculo.severidad}" aria-label="${plural(vehiculo.total, "hallazgo", "hallazgos")}">${vehiculo.total}</span>
+                            </a>
+                        </li>
+                    `;
+                }).join("")}
+            </ul>
+        </section>
+    `;
+}
+
+function renderResumenPie(resumen) {
+    const puedeProgramar = window.VehiAmb.auth.hasPermission("maintenance.create") && resumen.vehiculosAfectados.length > 0;
+    const ids = resumen.vehiculosAfectados.map((vehiculo) => vehiculo.vehiculoId).join(",");
+
+    return `
+        <footer class="resumen-dia-pie">
+            <span class="resumen-dia-comparacion">${escapeHtml(textoComparacionResumen(resumen))}</span>
+            ${puedeProgramar ? `<a class="btn-secondary resumen-dia-programar" href="mantenimientos.html?vehiculos=${encodeURIComponent(ids)}">Programar mantenimientos →</a>` : ""}
+        </footer>
+    `;
+}
+
+function renderResumenSkeleton() {
+    const filas = (cantidad) => Array.from({ length: cantidad }, () => '<span class="resumen-skel resumen-skel-fila"></span>').join("");
+    return `
+        <div class="resumen-dia-skeleton" aria-hidden="true">
+            <div class="resumen-dia-metricas">${Array.from({ length: 4 }, () => '<span class="resumen-skel resumen-skel-metrica"></span>').join("")}</div>
+            <span class="resumen-skel resumen-skel-titulo"></span>
+            ${filas(4)}
+            <span class="resumen-skel resumen-skel-titulo"></span>
+            ${filas(3)}
+            <span class="resumen-skel resumen-skel-pie"></span>
+        </div>
+    `;
+}
+
+function hayFiltrosViajesActivos() {
+    const filtros = currentViajesFilters();
+    return Boolean(filtros.fecha_desde || filtros.fecha_hasta || filtros.conductor_id || filtros.placa);
+}
+
+function setAccionesResumenHabilitadas(habilitadas) {
+    resumenDiaCompartir.disabled = !habilitadas;
+    resumenDiaPdf.disabled = !habilitadas;
+}
+
+function renderResumenDia(resumen) {
+    const totales = resumen.totales;
+    resumenDiaTitle.textContent = tituloResumen(resumen.rango);
+
+    // Sin viajes no se muestran metricas en cero: solo el aviso.
+    if (!totales.viajes) {
+        resumenDiaSubtitle.textContent = describirRangoResumen(resumen.rango);
+        setAccionesResumenHabilitadas(false);
+        resumenDiaBody.innerHTML = `
+            <div class="resumen-dia-estado">
+                <p>No hay viajes registrados en este período.</p>
+                ${hayFiltrosViajesActivos() ? '<button type="button" class="btn-secondary" data-resumen-accion="limpiar">Limpiar filtros</button>' : ""}
+            </div>
+        `;
+        return;
+    }
+
+    resumenDiaSubtitle.textContent = `${describirRangoResumen(resumen.rango)} · ${plural(totales.viajes, "viaje", "viajes")} · ${plural(totales.conductores, "conductor", "conductores")}`;
+    setAccionesResumenHabilitadas(true);
+
+    resumenDiaBody.innerHTML = `
+        ${renderResumenMetricas(resumen)}
+        ${totales.hallazgos
+            ? `${renderResumenTipos(resumen)}${renderResumenVehiculos(resumen)}`
+            : `<div class="resumen-dia-positivo ${totales.vehiculosSinNovedad ? "" : "is-neutro"}" role="status">${escapeHtml(mensajeSinHallazgos(totales))}</div>`}
+        ${renderResumenPie(resumen)}
+    `;
+}
+
+function renderResumenError(error) {
+    resumenDiaSubtitle.textContent = "";
+    setAccionesResumenHabilitadas(false);
+    resumenDiaBody.innerHTML = `
+        <div class="resumen-dia-estado" role="alert">
+            <p>No se pudo cargar el resumen del día.</p>
+            ${error?.message && !error.message.startsWith("No se pudo cargar el resumen") ? `<p class="field-help">${escapeHtml(error.message)}</p>` : ""}
+            <button type="button" class="btn-secondary" data-resumen-accion="reintentar">Reintentar</button>
+        </div>
+    `;
+}
+
+async function cargarResumenDia() {
+    const requestToken = ++resumenDiaRequestToken;
+    resumenDiaFiltros = currentViajesFilters();
+    resumenDiaState = null;
+    resumenDiaVerTodosTipos = false;
+
+    resumenDiaTitle.textContent = "Resumen del día";
+    resumenDiaSubtitle.textContent = "Cargando...";
+    setAccionesResumenHabilitadas(false);
+    resumenDiaBody.setAttribute("aria-busy", "true");
+    resumenDiaBody.innerHTML = renderResumenSkeleton();
+
+    try {
+        const resumen = await window.VehiAmb.api.getResumenDiaViajes(resumenDiaFiltros);
+        if (requestToken !== resumenDiaRequestToken) return;
+        resumenDiaState = resumen;
+        renderResumenDia(resumen);
+    } catch (error) {
+        if (requestToken !== resumenDiaRequestToken) return;
+        console.error(error);
+        renderResumenError(error);
+    } finally {
+        if (requestToken === resumenDiaRequestToken) resumenDiaBody.removeAttribute("aria-busy");
+    }
+}
+
+function abrirResumenDia() {
+    window.VehiAmb.ui.show(resumenDiaBackdrop);
+    window.VehiAmb.ui.show(resumenDiaDrawer);
+    resumenDiaDrawer.setAttribute("aria-hidden", "false");
+    resumenDiaButton.setAttribute("aria-expanded", "true");
+    closeResumenDia.focus();
+    cargarResumenDia();
+}
+
+function cerrarResumenDia() {
+    window.VehiAmb.ui.hide(resumenDiaBackdrop);
+    window.VehiAmb.ui.hide(resumenDiaDrawer);
+    resumenDiaDrawer.setAttribute("aria-hidden", "true");
+    resumenDiaButton.setAttribute("aria-expanded", "false");
+    resumenDiaButton.focus();
+}
+
+// Cada metrica filtra la lista de abajo: primero se fija el mismo rango de
+// fechas del resumen (sin filtro de fecha la lista muestra "los mas
+// recientes", no los de hoy) y luego se aplica el filtro por ids.
+async function aplicarMetricaResumen(clave) {
+    const resumen = resumenDiaState;
+    if (!resumen) return;
+
+    const { filtros, rango, totales } = resumen;
+    const faltanPreoperacionales = totales.preoperacionalesEsperados - totales.preoperacionalesHechos;
+    const definiciones = {
+        preoperacionales: faltanPreoperacionales
+            ? { etiqueta: "viajes sin preoperacional", viajeIds: filtros.sinPreoperacional }
+            : null,
+        hallazgos: { etiqueta: "vehículos con hallazgos", vehiculoIds: filtros.conHallazgos },
+        kit: { etiqueta: "vehículos con kit incompleto", vehiculoIds: filtros.kitIncompleto },
+        sinNovedad: { etiqueta: "vehículos sin novedad", vehiculoIds: filtros.sinNovedad }
+    };
+    const definicion = definiciones[clave];
+
+    viajesFiltroDesde.value = rango.desde;
+    viajesFiltroHasta.value = rango.hasta;
+    viajesFiltroResumen = definicion
+        ? {
+            etiqueta: `${definicion.etiqueta} · ${describirRangoResumen(rango, { corto: true })}`,
+            vehiculoIds: definicion.vehiculoIds ? new Set(definicion.vehiculoIds.map(String)) : null,
+            viajeIds: definicion.viajeIds ? new Set(definicion.viajeIds.map(String)) : null
+        }
+        : null;
+
+    cerrarResumenDia();
+    await cargarViajesEmpresa();
+}
+
+// Texto plano listo para pegar en WhatsApp.
+function textoCompartirResumen(resumen) {
+    const totales = resumen.totales;
+    const faltan = totales.preoperacionalesEsperados - totales.preoperacionalesHechos;
+    const lineas = [
+        `Resumen VEHIAMB — ${describirRangoResumen(resumen.rango, { corto: true })}`,
+        `${plural(totales.viajes, "viaje", "viajes")} · ${plural(totales.preoperacionalesHechos, "preoperacional", "preoperacionales")}${faltan ? ` (${plural(faltan, "falta", "faltan")})` : ""}`
+    ];
+
+    if (totales.hallazgos) {
+        lineas.push(`${plural(totales.hallazgos, "hallazgo", "hallazgos")} en ${plural(totales.vehiculosConHallazgos, "vehículo", "vehículos")}`);
+        lineas.push(`Más repetido: ${resumen.hallazgosPorTipo.slice(0, 3).map((tipo) => `${tipo.corto} (${tipo.vehiculos})`).join(", ")}`);
+        lineas.push(`Requieren atención: ${resumen.vehiculosAfectados.slice(0, 3).map((vehiculo) => `${vehiculo.placa || "SIN PLACA"} (${vehiculo.total})`).join(", ")}`);
+    } else {
+        lineas.push(mensajeSinHallazgos(totales));
+    }
+
+    if (totales.vehiculosSinRegistro) {
+        lineas.push(`Sin registrar: ${plural(totales.vehiculosSinRegistro, "vehículo", "vehículos")} sin inspección ni preoperacional`);
+    }
+
+    return lineas.join("\n");
+}
+
+// navigator.clipboard solo existe en contexto seguro (https o localhost) --
+// el servidor de produccion se abre por http en la red local, asi que hace
+// falta el respaldo con execCommand.
+async function copiarAlPortapapeles(texto) {
+    if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(texto);
+        return;
+    }
+
+    const area = document.createElement("textarea");
+    area.value = texto;
+    area.setAttribute("readonly", "");
+    area.style.position = "fixed";
+    area.style.top = "0";
+    area.style.opacity = "0";
+    resumenDiaDrawer.appendChild(area);
+    area.select();
+    const copiado = document.execCommand("copy");
+    area.remove();
+    if (!copiado) throw new Error("El navegador no permitió copiar al portapapeles");
+}
+
+resumenDiaCompartir.addEventListener("click", async () => {
+    if (!resumenDiaState) return;
+
+    try {
+        await copiarAlPortapapeles(textoCompartirResumen(resumenDiaState));
+        resumenDiaCompartir.focus();
+        resumenDiaCompartir.classList.add("is-copiado");
+        resumenDiaCompartirTexto.textContent = "Copiado";
+        resumenDiaLive.textContent = "Resumen copiado al portapapeles";
+        clearTimeout(resumenDiaCopiadoTimer);
+        resumenDiaCopiadoTimer = setTimeout(() => {
+            resumenDiaCompartir.classList.remove("is-copiado");
+            resumenDiaCompartirTexto.textContent = "Compartir";
+            resumenDiaLive.textContent = "";
+        }, 2500);
+    } catch (error) {
+        console.error(error);
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo copiar el resumen", "error");
+    }
+});
+
+resumenDiaPdf.addEventListener("click", async () => {
+    const resumen = resumenDiaState;
+    if (!resumen) return;
+
+    resumenDiaPdf.disabled = true;
+    try {
+        await window.VehiAmb.miViajeExport.exportResumenDiaPdf(
+            resumen,
+            { ...resumenDiaFiltros, fecha_desde: resumen.rango.desde, fecha_hasta: resumen.rango.hasta },
+            {
+                titulo: tituloResumen(resumen.rango),
+                subtitulo: resumenDiaSubtitle.textContent,
+                metricas: metricasResumen(resumen),
+                notaSinRegistro: notaSinRegistro(resumen.totales),
+                mensajeSinHallazgos: mensajeSinHallazgos(resumen.totales),
+                comparacion: textoComparacionResumen(resumen)
+            }
+        );
+    } catch (error) {
+        console.error(error);
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo exportar el resumen", "error");
+    } finally {
+        resumenDiaPdf.disabled = false;
+    }
+});
+
+resumenDiaBody.addEventListener("click", (event) => {
+    const metrica = event.target.closest("[data-resumen-metrica]");
+    if (metrica && !metrica.disabled) {
+        aplicarMetricaResumen(metrica.dataset.resumenMetrica);
+        return;
+    }
+
+    const accion = event.target.closest("[data-resumen-accion]")?.dataset.resumenAccion;
+    if (accion === "ver-todos" && resumenDiaState) {
+        resumenDiaVerTodosTipos = !resumenDiaVerTodosTipos;
+        renderResumenDia(resumenDiaState);
+        resumenDiaBody.querySelector('[data-resumen-accion="ver-todos"]')?.focus();
+    } else if (accion === "reintentar") {
+        cargarResumenDia();
+    } else if (accion === "limpiar") {
+        limpiarFiltrosViajes();
+        cargarResumenDia();
+    }
+});
+
+// El panel es modal (aria-modal): Tab no debe escaparse a la pagina de atras.
+resumenDiaDrawer.addEventListener("keydown", (event) => {
+    if (event.key !== "Tab") return;
+    const enfocables = Array.from(resumenDiaDrawer.querySelectorAll("button:not([disabled]), a[href]"))
+        .filter((elemento) => elemento.offsetParent !== null);
+    if (!enfocables.length) return;
+
+    const primero = enfocables[0];
+    const ultimo = enfocables[enfocables.length - 1];
+    if (event.shiftKey && document.activeElement === primero) {
+        event.preventDefault();
+        ultimo.focus();
+    } else if (!event.shiftKey && document.activeElement === ultimo) {
+        event.preventDefault();
+        primero.focus();
+    }
+});
+
+resumenDiaButton.addEventListener("click", abrirResumenDia);
+closeResumenDia.addEventListener("click", cerrarResumenDia);
+resumenDiaBackdrop.addEventListener("click", cerrarResumenDia);
 
 function ocultarOfflineBanner() {
     window.VehiAmb.ui.hide(offlineBanner);

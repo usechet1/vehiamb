@@ -36,6 +36,12 @@ exports.getRecientesEmpresa = async (req, res) => {
   res.json(viajes);
 };
 
+exports.getResumenDia = async (req, res) => {
+  const { fecha_desde: fechaDesde, fecha_hasta: fechaHasta, conductor_id: conductorId, placa } = req.query;
+  const resumen = await viajesService.obtenerResumenDia(req.empresaId, req.user, { fechaDesde, fechaHasta, conductorId, placa });
+  res.json(resumen);
+};
+
 exports.getConductoresConViajes = async (req, res) => {
   const conductores = await viajesService.listarConductoresConViajes(req.empresaId);
   res.json(conductores);

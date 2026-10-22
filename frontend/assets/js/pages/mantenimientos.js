@@ -1686,6 +1686,48 @@ async function applyMaintenanceFilters() {
     }
 }
 
+// Cola de vehiculos que llegan desde "Programar mantenimientos" del Resumen
+// del dia (mi-viaje.js) como ?vehiculos=1,2,3: el formulario sigue siendo de
+// un vehiculo a la vez, asi que se preselecciona el primero pendiente y, al
+// guardar, se pasa al siguiente en vez de saltar al historial.
+let colaMantenimientoResumen = (new URLSearchParams(window.location.search).get("vehiculos") || "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
+const mntColaResumen = document.getElementById("mntColaResumen");
+
+function renderColaMantenimientoResumen() {
+    if (!mntColaResumen) return;
+
+    const pendientes = colaMantenimientoResumen
+        .map((id) => vehiculosState.find((vehiculo) => String(vehiculo.id) === id))
+        .filter(Boolean);
+    colaMantenimientoResumen = pendientes.map((vehiculo) => String(vehiculo.id));
+
+    if (!pendientes.length) {
+        mntColaResumen.classList.add("hidden");
+        mntColaResumen.innerHTML = "";
+        return;
+    }
+
+    mntColaResumen.innerHTML = `
+        <span class="mnt-cola-resumen-titulo">Pendientes del resumen del día (${pendientes.length}):</span>
+        ${pendientes.map((vehiculo) => `
+            <button type="button" class="mnt-cola-resumen-item ${String(vehiculo.id) === mantenimientoSelect.value ? "is-active" : ""}" data-cola-vehiculo="${escapeHtml(vehiculo.id)}" aria-pressed="${String(vehiculo.id) === mantenimientoSelect.value}">
+                <span class="plate">${escapeHtml(vehiculo.placa) || "SIN PLACA"}</span>
+            </button>
+        `).join("")}
+    `;
+    mntColaResumen.classList.remove("hidden");
+}
+
+mntColaResumen?.addEventListener("click", (event) => {
+    const boton = event.target.closest("[data-cola-vehiculo]");
+    if (!boton) return;
+    mantenimientoSelect.value = boton.dataset.colaVehiculo;
+    mantenimientoSelect.dispatchEvent(new Event("change"));
+});
+
 async function cargarDatos() {
     try {
         window.VehiAmb.ui.show(loader);
@@ -1698,6 +1740,12 @@ async function cargarDatos() {
         if (vehiculoPreseleccionado && Array.from(mantenimientoSelect.options).some((option) => option.value === vehiculoPreseleccionado)) {
             mantenimientoSelect.value = vehiculoPreseleccionado;
         }
+
+        const siguienteDeCola = colaMantenimientoResumen.find((id) => Array.from(mantenimientoSelect.options).some((option) => option.value === id));
+        if (siguienteDeCola) {
+            mantenimientoSelect.value = siguienteDeCola;
+        }
+        renderColaMantenimientoResumen();
 
         updateKilometrajeValidation();
     } catch (error) {
@@ -1747,6 +1795,8 @@ mantenimientoForm.addEventListener("submit", async (event) => {
     try {
         window.VehiAmb.ui.show(loader);
         const creado = await window.VehiAmb.api.createMantenimiento(formData);
+        const vehiculoGuardado = String(formData.get("vehiculo_id") || "");
+        colaMantenimientoResumen = colaMantenimientoResumen.filter((id) => id !== vehiculoGuardado);
 
         if (creado.advertenciasStock?.length) {
             window.VehiAmb.ui.showMessage(mensaje, `Mantenimiento guardado. Aviso: ${creado.advertenciasStock.join(" · ")}`, "error");
@@ -1766,7 +1816,7 @@ mantenimientoForm.addEventListener("submit", async (event) => {
         updateCostoTotal();
         updateCambioAceiteFields();
         await cargarDatos();
-        switchTab("historial");
+        switchTab(colaMantenimientoResumen.length ? "registrar" : "historial");
     } catch (error) {
         console.error(error);
         window.VehiAmb.ui.showMessage(mensaje, error.message || "Error al guardar el mantenimiento", "error");
@@ -1778,6 +1828,7 @@ mantenimientoForm.addEventListener("submit", async (event) => {
 mantenimientoSelect.addEventListener("change", () => {
     updateKilometrajeValidation();
     cargarRepuestosSugeridos();
+    renderColaMantenimientoResumen();
 });
 
 // Filtra las opciones del select por texto (placa, marca o modelo) sin tocar
