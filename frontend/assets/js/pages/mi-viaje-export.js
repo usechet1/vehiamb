@@ -571,6 +571,10 @@
         layout.y += 4;
         addMetricasResumen(doc, layout, textos.metricas);
 
+        if (textos.notaPendientes) {
+            addLineaTexto(doc, layout, bottomLimit, textos.notaPendientes, { color: AMBAR_ATENCION });
+        }
+
         if (textos.notaSinRegistro) {
             addLineaTexto(doc, layout, bottomLimit, textos.notaSinRegistro);
         }

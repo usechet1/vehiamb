@@ -7239,6 +7239,43 @@ button.record-link {
     font-weight: 700;
 }
 
+/* Rutas asignadas sin preoperacional (Asignacion de rutas). */
+.resumen-pendientes {
+    display: grid;
+    gap: 8px;
+    margin-top: -6px;
+    padding: 10px 12px;
+    border: 1px solid #f1d79f;
+    border-radius: var(--radius-sm);
+    background: var(--color-warning-bg);
+}
+
+.resumen-pendientes-titulo {
+    color: var(--color-warning);
+    font-size: 0.84rem;
+    font-weight: 700;
+}
+
+.resumen-pendientes ul {
+    display: grid;
+    gap: 6px;
+    list-style: none;
+}
+
+.resumen-pendientes li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-ink-soft);
+    font-size: 0.85rem;
+}
+
+.resumen-dia-estado .resumen-pendientes {
+    width: 100%;
+    margin-top: 0;
+}
+
 .resumen-dia-nota {
     margin-top: -10px;
     color: var(--color-muted);

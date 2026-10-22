@@ -845,21 +845,54 @@ function notaSinRegistro(totales) {
     return `${plural(totales.vehiculosSinRegistro, "vehículo", "vehículos")} sin inspección ni preoperacional registrados (no se cuentan como "sin novedad").`;
 }
 
+// El "esperado" son las rutas de Asignacion de rutas del rango (ver
+// viajes.service.js#obtenerResumenDia); null si no se cargo ninguna.
+function sinAsignacionesRuta(totales) {
+    return totales.preoperacionalesEsperados === null || totales.preoperacionalesEsperados === undefined;
+}
+
+function faltanPreoperacionales(totales) {
+    if (sinAsignacionesRuta(totales)) return 0;
+    return Math.max(0, totales.preoperacionalesEsperados - totales.preoperacionalesHechos);
+}
+
+function nombreConductorPendiente(pendiente) {
+    const nombre = `${capitalizarNombre(pendiente.conductorNombres)} ${capitalizarNombre(pendiente.conductorApellidos)}`.trim();
+    return nombre || "Sin conductor asignado";
+}
+
+// Texto plano de las asignaciones sin preoperacional (Compartir y PDF).
+function textoPendientesPreoperacional(resumen) {
+    const pendientes = resumen.asignacionesPendientes || [];
+    if (!pendientes.length) return "";
+    const multiDia = !esRangoDeUnDia(resumen.rango);
+    return `Sin preoperacional: ${pendientes.map((pendiente) =>
+        `${pendiente.placa || "Sin vehículo"} (${nombreConductorPendiente(pendiente)}${multiDia ? `, ${formatFechaCorta(pendiente.fecha)}` : ""})`
+    ).join(", ")}`;
+}
+
 // Tono de una metrica: rojo solo si algo impide operar, ambar si requiere
 // atencion, nada (neutro) si es normal -- ver reglas de color del panel.
 function metricasResumen(resumen) {
     const totales = resumen.totales;
-    const faltan = totales.preoperacionalesEsperados - totales.preoperacionalesHechos;
+    const sinAsignaciones = sinAsignacionesRuta(totales);
+    const faltan = faltanPreoperacionales(totales);
     const hayCriticos = resumen.vehiculosAfectados.some((vehiculo) => vehiculo.severidad === "critica");
 
     return [
         {
             clave: "preoperacionales",
             etiqueta: "Preoperacionales",
-            valor: `${totales.preoperacionalesHechos}/${totales.preoperacionalesEsperados}`,
-            valorHtml: `<span class="${faltan ? "is-atencion" : ""}">${totales.preoperacionalesHechos}</span><span class="resumen-metrica-de">/${totales.preoperacionalesEsperados}</span>`,
-            nota: faltan ? `${plural(faltan, "falta", "faltan")} por registrar` : "todos hechos",
-            notaClase: faltan ? "is-atencion" : "is-ok",
+            valor: sinAsignaciones
+                ? String(totales.preoperacionalesHechos)
+                : `${totales.preoperacionalesHechos}/${totales.preoperacionalesEsperados}`,
+            valorHtml: sinAsignaciones
+                ? ""
+                : `<span class="${faltan ? "is-atencion" : ""}">${totales.preoperacionalesHechos}</span><span class="resumen-metrica-de">/${totales.preoperacionalesEsperados}</span>`,
+            nota: sinAsignaciones
+                ? "sin rutas asignadas"
+                : faltan ? `${plural(faltan, "falta", "faltan")} por registrar` : "todos hechos",
+            notaClase: sinAsignaciones ? "" : faltan ? "is-atencion" : "is-ok",
             tono: "",
             habilitada: true
         },
@@ -903,7 +936,30 @@ function renderResumenMetricas(resumen) {
     const nota = notaSinRegistro(resumen.totales);
     return `
         <div class="resumen-dia-metricas">${tarjetas}</div>
+        ${renderPendientesPreoperacional(resumen)}
         ${nota ? `<p class="resumen-dia-nota">${escapeHtml(nota)}</p>` : ""}
+    `;
+}
+
+// Rutas asignadas cuyo preoperacional no aparece: puede que el conductor ni
+// siquiera haya iniciado el viaje, por eso no basta con filtrar la lista.
+function renderPendientesPreoperacional(resumen) {
+    const pendientes = resumen.asignacionesPendientes || [];
+    if (!pendientes.length) return "";
+    const multiDia = !esRangoDeUnDia(resumen.rango);
+
+    return `
+        <div class="resumen-pendientes">
+            <span class="resumen-pendientes-titulo">Sin preoperacional (${pendientes.length}):</span>
+            <ul>
+                ${pendientes.map((pendiente) => `
+                    <li>
+                        ${pendiente.placa ? `<span class="plate resumen-plate">${escapeHtml(pendiente.placa)}</span>` : ""}
+                        <span>${escapeHtml(nombreConductorPendiente(pendiente))}${multiDia ? ` · ${escapeHtml(formatFechaCorta(pendiente.fecha))}` : ""}${pendiente.ruta ? ` · ${escapeHtml(pendiente.ruta)}` : ""}</span>
+                    </li>
+                `).join("")}
+            </ul>
+        </div>
     `;
 }
 
@@ -1001,6 +1057,7 @@ function renderResumenDia(resumen) {
         resumenDiaBody.innerHTML = `
             <div class="resumen-dia-estado">
                 <p>No hay viajes registrados en este período.</p>
+                ${renderPendientesPreoperacional(resumen)}
                 ${hayFiltrosViajesActivos() ? '<button type="button" class="btn-secondary" data-resumen-accion="limpiar">Limpiar filtros</button>' : ""}
             </div>
         `;
@@ -1081,10 +1138,11 @@ async function aplicarMetricaResumen(clave) {
     const resumen = resumenDiaState;
     if (!resumen) return;
 
-    const { filtros, rango, totales } = resumen;
-    const faltanPreoperacionales = totales.preoperacionalesEsperados - totales.preoperacionalesHechos;
+    const { filtros, rango } = resumen;
+    // Solo se pueden filtrar los viajes que SI se iniciaron sin preoperacional;
+    // las rutas asignadas que ni arrancaron ya se listan dentro del panel.
     const definiciones = {
-        preoperacionales: faltanPreoperacionales
+        preoperacionales: filtros.sinPreoperacional.length
             ? { etiqueta: "viajes sin preoperacional", viajeIds: filtros.sinPreoperacional }
             : null,
         hallazgos: { etiqueta: "vehículos con hallazgos", vehiculoIds: filtros.conHallazgos },
@@ -1110,11 +1168,17 @@ async function aplicarMetricaResumen(clave) {
 // Texto plano listo para pegar en WhatsApp.
 function textoCompartirResumen(resumen) {
     const totales = resumen.totales;
-    const faltan = totales.preoperacionalesEsperados - totales.preoperacionalesHechos;
+    const faltan = faltanPreoperacionales(totales);
+    const preoperacionalesTexto = faltan
+        ? `${totales.preoperacionalesHechos}/${totales.preoperacionalesEsperados} preoperacionales (${plural(faltan, "falta", "faltan")})`
+        : plural(totales.preoperacionalesHechos, "preoperacional", "preoperacionales");
     const lineas = [
         `Resumen VEHIAMB — ${describirRangoResumen(resumen.rango, { corto: true })}`,
-        `${plural(totales.viajes, "viaje", "viajes")} · ${plural(totales.preoperacionalesHechos, "preoperacional", "preoperacionales")}${faltan ? ` (${plural(faltan, "falta", "faltan")})` : ""}`
+        `${plural(totales.viajes, "viaje", "viajes")} · ${preoperacionalesTexto}`
     ];
+
+    const pendientes = textoPendientesPreoperacional(resumen);
+    if (pendientes) lineas.push(pendientes);
 
     if (totales.hallazgos) {
         lineas.push(`${plural(totales.hallazgos, "hallazgo", "hallazgos")} en ${plural(totales.vehiculosConHallazgos, "vehículo", "vehículos")}`);
@@ -1188,6 +1252,7 @@ resumenDiaPdf.addEventListener("click", async () => {
                 subtitulo: resumenDiaSubtitle.textContent,
                 metricas: metricasResumen(resumen),
                 notaSinRegistro: notaSinRegistro(resumen.totales),
+                notaPendientes: textoPendientesPreoperacional(resumen),
                 mensajeSinHallazgos: mensajeSinHallazgos(resumen.totales),
                 comparacion: textoComparacionResumen(resumen)
             }

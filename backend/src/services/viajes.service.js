@@ -472,13 +472,36 @@ async function obtenerResumenDia(empresaId, currentUser, { fechaDesde, fechaHast
   const anteriorHasta = sumarDias(desde, -1);
   const anteriorDesde = sumarDias(anteriorHasta, -diasEntre(desde, hasta));
 
-  const [viajes, viajesAnteriores] = await Promise.all([
+  const [viajes, viajesAnteriores, asignaciones] = await Promise.all([
     viajesRepository.findRecientesPorEmpresa(empresaId, { fechaDesde: desde, fechaHasta: hasta, conductorId, placa }),
-    viajesRepository.findRecientesPorEmpresa(empresaId, { fechaDesde: anteriorDesde, fechaHasta: anteriorHasta, conductorId, placa })
+    viajesRepository.findRecientesPorEmpresa(empresaId, { fechaDesde: anteriorDesde, fechaHasta: anteriorHasta, conductorId, placa }),
+    asignacionesRepository.findConPreoperacionalPorRango(empresaId, { fechaDesde: desde, fechaHasta: hasta, conductorUsuarioId: conductorId, placa })
   ]);
 
   const actual = consolidarViajes(viajes);
   const anterior = consolidarViajes(viajesAnteriores);
+
+  // El "esperado" de preoperacionales es lo que se programo en Asignacion de
+  // rutas para el rango, no los viajes que alcanzaron a iniciarse (un
+  // conductor que nunca arranco tambien debe contar como faltante). Sin
+  // asignaciones cargadas no hay contra que comparar: esperados queda null
+  // y "hechos" cae a los viajes con preoperacional.
+  if (asignaciones.length) {
+    const pendientes = asignaciones.filter((asignacion) => !asignacion.preoperacional_realizado);
+    actual.totales.preoperacionalesEsperados = asignaciones.length;
+    actual.totales.preoperacionalesHechos = asignaciones.length - pendientes.length;
+    actual.asignacionesPendientes = pendientes.map((asignacion) => ({
+      asignacionId: asignacion.id,
+      fecha: asignacion.fecha,
+      placa: asignacion.vehiculo_placa || null,
+      conductorNombres: asignacion.conductor_nombres || null,
+      conductorApellidos: asignacion.conductor_apellidos || null,
+      ruta: asignacion.ruta_nombre || null
+    }));
+  } else {
+    actual.totales.preoperacionalesEsperados = null;
+    actual.asignacionesPendientes = [];
+  }
 
   return {
     rango: { desde, hasta, esHoy: desde === hasta && hasta === hoyIso() },

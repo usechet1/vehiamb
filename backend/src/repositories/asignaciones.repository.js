@@ -77,4 +77,63 @@ async function findByConductorYFecha(conductorId, fecha, empresaId) {
   );
 }
 
-module.exports = { create, update, findById, findByFecha, findByConductorYFecha, remove };
+// Asignaciones de un rango de fechas con un indicador de si su preoperacional
+// ya se registro -- es el "esperado" del Resumen del dia (viajes.service.js
+// #obtenerResumenDia): cada ruta asignada deberia tener su preoperacional.
+// El vinculo principal es el mismo de resolverAsignacionParaFecha
+// (asignacion -> inspeccion -> viaje -> preoperacional); como respaldo se
+// acepta un preoperacional del mismo conductor ese mismo dia (Bogota), para
+// el viaje que el conductor inicio por el flujo manual sin la asignacion.
+// conductorUsuarioId es el usuario (mismo filtro "Conductor" de Viajes
+// recientes), no conductores.id.
+async function findConPreoperacionalPorRango(empresaId, { fechaDesde, fechaHasta, conductorUsuarioId, placa } = {}) {
+  const conditions = ["ar.empresa_id = ?", "ar.fecha >= ?", "ar.fecha <= ?"];
+  const values = [empresaId, fechaDesde, fechaHasta];
+
+  if (conductorUsuarioId) {
+    conditions.push("c.usuario_id = ?");
+    values.push(conductorUsuarioId);
+  }
+
+  if (placa) {
+    conditions.push("v.placa = ?");
+    values.push(placa);
+  }
+
+  return db.all(
+    `
+      SELECT
+        ar.id,
+        to_char(ar.fecha, 'YYYY-MM-DD') AS fecha,
+        ar.vehiculo_id,
+        v.placa AS vehiculo_placa,
+        c.nombres AS conductor_nombres,
+        c.apellidos AS conductor_apellidos,
+        r.nombre AS ruta_nombre,
+        (
+          EXISTS (
+            SELECT 1
+            FROM inspecciones_preventivas ip
+            INNER JOIN preoperacionales p ON p.viaje_id = ip.viaje_id
+            WHERE ip.asignacion_id = ar.id
+          )
+          OR EXISTS (
+            SELECT 1
+            FROM preoperacionales p
+            WHERE c.usuario_id IS NOT NULL
+              AND p.usuario_id = c.usuario_id
+              AND (p.fecha AT TIME ZONE 'America/Bogota')::date = ar.fecha
+          )
+        ) AS preoperacional_realizado
+      FROM asignaciones_ruta ar
+      LEFT JOIN conductores c ON c.id = ar.conductor_id
+      LEFT JOIN vehiculos v ON v.id = ar.vehiculo_id
+      LEFT JOIN rutas r ON r.id = ar.ruta_id
+      WHERE ${conditions.join(" AND ")}
+      ORDER BY ar.fecha ASC, ar.id ASC
+    `,
+    values
+  );
+}
+
+module.exports = { create, update, findById, findByFecha, findByConductorYFecha, findConPreoperacionalPorRango, remove };
