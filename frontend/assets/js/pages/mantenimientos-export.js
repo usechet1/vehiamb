@@ -254,7 +254,6 @@
         layout.row("Vehículo", vehicleName);
         layout.row("Placa", item.placa);
         layout.row("Tipo de mantenimiento", tiposMantenimiento[item.tipo] || item.tipo);
-        layout.row("Fecha del mantenimiento", window.VehiAmb.pdfExport.formatDateForPdf(item.fecha));
         layout.row("Fecha y hora de registro", formatFechaHora(item.created_at));
         if (item.fecha_tentativa_salida) {
             layout.row("Salida tentativa", window.VehiAmb.pdfExport.formatDateForPdf(item.fecha_tentativa_salida));
@@ -329,7 +328,6 @@
         excel.addLabelValueRow(sheet, "Vehículo", safe(vehicleName));
         excel.addLabelValueRow(sheet, "Placa", safe(item.placa));
         excel.addLabelValueRow(sheet, "Tipo de mantenimiento", safe(tiposMantenimiento[item.tipo] || item.tipo));
-        excel.addLabelValueRow(sheet, "Fecha del mantenimiento", excel.formatDateForExcel(item.fecha));
         excel.addLabelValueRow(sheet, "Fecha y hora de registro", safe(formatFechaHora(item.created_at)));
         if (item.fecha_tentativa_salida) {
             excel.addLabelValueRow(sheet, "Salida tentativa", excel.formatDateForExcel(item.fecha_tentativa_salida));
