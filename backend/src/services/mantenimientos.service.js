@@ -480,6 +480,11 @@ async function updateMantenimiento(id, payload, currentUser) {
       ? (payload.proximo_cambio_fecha ? String(payload.proximo_cambio_fecha).trim() : null)
       : null
   };
+  // Solo si llega en la peticion: asi un llamado que no lo envia no borra
+  // el autorizador ya guardado.
+  if ("autorizado_por" in payload) {
+    cambios.autorizado_por = payload.autorizado_por ? String(payload.autorizado_por).trim().slice(0, 120) : null;
+  }
 
   await validateMantenimiento({ ...cambios, vehiculo_id: existing.vehiculo_id }, vehiculo);
 

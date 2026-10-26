@@ -1197,6 +1197,11 @@ function renderMaintenanceEditForm(item) {
                 <textarea id="editMantenimientoDescripcion" rows="3" maxlength="1000" placeholder="Describe el trabajo realizado..."></textarea>
             </div>
 
+            <div class="form-group">
+                <label for="editMantenimientoAutorizadoPor">Autorizado por</label>
+                <input type="text" id="editMantenimientoAutorizadoPor" maxlength="120" autocomplete="off">
+            </div>
+
             <div class="form-grid-3">
                 <div class="form-group" id="editKilometrajeGroup">
                     <label>Kilometraje actual</label>
@@ -1257,6 +1262,7 @@ function renderMaintenanceEditForm(item) {
     fechaTentativaSalidaInput.value = String(item.fecha_tentativa_salida || "").slice(0, 10);
     fechaTentativaSalidaInput.min = fechaInput.value;
     document.getElementById("editMantenimientoDescripcion").value = item.descripcion || "";
+    document.getElementById("editMantenimientoAutorizadoPor").value = item.autorizado_por || "";
     kilometrajeInput.value = window.VehiAmb.ui.formatearNumeroParaMostrar(Number(item.kilometraje || 0));
     vehiculoVaradoEditInput.checked = Boolean(item.vehiculo_varado);
     valorManoObraEditInput.value = `$ ${window.VehiAmb.ui.formatearNumeroParaMostrar(Number(item.valor_mano_obra || 0))}`;
@@ -1356,6 +1362,7 @@ function renderMaintenanceEditForm(item) {
             fecha: fechaInput.value,
             fecha_tentativa_salida: fechaTentativaSalidaInput.value,
             descripcion: document.getElementById("editMantenimientoDescripcion").value,
+            autorizado_por: document.getElementById("editMantenimientoAutorizadoPor").value,
             kilometraje: window.VehiAmb.ui.parseFormattedNumber(kilometrajeInput.value),
             valor_mano_obra: window.VehiAmb.ui.parseFormattedMoneda(valorManoObraEditInput.value),
             vehiculo_varado: vehiculoVaradoEditInput.checked

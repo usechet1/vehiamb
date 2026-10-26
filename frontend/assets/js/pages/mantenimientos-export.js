@@ -10,6 +10,33 @@
         return String(value);
     }
 
+    // "09/10/2026 8:15 a. m." en la hora local -- created_at llega en UTC, asi
+    // que no se puede cortar el texto (formatDateForPdf) sin riesgo de que
+    // cerca de medianoche quede el dia equivocado.
+    function formatFechaHora(value) {
+        if (!value) return null;
+        const fecha = new Date(value);
+        if (Number.isNaN(fecha.getTime())) return null;
+        const dia = String(fecha.getDate()).padStart(2, "0");
+        const mes = String(fecha.getMonth() + 1).padStart(2, "0");
+        const hora = fecha.toLocaleTimeString("es-CO", { hour: "numeric", minute: "2-digit" });
+        return `${dia}/${mes}/${fecha.getFullYear()} ${hora}`;
+    }
+
+    function formatKilometraje(value) {
+        return value !== null && value !== undefined && value !== ""
+            ? `${Number(value).toLocaleString("es-CO")} km`
+            : null;
+    }
+
+    // Proximo cambio de aceite: mismo calculo del detalle en pantalla
+    // (proximoCambioAceiteInfo en mantenimientos.js) + la fecha programada.
+    function proximoCambioTexto(item) {
+        const km = typeof proximoCambioAceiteInfo === "function" ? proximoCambioAceiteInfo(item) : formatKilometraje(item.proximo_cambio_km);
+        const fecha = item.proximo_cambio_fecha ? window.VehiAmb.pdfExport.formatDateForPdf(item.proximo_cambio_fecha) : null;
+        return [km, fecha].filter(Boolean).join(" o el ") || null;
+    }
+
     function buildFileName(item) {
         const placa = String(item.placa || "SINPLACA").replace(/\s+/g, "").toUpperCase();
         const fecha = String(item.fecha || "").slice(0, 10) || "sin-fecha";
@@ -87,6 +114,8 @@
         doc.setFont(undefined, "normal");
         doc.setTextColor(105, 115, 134);
         doc.text(APP_NAME, layout.pageWidth - MARGIN_X, layout.y + 34, { align: "right" });
+        doc.setFontSize(8.5);
+        doc.text(`Generado el ${formatFechaHora(new Date())}`, layout.pageWidth - MARGIN_X, layout.y + 48, { align: "right" });
         doc.setTextColor(24, 32, 43);
 
         layout.y += 64;
@@ -193,13 +222,16 @@
             doc.setFontSize(8);
             doc.setTextColor(120, 128, 140);
 
+            const paginaTexto = `Página ${page} de ${pageCount}`;
             if (membrete) {
                 const imgWidth = pageWidth - MARGIN_X * 2;
                 const imgHeight = imgWidth / (membrete.width / membrete.height);
                 doc.text(generadoEl, MARGIN_X, pageHeight - imgHeight - 10);
+                doc.text(paginaTexto, pageWidth - MARGIN_X, pageHeight - imgHeight - 10, { align: "right" });
                 doc.addImage(membrete.dataUrl, "JPEG", MARGIN_X, pageHeight - imgHeight, imgWidth, imgHeight);
             } else {
                 doc.text(generadoEl, MARGIN_X, pageHeight - 20);
+                doc.text(paginaTexto, pageWidth - MARGIN_X, pageHeight - 20, { align: "right" });
             }
         }
     }
@@ -221,21 +253,25 @@
         layout.sectionTitle("Información general");
         layout.row("Vehículo", vehicleName);
         layout.row("Placa", item.placa);
-        layout.row("Fecha", window.VehiAmb.pdfExport.formatDateForPdf(item.fecha));
         layout.row("Tipo de mantenimiento", tiposMantenimiento[item.tipo] || item.tipo);
+        layout.row("Fecha del mantenimiento", window.VehiAmb.pdfExport.formatDateForPdf(item.fecha));
+        layout.row("Fecha y hora de registro", formatFechaHora(item.created_at));
+        if (item.fecha_tentativa_salida) {
+            layout.row("Salida tentativa", window.VehiAmb.pdfExport.formatDateForPdf(item.fecha_tentativa_salida));
+        }
+        layout.row("Estado del mantenimiento", estadosMantenimiento[item.estado] || item.estado);
         layout.row("Estado del vehículo", item.vehiculo_varado ? "En taller" : "Disponible");
 
         layout.spacer();
         layout.sectionTitle("Detalle del mantenimiento");
         layout.row("Descripción", item.descripcion);
-        layout.row(
-            "Kilometraje registrado",
-            item.kilometraje !== null && item.kilometraje !== undefined
-                ? `${Number(item.kilometraje).toLocaleString("es-CO")} km`
-                : null
-        );
+        layout.row("Kilometraje registrado", formatKilometraje(item.kilometraje));
+        if (item.tipo === "cambio_aceite") {
+            layout.row("Próximo cambio", proximoCambioTexto(item));
+        }
         layout.row("Responsable", item.hecho_por);
         layout.row("Autorizado por", item.autorizado_por);
+        layout.row("Registrado por", item.creado_por_nombre);
 
         layout.spacer();
         layout.sectionTitle("Gastos");
@@ -292,22 +328,25 @@
         excel.addSectionHeader(sheet, "Información general", EXCEL_COLUMN_COUNT);
         excel.addLabelValueRow(sheet, "Vehículo", safe(vehicleName));
         excel.addLabelValueRow(sheet, "Placa", safe(item.placa));
-        excel.addLabelValueRow(sheet, "Fecha", excel.formatDateForExcel(item.fecha));
         excel.addLabelValueRow(sheet, "Tipo de mantenimiento", safe(tiposMantenimiento[item.tipo] || item.tipo));
+        excel.addLabelValueRow(sheet, "Fecha del mantenimiento", excel.formatDateForExcel(item.fecha));
+        excel.addLabelValueRow(sheet, "Fecha y hora de registro", safe(formatFechaHora(item.created_at)));
+        if (item.fecha_tentativa_salida) {
+            excel.addLabelValueRow(sheet, "Salida tentativa", excel.formatDateForExcel(item.fecha_tentativa_salida));
+        }
+        excel.addLabelValueRow(sheet, "Estado del mantenimiento", safe(estadosMantenimiento[item.estado] || item.estado));
         excel.addLabelValueRow(sheet, "Estado del vehículo", item.vehiculo_varado ? "En taller" : "Disponible");
         sheet.addRow([]);
 
         excel.addSectionHeader(sheet, "Detalle del mantenimiento", EXCEL_COLUMN_COUNT);
         excel.addLabelValueRow(sheet, "Descripción", safe(item.descripcion));
-        excel.addLabelValueRow(
-            sheet,
-            "Kilometraje registrado",
-            item.kilometraje !== null && item.kilometraje !== undefined
-                ? `${Number(item.kilometraje).toLocaleString("es-CO")} km`
-                : "No registrado"
-        );
+        excel.addLabelValueRow(sheet, "Kilometraje registrado", safe(formatKilometraje(item.kilometraje)));
+        if (item.tipo === "cambio_aceite") {
+            excel.addLabelValueRow(sheet, "Próximo cambio", safe(proximoCambioTexto(item)));
+        }
         excel.addLabelValueRow(sheet, "Responsable", safe(item.hecho_por));
         excel.addLabelValueRow(sheet, "Autorizado por", safe(item.autorizado_por));
+        excel.addLabelValueRow(sheet, "Registrado por", safe(item.creado_por_nombre));
         sheet.addRow([]);
 
         excel.addSectionHeader(sheet, "Gastos", EXCEL_COLUMN_COUNT);

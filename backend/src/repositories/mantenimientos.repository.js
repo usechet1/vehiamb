@@ -37,6 +37,7 @@ const MANTENIMIENTO_EDITABLE_FIELDS = [
   "fecha",
   "fecha_tentativa_salida",
   "descripcion",
+  "autorizado_por",
   "kilometraje",
   "valor_mano_obra",
   "valor",
@@ -79,9 +80,11 @@ async function findAll(filters = {}, empresaId) {
         v.placa,
         v.marca,
         v.modelo,
-        v.intervalo_cambio_aceite_km
+        v.intervalo_cambio_aceite_km,
+        u.nombre AS creado_por_nombre
       FROM mantenimientos m
       INNER JOIN vehiculos v ON v.id = m.vehiculo_id
+      LEFT JOIN usuarios u ON u.id = m.creado_por_usuario_id
       ${whereClause}
       ORDER BY m.fecha DESC, m.id DESC
     `,
@@ -113,9 +116,11 @@ async function findByIdWithVehiculo(id, empresaId) {
         v.placa,
         v.marca,
         v.modelo,
-        v.intervalo_cambio_aceite_km
+        v.intervalo_cambio_aceite_km,
+        u.nombre AS creado_por_nombre
       FROM mantenimientos m
       INNER JOIN vehiculos v ON v.id = m.vehiculo_id
+      LEFT JOIN usuarios u ON u.id = m.creado_por_usuario_id
       WHERE m.id = ? AND m.empresa_id = ?
     `,
     [id, empresaId]
