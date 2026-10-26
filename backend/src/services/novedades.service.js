@@ -4,6 +4,7 @@ const HttpError = require("../errors/http-error");
 const novedadesRepository = require("../repositories/novedades.repository");
 const vehiculosRepository = require("../repositories/vehiculos.repository");
 const notificacionComentariosRepository = require("../repositories/notificacion-comentarios.repository");
+const { aAdjuntos, serializarAdjuntos, parseAdjuntos } = require("../utils/adjuntos");
 
 const ROL_CONDUCTOR_B = "Conductor B";
 
@@ -32,7 +33,7 @@ async function listNovedades(filters, currentUser) {
     ? currentUser.vehiculo_asignado_id
     : filters.vehiculo_id;
 
-  return novedadesRepository.findAll(
+  const novedades = await novedadesRepository.findAll(
     {
       vehiculoId,
       fechaDesde: filters.fecha_desde,
@@ -40,14 +41,27 @@ async function listNovedades(filters, currentUser) {
     },
     empresaId
   );
+  return novedades.map(conFotos);
 }
 
 async function listNovedadesByVehicle(vehiculoId, currentUser) {
   exigirMontacargaPropio(currentUser, vehiculoId);
-  return novedadesRepository.findByVehicle(vehiculoId, currentUser.empresa_id);
+  const novedades = await novedadesRepository.findByVehicle(vehiculoId, currentUser.empresa_id);
+  return novedades.map(conFotos);
 }
 
-async function createNovedad(payload, file, currentUser) {
+// Lista de fotos ya parseada (ver utils/adjuntos.js); las novedades viejas
+// solo tienen foto_url y salen como lista de una.
+function conFotos(novedad) {
+  if (!novedad) return novedad;
+  const { fotos_json: fotosJson, ...resto } = novedad;
+  return {
+    ...resto,
+    fotos: parseAdjuntos(fotosJson, { url: novedad.foto_url, nombre: novedad.foto_nombre, mime: novedad.foto_mime })
+  };
+}
+
+async function createNovedad(payload, files, currentUser) {
   const empresaId = currentUser.empresa_id;
 
   const vehiculoId = Number(payload.vehiculo_id);
@@ -67,18 +81,23 @@ async function createNovedad(payload, file, currentUser) {
     throw new HttpError(400, "La descripción de la novedad es obligatoria");
   }
 
+  // Hasta MAX_ADJUNTOS_POR_CAMPO fotos (multer.array en novedades.routes.js);
+  // foto_url/foto_nombre/foto_mime siguen guardando la primera.
+  const fotos = aAdjuntos(files, "novedades");
+
   const novedad = {
     empresa_id: empresaId,
     vehiculo_id: vehiculoId,
     fecha: toTrimmedOrNull(payload.fecha) || new Date().toISOString().slice(0, 10),
     descripcion,
-    foto_url: file ? `/uploads/novedades/${file.filename}` : null,
-    foto_nombre: file?.originalname || null,
-    foto_mime: file?.mimetype || null,
+    foto_url: fotos[0]?.url || null,
+    foto_nombre: fotos[0]?.nombre || null,
+    foto_mime: fotos[0]?.mime || null,
+    fotos_json: serializarAdjuntos(fotos),
     creado_por_usuario_id: currentUser?.id ?? null
   };
 
-  return novedadesRepository.create(novedad);
+  return conFotos(await novedadesRepository.create(novedad));
 }
 
 async function eliminarArchivo(url) {
@@ -99,7 +118,8 @@ async function deleteNovedad(id, currentUser) {
   }
 
   await novedadesRepository.remove(id, empresaId);
-  await eliminarArchivo(novedad.foto_url);
+  const fotos = parseAdjuntos(novedad.fotos_json, { url: novedad.foto_url });
+  await Promise.all(fotos.map((foto) => eliminarArchivo(foto.url)));
 }
 
 // Hilo de comentarios de una novedad, en solo lectura para quien tiene

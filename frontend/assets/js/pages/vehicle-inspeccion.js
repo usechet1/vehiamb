@@ -129,6 +129,7 @@ function renderHotspots() {
     inspeccionHotspotsEl.querySelectorAll(".inspeccion-hotspot").forEach((el) => {
         el.addEventListener("click", () => {
             inspeccionActivo = el.dataset.codigo;
+            inspeccionFotoAviso = "";
             renderHotspots();
             renderPanel();
             abrirSheet();
@@ -178,11 +179,7 @@ function renderPanel() {
                 ${esMal ? '<p class="field-help">Cuenta qué encontraste mal antes de guardar.</p>' : ""}
                 <p class="field-help field-help-danger hidden" id="inspeccionComentarioError">Escribe un comentario antes de guardar.</p>
             </div>
-            <div class="form-group">
-                <label>Foto (opcional)</label>
-                <input type="file" id="inspeccionFotoInput" accept="image/png,image/jpeg,image/webp">
-                ${marcado.fotoNombre ? `<span class="field-help">Archivo: ${escapeHtml(marcado.fotoNombre)}</span>` : ""}
-            </div>
+            ${renderFotosItemHtml(marcado)}
             ${esMal ? '<button type="button" class="btn-primary inspeccion-sheet-listo-btn" id="inspeccionGuardarButton">Guardar</button>' : ""}
             <button type="button" class="record-link" id="inspeccionQuitarButton">Quitar marca</button>
         ` : ""}
@@ -194,8 +191,7 @@ function renderPanel() {
             inspeccionMarcados.set(item.codigo, {
                 estado: btn.dataset.estado,
                 comentario: existente?.comentario || "",
-                fotoFile: existente?.fotoFile || null,
-                fotoNombre: existente?.fotoNombre || null
+                fotoFiles: existente?.fotoFiles || []
             });
             renderHotspots();
             renderPanel();
@@ -216,15 +212,7 @@ function renderPanel() {
         }
     });
 
-    const fotoInput = document.getElementById("inspeccionFotoInput");
-    fotoInput?.addEventListener("change", () => {
-        const entrada = inspeccionMarcados.get(item.codigo);
-        if (!entrada) return;
-        const file = fotoInput.files?.[0] || null;
-        entrada.fotoFile = file;
-        entrada.fotoNombre = file?.name || null;
-        renderPanel();
-    });
+    setupFotosItem(item.codigo);
 
     document.getElementById("inspeccionGuardarButton")?.addEventListener("click", () => {
         if (!comentarioInput?.value.trim()) {
@@ -241,6 +229,28 @@ function renderPanel() {
         renderPanel();
         renderResumen();
         cerrarSheetConRetraso();
+    });
+}
+
+// Fotos de evidencia de un punto (hasta window.VehiAmb.adjuntos.MAX_POR_CAMPO),
+// con el selector compartido de ui.js (Tomar foto / Elegir de la galería).
+let inspeccionFotoAviso = "";
+
+function renderFotosItemHtml(marcado) {
+    return window.VehiAmb.adjuntos.renderSelector(marcado.fotoFiles, { prefijo: "inspeccion", aviso: inspeccionFotoAviso });
+}
+
+function setupFotosItem(codigo) {
+    window.VehiAmb.adjuntos.setupSelector(inspeccionSheetBodyEl, {
+        prefijo: "inspeccion",
+        obtener: () => inspeccionMarcados.get(codigo)?.fotoFiles || [],
+        guardar: (archivos, aviso) => {
+            const entrada = inspeccionMarcados.get(codigo);
+            if (!entrada) return;
+            entrada.fotoFiles = archivos;
+            inspeccionFotoAviso = aviso;
+            renderPanel();
+        }
     });
 }
 
@@ -288,7 +298,7 @@ function renderPanelGrupo(item) {
             if (estadoActual === valorBoton) {
                 inspeccionMarcados.delete(codigo);
             } else {
-                inspeccionMarcados.set(codigo, { estado: valorBoton, comentario: "", fotoFile: null, fotoNombre: null });
+                inspeccionMarcados.set(codigo, { estado: valorBoton, comentario: "", fotoFiles: [] });
             }
             renderHotspots();
             renderPanel();
@@ -446,9 +456,9 @@ async function guardarInspeccionConFirma(firmaBlob) {
 
     inspeccionMarcados.forEach((data, codigo) => {
         items.push({ item_codigo: codigo, estado: data.estado, comentario: data.comentario || "" });
-        if (data.fotoFile) {
-            formData.append(`foto_${codigo}`, data.fotoFile);
-        }
+        // Todas las fotos de un item van en el mismo campo (el backend las
+        // agrupa por campo, ver inspecciones.service.js).
+        (data.fotoFiles || []).forEach((file) => formData.append(`foto_${codigo}`, file));
     });
 
     formData.append("items", JSON.stringify(items));
@@ -488,7 +498,7 @@ function renderHistorialDetalle(container, detalle) {
         <div class="inspeccion-detalle-item">
             <span class="pill ${item.estado === "mal" ? "pill-danger" : "pill-success"}">${escapeHtml(item.item_label)}</span>
             ${item.comentario ? `<p class="field-help">${escapeHtml(item.comentario)}</p>` : ""}
-            ${item.foto_url ? `<a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(item.foto_url))}" target="_blank" rel="noreferrer">Ver foto</a>` : ""}
+            ${window.VehiAmb.adjuntos.renderEnlaces(window.VehiAmb.adjuntos.normalizar(item.fotos, item.foto_url, item.foto_nombre))}
         </div>
     `).join("");
 

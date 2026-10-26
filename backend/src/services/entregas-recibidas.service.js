@@ -7,6 +7,14 @@ const conductoresService = require("./conductores.service");
 const entregasRepository = require("../repositories/entregas-recibidas.repository");
 const itemsRepository = require("../repositories/entrega-items.repository");
 const notificacionesService = require("./notificaciones.service");
+const {
+  MAX_ADJUNTOS_POR_CAMPO,
+  agruparPorCampo,
+  aAdjuntos,
+  serializarAdjuntos,
+  parseAdjuntos,
+  eliminarArchivosSubidos
+} = require("../utils/adjuntos");
 
 // Catalogo fijo del checklist de entrega/recibida, mismo mecanismo de
 // "radiografia" que inspecciones.service.js (hotspots x/y en % sobre el
@@ -82,7 +90,8 @@ function toSafeItem(item) {
     estado: item.estado,
     comentario: item.comentario,
     foto_url: item.foto_url,
-    foto_nombre: item.foto_nombre
+    foto_nombre: item.foto_nombre,
+    fotos: parseAdjuntos(item.fotos_json, { url: item.foto_url, nombre: item.foto_nombre })
   };
 }
 
@@ -200,7 +209,9 @@ async function crear(vehiculoId, payload, archivos, currentUser) {
     throw new HttpError(400, "Debes marcar al menos un ítem del checklist");
   }
 
-  const archivosPorCampo = new Map((archivos || []).map((file) => [file.fieldname, file]));
+  // Varias fotos por item, todas en el mismo campo "foto_<codigo>" (tope
+  // por campo: limitarAdjuntosPorCampo en entregas-recibidas.routes.js).
+  const archivosPorCampo = agruparPorCampo(archivos);
 
   const itemsValidados = items.map((item) => {
     const codigo = String(item.item_codigo || "");
@@ -214,26 +225,31 @@ async function crear(vehiculoId, payload, archivos, currentUser) {
       throw new HttpError(400, `Estado inválido para "${catalogoItem.label}"`);
     }
 
-    const foto = archivosPorCampo.get(`foto_${codigo}`);
+    const fotos = aAdjuntos(archivosPorCampo.get(`foto_${codigo}`), "entregas");
 
     return {
       item_codigo: catalogoItem.codigo,
       item_label: catalogoItem.label,
       estado,
       comentario: item.comentario ? String(item.comentario).trim().slice(0, 500) : null,
-      foto_url: foto ? `/uploads/entregas/${foto.filename}` : null,
-      foto_nombre: foto ? foto.originalname : null
+      foto_url: fotos[0]?.url || null,
+      foto_nombre: fotos[0]?.nombre || null,
+      fotos_json: serializarAdjuntos(fotos)
     };
   });
 
   // Fotos generales del vehiculo (ej. una vista de conjunto, el kilometraje
   // en el tablero, algo que no corresponde a un punto puntual del diagrama)
-  // -- llegan como campos "foto_general_0", "foto_general_1", etc. (ver
-  // entrega-recibida.js), a diferencia de las fotos por item que van una
-  // sola por campo "foto_<codigo>".
+  // -- llegan todas en el campo "foto_general" (ver entrega-recibida.js).
+  // Se acepta tambien el formato anterior "foto_general_0", "foto_general_1"
+  // (un campo por foto), por eso el tope se revisa aca y no solo en la ruta.
   const fotosGenerales = (archivos || [])
-    .filter((file) => file.fieldname.startsWith("foto_general_"))
+    .filter((file) => file.fieldname === "foto_general" || file.fieldname.startsWith("foto_general_"))
     .map((file) => ({ url: `/uploads/entregas/${file.filename}`, nombre: file.originalname }));
+  if (fotosGenerales.length > MAX_ADJUNTOS_POR_CAMPO) {
+    await eliminarArchivosSubidos(archivos);
+    throw new HttpError(400, `Solo se permiten hasta ${MAX_ADJUNTOS_POR_CAMPO} fotos generales`);
+  }
 
   const kilometraje = payload.kilometraje !== undefined && payload.kilometraje !== "" ? Number(payload.kilometraje) : null;
   if (kilometraje !== null && (!Number.isFinite(kilometraje) || kilometraje < 0)) {
@@ -247,8 +263,8 @@ async function crear(vehiculoId, payload, archivos, currentUser) {
     throw new HttpError(400, `El kilometraje debe ser mayor o igual al actual del vehículo (${kilometrajeActual} km)`);
   }
 
-  const firmaEntrega = archivosPorCampo.get("firma_entrega");
-  const firmaRecibe = archivosPorCampo.get("firma_recibe");
+  const firmaEntrega = archivosPorCampo.get("firma_entrega")?.[0];
+  const firmaRecibe = archivosPorCampo.get("firma_recibe")?.[0];
   if (!firmaEntrega || !firmaRecibe) {
     throw new HttpError(400, "Se requiere la firma de quien entrega y de quien recibe el vehículo");
   }

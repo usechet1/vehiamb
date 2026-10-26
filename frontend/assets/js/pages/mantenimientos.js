@@ -54,6 +54,10 @@ const crearRepuestoButton = document.getElementById("crearRepuestoButton");
 const viewEtiquetaButton = document.getElementById("viewEtiquetaButton");
 const subirSalidaInventarioButton = document.getElementById("subirSalidaInventarioButton");
 const salidaInventarioInput = document.getElementById("salidaInventarioInput");
+window.VehiAmb.adjuntos.setupInputMultiple(
+    document.getElementById("mantenimientoSoporteInput"),
+    document.getElementById("mantenimientoSoporteAviso")
+);
 const valorManoObraInput = document.getElementById("valorManoObraInput");
 const costoTotalDisplay = document.getElementById("costoTotalDisplay");
 const mntSummaryRepuestosCount = document.getElementById("mntSummaryRepuestosCount");
@@ -1000,23 +1004,41 @@ window.VehiAmb.crearRepuestoAutocomplete(repuestoInput, {
     onSinResultados: mostrarAvisoRepuestoNoEncontrado
 });
 
+// Hasta window.VehiAmb.adjuntos.MAX_POR_CAMPO soportes por mantenimiento
+// (registros viejos: solo soporte_url, sale como lista de uno).
+function soportesMantenimiento(item) {
+    return window.VehiAmb.adjuntos.normalizar(item.soportes ?? item.soportes_json, item.soporte_url, item.soporte_nombre)
+        .map((soporte, indice) => ({ ...soporte, mime: soporte.mime || (indice === 0 ? item.soporte_mime : null) }));
+}
+
+function salidasInventarioMantenimiento(item) {
+    return window.VehiAmb.adjuntos.normalizar(
+        item.salidas_inventario ?? item.salidas_inventario_json,
+        item.salida_inventario_url,
+        item.salida_inventario_nombre
+    );
+}
+
 function renderDetailAttachment(item) {
-    if (!item.soporte_url) {
+    const soportes = soportesMantenimiento(item);
+    if (!soportes.length) {
         return '<p class="dash-empty detail-empty">No hay archivos adjuntos.</p>';
     }
 
-    const fileUrl = window.VehiAmb.api.getAssetUrl(item.soporte_url);
-    const fileLabel = escapeHtml(item.soporte_nombre || "Ver adjunto");
-    const mime = String(item.soporte_mime || "");
-    const isImage = mime.startsWith("image/");
+    return soportes.map((soporte, indice) => {
+        const fileUrl = escapeHtml(window.VehiAmb.api.getAssetUrl(soporte.url));
+        const fileLabel = escapeHtml(soporte.nombre || `Adjunto ${indice + 1}`);
+        const mime = String(soporte.mime || "");
+        const isImage = mime.startsWith("image/");
 
-    return `
-        <div class="detail-attachment">
-            ${isImage ? `<img src="${fileUrl}" alt="${fileLabel}">` : ""}
-            <a class="record-link" href="${fileUrl}" target="_blank" rel="noreferrer">${fileLabel}</a>
-            <span class="pill">${escapeHtml(mime || "Archivo adjunto")}</span>
-        </div>
-    `;
+        return `
+            <div class="detail-attachment">
+                ${isImage ? `<img src="${fileUrl}" alt="${fileLabel}">` : ""}
+                <a class="record-link" href="${fileUrl}" target="_blank" rel="noreferrer">${fileLabel}</a>
+                <span class="pill">${escapeHtml(mime || "Archivo adjunto")}</span>
+            </div>
+        `;
+    }).join("");
 }
 
 function detailRow(label, value) {
@@ -1117,11 +1139,11 @@ async function renderMaintenanceDetailView(item) {
         ${esCambioAceite ? `
             <section class="drawer-section">
                 <h3>Salida de inventario</h3>
-                ${item.salida_inventario_url ? `
-                    <a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(item.salida_inventario_url))}" target="_blank" rel="noreferrer">
-                        ${escapeHtml(item.salida_inventario_nombre) || "Ver documento"}
+                ${salidasInventarioMantenimiento(item).length ? salidasInventarioMantenimiento(item).map((salida, indice) => `
+                    <a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(salida.url))}" target="_blank" rel="noreferrer">
+                        ${escapeHtml(salida.nombre) || `Ver documento ${indice + 1}`}
                     </a>
-                ` : `<p class="dash-empty detail-empty">Aún no se ha subido el documento de salida de inventario. Súbelo y luego imprime la etiqueta para aprobar este cambio de aceite.</p>`}
+                `).join("") : `<p class="dash-empty detail-empty">Aún no se ha subido el documento de salida de inventario. Súbelo y luego imprime la etiqueta para aprobar este cambio de aceite.</p>`}
             </section>
         ` : ""}
     `;
@@ -1374,7 +1396,7 @@ async function openMaintenanceDetail(item) {
     const esCambioAceite = item.tipo === "cambio_aceite";
     viewEtiquetaButton.classList.toggle("hidden", !esCambioAceite);
     subirSalidaInventarioButton.classList.toggle("hidden", !esCambioAceite);
-    subirSalidaInventarioButton.textContent = item.salida_inventario_url
+    subirSalidaInventarioButton.textContent = salidasInventarioMantenimiento(item).length
         ? "Reemplazar salida de inventario"
         : "Subir salida de inventario";
     editMaintenanceMenuButton.classList.toggle("hidden", !window.VehiAmb.auth?.hasPermission?.("maintenance.edit"));
@@ -1408,13 +1430,17 @@ subirSalidaInventarioButton.addEventListener("click", () => {
 // La aprobacion de un cambio de aceite depende de este documento (ver
 // confirmarCambioAceite en el backend) -- se sube desde el detalle y se
 // vuelve a abrir el drawer ya actualizado para que se vea de una vez.
+// Admite hasta window.VehiAmb.adjuntos.MAX_POR_CAMPO archivos; volver a
+// subir reemplaza el juego anterior completo.
 salidaInventarioInput.addEventListener("change", async (event) => {
-    const file = event.target.files[0];
+    const aviso = window.VehiAmb.adjuntos.limitarInput(event.target);
+    const files = Array.from(event.target.files || []);
     const mantenimientoId = currentDetailItem?.id;
-    if (!file || !mantenimientoId) return;
+    if (!files.length || !mantenimientoId) return;
+    if (aviso) window.VehiAmb.ui.showMessage(mensaje, aviso, "error");
 
     const formData = new FormData();
-    formData.append("salida_inventario", file);
+    files.forEach((file) => formData.append("salida_inventario", file));
 
     try {
         window.VehiAmb.ui.show(loader);
@@ -1805,6 +1831,7 @@ mantenimientoForm.addEventListener("submit", async (event) => {
         }
 
         mantenimientoForm.reset();
+        document.getElementById("mantenimientoSoporteAviso")?.classList.add("hidden");
         mantenimientoFecha.value = hoyISO();
         sincronizarMinFechaTentativaSalida();
         tipoCardGrid.querySelectorAll(".type-card.is-selected").forEach((card) => card.classList.remove("is-selected"));

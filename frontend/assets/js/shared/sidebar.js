@@ -244,7 +244,12 @@ function renderHiloComentarios(hilo) {
                 <span class="notif-item-time">${cfg.tiempoTranscurrido(comentario.creado_en)}</span>
             </div>
             <p>${escapeHtml(comentario.comentario)}</p>
-            ${comentario.foto_url ? `<a href="${escapeHtml(window.VehiAmb.api.getAssetUrl(comentario.foto_url))}" target="_blank" rel="noopener">Ver foto adjunta</a>` : ""}
+            ${window.VehiAmb.adjuntos
+                ? window.VehiAmb.adjuntos.renderEnlaces(
+                    window.VehiAmb.adjuntos.normalizar(comentario.fotos, comentario.foto_url, comentario.foto_nombre),
+                    { etiqueta: "Ver foto adjunta", clase: "" }
+                )
+                : comentario.foto_url ? `<a href="${escapeHtml(window.VehiAmb.api.getAssetUrl(comentario.foto_url))}" target="_blank" rel="noopener">Ver foto adjunta</a>` : ""}
         </div>
     `).join("");
 }
@@ -270,8 +275,9 @@ function abrirFormularioComentario(hilo = []) {
                 <textarea rows="3" maxlength="500" placeholder="Ej: Ya se está gestionando" data-comentario-texto></textarea>
             </div>
             <div class="form-group">
-                <label>Foto (opcional)</label>
-                <input type="file" accept="image/png,image/jpeg,image/webp" data-comentario-foto>
+                <label>Fotos (opcional, hasta ${window.VehiAmb.adjuntos?.MAX_POR_CAMPO || 5})</label>
+                <input type="file" accept="image/png,image/jpeg,image/webp" multiple data-comentario-foto>
+                <p class="field-help field-help-danger hidden" role="status" data-comentario-foto-aviso></p>
             </div>
             <div class="confirm-modal-actions">
                 <button type="button" class="btn-secondary" data-comentario-cancelar>Cancelar</button>
@@ -284,6 +290,7 @@ function abrirFormularioComentario(hilo = []) {
 
         const textoInput = modal.querySelector("[data-comentario-texto]");
         const fotoInput = modal.querySelector("[data-comentario-foto]");
+        window.VehiAmb.adjuntos?.setupInputMultiple(fotoInput, modal.querySelector("[data-comentario-foto-aviso]"));
 
         function cleanup(resultado) {
             backdrop.remove();
@@ -313,7 +320,7 @@ function abrirFormularioComentario(hilo = []) {
                 textoInput.focus();
                 return;
             }
-            cleanup({ comentario, foto: fotoInput.files[0] || null });
+            cleanup({ comentario, fotos: Array.from(fotoInput.files || []) });
         });
 
         document.addEventListener("keydown", onKeydown);
@@ -467,7 +474,7 @@ async function setupNotificaciones(aside) {
             try {
                 const formData = new FormData();
                 formData.append("comentario", resultado.comentario);
-                if (resultado.foto) formData.append("foto", resultado.foto);
+                resultado.fotos.forEach((file) => formData.append("foto", file));
 
                 await window.VehiAmb.api.comentarNotificacion(notifReferenciaTipo, notifReferenciaId, formData);
                 await refrescar();

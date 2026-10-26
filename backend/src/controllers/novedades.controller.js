@@ -11,7 +11,7 @@ exports.getNovedadesByVehicle = async (req, res) => {
 };
 
 exports.createNovedad = async (req, res) => {
-  const novedad = await novedadesService.createNovedad(req.body, req.file, req.user);
+  const novedad = await novedadesService.createNovedad(req.body, req.files, req.user);
   res.status(201).json(novedad);
 };
 

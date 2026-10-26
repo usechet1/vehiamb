@@ -8,6 +8,7 @@ const uploadNovedad = require("../middlewares/upload-novedad");
 const compressImage = require("../middlewares/compress-image");
 const validateUpload = require("../middlewares/validate-upload");
 const withMulterErrorHandling = require("../middlewares/with-multer-error-handling");
+const { MAX_ADJUNTOS_POR_CAMPO } = require("../utils/adjuntos");
 
 router.get("/", requirePermission("novedades.view"), asyncHandler(novedadesController.getNovedades));
 router.get("/vehiculo/:vehiculoId", requirePermission("novedades.view"), asyncHandler(novedadesController.getNovedadesByVehicle));
@@ -16,7 +17,7 @@ router.get("/:id/comentarios", requirePermission("novedades.view"), asyncHandler
 router.post(
   "/",
   requirePermission("novedades.create"),
-  withMulterErrorHandling(uploadNovedad.single("foto"), "15MB"),
+  withMulterErrorHandling(uploadNovedad.array("foto", MAX_ADJUNTOS_POR_CAMPO), "15MB"),
   asyncHandler(validateUpload),
   asyncHandler(compressImage),
   asyncHandler(novedadesController.createNovedad)

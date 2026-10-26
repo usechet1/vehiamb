@@ -28,6 +28,9 @@ const closeNovedadDrawer = document.getElementById("closeNovedadDrawer");
 // diferencia del de "Responder" mas abajo, que se re-crea cada vez que se
 // abre el drawer -- ver setupComentarioNovedadForm).
 window.VehiAmb.ui.setupTomarFoto(novedadFoto, novedadFotoCamaraButton);
+// Hasta window.VehiAmb.adjuntos.MAX_POR_CAMPO fotos; "Tomar foto" suma una
+// a las ya elegidas (ver setupTomarFoto con input multiple).
+window.VehiAmb.adjuntos.setupInputMultiple(novedadFoto, document.getElementById("novedadFotoAviso"));
 
 let novedadesState = [];
 // Conductor B opera un unico montacargas (user.vehiculo_asignado_id) -- se
@@ -139,7 +142,9 @@ function renderNovedades() {
                 </div>
                 <div class="record-meta">
                     <span>${escapeHtml(novedad.descripcion)}</span>
-                    ${novedad.foto_url ? `<span class="pill">📷 Con foto</span>` : ""}
+                    ${fotosNovedad(novedad).length
+                        ? `<span class="pill">📷 ${fotosNovedad(novedad).length === 1 ? "Con foto" : `${fotosNovedad(novedad).length} fotos`}</span>`
+                        : ""}
                 </div>
                 <div class="simit-card-actions">
                     <span class="record-link">Ver detalle →</span>
@@ -181,7 +186,10 @@ function renderComentarioItem(comentario) {
                 <span class="notif-item-time">${formatFechaHora(comentario.creado_en)}</span>
             </div>
             <p>${escapeHtml(comentario.comentario)}</p>
-            ${comentario.foto_url ? `<a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(comentario.foto_url))}" target="_blank" rel="noreferrer">Ver foto adjunta</a>` : ""}
+            ${window.VehiAmb.adjuntos.renderEnlaces(
+                window.VehiAmb.adjuntos.normalizar(comentario.fotos, comentario.foto_url, comentario.foto_nombre),
+                { etiqueta: "Ver foto adjunta" }
+            )}
         </div>
     `;
 }
@@ -228,6 +236,10 @@ function setupComentarioNovedadForm(novedadId) {
         document.getElementById("novedadComentarioFoto"),
         document.getElementById("novedadComentarioFotoCamaraButton")
     );
+    window.VehiAmb.adjuntos.setupInputMultiple(
+        document.getElementById("novedadComentarioFoto"),
+        document.getElementById("novedadComentarioFotoAviso")
+    );
 
     enviarBtn.addEventListener("click", async () => {
         const textoInput = document.getElementById("novedadComentarioTexto");
@@ -242,11 +254,12 @@ function setupComentarioNovedadForm(novedadId) {
         try {
             const formData = new FormData();
             formData.append("comentario", texto);
-            if (fotoInput.files[0]) formData.append("foto", fotoInput.files[0]);
+            Array.from(fotoInput.files || []).forEach((file) => formData.append("foto", file));
 
             await window.VehiAmb.api.comentarNotificacion("novedad", novedadId, formData);
             textoInput.value = "";
             fotoInput.value = "";
+            document.getElementById("novedadComentarioFotoAviso")?.classList.add("hidden");
             await cargarComentariosNovedad(novedadId);
         } catch (error) {
             console.error(error);
@@ -267,7 +280,7 @@ function renderNovedadDrawerBody(novedad) {
                 <div><dt>Fecha de creación</dt><dd>${formatFechaHora(novedad.created_at)}</dd></div>
                 <div><dt>Descripción</dt><dd>${escapeHtml(novedad.descripcion)}</dd></div>
             </dl>
-            ${novedad.foto_url ? `<a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(novedad.foto_url))}" target="_blank" rel="noreferrer">Ver foto adjunta</a>` : ""}
+            ${window.VehiAmb.adjuntos.renderEnlaces(fotosNovedad(novedad), { etiqueta: "Ver foto adjunta" })}
         </section>
 
         <section class="drawer-section">
@@ -287,11 +300,12 @@ function renderNovedadDrawerBody(novedad) {
                     <span id="novedadComentarioVozHelp" class="field-help field-help-danger hidden"></span>
                 </div>
                 <div class="form-group">
-                    <label>Foto (opcional)</label>
+                    <label>Fotos (opcional, hasta ${window.VehiAmb.adjuntos.MAX_POR_CAMPO})</label>
                     <div class="foto-input-row">
-                        <input type="file" id="novedadComentarioFoto" accept="image/png,image/jpeg,image/webp">
+                        <input type="file" id="novedadComentarioFoto" accept="image/png,image/jpeg,image/webp" multiple>
                         <button type="button" class="btn-secondary" id="novedadComentarioFotoCamaraButton">📷 Tomar foto</button>
                     </div>
+                    <p id="novedadComentarioFotoAviso" class="field-help field-help-danger hidden" role="status"></p>
                 </div>
                 <button type="button" id="novedadComentarioEnviar" class="btn-primary">Enviar</button>
             ` : ""}
@@ -333,6 +347,11 @@ document.addEventListener("keydown", (event) => {
 function resetNovedadForm() {
     novedadForm.reset();
     novedadFecha.value = hoyISO();
+    document.getElementById("novedadFotoAviso")?.classList.add("hidden");
+}
+
+function fotosNovedad(novedad) {
+    return window.VehiAmb.adjuntos.normalizar(novedad.fotos, novedad.foto_url, novedad.foto_nombre);
 }
 
 novedadForm?.addEventListener("submit", async (event) => {

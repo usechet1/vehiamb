@@ -9,6 +9,7 @@ const FIELDS = [
   "comentario",
   "foto_url",
   "foto_nombre",
+  "fotos_json",
   "empresa_id"
 ];
 
@@ -26,6 +27,7 @@ async function bulkCreate(inspeccionId, vehiculoId, items, empresaId, dbClient =
       comentario: item.comentario || null,
       foto_url: item.foto_url || null,
       foto_nombre: item.foto_nombre || null,
+      fotos_json: item.fotos_json || null,
       empresa_id: empresaId
     };
 

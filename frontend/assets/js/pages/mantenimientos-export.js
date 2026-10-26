@@ -138,32 +138,46 @@
         });
     }
 
-    async function addSoportePreview(doc, layout, item) {
-        if (!item.soporte_url || !item.soporte_mime) return;
+    // Soportes del mantenimiento: hasta window.VehiAmb.adjuntos.MAX_POR_CAMPO
+    // (los registros viejos solo traen soporte_url/soporte_mime).
+    function soportesDe(item) {
+        return window.VehiAmb.adjuntos.normalizar(item.soportes ?? item.soportes_json, item.soporte_url, item.soporte_nombre)
+            .map((soporte, indice) => ({ ...soporte, mime: soporte.mime || (indice === 0 ? item.soporte_mime : null) }));
+    }
 
-        const esImagen = String(item.soporte_mime).startsWith("image/");
-        if (!esImagen) return;
+    function nombresSoportes(item) {
+        const nombres = soportesDe(item).map((soporte, indice) => soporte.nombre || `Adjunto ${indice + 1}`);
+        return nombres.length ? nombres.join(", ") : null;
+    }
+
+    // Una vista previa por cada soporte que sea imagen (los PDF solo van
+    // por nombre en "Archivos de soporte").
+    async function addSoportePreview(doc, layout, item) {
+        const imagenes = soportesDe(item).filter((soporte) => String(soporte.mime || "").startsWith("image/"));
+        if (!imagenes.length) return;
 
         const MAX_WIDTH = 220;
         const MAX_HEIGHT = 160;
 
-        try {
-            const imageUrl = window.VehiAmb.api.getAssetUrl(item.soporte_url);
-            const { dataUrl, width, height } = await window.VehiAmb.pdfExport.loadImageAsJpegDataUrl(imageUrl);
+        for (const [indice, soporte] of imagenes.entries()) {
+            try {
+                const imageUrl = window.VehiAmb.api.getAssetUrl(soporte.url);
+                const { dataUrl, width, height } = await window.VehiAmb.pdfExport.loadImageAsJpegDataUrl(imageUrl);
 
-            const scale = Math.min(MAX_WIDTH / width, MAX_HEIGHT / height, 1);
-            const renderWidth = width * scale;
-            const renderHeight = height * scale;
+                const scale = Math.min(MAX_WIDTH / width, MAX_HEIGHT / height, 1);
+                const renderWidth = width * scale;
+                const renderHeight = height * scale;
 
-            layout.ensureSpace(renderHeight + 20);
-            doc.setFontSize(10);
-            doc.setFont(undefined, "bold");
-            doc.text("Vista previa del soporte:", MARGIN_X, layout.y);
-            layout.spacer(10);
-            doc.addImage(dataUrl, "JPEG", MARGIN_X, layout.y, renderWidth, renderHeight);
-            layout.spacer(renderHeight + 10);
-        } catch (error) {
-            console.error("No se pudo incluir la vista previa del soporte en el PDF:", error);
+                layout.ensureSpace(renderHeight + 20);
+                doc.setFontSize(10);
+                doc.setFont(undefined, "bold");
+                doc.text(imagenes.length === 1 ? "Vista previa del soporte:" : `Vista previa del soporte ${indice + 1}:`, MARGIN_X, layout.y);
+                layout.spacer(10);
+                doc.addImage(dataUrl, "JPEG", MARGIN_X, layout.y, renderWidth, renderHeight);
+                layout.spacer(renderHeight + 10);
+            } catch (error) {
+                console.error("No se pudo incluir la vista previa del soporte en el PDF:", error);
+            }
         }
     }
 
@@ -237,7 +251,7 @@
 
         layout.spacer();
         layout.sectionTitle("Archivos");
-        layout.row("Archivo de soporte", item.soporte_nombre);
+        layout.row("Archivos de soporte", nombresSoportes(item));
         await addSoportePreview(doc, layout, item);
 
         await addFooter(doc, branding);
@@ -333,7 +347,7 @@
         sheet.addRow([]);
 
         excel.addSectionHeader(sheet, "Archivos", EXCEL_COLUMN_COUNT);
-        excel.addLabelValueRow(sheet, "Archivo de soporte", safe(item.soporte_nombre));
+        excel.addLabelValueRow(sheet, "Archivos de soporte", safe(nombresSoportes(item)));
 
         excel.addFooterRow(sheet, FOOTER_TEXT(branding?.nombreEmpresa), EXCEL_COLUMN_COUNT);
 

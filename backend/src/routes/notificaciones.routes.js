@@ -7,6 +7,7 @@ const requirePermission = require("../middlewares/require-permission");
 const validateUpload = require("../middlewares/validate-upload");
 const uploadNotificacionComentario = require("../middlewares/upload-notificacion-comentario");
 const withMulterErrorHandling = require("../middlewares/with-multer-error-handling");
+const { MAX_ADJUNTOS_POR_CAMPO } = require("../utils/adjuntos");
 
 // Rutas literales ("/contador", "/leidas") se declaran antes que las rutas con
 // parametro ("/:id") del mismo largo para que Express no las confunda con un id.
@@ -36,7 +37,7 @@ router.get(
 router.post(
   "/referencia/:tipo/:id/comentarios",
   requirePermission("notificaciones.comentar"),
-  withMulterErrorHandling(uploadNotificacionComentario.single("foto"), "5MB"),
+  withMulterErrorHandling(uploadNotificacionComentario.array("foto", MAX_ADJUNTOS_POR_CAMPO), "5MB"),
   asyncHandler(validateUpload),
   asyncHandler(notificacionesController.crearComentario)
 );

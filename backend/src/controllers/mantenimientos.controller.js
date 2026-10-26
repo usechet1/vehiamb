@@ -21,7 +21,7 @@ exports.getMantenimientosByVehicle = async (req, res) => {
 };
 
 exports.createMantenimiento = async (req, res) => {
-  const mantenimiento = await mantenimientosService.createMantenimiento(req.body, req.file, req.user);
+  const mantenimiento = await mantenimientosService.createMantenimiento(req.body, req.files, req.user);
   res.status(201).json(mantenimiento);
 };
 
@@ -46,7 +46,7 @@ exports.getUsuariosDisponibles = async (req, res) => {
 };
 
 exports.subirSalidaInventario = async (req, res) => {
-  const mantenimiento = await mantenimientosService.subirSalidaInventario(req.params.id, req.file, req.empresaId);
+  const mantenimiento = await mantenimientosService.subirSalidaInventario(req.params.id, req.files, req.empresaId);
   res.json(mantenimiento);
 };
 

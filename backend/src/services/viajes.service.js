@@ -12,6 +12,7 @@ const asignacionesRepository = require("../repositories/asignaciones.repository"
 const notificacionComentariosRepository = require("../repositories/notificacion-comentarios.repository");
 const usuariosRepository = require("../repositories/usuarios.repository");
 const { hoyIso, mananaIso } = require("../utils/fecha-negocio");
+const { parseAdjuntos } = require("../utils/adjuntos");
 
 // Documentos relevantes para un control de transito en carretera. "otro" se
 // deja afuera a proposito -- ahi cae de todo (misceláneo) y no es lo primero
@@ -598,7 +599,8 @@ async function obtenerResumen(viajeId, currentUser) {
             item_label: item.item_label,
             estado: item.estado,
             comentario: item.comentario,
-            foto_url: item.foto_url
+            foto_url: item.foto_url,
+            fotos: parseAdjuntos(item.fotos_json, { url: item.foto_url, nombre: item.foto_nombre })
           }))
         }
       : null,

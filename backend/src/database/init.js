@@ -1772,7 +1772,18 @@ ensurePostgresTables()
     ensureColumn("asignaciones_ruta", "observaciones", "TEXT"),
     ensureColumn("extintores", "libras", "NUMERIC(5,1)"),
     ensureColumn("extintores", "consecutivo", "INTEGER"),
-    ensureColumn("herramientas_items", "codigo", "TEXT")
+    ensureColumn("herramientas_items", "codigo", "TEXT"),
+    // Varias fotos/adjuntos por campo en los modulos de evidencia (ver
+    // utils/adjuntos.js): lista JSON [{ url, nombre, mime }], mismo criterio
+    // que entregas_recibidas.fotos_generales_json. Las columnas de un solo
+    // archivo (foto_url, soporte_url, ...) se siguen llenando con el primero
+    // para que los registros viejos y quien aun lea esas columnas no cambien.
+    ensureColumn("inspeccion_items", "fotos_json", "TEXT"),
+    ensureColumn("entrega_items", "fotos_json", "TEXT"),
+    ensureColumn("novedades", "fotos_json", "TEXT"),
+    ensureColumn("notificacion_comentarios", "fotos_json", "TEXT"),
+    ensureColumn("mantenimientos", "soportes_json", "TEXT"),
+    ensureColumn("mantenimientos", "salidas_inventario_json", "TEXT")
   ]))
   .then(migrarArchivoBotiquinATablaPropia)
   .then(backfillExtintoresConsecutivo)

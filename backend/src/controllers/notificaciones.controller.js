@@ -87,6 +87,6 @@ exports.getComentarios = async (req, res) => {
 };
 
 exports.crearComentario = async (req, res) => {
-  const comentario = await notificacionesService.comentarNotificacion(req.params.tipo, req.params.id, req.body, req.file, req.user);
+  const comentario = await notificacionesService.comentarNotificacion(req.params.tipo, req.params.id, req.body, req.files, req.user);
   res.status(201).json(comentario);
 };

@@ -12,6 +12,7 @@ const MANTENIMIENTO_FIELDS = [
   "soporte_url",
   "soporte_nombre",
   "soporte_mime",
+  "soportes_json",
   "valor",
   "valor_mano_obra",
   "kilometraje",
@@ -210,10 +211,12 @@ async function update(id, fields, empresaId) {
   );
 }
 
-async function updateSalidaInventario(id, { url, nombre, mime }, empresaId) {
+// salidas_json es la lista completa (ver utils/adjuntos.js); url/nombre/mime
+// son los del primer archivo, para quien siga leyendo las columnas simples.
+async function updateSalidaInventario(id, { url, nombre, mime, salidasJson }, empresaId) {
   await db.run(
-    "UPDATE mantenimientos SET salida_inventario_url = ?, salida_inventario_nombre = ?, salida_inventario_mime = ? WHERE id = ? AND empresa_id = ?",
-    [url, nombre, mime, id, empresaId]
+    "UPDATE mantenimientos SET salida_inventario_url = ?, salida_inventario_nombre = ?, salida_inventario_mime = ?, salidas_inventario_json = ? WHERE id = ? AND empresa_id = ?",
+    [url, nombre, mime, salidasJson, id, empresaId]
   );
   return findById(id, empresaId);
 }

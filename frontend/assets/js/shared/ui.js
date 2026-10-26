@@ -314,7 +314,14 @@ window.VehiAmb.ui = {
             const archivo = camaraInput.files?.[0];
             if (!archivo) return;
 
+            // Con un input "multiple" la foto de la camara se SUMA a las ya
+            // elegidas (hasta el maximo por campo) en vez de reemplazarlas.
             const dataTransfer = new DataTransfer();
+            if (fotoInput.multiple) {
+                Array.from(fotoInput.files || [])
+                    .slice(0, window.VehiAmb.adjuntos.MAX_POR_CAMPO - 1)
+                    .forEach((file) => dataTransfer.items.add(file));
+            }
             dataTransfer.items.add(archivo);
             fotoInput.files = dataTransfer.files;
             fotoInput.dispatchEvent(new Event("change", { bubbles: true }));
@@ -322,5 +329,142 @@ window.VehiAmb.ui = {
         });
 
         tomarFotoButton.addEventListener("click", () => camaraInput.click());
+    }
+};
+
+// Varias fotos/adjuntos por campo en los modulos de evidencia (inspeccion,
+// entregas, novedades, mantenimientos, comentarios). Mismo limite que
+// backend/src/utils/adjuntos.js (MAX_ADJUNTOS_POR_CAMPO) -- el backend lo
+// vuelve a validar, esto es solo para avisar antes de enviar.
+window.VehiAmb.adjuntos = {
+    MAX_POR_CAMPO: 5,
+
+    escape(value) {
+        return String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    },
+
+    // Lista de adjuntos de un registro: la lista nueva si viene, o el archivo
+    // unico de antes (registros guardados antes de permitir varios). Acepta
+    // tambien la lista en texto JSON (alguna respuesta del backend devuelve
+    // la fila sin parsear, ej. aprobar/rechazar mantenimiento).
+    normalizar(lista, urlLegado, nombreLegado) {
+        if (typeof lista === "string") {
+            try {
+                lista = JSON.parse(lista);
+            } catch (error) {
+                lista = null;
+            }
+        }
+        if (Array.isArray(lista) && lista.length) return lista;
+        return urlLegado ? [{ url: urlLegado, nombre: nombreLegado || null }] : [];
+    },
+
+    // Un solo adjunto: "Ver foto" (como siempre). Varios: "Foto 1", "Foto 2"...
+    renderEnlaces(adjuntos, { etiqueta = "Ver foto", prefijo = "Foto", clase = "record-link" } = {}) {
+        if (!adjuntos || !adjuntos.length) return "";
+        const enlace = (adjunto, texto) => `<a class="${clase}" href="${this.escape(window.VehiAmb.api.getAssetUrl(adjunto.url))}" target="_blank" rel="noreferrer">${this.escape(texto)}</a>`;
+        if (adjuntos.length === 1) return enlace(adjuntos[0], etiqueta);
+        return `<span class="adjuntos-enlaces">${adjuntos.map((adjunto, indice) => enlace(adjunto, `${prefijo} ${indice + 1}`)).join("")}</span>`;
+    },
+
+    // Junta archivos nuevos con los ya elegidos sin pasarse del maximo.
+    combinar(actuales, nuevos) {
+        const todos = [...(actuales || []), ...Array.from(nuevos || [])];
+        return { archivos: todos.slice(0, this.MAX_POR_CAMPO), descartados: Math.max(0, todos.length - this.MAX_POR_CAMPO) };
+    },
+
+    // Para un <input type="file" multiple>: si se eligen mas del maximo deja
+    // solo los primeros y devuelve el aviso a mostrar (o "" si no paso nada).
+    limitarInput(input) {
+        const archivos = Array.from(input?.files || []);
+        if (archivos.length <= this.MAX_POR_CAMPO) return "";
+
+        const dataTransfer = new DataTransfer();
+        archivos.slice(0, this.MAX_POR_CAMPO).forEach((file) => dataTransfer.items.add(file));
+        input.files = dataTransfer.files;
+        return `Solo se permiten hasta ${this.MAX_POR_CAMPO} archivos; se dejaron los primeros ${this.MAX_POR_CAMPO}.`;
+    },
+
+    // Selector de fotos de un punto de checklist (inspeccion, entregas): lista
+    // de las elegidas con "Quitar", y dos botones -- "Tomar foto" abre la
+    // camara directo (capture) y "Elegir de la galería" deja elegir varias.
+    // Van separados porque en varios Android un input "multiple" ya no
+    // ofrece la camara en el selector. prefijo distingue los ids cuando hay
+    // mas de un selector en la pagina.
+    renderSelector(archivos, { prefijo, aviso = "" }) {
+        const max = this.MAX_POR_CAMPO;
+        const lista = archivos || [];
+        const accept = "image/png,image/jpeg,image/webp";
+
+        return `
+            <div class="form-group adjuntos-selector">
+                <label>Fotos (opcional, hasta ${max})</label>
+                ${lista.length ? `
+                    <ul class="adjuntos-seleccionados">
+                        ${lista.map((file, indice) => `
+                            <li>
+                                <span class="adjuntos-seleccionados-nombre">${this.escape(file.name)}</span>
+                                <button type="button" class="record-link" data-quitar-foto="${indice}" aria-label="Quitar foto ${indice + 1}">Quitar</button>
+                            </li>
+                        `).join("")}
+                    </ul>
+                ` : ""}
+                ${lista.length >= max
+                    ? `<p class="field-help">Ya adjuntaste ${max} fotos (el máximo).</p>`
+                    : `
+                        <div class="adjuntos-botones">
+                            <button type="button" class="btn-secondary" id="${prefijo}FotoCamaraButton">📷 Tomar foto</button>
+                            <button type="button" class="btn-secondary" id="${prefijo}FotoGaleriaButton">Elegir de la galería</button>
+                        </div>
+                        <input type="file" id="${prefijo}FotoCamaraInput" accept="${accept}" capture="environment" hidden>
+                        <input type="file" id="${prefijo}FotoGaleriaInput" accept="${accept}" multiple hidden>
+                    `}
+                <p class="field-help field-help-danger ${aviso ? "" : "hidden"}" role="status">${this.escape(aviso)}</p>
+            </div>
+        `;
+    },
+
+    // obtener() devuelve los File actuales; guardar(archivos, aviso) los
+    // reemplaza y debe volver a pintar el selector.
+    setupSelector(contenedor, { prefijo, obtener, guardar }) {
+        const agregar = (nuevos) => {
+            if (!nuevos?.length) return;
+            const { archivos, descartados } = this.combinar(obtener(), nuevos);
+            guardar(archivos, descartados
+                ? `Solo se permiten ${this.MAX_POR_CAMPO} fotos; ${descartados === 1 ? "una no se agregó" : `${descartados} no se agregaron`}.`
+                : "");
+        };
+
+        const camaraInput = document.getElementById(`${prefijo}FotoCamaraInput`);
+        const galeriaInput = document.getElementById(`${prefijo}FotoGaleriaInput`);
+        document.getElementById(`${prefijo}FotoCamaraButton`)?.addEventListener("click", () => camaraInput?.click());
+        document.getElementById(`${prefijo}FotoGaleriaButton`)?.addEventListener("click", () => galeriaInput?.click());
+        camaraInput?.addEventListener("change", () => agregar(camaraInput.files));
+        galeriaInput?.addEventListener("change", () => agregar(galeriaInput.files));
+
+        contenedor.querySelectorAll("[data-quitar-foto]").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const indiceQuitar = Number(btn.dataset.quitarFoto);
+                guardar(obtener().filter((_, indice) => indice !== indiceQuitar), "");
+            });
+        });
+    },
+
+    // Engancha limitarInput al "change" de un input y muestra el aviso en
+    // avisoEl (un .field-help) cuando corresponde.
+    setupInputMultiple(input, avisoEl) {
+        if (!input) return;
+        input.multiple = true;
+        input.addEventListener("change", () => {
+            const aviso = this.limitarInput(input);
+            if (!avisoEl) return;
+            avisoEl.textContent = aviso;
+            avisoEl.classList.toggle("hidden", !aviso);
+        });
     }
 };

@@ -10,6 +10,7 @@ const validateUpload = require("../middlewares/validate-upload");
 const { renameUpload } = require("../middlewares/rename-upload");
 const vehiculosRepository = require("../repositories/vehiculos.repository");
 const withMulterErrorHandling = require("../middlewares/with-multer-error-handling");
+const { MAX_ADJUNTOS_POR_CAMPO } = require("../utils/adjuntos");
 
 async function construirNombreMantenimiento(req) {
   const vehiculo = req.body.vehiculo_id
@@ -26,7 +27,7 @@ router.get("/:id", requirePermission("maintenance.view"), asyncHandler(mantenimi
 router.post(
   "/",
   requirePermission("maintenance.create"),
-  withMulterErrorHandling(uploadMantenimiento.single("soporte"), "5MB"),
+  withMulterErrorHandling(uploadMantenimiento.array("soporte", MAX_ADJUNTOS_POR_CAMPO), "5MB"),
   asyncHandler(validateUpload),
   asyncHandler(renameUpload(construirNombreMantenimiento)),
   asyncHandler(compressImage),
@@ -36,7 +37,7 @@ router.post(
 router.post(
   "/:id/salida-inventario",
   requirePermission("maintenance.create"),
-  withMulterErrorHandling(uploadMantenimiento.single("salida_inventario"), "5MB"),
+  withMulterErrorHandling(uploadMantenimiento.array("salida_inventario", MAX_ADJUNTOS_POR_CAMPO), "5MB"),
   asyncHandler(validateUpload),
   asyncHandler(compressImage),
   asyncHandler(mantenimientosController.subirSalidaInventario)

@@ -10,6 +10,7 @@ const vehiculosRepository = require("../repositories/vehiculos.repository");
 const notifConfig = require("../config/notificaciones.config");
 const emailChannel = require("./notificaciones-email.channel");
 const whatsappChannel = require("./notificaciones-whatsapp.channel");
+const { aAdjuntos, serializarAdjuntos } = require("../utils/adjuntos");
 
 const APPROVAL_PERMISSION = "maintenance.approve";
 
@@ -175,7 +176,8 @@ async function evaluarNotificacionInspeccion({ inspeccion, vehiculo, currentUser
           items_mal: (itemsMal || []).map((item) => ({
             label: item.item_label,
             comentario: item.comentario,
-            foto_url: item.foto_url
+            foto_url: item.foto_url,
+            fotos: (item.fotos || []).map((foto) => ({ url: foto.url }))
           }))
         }
       }
@@ -621,20 +623,25 @@ async function notificarRespuestaNovedad(novedadId, currentUser) {
   });
 }
 
-async function comentarNotificacion(referenciaTipo, referenciaId, payload, file, currentUser) {
+async function comentarNotificacion(referenciaTipo, referenciaId, payload, files, currentUser) {
   const texto = String(payload.comentario || "").trim();
   if (!texto) {
     throw new HttpError(400, "El comentario no puede estar vacío");
   }
+
+  // Hasta MAX_ADJUNTOS_POR_CAMPO fotos (multer.array en
+  // notificaciones.routes.js); foto_url/foto_nombre/foto_mime guardan la primera.
+  const fotos = aAdjuntos(files, "notificaciones");
 
   const comentario = await notificacionComentariosRepository.create({
     referencia_tipo: referenciaTipo,
     referencia_id: referenciaId,
     usuario_id: currentUser?.id ?? null,
     comentario: texto,
-    foto_url: file ? `/uploads/notificaciones/${file.filename}` : null,
-    foto_nombre: file ? file.originalname : null,
-    foto_mime: file ? file.mimetype : null,
+    foto_url: fotos[0]?.url || null,
+    foto_nombre: fotos[0]?.nombre || null,
+    foto_mime: fotos[0]?.mime || null,
+    fotos_json: serializarAdjuntos(fotos),
     empresa_id: currentUser.empresa_id
   });
 

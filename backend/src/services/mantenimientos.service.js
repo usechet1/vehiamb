@@ -10,6 +10,7 @@ const configuracionInventarioRepository = require("../repositories/configuracion
 const usuariosRepository = require("../repositories/usuarios.repository");
 const notificacionesService = require("./notificaciones.service");
 const vehiculoDisponibilidadService = require("./vehiculo-disponibilidad.service");
+const { aAdjuntos, serializarAdjuntos, parseAdjuntos, eliminarArchivosSubidos } = require("../utils/adjuntos");
 
 const TIPOS_VALIDOS = new Set([
   "revision",
@@ -96,6 +97,7 @@ function normalizePayload(payload) {
     soporte_url: payload.soporte_url ? String(payload.soporte_url).trim() : null,
     soporte_nombre: payload.soporte_nombre ? String(payload.soporte_nombre).trim() : null,
     soporte_mime: payload.soporte_mime ? String(payload.soporte_mime).trim() : null,
+    soportes_json: payload.soportes_json || null,
     valor_mano_obra: valorManoObra,
     valor: valorManoObra + totalRepuestos,
     kilometraje: toNumberOrNull(payload.kilometraje),
@@ -162,10 +164,35 @@ async function validateMantenimiento(mantenimiento, vehiculo) {
   }
 }
 
+// Listas de soportes y de documentos de salida de inventario ya parseadas
+// (ver utils/adjuntos.js) -- los registros viejos solo tienen
+// soporte_url/salida_inventario_url y salen como lista de uno.
+function soportesDe(mantenimiento) {
+  return parseAdjuntos(mantenimiento.soportes_json, {
+    url: mantenimiento.soporte_url,
+    nombre: mantenimiento.soporte_nombre,
+    mime: mantenimiento.soporte_mime
+  });
+}
+
+function salidasInventarioDe(mantenimiento) {
+  return parseAdjuntos(mantenimiento.salidas_inventario_json, {
+    url: mantenimiento.salida_inventario_url,
+    nombre: mantenimiento.salida_inventario_nombre,
+    mime: mantenimiento.salida_inventario_mime
+  });
+}
+
+function conAdjuntos(mantenimiento) {
+  if (!mantenimiento) return mantenimiento;
+  const { soportes_json: _soportes, salidas_inventario_json: _salidas, ...resto } = mantenimiento;
+  return { ...resto, soportes: soportesDe(mantenimiento), salidas_inventario: salidasInventarioDe(mantenimiento) };
+}
+
 async function listMantenimientos(filters = {}, empresaId) {
   const tipo = filters.tipo && TIPOS_VALIDOS.has(filters.tipo) ? filters.tipo : null;
 
-  return mantenimientosRepository.findAll(
+  const mantenimientos = await mantenimientosRepository.findAll(
     {
       tipo,
       placa: filters.placa ? String(filters.placa).trim() : null,
@@ -174,10 +201,12 @@ async function listMantenimientos(filters = {}, empresaId) {
     },
     empresaId
   );
+  return mantenimientos.map(conAdjuntos);
 }
 
 async function listMantenimientosByVehicle(vehiculoId, empresaId) {
-  return mantenimientosRepository.findByVehicle(vehiculoId, empresaId);
+  const mantenimientos = await mantenimientosRepository.findByVehicle(vehiculoId, empresaId);
+  return mantenimientos.map(conAdjuntos);
 }
 
 async function getRepuestosEstructurados(mantenimientoId, empresaId) {
@@ -189,7 +218,7 @@ async function getMantenimiento(id, empresaId) {
   if (!mantenimiento) {
     throw new HttpError(404, "Mantenimiento no encontrado");
   }
-  return mantenimiento;
+  return conAdjuntos(mantenimiento);
 }
 
 async function eliminarArchivoAnterior(url) {
@@ -202,31 +231,39 @@ async function eliminarArchivoAnterior(url) {
   }
 }
 
-async function subirSalidaInventario(id, file, empresaId) {
-  const existente = await getMantenimiento(id, empresaId);
+// Hasta MAX_ADJUNTOS_POR_CAMPO archivos (multer.array en la ruta). Volver a
+// subir REEMPLAZA el juego anterior completo (mismo criterio que antes con un
+// solo archivo), y los archivos viejos se borran del disco.
+async function subirSalidaInventario(id, files, empresaId) {
+  const existente = await mantenimientosRepository.findByIdWithVehiculo(id, empresaId);
+  if (!existente) {
+    await eliminarArchivosSubidos(files);
+    throw new HttpError(404, "Mantenimiento no encontrado");
+  }
 
   if (existente.tipo !== "cambio_aceite") {
+    await eliminarArchivosSubidos(files);
     throw new HttpError(400, "El documento de salida de inventario solo aplica a cambio de aceite");
   }
-  if (!file) {
+  if (!files?.length) {
     throw new HttpError(400, "Debes adjuntar el documento de salida de inventario");
   }
 
+  const salidas = aAdjuntos(files, "mantenimientos");
   const actualizado = await mantenimientosRepository.updateSalidaInventario(
     id,
     {
-      url: `/uploads/mantenimientos/${file.filename}`,
-      nombre: file.originalname,
-      mime: file.mimetype
+      url: salidas[0].url,
+      nombre: salidas[0].nombre,
+      mime: salidas[0].mime,
+      salidasJson: serializarAdjuntos(salidas)
     },
     empresaId
   );
 
-  if (existente.salida_inventario_url) {
-    await eliminarArchivoAnterior(existente.salida_inventario_url);
-  }
+  await Promise.all(salidasInventarioDe(existente).map((salida) => eliminarArchivoAnterior(salida.url)));
 
-  return actualizado;
+  return conAdjuntos(actualizado);
 }
 
 /**
@@ -267,7 +304,7 @@ async function confirmarCambioAceite(id, empresaId) {
 
   await vehiculoDisponibilidadService.reevaluarDisponibilidad(actualizado.vehiculo_id, empresaId);
 
-  return actualizado;
+  return conAdjuntos(actualizado);
 }
 
 /**
@@ -343,15 +380,19 @@ async function consumirRepuestos(mantenimientoId, repuestosEstructurados, curren
   return advertencias;
 }
 
-async function createMantenimiento(payload, file, currentUser) {
+async function createMantenimiento(payload, files, currentUser) {
   const empresaId = currentUser.empresa_id;
 
+  // Hasta MAX_ADJUNTOS_POR_CAMPO soportes (multer.array en la ruta);
+  // soporte_url/nombre/mime siguen guardando el primero.
+  const soportes = aAdjuntos(files, "mantenimientos");
   const mantenimiento = normalizePayload({
     ...payload,
     creado_por_usuario_id: currentUser?.id ?? null,
-    soporte_url: file ? `/uploads/mantenimientos/${file.filename}` : null,
-    soporte_nombre: file?.originalname || null,
-    soporte_mime: file?.mimetype || null
+    soporte_url: soportes[0]?.url || null,
+    soporte_nombre: soportes[0]?.nombre || null,
+    soporte_mime: soportes[0]?.mime || null,
+    soportes_json: serializarAdjuntos(soportes)
   });
   mantenimiento.empresa_id = empresaId;
 
@@ -390,7 +431,7 @@ async function createMantenimiento(payload, file, currentUser) {
 
   await vehiculoDisponibilidadService.reevaluarDisponibilidad(creado.vehiculo_id, empresaId);
 
-  return { ...creado, advertenciasStock };
+  return { ...conAdjuntos(creado), advertenciasStock };
 }
 
 // Edicion restringida a los datos del registro (tipo, fecha, descripcion,
@@ -455,7 +496,7 @@ async function updateMantenimiento(id, payload, currentUser) {
 
   await vehiculoDisponibilidadService.reevaluarDisponibilidad(existing.vehiculo_id, empresaId);
 
-  return actualizado;
+  return conAdjuntos(actualizado);
 }
 
 // Solo Administrador (ver PERMISOS_NUEVOS_POR_ROL en database/init.js,
@@ -502,8 +543,9 @@ async function deleteMantenimiento(id, currentUser) {
     await mantenimientosRepository.remove(id, empresaId, trx);
   });
 
-  await eliminarArchivoAnterior(mantenimiento.soporte_url);
-  await eliminarArchivoAnterior(mantenimiento.salida_inventario_url);
+  await Promise.all(
+    [...soportesDe(mantenimiento), ...salidasInventarioDe(mantenimiento)].map((adjunto) => eliminarArchivoAnterior(adjunto.url))
+  );
 
   await vehiculoDisponibilidadService.reevaluarDisponibilidad(mantenimiento.vehiculo_id, empresaId);
 }

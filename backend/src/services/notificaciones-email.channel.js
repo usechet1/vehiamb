@@ -65,6 +65,17 @@ function formatFechaCorreo(value) {
 // a la plataforma -- el conductor no siempre esta cerca para preguntarle
 // detalles, asi que Administrador/Operador deben poder ver de una vez que
 // fallo, con que comentario, la foto y donde quedo el vehiculo.
+// "(ver foto)" si el item trae una sola, "(foto 1 · foto 2 ...)" si trae
+// varias. Notificaciones guardadas antes solo tienen foto_url.
+function enlacesFotosItem(item) {
+  const fotos = item.fotos?.length ? item.fotos : item.foto_url ? [{ url: item.foto_url }] : [];
+  if (!fotos.length) return "";
+
+  const enlace = (foto, texto) => `<a href="${env.appBaseUrl}${foto.url}" style="color: #b21f2d;">${texto}</a>`;
+  if (fotos.length === 1) return ` (${enlace(fotos[0], "ver foto")})`;
+  return ` (${fotos.map((foto, indice) => enlace(foto, `foto ${indice + 1}`)).join(" · ")})`;
+}
+
 function construirDetalleInspeccion(detalle) {
   if (!detalle) return "";
 
@@ -92,7 +103,7 @@ function construirDetalleInspeccion(detalle) {
           ${itemsMal.map((item) => `
             <li style="margin-bottom: 10px;">
               <strong>${escapeHtml(item.label)}</strong>
-              ${item.foto_url ? ` (<a href="${env.appBaseUrl}${item.foto_url}" style="color: #b21f2d;">ver foto</a>)` : ""}
+              ${enlacesFotosItem(item)}
               ${item.comentario ? `
                 <div style="margin-top: 4px; padding: 6px 10px; background: #fff4f4; border-left: 3px solid #b21f2d; color: #5c1015; border-radius: 4px;">
                   💬 ${escapeHtml(item.comentario)}

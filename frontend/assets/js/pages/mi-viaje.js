@@ -346,7 +346,7 @@ function renderInspeccionHtml(inspeccion) {
         <div class="inspeccion-detalle-item">
             <span class="pill ${item.estado === "mal" ? "pill-danger" : "pill-success"}">${escapeHtml(item.item_label)}</span>
             ${item.comentario ? `<p class="field-help">${escapeHtml(item.comentario)}</p>` : ""}
-            ${item.foto_url ? `<a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(item.foto_url))}" target="_blank" rel="noreferrer">Ver foto</a>` : ""}
+            ${window.VehiAmb.adjuntos.renderEnlaces(window.VehiAmb.adjuntos.normalizar(item.fotos, item.foto_url))}
         </div>
     `).join("");
 
@@ -384,7 +384,10 @@ function renderComentarioItem(comentario) {
                 <span class="notif-item-time">${formatFechaHora(comentario.creado_en)}</span>
             </div>
             <p>${escapeHtml(comentario.comentario)}</p>
-            ${comentario.foto_url ? `<a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(comentario.foto_url))}" target="_blank" rel="noreferrer">Ver foto adjunta</a>` : ""}
+            ${window.VehiAmb.adjuntos.renderEnlaces(
+                window.VehiAmb.adjuntos.normalizar(comentario.fotos, comentario.foto_url, comentario.foto_nombre),
+                { etiqueta: "Ver foto adjunta" }
+            )}
         </div>
     `;
 }
@@ -477,8 +480,9 @@ function renderViajeDrawerBody(resumen) {
                         <span id="viajeComentarioVozHelp" class="field-help field-help-danger hidden"></span>
                     </div>
                     <div class="form-group">
-                        <label>Foto (opcional)</label>
-                        <input type="file" id="viajeComentarioFoto" accept="image/png,image/jpeg,image/webp">
+                        <label>Fotos (opcional, hasta ${window.VehiAmb.adjuntos.MAX_POR_CAMPO})</label>
+                        <input type="file" id="viajeComentarioFoto" accept="image/png,image/jpeg,image/webp" multiple>
+                        <p id="viajeComentarioFotoAviso" class="field-help field-help-danger hidden" role="status"></p>
                     </div>
                     <button type="button" id="viajeComentarioEnviar" class="btn-primary">Enviar</button>
                 ` : ""}
@@ -529,6 +533,10 @@ function setupComentarioForm(viajeId) {
         document.getElementById("viajeComentarioTexto"),
         document.getElementById("viajeComentarioVozHelp")
     );
+    window.VehiAmb.adjuntos.setupInputMultiple(
+        document.getElementById("viajeComentarioFoto"),
+        document.getElementById("viajeComentarioFotoAviso")
+    );
 
     enviarBtn.addEventListener("click", async () => {
         const textoInput = document.getElementById("viajeComentarioTexto");
@@ -543,11 +551,12 @@ function setupComentarioForm(viajeId) {
         try {
             const formData = new FormData();
             formData.append("comentario", texto);
-            if (fotoInput.files[0]) formData.append("foto", fotoInput.files[0]);
+            Array.from(fotoInput.files || []).forEach((file) => formData.append("foto", file));
 
             await window.VehiAmb.api.comentarNotificacion("viaje", viajeId, formData);
             textoInput.value = "";
             fotoInput.value = "";
+            document.getElementById("viajeComentarioFotoAviso")?.classList.add("hidden");
             await cargarComentariosHilo(viajeId);
         } catch (error) {
             console.error(error);

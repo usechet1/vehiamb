@@ -272,9 +272,10 @@
                                 <h3 class="mnt-section-title">Adjuntos</h3>
 
                                 <div class="form-group">
-                                    <label>Soporte del mantenimiento</label>
-                                    <input type="file" name="soporte" accept=".pdf,image/png,image/jpeg,image/webp">
-                                    <p class="field-help">Soporta PDF, PNG, JPG o WEBP hasta 5 MB.</p>
+                                    <label>Soportes del mantenimiento</label>
+                                    <input type="file" name="soporte" id="mantenimientoSoporteInput" accept=".pdf,image/png,image/jpeg,image/webp" multiple>
+                                    <p class="field-help">Hasta 5 archivos PDF, PNG, JPG o WEBP, de máximo 5 MB cada uno.</p>
+                                    <p id="mantenimientoSoporteAviso" class="field-help field-help-danger hidden" role="status"></p>
                                 </div>
 
                                 <div class="wizard-nav">
@@ -402,7 +403,7 @@
                         <button type="button" id="exportMaintenanceButton" class="btn-secondary btn-pdf">Exportar PDF</button>
                         <button type="button" id="approveMaintenanceButton" class="btn-primary hidden">Aprobar</button>
                     </div>
-                    <input type="file" id="salidaInventarioInput" accept=".pdf,image/png,image/jpeg,image/webp" class="hidden">
+                    <input type="file" id="salidaInventarioInput" accept=".pdf,image/png,image/jpeg,image/webp" multiple class="hidden">
                 </div>
                 <div id="maintenanceDrawerBody" class="detail-drawer-body"></div>
             </aside>

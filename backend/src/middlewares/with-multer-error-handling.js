@@ -1,4 +1,5 @@
 const HttpError = require("../errors/http-error");
+const { MAX_ADJUNTOS_POR_CAMPO } = require("../utils/adjuntos");
 
 // Un middleware de multer (.single/.any/.fields/.array) no es una promesa --
 // usa su propio callback de error, asi que sus fallos (archivo demasiado
@@ -19,9 +20,13 @@ function withMulterErrorHandling(uploadMiddleware, maxSizeLabel = "el tamaño m�
   return (req, res, next) => {
     uploadMiddleware(req, res, (err) => {
       if (!err) return next();
+      // LIMIT_UNEXPECTED_FILE es lo que lanza multer.array(campo, max) cuando
+      // llegan mas archivos de los permitidos en ese campo.
       const message = err.code === "LIMIT_FILE_SIZE"
         ? `El archivo supera ${maxSizeLabel}`
-        : err.message || "Archivo inválido";
+        : err.code === "LIMIT_UNEXPECTED_FILE" || err.code === "LIMIT_FILE_COUNT"
+          ? `Se adjuntaron más archivos de los permitidos (máximo ${MAX_ADJUNTOS_POR_CAMPO} por campo)`
+          : err.message || "Archivo inválido";
       next(new HttpError(400, message));
     });
   };

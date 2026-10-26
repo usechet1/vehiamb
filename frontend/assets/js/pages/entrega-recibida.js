@@ -34,6 +34,7 @@ let entregaActivo = null;
 let entregaPuedeCrear = false;
 let entregaDetalleCache = new Map();
 let entregaFotosGenerales = [];
+let entregaFotosGeneralesAviso = "";
 
 const MOTIVO_LABEL = {
     cambio_conductor: "Cambio de conductor",
@@ -141,11 +142,15 @@ function renderHotspots() {
     entregaHotspotsEl.querySelectorAll(".inspeccion-hotspot").forEach((el) => {
         el.addEventListener("click", () => {
             entregaActivo = el.dataset.codigo;
+            entregaFotoAviso = "";
             renderHotspots();
             renderPanel();
         });
     });
 }
+
+// Aviso del selector de fotos del punto abierto (ej. "solo se permiten 5").
+let entregaFotoAviso = "";
 
 function renderPanel() {
     if (!entregaActivo) {
@@ -174,11 +179,7 @@ function renderPanel() {
                 <label>Comentario (rayón, golpe, faltante, etc.)</label>
                 <textarea id="entregaComentarioInput" rows="2" placeholder="Detalle de la novedad...">${escapeHtml(marcado.comentario || "")}</textarea>
             </div>
-            <div class="form-group">
-                <label>Foto (opcional)</label>
-                <input type="file" id="entregaFotoInput" accept="image/png,image/jpeg,image/webp">
-                ${marcado.fotoNombre ? `<span class="field-help">Archivo: ${escapeHtml(marcado.fotoNombre)}</span>` : ""}
-            </div>
+            ${window.VehiAmb.adjuntos.renderSelector(marcado.fotoFiles, { prefijo: "entrega", aviso: entregaFotoAviso })}
             <button type="button" class="record-link" id="entregaQuitarButton">Quitar marca</button>
         ` : '<p class="field-help">Marca "Sin novedad" o "Con novedad" para registrar este ítem.</p>'}
     `;
@@ -189,8 +190,7 @@ function renderPanel() {
             entregaMarcados.set(item.codigo, {
                 estado: btn.dataset.estado,
                 comentario: existente?.comentario || "",
-                fotoFile: existente?.fotoFile || null,
-                fotoNombre: existente?.fotoNombre || null
+                fotoFiles: existente?.fotoFiles || []
             });
             renderHotspots();
             renderPanel();
@@ -204,14 +204,16 @@ function renderPanel() {
         if (entrada) entrada.comentario = comentarioInput.value;
     });
 
-    const fotoInput = document.getElementById("entregaFotoInput");
-    fotoInput?.addEventListener("change", () => {
-        const entrada = entregaMarcados.get(item.codigo);
-        if (!entrada) return;
-        const file = fotoInput.files?.[0] || null;
-        entrada.fotoFile = file;
-        entrada.fotoNombre = file?.name || null;
-        renderPanel();
+    window.VehiAmb.adjuntos.setupSelector(entregaPanelEl, {
+        prefijo: "entrega",
+        obtener: () => entregaMarcados.get(item.codigo)?.fotoFiles || [],
+        guardar: (archivos, aviso) => {
+            const entrada = entregaMarcados.get(item.codigo);
+            if (!entrada) return;
+            entrada.fotoFiles = archivos;
+            entregaFotoAviso = aviso;
+            renderPanel();
+        }
     });
 
     document.getElementById("entregaQuitarButton")?.addEventListener("click", () => {
@@ -255,7 +257,7 @@ function renderPanelGrupo(item) {
             if (estadoActual === valorBoton) {
                 entregaMarcados.delete(codigo);
             } else {
-                entregaMarcados.set(codigo, { estado: valorBoton, comentario: "", fotoFile: null, fotoNombre: null });
+                entregaMarcados.set(codigo, { estado: valorBoton, comentario: "", fotoFiles: [] });
             }
             renderHotspots();
             renderPanel();
@@ -314,6 +316,8 @@ async function resetEntrega({ confirmar = false } = {}) {
     entregaConductorRecibeSelect.value = "";
     entregaObservacionesInput.value = "";
     entregaFotosGenerales = [];
+    entregaFotosGeneralesAviso = "";
+    entregaFotoAviso = "";
     renderFotosGeneralesLista();
     firmaEntregaPad?.limpiar();
     firmaRecibePad?.limpiar();
@@ -324,19 +328,28 @@ async function resetEntrega({ confirmar = false } = {}) {
 
 // Fotos generales del vehiculo (no ligadas a un punto puntual del diagrama,
 // ver el input "multiple" en entrega-recibida.html): se acumulan en
-// entregaFotosGenerales y se agregan al formData al guardar como
-// "foto_general_0", "foto_general_1", etc. (ver entregas-recibidas.service.js).
+// entregaFotosGenerales (hasta window.VehiAmb.adjuntos.MAX_POR_CAMPO) y se
+// agregan al formData al guardar, todas en el campo "foto_general" (ver
+// entregas-recibidas.service.js).
 function renderFotosGeneralesLista() {
+    const max = window.VehiAmb.adjuntos.MAX_POR_CAMPO;
     entregaFotosGeneralesLista.innerHTML = entregaFotosGenerales.map((file, indice) => `
         <span class="pill">
             ${escapeHtml(file.name)}
             <button type="button" class="pill-remove" data-quitar-foto-general="${indice}" aria-label="Quitar ${escapeHtml(file.name)}">×</button>
         </span>
-    `).join("");
+    `).join("") + (entregaFotosGeneralesAviso
+        ? `<p class="field-help field-help-danger" role="status">${escapeHtml(entregaFotosGeneralesAviso)}</p>`
+        : entregaFotosGenerales.length >= max ? `<p class="field-help">Ya adjuntaste ${max} fotos generales (el máximo).</p>` : "");
+    if (entregaFotosGeneralesInput) entregaFotosGeneralesInput.disabled = entregaFotosGenerales.length >= max;
 }
 
 entregaFotosGeneralesInput?.addEventListener("change", () => {
-    entregaFotosGenerales = [...entregaFotosGenerales, ...Array.from(entregaFotosGeneralesInput.files || [])];
+    const { archivos, descartados } = window.VehiAmb.adjuntos.combinar(entregaFotosGenerales, entregaFotosGeneralesInput.files);
+    entregaFotosGenerales = archivos;
+    entregaFotosGeneralesAviso = descartados
+        ? `Solo se permiten ${window.VehiAmb.adjuntos.MAX_POR_CAMPO} fotos generales; ${descartados === 1 ? "una no se agregó" : `${descartados} no se agregaron`}.`
+        : "";
     entregaFotosGeneralesInput.value = "";
     renderFotosGeneralesLista();
 });
@@ -346,6 +359,7 @@ entregaFotosGeneralesLista?.addEventListener("click", (event) => {
     if (!boton) return;
     const indice = Number(boton.dataset.quitarFotoGeneral);
     entregaFotosGenerales = entregaFotosGenerales.filter((_, i) => i !== indice);
+    entregaFotosGeneralesAviso = "";
     renderFotosGeneralesLista();
 });
 
@@ -393,9 +407,7 @@ async function guardarEntrega() {
 
     entregaMarcados.forEach((data, codigo) => {
         items.push({ item_codigo: codigo, estado: data.estado, comentario: data.comentario || "" });
-        if (data.fotoFile) {
-            formData.append(`foto_${codigo}`, data.fotoFile);
-        }
+        (data.fotoFiles || []).forEach((file) => formData.append(`foto_${codigo}`, file));
     });
 
     formData.append("items", JSON.stringify(items));
@@ -405,7 +417,7 @@ async function guardarEntrega() {
     const kilometrajeValue = window.VehiAmb.ui.parseFormattedNumber(entregaKilometrajeInput.value);
     if (kilometrajeValue !== "") formData.append("kilometraje", kilometrajeValue);
     formData.append("observaciones", entregaObservacionesInput.value.trim());
-    entregaFotosGenerales.forEach((file, indice) => formData.append(`foto_general_${indice}`, file));
+    entregaFotosGenerales.forEach((file) => formData.append("foto_general", file));
 
     try {
         guardarEntregaButton.disabled = true;
@@ -441,7 +453,7 @@ function renderEntregaDrawerBody(detalle) {
         <div class="inspeccion-detalle-item">
             <span class="pill ${item.estado === "mal" ? "pill-danger" : "pill-success"}">${escapeHtml(item.item_label)}</span>
             ${item.comentario ? `<p class="field-help">${escapeHtml(item.comentario)}</p>` : ""}
-            ${item.foto_url ? `<a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(item.foto_url))}" target="_blank" rel="noreferrer">Ver foto</a>` : ""}
+            ${window.VehiAmb.adjuntos.renderEnlaces(window.VehiAmb.adjuntos.normalizar(item.fotos, item.foto_url, item.foto_nombre))}
         </div>
     `).join("");
 

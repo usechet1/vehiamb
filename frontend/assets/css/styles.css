@@ -1783,6 +1783,64 @@ label[for="loginPassword"] {
     flex: 1 1 200px;
 }
 
+/* Varias fotos/adjuntos por campo (ver ui.js, window.VehiAmb.adjuntos). */
+.adjuntos-enlaces {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+}
+
+.adjuntos-enlaces .record-link {
+    margin-top: 6px;
+}
+
+.adjuntos-seleccionados {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+    margin-bottom: 10px;
+    list-style: none;
+}
+
+.adjuntos-seleccionados li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-2);
+    font-size: 0.85rem;
+}
+
+.adjuntos-seleccionados-nombre {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--color-ink-soft);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.adjuntos-seleccionados .record-link {
+    flex: 0 0 auto;
+    margin-top: 0;
+}
+
+.adjuntos-botones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.adjuntos-botones .btn-secondary {
+    flex: 1 1 140px;
+    min-height: 42px;
+    padding: 9px 12px;
+    font-size: 0.88rem;
+}
+
 
 .mnt-textarea-voice-wrap textarea {
     width: 100%;

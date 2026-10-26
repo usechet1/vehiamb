@@ -5,6 +5,7 @@ const itemsRepository = require("../repositories/inspeccion-items.repository");
 const viajesRepository = require("../repositories/viajes.repository");
 const asignacionesRepository = require("../repositories/asignaciones.repository");
 const notificacionesService = require("./notificaciones.service");
+const { agruparPorCampo, aAdjuntos, serializarAdjuntos, parseAdjuntos } = require("../utils/adjuntos");
 
 // Catalogo fijo del checklist "radiografia". x/y son coordenadas porcentuales
 // sobre el diagrama del carro (0-100), consumidas por el frontend para
@@ -86,7 +87,8 @@ function toSafeItem(item) {
     estado: item.estado,
     comentario: item.comentario,
     foto_url: item.foto_url,
-    foto_nombre: item.foto_nombre
+    foto_nombre: item.foto_nombre,
+    fotos: parseAdjuntos(item.fotos_json, { url: item.foto_url, nombre: item.foto_nombre })
   };
 }
 
@@ -127,7 +129,10 @@ async function crear(vehiculoId, payload, archivos, currentUser) {
     throw new HttpError(400, "Debes marcar al menos un ítem del checklist");
   }
 
-  const archivosPorCampo = new Map((archivos || []).map((file) => [file.fieldname, file]));
+  // Cada item admite varias fotos (todas llegan en el mismo campo
+  // "foto_<codigo>", ver vehicle-inspeccion.js); el tope por campo ya lo
+  // aplico limitarAdjuntosPorCampo en inspecciones.routes.js.
+  const archivosPorCampo = agruparPorCampo(archivos);
 
   const itemsValidados = items.map((item) => {
     const codigo = String(item.item_codigo || "");
@@ -141,19 +146,20 @@ async function crear(vehiculoId, payload, archivos, currentUser) {
       throw new HttpError(400, `Estado inválido para "${catalogoItem.label}"`);
     }
 
-    const foto = archivosPorCampo.get(`foto_${codigo}`);
+    const fotos = aAdjuntos(archivosPorCampo.get(`foto_${codigo}`), "inspecciones");
 
     return {
       item_codigo: catalogoItem.codigo,
       item_label: catalogoItem.label,
       estado,
       comentario: item.comentario ? String(item.comentario).trim().slice(0, 500) : null,
-      foto_url: foto ? `/uploads/inspecciones/${foto.filename}` : null,
-      foto_nombre: foto ? foto.originalname : null
+      foto_url: fotos[0]?.url || null,
+      foto_nombre: fotos[0]?.nombre || null,
+      fotos_json: serializarAdjuntos(fotos)
     };
   });
 
-  const firma = archivosPorCampo.get("firma");
+  const firma = archivosPorCampo.get("firma")?.[0];
   if (!firma) {
     throw new HttpError(400, "Se requiere la firma del conductor para guardar la inspección");
   }

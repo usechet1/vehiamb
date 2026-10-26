@@ -260,6 +260,12 @@ function renderFacts(vehiculo) {
     `).join("");
 }
 
+// Soportes del mantenimiento (varios desde que se permiten hasta
+// window.VehiAmb.adjuntos.MAX_POR_CAMPO; los viejos traen solo soporte_url).
+function soportesItem(item) {
+    return window.VehiAmb.adjuntos.normalizar(item.soportes ?? item.soportes_json, item.soporte_url, item.soporte_nombre);
+}
+
 function renderMantenimientos(mantenimientos) {
     if (!mantenimientos.length) {
         maintenanceList.innerHTML = '<p class="dash-empty">Este vehículo aún no tiene mantenimientos registrados</p>';
@@ -281,13 +287,13 @@ function renderMantenimientos(mantenimientos) {
                 ${renderRepuestosMeta(item.repuestos)}
                 <span class="pill">Autorizado por: ${escapeHtml(item.autorizado_por) || "No registrado"}</span>
                 <span class="pill">Hecho por: ${escapeHtml(item.hecho_por) || "No registrado"}</span>
-                ${item.soporte_url ? '<span class="pill">Soporte adjunto</span>' : ""}
+                ${soportesItem(item).length ? `<span class="pill">${soportesItem(item).length === 1 ? "Soporte adjunto" : `${soportesItem(item).length} soportes`}</span>` : ""}
             </div>
-            ${item.soporte_url ? `
-                <a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(item.soporte_url))}" target="_blank" rel="noreferrer">
-                    ${escapeHtml(item.soporte_nombre) || "Ver adjunto"}
+            ${soportesItem(item).map((soporte, indice) => `
+                <a class="record-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(soporte.url))}" target="_blank" rel="noreferrer">
+                    ${escapeHtml(soporte.nombre) || `Ver adjunto ${indice + 1}`}
                 </a>
-            ` : ""}
+            `).join("")}
         </article>
     `).join("");
 }

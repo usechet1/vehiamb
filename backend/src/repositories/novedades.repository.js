@@ -8,6 +8,7 @@ const NOVEDAD_FIELDS = [
   "foto_url",
   "foto_nombre",
   "foto_mime",
+  "fotos_json",
   "creado_por_usuario_id"
 ];
 
