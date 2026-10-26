@@ -315,9 +315,12 @@ window.VehiAmb.ui = {
             if (!archivo) return;
 
             // Con un input "multiple" la foto de la camara se SUMA a las ya
-            // elegidas (hasta el maximo por campo) en vez de reemplazarlas.
+            // elegidas (hasta el maximo por campo) en vez de reemplazarlas. Si
+            // el input ya lo maneja adjuntos.setupInputMultiple, ese acumula
+            // al recibir el "change" -- aca solo se pasa la foto nueva, para
+            // no duplicar las anteriores.
             const dataTransfer = new DataTransfer();
-            if (fotoInput.multiple) {
+            if (fotoInput.multiple && !fotoInput._adjuntosGestionados) {
                 Array.from(fotoInput.files || [])
                     .slice(0, window.VehiAmb.adjuntos.MAX_POR_CAMPO - 1)
                     .forEach((file) => dataTransfer.items.add(file));
@@ -455,16 +458,74 @@ window.VehiAmb.adjuntos = {
         });
     },
 
-    // Engancha limitarInput al "change" de un input y muestra el aviso en
-    // avisoEl (un .field-help) cuando corresponde.
+    // Para un <input type="file"> de formulario (novedades, comentarios,
+    // soportes): el navegador REEMPLAZA la seleccion cada vez que se eligen
+    // archivos, asi que elegir una foto y despues otra dejaba solo la ultima.
+    // Aca se acumulan (hasta el maximo) en input.files -- FormData(form) los
+    // sigue leyendo de ahi -- y se listan debajo con "Quitar". avisoEl (un
+    // .field-help) muestra el aviso cuando se pasa del maximo.
     setupInputMultiple(input, avisoEl) {
         if (!input) return;
         input.multiple = true;
-        input.addEventListener("change", () => {
-            const aviso = this.limitarInput(input);
+        input._adjuntosGestionados = true;
+
+        let actuales = [];
+        const lista = document.createElement("ul");
+        lista.className = "adjuntos-seleccionados";
+        lista.hidden = true;
+        (input.closest(".foto-input-row") || input).insertAdjacentElement("afterend", lista);
+
+        const mostrarAviso = (aviso) => {
             if (!avisoEl) return;
             avisoEl.textContent = aviso;
             avisoEl.classList.toggle("hidden", !aviso);
+        };
+
+        const sincronizar = () => {
+            const dataTransfer = new DataTransfer();
+            actuales.forEach((file) => dataTransfer.items.add(file));
+            input.files = dataTransfer.files;
+
+            lista.innerHTML = actuales.map((file, indice) => `
+                <li>
+                    <span class="adjuntos-seleccionados-nombre">${this.escape(file.name)}</span>
+                    <button type="button" class="record-link" data-quitar-adjunto="${indice}" aria-label="Quitar ${this.escape(file.name)}">Quitar</button>
+                </li>
+            `).join("");
+            lista.hidden = !actuales.length;
+        };
+
+        input.addEventListener("change", () => {
+            const { archivos, descartados } = this.combinar(actuales, input.files);
+            actuales = archivos;
+            sincronizar();
+            mostrarAviso(descartados
+                ? `Solo se permiten ${this.MAX_POR_CAMPO} archivos; ${descartados === 1 ? "uno no se agregó" : `${descartados} no se agregaron`}.`
+                : "");
         });
+
+        lista.addEventListener("click", (event) => {
+            const boton = event.target.closest("[data-quitar-adjunto]");
+            if (!boton) return;
+            const indiceQuitar = Number(boton.dataset.quitarAdjunto);
+            actuales = actuales.filter((_, indice) => indice !== indiceQuitar);
+            sincronizar();
+            mostrarAviso("");
+        });
+
+        input._limpiarAdjuntos = () => {
+            actuales = [];
+            sincronizar();
+            mostrarAviso("");
+        };
+        input.form?.addEventListener("reset", () => input._limpiarAdjuntos());
+    },
+
+    // Vacia un input preparado con setupInputMultiple (lista incluida) -- usar
+    // en vez de input.value = "" despues de enviar.
+    limpiarInput(input) {
+        if (!input) return;
+        if (input._limpiarAdjuntos) input._limpiarAdjuntos();
+        else input.value = "";
     }
 };

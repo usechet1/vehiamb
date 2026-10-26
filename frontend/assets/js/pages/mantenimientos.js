@@ -1831,7 +1831,6 @@ mantenimientoForm.addEventListener("submit", async (event) => {
         }
 
         mantenimientoForm.reset();
-        document.getElementById("mantenimientoSoporteAviso")?.classList.add("hidden");
         mantenimientoFecha.value = hoyISO();
         sincronizarMinFechaTentativaSalida();
         tipoCardGrid.querySelectorAll(".type-card.is-selected").forEach((card) => card.classList.remove("is-selected"));

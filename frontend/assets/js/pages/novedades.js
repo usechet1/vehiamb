@@ -258,8 +258,7 @@ function setupComentarioNovedadForm(novedadId) {
 
             await window.VehiAmb.api.comentarNotificacion("novedad", novedadId, formData);
             textoInput.value = "";
-            fotoInput.value = "";
-            document.getElementById("novedadComentarioFotoAviso")?.classList.add("hidden");
+            window.VehiAmb.adjuntos.limpiarInput(fotoInput);
             await cargarComentariosNovedad(novedadId);
         } catch (error) {
             console.error(error);
@@ -347,7 +346,6 @@ document.addEventListener("keydown", (event) => {
 function resetNovedadForm() {
     novedadForm.reset();
     novedadFecha.value = hoyISO();
-    document.getElementById("novedadFotoAviso")?.classList.add("hidden");
 }
 
 function fotosNovedad(novedad) {

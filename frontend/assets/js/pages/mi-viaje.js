@@ -555,8 +555,7 @@ function setupComentarioForm(viajeId) {
 
             await window.VehiAmb.api.comentarNotificacion("viaje", viajeId, formData);
             textoInput.value = "";
-            fotoInput.value = "";
-            document.getElementById("viajeComentarioFotoAviso")?.classList.add("hidden");
+            window.VehiAmb.adjuntos.limpiarInput(fotoInput);
             await cargarComentariosHilo(viajeId);
         } catch (error) {
             console.error(error);
