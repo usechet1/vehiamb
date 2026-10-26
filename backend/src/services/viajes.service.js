@@ -365,18 +365,22 @@ function consolidarViajes(viajes) {
 
     const vehiculoKey = String(viaje.vehiculo_id);
     if (!vehiculos.has(vehiculoKey)) {
-      vehiculos.set(vehiculoKey, { vehiculoId: viaje.vehiculo_id, placa: viaje.vehiculo_placa || null, conRegistro: false, hallazgos: new Map() });
+      vehiculos.set(vehiculoKey, { vehiculoId: viaje.vehiculo_id, placa: viaje.vehiculo_placa || null, conRegistro: false, hallazgos: new Map(), viajesConHallazgos: [] });
     }
     const vehiculo = vehiculos.get(vehiculoKey);
     if (tienePreoperacional || tieneInspeccion) vehiculo.conRegistro = true;
 
-    (viaje.inspeccion_items || [])
-      .filter((item) => item.estado === "mal")
-      .forEach((item) => vehiculo.hallazgos.set(`inspeccion:${item.item_codigo || item.item_label}`, grupoDeInspeccion(item)));
+    const inspeccionMal = (viaje.inspeccion_items || []).filter((item) => item.estado === "mal");
+    const preoperacionalNo = (viaje.preoperacional_items || []).filter((item) => item.respuesta === "no");
 
-    (viaje.preoperacional_items || [])
-      .filter((item) => item.respuesta === "no")
-      .forEach((item) => vehiculo.hallazgos.set(`preoperacional:${item.item_codigo || item.item_label}`, grupoDePreoperacional(item)));
+    inspeccionMal.forEach((item) => vehiculo.hallazgos.set(`inspeccion:${item.item_codigo || item.item_label}`, grupoDeInspeccion(item)));
+    preoperacionalNo.forEach((item) => vehiculo.hallazgos.set(`preoperacional:${item.item_codigo || item.item_label}`, grupoDePreoperacional(item)));
+
+    // Viajes de este vehiculo que dejaron hallazgos, del mas reciente al mas
+    // viejo (findRecientesPorEmpresa ya los trae por creado_en DESC) -- el
+    // panel abre el resumen de ese viaje (inspeccion + preoperacional
+    // contestados) al hacer clic en el vehiculo.
+    if (inspeccionMal.length || preoperacionalNo.length) vehiculo.viajesConHallazgos.push(viaje.id);
   }
 
   const porTipo = new Map();
@@ -407,7 +411,9 @@ function consolidarViajes(viajes) {
       tipos: grupos.map((grupo) => grupo.corto),
       total: vehiculo.hallazgos.size,
       severidad: grupos.some((grupo) => grupo.severidad === "critica") ? "critica" : "atencion",
-      kitIncompleto: gruposVehiculo.has("kit")
+      kitIncompleto: gruposVehiculo.has("kit"),
+      viajeId: vehiculo.viajesConHallazgos[0] ?? null,
+      viajeIds: vehiculo.viajesConHallazgos
     });
   }
 

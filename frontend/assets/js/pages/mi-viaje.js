@@ -574,10 +574,23 @@ async function obtenerResumenViaje(viajeId) {
     return resumenViajeCache.get(viajeId);
 }
 
+// Si el viaje se abrio desde "Vehiculos que requieren atencion" del Resumen
+// del dia, al cerrarlo se vuelve a ese panel (tal como estaba, sin
+// recargarlo) con el foco en la fila del vehiculo, para seguir revisando.
+let viajeAbiertoDesdeResumenDia = null;
+
 function closeViajeResumen() {
     window.VehiAmb.ui.hide(viajeDrawerBackdrop);
     window.VehiAmb.ui.hide(viajeDrawer);
     viajeDrawer.setAttribute("aria-hidden", "true");
+
+    if (viajeAbiertoDesdeResumenDia !== null) {
+        const viajeId = viajeAbiertoDesdeResumenDia;
+        viajeAbiertoDesdeResumenDia = null;
+        mostrarResumenDia();
+        const fila = resumenDiaBody.querySelector(`[data-resumen-viaje="${CSS.escape(String(viajeId))}"]`);
+        (fila || closeResumenDia).focus();
+    }
 }
 
 async function openViajeResumen(viajeId) {
@@ -1003,13 +1016,22 @@ function renderResumenVehiculos(resumen) {
                 ${resumen.vehiculosAfectados.map((vehiculo) => {
                     const tiposTexto = vehiculo.tipos.slice(0, RESUMEN_TIPOS_POR_VEHICULO).join(", ")
                         + (vehiculo.tipos.length > RESUMEN_TIPOS_POR_VEHICULO ? "…" : "");
+                    const totalViajes = vehiculo.viajeIds?.length || 0;
+                    const contenido = `
+                        <span class="plate resumen-plate">${escapeHtml(vehiculo.placa) || "SIN PLACA"}</span>
+                        <span class="resumen-vehiculo-tipos">${escapeHtml(tiposTexto)}${totalViajes > 1 ? ` <span class="resumen-vehiculo-viajes">· ${totalViajes} viajes</span>` : ""}</span>
+                        <span class="resumen-badge resumen-num is-${vehiculo.severidad}" aria-label="${plural(vehiculo.total, "hallazgo", "hallazgos")}">${vehiculo.total}</span>
+                    `;
+                    // Abre el resumen del viaje (inspeccion y preoperacional
+                    // contestados) en vez de la ficha del vehiculo; con varios
+                    // viajes en el rango, el mas reciente con hallazgos.
+                    // Sin viajeId (backend anterior) queda el enlace a la ficha.
                     return `
                         <li>
-                            <a class="resumen-vehiculo" href="vehiculo.html?id=${encodeURIComponent(vehiculo.vehiculoId)}" title="${escapeHtml(vehiculo.tipos.join(", "))}">
-                                <span class="plate resumen-plate">${escapeHtml(vehiculo.placa) || "SIN PLACA"}</span>
-                                <span class="resumen-vehiculo-tipos">${escapeHtml(tiposTexto)}</span>
-                                <span class="resumen-badge resumen-num is-${vehiculo.severidad}" aria-label="${plural(vehiculo.total, "hallazgo", "hallazgos")}">${vehiculo.total}</span>
-                            </a>
+                            ${vehiculo.viajeId
+                                ? `<button type="button" class="resumen-vehiculo" data-resumen-viaje="${escapeHtml(vehiculo.viajeId)}" title="${escapeHtml(vehiculo.tipos.join(", "))}"
+                                    aria-label="${escapeHtml(`${vehiculo.placa || "Sin placa"}: ${vehiculo.tipos.join(", ")}. Ver la inspección y el preoperacional${totalViajes > 1 ? " del viaje más reciente" : ""}`)}">${contenido}</button>`
+                                : `<a class="resumen-vehiculo" href="vehiculo.html?id=${encodeURIComponent(vehiculo.vehiculoId)}" title="${escapeHtml(vehiculo.tipos.join(", "))}">${contenido}</a>`}
                         </li>
                     `;
                 }).join("")}
@@ -1122,21 +1144,38 @@ async function cargarResumenDia() {
     }
 }
 
-function abrirResumenDia() {
+function mostrarResumenDia() {
     window.VehiAmb.ui.show(resumenDiaBackdrop);
     window.VehiAmb.ui.show(resumenDiaDrawer);
     resumenDiaDrawer.setAttribute("aria-hidden", "false");
     resumenDiaButton.setAttribute("aria-expanded", "true");
+}
+
+function ocultarResumenDia() {
+    window.VehiAmb.ui.hide(resumenDiaBackdrop);
+    window.VehiAmb.ui.hide(resumenDiaDrawer);
+    resumenDiaDrawer.setAttribute("aria-hidden", "true");
+    resumenDiaButton.setAttribute("aria-expanded", "false");
+}
+
+function abrirResumenDia() {
+    mostrarResumenDia();
     closeResumenDia.focus();
     cargarResumenDia();
 }
 
 function cerrarResumenDia() {
-    window.VehiAmb.ui.hide(resumenDiaBackdrop);
-    window.VehiAmb.ui.hide(resumenDiaDrawer);
-    resumenDiaDrawer.setAttribute("aria-hidden", "true");
-    resumenDiaButton.setAttribute("aria-expanded", "false");
+    ocultarResumenDia();
     resumenDiaButton.focus();
+}
+
+// Clic en un vehiculo del resumen: abre el resumen de su viaje (mismo drawer
+// que "Ver resumen" de la lista), que muestra la inspeccion preventiva y el
+// preoperacional contestados item por item, con sus fotos.
+function abrirViajeDesdeResumenDia(viajeId) {
+    ocultarResumenDia();
+    viajeAbiertoDesdeResumenDia = viajeId;
+    openViajeResumen(viajeId);
 }
 
 // Cada metrica filtra la lista de abajo: primero se fija el mismo rango de
@@ -1277,6 +1316,12 @@ resumenDiaBody.addEventListener("click", (event) => {
     const metrica = event.target.closest("[data-resumen-metrica]");
     if (metrica && !metrica.disabled) {
         aplicarMetricaResumen(metrica.dataset.resumenMetrica);
+        return;
+    }
+
+    const filaViaje = event.target.closest("[data-resumen-viaje]");
+    if (filaViaje) {
+        abrirViajeDesdeResumenDia(filaViaje.dataset.resumenViaje);
         return;
     }
 

@@ -7417,6 +7417,22 @@ button.record-link {
     transition: var(--transition);
 }
 
+/* La fila es un <button> (abre el resumen del viaje en el mismo panel). */
+button.resumen-vehiculo {
+    width: 100%;
+    border: 0;
+    border-bottom: 1px solid var(--color-border);
+    background: none;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.resumen-vehiculo-viajes {
+    color: var(--color-ink-soft);
+    font-weight: 650;
+}
+
 .resumen-vehiculos li:last-child .resumen-vehiculo {
     border-bottom: 0;
 }
