@@ -268,8 +268,10 @@
         if (item.tipo === "cambio_aceite") {
             layout.row("Próximo cambio", proximoCambioTexto(item));
         }
-        layout.row("Responsable", item.hecho_por);
-        layout.row("Autorizado por", item.autorizado_por);
+        // Responsable/Autorizado por solo si se registraron -- "No registrado"
+        // no aporta nada en el reporte.
+        if (item.hecho_por) layout.row("Responsable", item.hecho_por);
+        if (item.autorizado_por) layout.row("Autorizado por", item.autorizado_por);
         layout.row("Registrado por", item.creado_por_nombre);
 
         layout.spacer();
@@ -342,8 +344,8 @@
         if (item.tipo === "cambio_aceite") {
             excel.addLabelValueRow(sheet, "Próximo cambio", safe(proximoCambioTexto(item)));
         }
-        excel.addLabelValueRow(sheet, "Responsable", safe(item.hecho_por));
-        excel.addLabelValueRow(sheet, "Autorizado por", safe(item.autorizado_por));
+        if (item.hecho_por) excel.addLabelValueRow(sheet, "Responsable", item.hecho_por);
+        if (item.autorizado_por) excel.addLabelValueRow(sheet, "Autorizado por", item.autorizado_por);
         excel.addLabelValueRow(sheet, "Registrado por", safe(item.creado_por_nombre));
         sheet.addRow([]);
 
