@@ -5920,14 +5920,15 @@ button.record-link {
 }
 
 @media (max-width: 620px) {
+    /* En el celular los 26px de escritorio dejaban un hueco grande entre la
+       descripcion de la pagina y la primera tarjeta, en todos los modulos
+       (Inicio usa .dash-header). Al apilarse en columna, los 24px de gap
+       tambien se sumaban aunque la parte derecha quedara vacia (ej. SIMIT
+       sin el boton de administrador) -- se baja a 8px. */
     .page-header,
     .dash-header {
         flex-direction: column;
-    }
-
-    /* En el celular los 26px de escritorio dejaban un hueco grande entre la
-       descripcion de la pagina y la primera tarjeta. */
-    .page-header {
+        gap: 8px;
         margin-bottom: 14px;
     }
 
