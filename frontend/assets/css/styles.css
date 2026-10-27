@@ -5925,6 +5925,12 @@ button.record-link {
         flex-direction: column;
     }
 
+    /* En el celular los 26px de escritorio dejaban un hueco grande entre la
+       descripcion de la pagina y la primera tarjeta. */
+    .page-header {
+        margin-bottom: 14px;
+    }
+
     /* Tabla de conductores: en pantallas angostas se ocultan telefono/correo
        (ya visibles al editar el conductor) para que el resto de columnas
        quepa sin depender tanto del scroll horizontal de .table-scroll. */
