@@ -773,10 +773,15 @@ viajesResumenFiltroQuitar.addEventListener("click", () => {
     pintarViajesEmpresa();
 });
 
+// Solo se cambia el texto del <span class="btn-label"> (no todo el boton),
+// para no borrar el icono; en movil ese texto va oculto y el boton queda
+// deshabilitado con aria-busy mientras se genera.
 async function exportarViajes(boton, exportFn) {
-    const originalLabel = boton.textContent;
+    const etiqueta = boton.querySelector(".btn-label") || boton;
+    const originalLabel = etiqueta.textContent;
     boton.disabled = true;
-    boton.textContent = "Generando...";
+    boton.setAttribute("aria-busy", "true");
+    etiqueta.textContent = "Generando...";
 
     try {
         await exportFn(viajesVisibles(), currentViajesFilters());
@@ -785,7 +790,8 @@ async function exportarViajes(boton, exportFn) {
         window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo exportar el historial de viajes", "error");
     } finally {
         boton.disabled = false;
-        boton.textContent = originalLabel;
+        boton.removeAttribute("aria-busy");
+        etiqueta.textContent = originalLabel;
     }
 }
 

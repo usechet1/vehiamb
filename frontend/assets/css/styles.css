@@ -4581,6 +4581,20 @@ label[for="loginPassword"] {
     gap: 10px;
 }
 
+/* Boton con icono + texto (ej. acciones de Viajes recientes). */
+.btn-con-icono {
+    gap: 6px;
+}
+
+.btn-con-icono svg {
+    flex: 0 0 auto;
+}
+
+.btn-con-icono[aria-busy="true"] {
+    opacity: 0.6;
+    cursor: progress;
+}
+
 .filter-actions .btn-secondary {
     min-height: 38px;
     padding: 9px 12px;
@@ -6084,6 +6098,41 @@ button.record-link {
     .filter-actions-buttons {
         flex-direction: column;
         align-items: stretch;
+    }
+
+    /* Una sola fila en movil: el boton principal con texto y el resto
+       cuadrados de solo icono, en vez de cuatro botones a lo ancho. */
+    .filter-actions-buttons--iconos {
+        flex-direction: row;
+        gap: 8px;
+    }
+
+    .filter-actions-buttons--iconos .btn-con-icono {
+        flex: 0 0 42px;
+        min-height: 42px;
+        padding: 0;
+    }
+
+    .filter-actions-buttons--iconos .btn-con-icono .btn-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+    }
+
+    .filter-actions-buttons--iconos .btn-principal {
+        flex: 1 1 auto;
+        padding: 0 12px;
+    }
+
+    .filter-actions-buttons--iconos .btn-principal .btn-label {
+        position: static;
+        width: auto;
+        height: auto;
+        overflow: visible;
+        clip: auto;
     }
 
     .detail-drawer {
