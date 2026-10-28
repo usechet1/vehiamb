@@ -77,9 +77,10 @@ async function findByConductorYFecha(conductorId, fecha, empresaId) {
   );
 }
 
-// Asignaciones de un rango de fechas con un indicador de si su preoperacional
-// ya se registro -- es el "esperado" del Resumen del dia (viajes.service.js
-// #obtenerResumenDia): cada ruta asignada deberia tener su preoperacional.
+// Asignaciones de un rango de fechas con indicadores de si su inspeccion y su
+// preoperacional ya se registraron -- es el "esperado" del Resumen del dia
+// (viajes.service.js#obtenerResumenDia): cada ruta asignada deberia tener
+// los dos.
 // El vinculo principal es el mismo de resolverAsignacionParaFecha
 // (asignacion -> inspeccion -> viaje -> preoperacional); como respaldo se
 // acepta un preoperacional del mismo conductor ese mismo dia (Bogota), para
@@ -106,10 +107,28 @@ async function findConPreoperacionalPorRango(empresaId, { fechaDesde, fechaHasta
         ar.id,
         to_char(ar.fecha, 'YYYY-MM-DD') AS fecha,
         ar.vehiculo_id,
+        ar.conductor_id,
         v.placa AS vehiculo_placa,
         c.nombres AS conductor_nombres,
         c.apellidos AS conductor_apellidos,
         r.nombre AS ruta_nombre,
+        -- Inspeccion: la atada a la asignacion (incluye la "preinspeccion"
+        -- hecha la tarde anterior, ver inspecciones.service.js) o, si el
+        -- conductor uso el flujo manual, una suya de ese mismo dia.
+        (
+          EXISTS (
+            SELECT 1
+            FROM inspecciones_preventivas ip
+            WHERE ip.asignacion_id = ar.id
+          )
+          OR EXISTS (
+            SELECT 1
+            FROM inspecciones_preventivas ip
+            WHERE c.usuario_id IS NOT NULL
+              AND ip.usuario_id = c.usuario_id
+              AND (ip.fecha AT TIME ZONE 'America/Bogota')::date = ar.fecha
+          )
+        ) AS inspeccion_realizada,
         (
           EXISTS (
             SELECT 1

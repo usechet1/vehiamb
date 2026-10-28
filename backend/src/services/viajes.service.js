@@ -466,6 +466,54 @@ function consolidarViajes(viajes) {
   };
 }
 
+// Cumplimiento por conductor en el rango: de las rutas que tuvo asignadas,
+// en cuantas hizo la inspeccion y en cuantas el preoperacional, con el
+// detalle de cada asignacion donde falto algo. Primero los que mas deben
+// (mas asignaciones incompletas), luego por apellido.
+function cumplimientoPorConductor(asignaciones) {
+  const porConductor = new Map();
+
+  for (const asignacion of asignaciones) {
+    const clave = asignacion.conductor_id ? String(asignacion.conductor_id) : "sin-conductor";
+    if (!porConductor.has(clave)) {
+      porConductor.set(clave, {
+        conductorId: asignacion.conductor_id || null,
+        nombres: asignacion.conductor_nombres || null,
+        apellidos: asignacion.conductor_apellidos || null,
+        asignadas: 0,
+        inspecciones: 0,
+        preoperacionales: 0,
+        pendientes: []
+      });
+    }
+
+    const conductor = porConductor.get(clave);
+    const inspeccion = Boolean(asignacion.inspeccion_realizada);
+    const preoperacional = Boolean(asignacion.preoperacional_realizado);
+    conductor.asignadas += 1;
+    if (inspeccion) conductor.inspecciones += 1;
+    if (preoperacional) conductor.preoperacionales += 1;
+    if (!inspeccion || !preoperacional) {
+      conductor.pendientes.push({
+        asignacionId: asignacion.id,
+        fecha: asignacion.fecha,
+        placa: asignacion.vehiculo_placa || null,
+        ruta: asignacion.ruta_nombre || null,
+        faltaInspeccion: !inspeccion,
+        faltaPreoperacional: !preoperacional
+      });
+    }
+  }
+
+  // Las asignaciones sin conductor cargado van siempre al final.
+  return [...porConductor.values()].sort((a, b) =>
+    (a.conductorId ? 0 : 1) - (b.conductorId ? 0 : 1) ||
+    b.pendientes.length - a.pendientes.length ||
+    String(a.apellidos || "").localeCompare(String(b.apellidos || ""), "es") ||
+    String(a.nombres || "").localeCompare(String(b.nombres || ""), "es")
+  );
+}
+
 // Consolidado de la jornada (o del rango filtrado) para Administrador/
 // Operador. Respeta tambien los filtros de conductor/placa activos en la
 // pantalla, y compara contra el periodo inmediatamente anterior de la misma
@@ -497,6 +545,7 @@ async function obtenerResumenDia(empresaId, currentUser, { fechaDesde, fechaHast
     const pendientes = asignaciones.filter((asignacion) => !asignacion.preoperacional_realizado);
     actual.totales.preoperacionalesEsperados = asignaciones.length;
     actual.totales.preoperacionalesHechos = asignaciones.length - pendientes.length;
+    actual.totales.inspeccionesHechas = asignaciones.filter((asignacion) => asignacion.inspeccion_realizada).length;
     actual.asignacionesPendientes = pendientes.map((asignacion) => ({
       asignacionId: asignacion.id,
       fecha: asignacion.fecha,
@@ -505,9 +554,12 @@ async function obtenerResumenDia(empresaId, currentUser, { fechaDesde, fechaHast
       conductorApellidos: asignacion.conductor_apellidos || null,
       ruta: asignacion.ruta_nombre || null
     }));
+    actual.cumplimientoConductores = cumplimientoPorConductor(asignaciones);
   } else {
     actual.totales.preoperacionalesEsperados = null;
+    actual.totales.inspeccionesHechas = null;
     actual.asignacionesPendientes = [];
+    actual.cumplimientoConductores = [];
   }
 
   return {

@@ -23,6 +23,7 @@ const resumenDiaBody = document.getElementById("resumenDiaBody");
 const resumenDiaCompartir = document.getElementById("resumenDiaCompartir");
 const resumenDiaCompartirTexto = document.getElementById("resumenDiaCompartirTexto");
 const resumenDiaPdf = document.getElementById("resumenDiaPdf");
+const resumenDiaExcel = document.getElementById("resumenDiaExcel");
 const resumenDiaLive = document.getElementById("resumenDiaLive");
 const closeResumenDia = document.getElementById("closeResumenDia");
 const controlViajeEmpty = document.getElementById("controlViajeEmpty");
@@ -883,19 +884,71 @@ function faltanPreoperacionales(totales) {
     return Math.max(0, totales.preoperacionalesEsperados - totales.preoperacionalesHechos);
 }
 
-function nombreConductorPendiente(pendiente) {
-    const nombre = `${capitalizarNombre(pendiente.conductorNombres)} ${capitalizarNombre(pendiente.conductorApellidos)}`.trim();
+// ── Cumplimiento por conductor (viajes.service.js#cumplimientoPorConductor) ──
+// De las rutas asignadas en el rango, cuantas inspecciones y preoperacionales
+// hizo cada conductor, con el detalle de las fechas donde falto algo.
+function nombreConductorCumplimiento(conductor) {
+    const nombre = `${capitalizarNombre(conductor.nombres)} ${capitalizarNombre(conductor.apellidos)}`.trim();
     return nombre || "Sin conductor asignado";
 }
 
-// Texto plano de las asignaciones sin preoperacional (Compartir y PDF).
-function textoPendientesPreoperacional(resumen) {
-    const pendientes = resumen.asignacionesPendientes || [];
-    if (!pendientes.length) return "";
-    const multiDia = !esRangoDeUnDia(resumen.rango);
-    return `Sin preoperacional: ${pendientes.map((pendiente) =>
-        `${pendiente.placa || "Sin vehículo"} (${nombreConductorPendiente(pendiente)}${multiDia ? `, ${formatFechaCorta(pendiente.fecha)}` : ""})`
-    ).join(", ")}`;
+function textoFaltante(pendiente) {
+    if (pendiente.faltaInspeccion && pendiente.faltaPreoperacional) return "Falta inspección y preoperacional";
+    return pendiente.faltaInspeccion ? "Falta inspección" : "Falta preoperacional";
+}
+
+// Filas ya armadas (nombres capitalizados, fechas dd/mm/aaaa, texto de lo que
+// falta) para el PDF del resumen y el Excel de cumplimiento -- asi el
+// exportador no repite el formateo del panel.
+function cumplimientoParaExportar(resumen) {
+    const totales = resumen.totales;
+    if (sinAsignacionesRuta(totales)) return null;
+
+    const fechaLarga = (fechaIso) => {
+        const [anio, mes, dia] = String(fechaIso).split("-");
+        return `${dia}/${mes}/${anio}`;
+    };
+    const conductores = (resumen.cumplimientoConductores || []).map((conductor) => ({
+        nombre: nombreConductorCumplimiento(conductor),
+        asignadas: conductor.asignadas,
+        inspecciones: conductor.inspecciones,
+        preoperacionales: conductor.preoperacionales,
+        incompletas: conductor.pendientes.length
+    }));
+    const pendientes = (resumen.cumplimientoConductores || []).flatMap((conductor) =>
+        conductor.pendientes.map((pendiente) => ({
+            fecha: fechaLarga(pendiente.fecha),
+            fechaIso: pendiente.fecha,
+            conductor: nombreConductorCumplimiento(conductor),
+            placa: pendiente.placa || "Sin vehículo",
+            ruta: pendiente.ruta || "Sin ruta",
+            falta: textoFaltante(pendiente)
+        }))
+    ).sort((a, b) => a.fechaIso.localeCompare(b.fechaIso) || a.conductor.localeCompare(b.conductor, "es"));
+
+    return {
+        totales: {
+            asignadas: totales.preoperacionalesEsperados,
+            inspecciones: totales.inspeccionesHechas,
+            preoperacionales: totales.preoperacionalesHechos
+        },
+        conductores,
+        pendientes
+    };
+}
+
+// Texto plano para Compartir: totales y quienes tienen faltantes.
+function textoCumplimiento(resumen) {
+    const totales = resumen.totales;
+    if (sinAsignacionesRuta(totales)) return "";
+
+    const conFaltantes = (resumen.cumplimientoConductores || []).filter((conductor) => conductor.pendientes.length);
+    const lineas = [`Inspecciones ${totales.inspeccionesHechas}/${totales.preoperacionalesEsperados} · Preoperacionales ${totales.preoperacionalesHechos}/${totales.preoperacionalesEsperados}`];
+    if (conFaltantes.length) {
+        const visibles = conFaltantes.slice(0, 5).map((conductor) => `${nombreConductorCumplimiento(conductor)} (${conductor.pendientes.length})`);
+        lineas.push(`Con faltantes: ${visibles.join(", ")}${conFaltantes.length > 5 ? ` y ${conFaltantes.length - 5} más` : ""}`);
+    }
+    return lineas.join("\n");
 }
 
 // Tono de una metrica: rojo solo si algo impide operar, ambar si requiere
@@ -963,30 +1016,65 @@ function renderResumenMetricas(resumen) {
     const nota = notaSinRegistro(resumen.totales);
     return `
         <div class="resumen-dia-metricas">${tarjetas}</div>
-        ${renderPendientesPreoperacional(resumen)}
         ${nota ? `<p class="resumen-dia-nota">${escapeHtml(nota)}</p>` : ""}
     `;
 }
 
-// Rutas asignadas cuyo preoperacional no aparece: puede que el conductor ni
-// siquiera haya iniciado el viaje, por eso no basta con filtrar la lista.
-function renderPendientesPreoperacional(resumen) {
-    const pendientes = resumen.asignacionesPendientes || [];
-    if (!pendientes.length) return "";
-    const multiDia = !esRangoDeUnDia(resumen.rango);
+// Una fila por conductor con sus cifras; los que tienen faltantes se
+// despliegan (<details>) para ver cada fecha/ruta y que le falto. Incluye a
+// quien ni siquiera inicio el viaje (por eso no basta con filtrar la lista).
+function renderCumplimientoConductores(resumen) {
+    const conductores = resumen.cumplimientoConductores || [];
+    if (sinAsignacionesRuta(resumen.totales) || !conductores.length) {
+        return `
+            <section class="resumen-dia-bloque" aria-labelledby="resumenCumplimientoTitulo">
+                <h3 id="resumenCumplimientoTitulo">Cumplimiento por conductor</h3>
+                <p class="resumen-dia-nota resumen-cumplimiento-vacio">No hay rutas asignadas en este período (Asignación de rutas), así que no hay contra qué medir el cumplimiento.</p>
+            </section>
+        `;
+    }
+
+    const cifra = (hechas, total) => `<span class="resumen-num ${hechas < total ? "is-atencion" : ""}">${hechas}/${total}</span>`;
 
     return `
-        <div class="resumen-pendientes">
-            <span class="resumen-pendientes-titulo">Sin preoperacional (${pendientes.length}):</span>
-            <ul>
-                ${pendientes.map((pendiente) => `
-                    <li>
-                        ${pendiente.placa ? `<span class="plate resumen-plate">${escapeHtml(pendiente.placa)}</span>` : ""}
-                        <span>${escapeHtml(nombreConductorPendiente(pendiente))}${multiDia ? ` · ${escapeHtml(formatFechaCorta(pendiente.fecha))}` : ""}${pendiente.ruta ? ` · ${escapeHtml(pendiente.ruta)}` : ""}</span>
-                    </li>
-                `).join("")}
+        <section class="resumen-dia-bloque" aria-labelledby="resumenCumplimientoTitulo">
+            <h3 id="resumenCumplimientoTitulo">Cumplimiento por conductor</h3>
+            <div class="resumen-cumplimiento-cabecera" aria-hidden="true">
+                <span>Conductor</span><span>Inspec.</span><span>Preop.</span><span></span>
+            </div>
+            <ul class="resumen-cumplimiento">
+                ${conductores.map((conductor) => {
+                    const fila = `
+                        <span class="resumen-cumplimiento-nombre">${escapeHtml(nombreConductorCumplimiento(conductor))}</span>
+                        ${cifra(conductor.inspecciones, conductor.asignadas)}
+                        ${cifra(conductor.preoperacionales, conductor.asignadas)}
+                        ${conductor.pendientes.length
+                            ? `<span class="resumen-badge resumen-num is-atencion" aria-label="${plural(conductor.pendientes.length, "ruta incompleta", "rutas incompletas")}">${conductor.pendientes.length}</span>`
+                            : '<span class="resumen-cumplimiento-ok" aria-label="Al día">✓</span>'}
+                    `;
+                    if (!conductor.pendientes.length) {
+                        return `<li><div class="resumen-cumplimiento-fila" aria-label="${escapeHtml(`${nombreConductorCumplimiento(conductor)}: al día en ${plural(conductor.asignadas, "ruta", "rutas")}`)}">${fila}</div></li>`;
+                    }
+                    return `
+                        <li>
+                            <details class="resumen-cumplimiento-detalle">
+                                <summary class="resumen-cumplimiento-fila">${fila}</summary>
+                                <ul class="resumen-cumplimiento-pendientes">
+                                    ${conductor.pendientes.map((pendiente) => `
+                                        <li>
+                                            <span class="resumen-num resumen-cumplimiento-fecha">${escapeHtml(formatFechaCorta(pendiente.fecha, { conDia: true }))}</span>
+                                            ${pendiente.placa ? `<span class="plate resumen-plate">${escapeHtml(pendiente.placa)}</span>` : ""}
+                                            ${pendiente.ruta ? `<span class="resumen-cumplimiento-ruta">${escapeHtml(pendiente.ruta)}</span>` : ""}
+                                            <span class="pill pill-warning">${escapeHtml(textoFaltante(pendiente))}</span>
+                                        </li>
+                                    `).join("")}
+                                </ul>
+                            </details>
+                        </li>
+                    `;
+                }).join("")}
             </ul>
-        </div>
+        </section>
     `;
 }
 
@@ -1086,16 +1174,22 @@ function renderResumenDia(resumen) {
     const totales = resumen.totales;
     resumenDiaTitle.textContent = tituloResumen(resumen.rango);
 
-    // Sin viajes no se muestran metricas en cero: solo el aviso.
+    // El Excel de cumplimiento solo depende de que haya rutas asignadas: sirve
+    // aunque nadie haya iniciado un viaje (justo ahi es cuando mas importa).
+    const hayCumplimiento = !sinAsignacionesRuta(totales) && (resumen.cumplimientoConductores || []).length > 0;
+    resumenDiaExcel.disabled = !hayCumplimiento;
+
+    // Sin viajes no se muestran metricas en cero: solo el aviso (y el
+    // cumplimiento, si habia rutas asignadas que nadie arranco).
     if (!totales.viajes) {
         resumenDiaSubtitle.textContent = describirRangoResumen(resumen.rango);
         setAccionesResumenHabilitadas(false);
         resumenDiaBody.innerHTML = `
             <div class="resumen-dia-estado">
                 <p>No hay viajes registrados en este período.</p>
-                ${renderPendientesPreoperacional(resumen)}
                 ${hayFiltrosViajesActivos() ? '<button type="button" class="btn-secondary" data-resumen-accion="limpiar">Limpiar filtros</button>' : ""}
             </div>
+            ${hayCumplimiento ? renderCumplimientoConductores(resumen) : ""}
         `;
         return;
     }
@@ -1105,6 +1199,7 @@ function renderResumenDia(resumen) {
 
     resumenDiaBody.innerHTML = `
         ${renderResumenMetricas(resumen)}
+        ${renderCumplimientoConductores(resumen)}
         ${totales.hallazgos
             ? `${renderResumenTipos(resumen)}${renderResumenVehiculos(resumen)}`
             : `<div class="resumen-dia-positivo ${totales.vehiculosSinNovedad ? "" : "is-neutro"}" role="status">${escapeHtml(mensajeSinHallazgos(totales))}</div>`}
@@ -1115,6 +1210,7 @@ function renderResumenDia(resumen) {
 function renderResumenError(error) {
     resumenDiaSubtitle.textContent = "";
     setAccionesResumenHabilitadas(false);
+    resumenDiaExcel.disabled = true;
     resumenDiaBody.innerHTML = `
         <div class="resumen-dia-estado" role="alert">
             <p>No se pudo cargar el resumen del día.</p>
@@ -1133,6 +1229,7 @@ async function cargarResumenDia() {
     resumenDiaTitle.textContent = "Resumen del día";
     resumenDiaSubtitle.textContent = "Cargando...";
     setAccionesResumenHabilitadas(false);
+    resumenDiaExcel.disabled = true;
     resumenDiaBody.setAttribute("aria-busy", "true");
     resumenDiaBody.innerHTML = renderResumenSkeleton();
 
@@ -1230,8 +1327,8 @@ function textoCompartirResumen(resumen) {
         `${plural(totales.viajes, "viaje", "viajes")} · ${preoperacionalesTexto}`
     ];
 
-    const pendientes = textoPendientesPreoperacional(resumen);
-    if (pendientes) lineas.push(pendientes);
+    const cumplimiento = textoCumplimiento(resumen);
+    if (cumplimiento) lineas.push(cumplimiento);
 
     if (totales.hallazgos) {
         lineas.push(`${plural(totales.hallazgos, "hallazgo", "hallazgos")} en ${plural(totales.vehiculosConHallazgos, "vehículo", "vehículos")}`);
@@ -1305,7 +1402,7 @@ resumenDiaPdf.addEventListener("click", async () => {
                 subtitulo: resumenDiaSubtitle.textContent,
                 metricas: metricasResumen(resumen),
                 notaSinRegistro: notaSinRegistro(resumen.totales),
-                notaPendientes: textoPendientesPreoperacional(resumen),
+                cumplimiento: cumplimientoParaExportar(resumen),
                 mensajeSinHallazgos: mensajeSinHallazgos(resumen.totales),
                 comparacion: textoComparacionResumen(resumen)
             }
@@ -1315,6 +1412,28 @@ resumenDiaPdf.addEventListener("click", async () => {
         window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo exportar el resumen", "error");
     } finally {
         resumenDiaPdf.disabled = false;
+    }
+});
+
+// Excel de cumplimiento por conductor: hoja "Por conductor" y hoja
+// "Pendientes" (una fila por ruta asignada donde falto algo).
+resumenDiaExcel.addEventListener("click", async () => {
+    const resumen = resumenDiaState;
+    const cumplimiento = resumen ? cumplimientoParaExportar(resumen) : null;
+    if (!cumplimiento) return;
+
+    resumenDiaExcel.disabled = true;
+    try {
+        await window.VehiAmb.miViajeExport.exportCumplimientoExcel(cumplimiento, {
+            ...resumenDiaFiltros,
+            fecha_desde: resumen.rango.desde,
+            fecha_hasta: resumen.rango.hasta
+        }, resumen.rango);
+    } catch (error) {
+        console.error(error);
+        window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo exportar el cumplimiento", "error");
+    } finally {
+        resumenDiaExcel.disabled = false;
     }
 });
 

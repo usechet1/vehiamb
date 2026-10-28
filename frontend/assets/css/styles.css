@@ -7375,41 +7375,136 @@ button.record-link {
     font-weight: 700;
 }
 
-/* Rutas asignadas sin preoperacional (Asignacion de rutas). */
-.resumen-pendientes {
+/* Cumplimiento por conductor: rutas asignadas vs inspecciones y
+   preoperacionales hechos; los que tienen faltantes se despliegan. */
+.resumen-cumplimiento-cabecera,
+.resumen-cumplimiento-fila {
     display: grid;
-    gap: 8px;
-    margin-top: -6px;
-    padding: 10px 12px;
-    border: 1px solid #f1d79f;
-    border-radius: var(--radius-sm);
-    background: var(--color-warning-bg);
+    grid-template-columns: minmax(0, 1fr) 58px 58px 30px;
+    align-items: center;
+    gap: 10px;
 }
 
-.resumen-pendientes-titulo {
-    color: var(--color-warning);
-    font-size: 0.84rem;
-    font-weight: 700;
+.resumen-cumplimiento-cabecera {
+    padding: 6px 4px 2px 22px;
+    color: var(--color-muted);
+    font-size: 0.75rem;
+    font-weight: 650;
 }
 
-.resumen-pendientes ul {
+.resumen-cumplimiento-cabecera span:not(:first-child),
+.resumen-cumplimiento-fila > .resumen-num {
+    text-align: right;
+}
+
+.resumen-cumplimiento {
     display: grid;
-    gap: 6px;
     list-style: none;
 }
 
-.resumen-pendientes li {
+.resumen-cumplimiento > li {
+    border-bottom: 1px solid var(--color-border);
+}
+
+.resumen-cumplimiento > li:last-child {
+    border-bottom: 0;
+}
+
+.resumen-cumplimiento-fila {
+    padding: 9px 4px;
+    font-size: 0.9rem;
+}
+
+/* Sin <details> (conductor al dia): mismo sangrado que la flecha. */
+div.resumen-cumplimiento-fila {
+    padding-left: 22px;
+}
+
+summary.resumen-cumplimiento-fila {
+    cursor: pointer;
+    list-style: none;
+}
+
+summary.resumen-cumplimiento-fila::-webkit-details-marker {
+    display: none;
+}
+
+summary.resumen-cumplimiento-fila .resumen-cumplimiento-nombre::before {
+    content: "▸";
+    display: inline-block;
+    width: 18px;
+    color: var(--color-muted);
+    transition: transform var(--transition);
+}
+
+.resumen-cumplimiento-detalle[open] .resumen-cumplimiento-nombre::before {
+    transform: rotate(90deg);
+}
+
+summary.resumen-cumplimiento-fila:hover,
+summary.resumen-cumplimiento-fila:focus-visible {
+    background: var(--color-surface-2);
+}
+
+summary.resumen-cumplimiento-fila:focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: -2px;
+}
+
+.resumen-cumplimiento-nombre {
+    overflow: hidden;
+    color: var(--color-ink);
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.resumen-cumplimiento-fila .is-atencion {
+    color: var(--color-warning);
+    font-weight: 750;
+}
+
+.resumen-cumplimiento-ok {
+    color: var(--color-success);
+    font-weight: 800;
+    text-align: center;
+}
+
+.resumen-cumplimiento-pendientes {
+    display: grid;
+    gap: 6px;
+    padding: 2px 4px 12px 22px;
+    list-style: none;
+}
+
+.resumen-cumplimiento-pendientes li {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
+    gap: 6px 8px;
     color: var(--color-ink-soft);
-    font-size: 0.85rem;
+    font-size: 0.84rem;
 }
 
-.resumen-dia-estado .resumen-pendientes {
-    width: 100%;
-    margin-top: 0;
+.resumen-cumplimiento-fecha {
+    min-width: 76px;
+    font-weight: 650;
+}
+
+.resumen-cumplimiento-ruta {
+    color: var(--color-muted);
+}
+
+.resumen-cumplimiento-vacio {
+    margin-top: 6px;
+}
+
+@media (max-width: 480px) {
+    .resumen-cumplimiento-cabecera,
+    .resumen-cumplimiento-fila {
+        grid-template-columns: minmax(0, 1fr) 46px 46px 28px;
+        gap: 6px;
+    }
 }
 
 .resumen-dia-nota {

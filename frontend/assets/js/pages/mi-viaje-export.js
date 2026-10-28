@@ -549,6 +549,117 @@
         layout.y += lineas.length * ROW_LINE_HEIGHT + 8;
     }
 
+    // Cumplimiento por conductor (rutas asignadas vs inspecciones y
+    // preoperacionales hechos) + el detalle de cada ruta incompleta. Las
+    // filas llegan ya formateadas desde mi-viaje.js (cumplimientoParaExportar).
+    function addCumplimientoPdf(doc, layout, bottomLimit, cumplimiento) {
+        const { totales, conductores, pendientes } = cumplimiento;
+        const ancho = layout.pageWidth - MARGIN_X * 2;
+
+        addSeccionTitulo(doc, layout, bottomLimit, {
+            titulo: "Cumplimiento por conductor",
+            color: [238, 241, 245],
+            subtitulo: `Inspecciones ${totales.inspecciones}/${totales.asignadas} · Preoperacionales ${totales.preoperacionales}/${totales.asignadas}`
+        });
+        addTablaResumen(doc, layout, bottomLimit, [
+            { label: "Conductor", width: ancho - 300 },
+            { label: "Rutas", width: 60, align: "right" },
+            { label: "Inspecciones", width: 80, align: "right" },
+            { label: "Preoperacionales", width: 95, align: "right" },
+            { label: "Incompletas", width: 65, align: "right" }
+        ], conductores.map((conductor) => ({
+            celdas: [
+                conductor.nombre,
+                conductor.asignadas,
+                `${conductor.inspecciones}/${conductor.asignadas}`,
+                `${conductor.preoperacionales}/${conductor.asignadas}`,
+                conductor.incompletas || "Al día"
+            ],
+            severidad: conductor.incompletas ? "atencion" : null,
+            celdaSeveridad: 4
+        })));
+
+        if (!pendientes.length) return;
+
+        addSeccionTitulo(doc, layout, bottomLimit, {
+            titulo: "Rutas con inspección o preoperacional pendiente",
+            color: [238, 241, 245],
+            subtitulo: `${pendientes.length} ${pendientes.length === 1 ? "ruta" : "rutas"}`
+        });
+        addTablaResumen(doc, layout, bottomLimit, [
+            { label: "Fecha", width: 70 },
+            { label: "Conductor", width: ancho - 355 },
+            { label: "Placa", width: 65 },
+            { label: "Ruta", width: 95 },
+            { label: "Pendiente", width: 125 }
+        ], pendientes.map((pendiente) => ({
+            celdas: [pendiente.fecha, pendiente.conductor, pendiente.placa, pendiente.ruta, pendiente.falta],
+            severidad: "atencion",
+            celdaSeveridad: 4
+        })));
+    }
+
+    // Excel de cumplimiento: hoja "Por conductor" y hoja "Pendientes" (una
+    // fila por ruta asignada donde falto la inspeccion o el preoperacional).
+    async function exportCumplimientoExcel(cumplimiento, filtros = {}, rango = {}) {
+        if (!cumplimiento || !cumplimiento.conductores.length) {
+            throw new Error("No hay rutas asignadas en este período para medir el cumplimiento");
+        }
+
+        const excel = window.VehiAmb.excelExport;
+        const branding = await window.VehiAmb.pdfExport.getEmpresaBranding();
+        const { totales, conductores, pendientes } = cumplimiento;
+
+        const workbook = await excel.createWorkbook();
+        const hoja = workbook.addWorksheet("Por conductor");
+        const columnas = ["Conductor", "Rutas asignadas", "Inspecciones hechas", "Preoperacionales hechos", "Rutas incompletas"];
+        excel.setColumnWidths(hoja, [34, 16, 20, 24, 18]);
+        excel.addTitleBar(hoja, {
+            title: "Cumplimiento de inspecciones y preoperacionales",
+            subtitle: APP_NAME,
+            columnCount: columnas.length,
+            logo: branding?.logo
+        });
+        excel.addLabelValueRow(hoja, "Filtros aplicados:", describeFiltros(filtros));
+        excel.addLabelValueRow(hoja, "Inspecciones:", `${totales.inspecciones} de ${totales.asignadas} rutas asignadas`);
+        excel.addLabelValueRow(hoja, "Preoperacionales:", `${totales.preoperacionales} de ${totales.asignadas} rutas asignadas`);
+        hoja.addRow([]);
+        excel.addTableHeaderRow(hoja, columnas);
+        conductores.forEach((conductor, indice) => {
+            excel.addTableDataRow(
+                hoja,
+                [conductor.nombre, conductor.asignadas, conductor.inspecciones, conductor.preoperacionales, conductor.incompletas],
+                { band: indice % 2 === 1 }
+            );
+        });
+        excel.addFooterRow(hoja, FOOTER_TEXT(branding?.nombreEmpresa), columnas.length);
+
+        const hojaPendientes = workbook.addWorksheet("Pendientes");
+        const columnasPendientes = ["Fecha", "Conductor", "Placa", "Ruta", "Pendiente"];
+        excel.setColumnWidths(hojaPendientes, [14, 34, 12, 26, 34]);
+        excel.addTitleBar(hojaPendientes, {
+            title: "Rutas con inspección o preoperacional pendiente",
+            subtitle: `${pendientes.length} ${pendientes.length === 1 ? "ruta" : "rutas"}`,
+            columnCount: columnasPendientes.length
+        });
+        excel.addTableHeaderRow(hojaPendientes, columnasPendientes);
+        if (pendientes.length) {
+            pendientes.forEach((pendiente, indice) => {
+                excel.addTableDataRow(
+                    hojaPendientes,
+                    [pendiente.fecha, pendiente.conductor, pendiente.placa, pendiente.ruta, pendiente.falta],
+                    { band: indice % 2 === 1 }
+                );
+            });
+        } else {
+            excel.addTableDataRow(hojaPendientes, ["Todos los conductores cumplieron en este período", "", "", "", ""]);
+        }
+        excel.addFooterRow(hojaPendientes, FOOTER_TEXT(branding?.nombreEmpresa), columnasPendientes.length);
+
+        const sufijoRango = rango.desde && rango.hasta && rango.desde !== rango.hasta ? `${rango.desde}_a_${rango.hasta}` : (rango.desde || "");
+        await excel.downloadWorkbook(workbook, `Cumplimiento_conductores_${sufijoRango}.xlsx`);
+    }
+
     async function exportResumenDiaPdf(resumen, filtros, textos) {
         if (!resumen || !resumen.totales?.viajes) {
             throw new Error("No hay viajes registrados en este período");
@@ -571,12 +682,12 @@
         layout.y += 4;
         addMetricasResumen(doc, layout, textos.metricas);
 
-        if (textos.notaPendientes) {
-            addLineaTexto(doc, layout, bottomLimit, textos.notaPendientes, { color: AMBAR_ATENCION });
-        }
-
         if (textos.notaSinRegistro) {
             addLineaTexto(doc, layout, bottomLimit, textos.notaSinRegistro);
+        }
+
+        if (textos.cumplimiento) {
+            addCumplimientoPdf(doc, layout, bottomLimit, textos.cumplimiento);
         }
 
         if (resumen.hallazgosPorTipo.length) {
@@ -733,5 +844,5 @@
     }
 
     window.VehiAmb = window.VehiAmb || {};
-    window.VehiAmb.miViajeExport = { exportViajesPdf, exportViajesExcel, exportResumenDiaPdf };
+    window.VehiAmb.miViajeExport = { exportViajesPdf, exportViajesExcel, exportResumenDiaPdf, exportCumplimientoExcel };
 })();
