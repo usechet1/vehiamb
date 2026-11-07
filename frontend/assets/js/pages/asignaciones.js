@@ -158,7 +158,7 @@ async function cargarCatalogos() {
     departamentosCatalogo = departamentos || [];
 
     asignacionConductor.innerHTML = '<option value="">Selecciona...</option>' + conductoresCatalogo
-        .map((c) => `<option value="${c.id}">${escapeHtml(`${c.nombres} ${c.apellidos}`.trim())}</option>`)
+        .map((c) => `<option value="${c.id}">${escapeHtml(`${c.apellidos || ""} ${c.nombres || ""}`.trim())}</option>`)
         .join("");
 
     asignacionVehiculo.innerHTML = '<option value="">Selecciona...</option>' + vehiculos
@@ -234,7 +234,7 @@ function renderRow(item, indice) {
     return `
         <tr>
             <td>${indice + 1}</td>
-            <td>${escapeHtml(item.conductor_nombre || "Sin conductor")}</td>
+            <td>${escapeHtml(item.conductor_nombre_reporte || item.conductor_nombre || "Sin conductor")}</td>
             <td>${escapeHtml(item.ruta_nombre || "--")}</td>
             <td>${escapeHtml(item.telefono || "--")}</td>
             <td>${escapeHtml(item.vehiculo_placa || "Sin vehículo")}</td>

@@ -13,9 +13,9 @@ function toSafeAsignacion(asignacion) {
     conductor_nombre: asignacion.conductor_id
       ? `${asignacion.conductor_nombres || ""} ${asignacion.conductor_apellidos || ""}`.trim()
       : null,
-    // Version Apellidos-Nombres, solo para los reportes exportados (Excel/
-    // imagen) -- en pantalla (asignaciones.js) se sigue mostrando
-    // conductor_nombre (Nombres-Apellidos) sin tocar.
+    // Version Apellidos-Nombres: la usan la tabla de Asignacion de rutas
+    // (asignaciones.js) y los reportes exportados (Excel/imagen), para que
+    // pantalla y reporte muestren el nombre en el mismo orden.
     conductor_nombre_reporte: asignacion.conductor_id
       ? `${asignacion.conductor_apellidos || ""} ${asignacion.conductor_nombres || ""}`.trim()
       : null,

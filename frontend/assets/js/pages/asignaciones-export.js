@@ -310,7 +310,7 @@
     }
 
     const EXCEL_COLUMN_WIDTHS = [
-        { label: "#", width: 2.5 },
+        { label: "#", width: 4 },
         { label: "NOMBRE", width: 37 },
         { label: "RUTA", width: 45 },
         { label: "TELEFONO", width: 16 },
