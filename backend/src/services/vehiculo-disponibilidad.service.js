@@ -33,7 +33,10 @@ async function reevaluarDisponibilidad(vehiculoId, empresaId) {
   const bloqueado = await mantenimientosRepository.existeMantenimientoQueBloquea(vehiculoId, empresaId);
 
   if (bloqueado && vehiculo.estado === ESTADO_ACTIVO) {
-    await vehiculosRepository.updateEstado(vehiculoId, ESTADO_EN_REPARACION, empresaId);
+    // La cuenta de "N dias en reparacion" arranca el dia del mantenimiento
+    // (su fecha), no el momento en que se cargo en el sistema.
+    const desdeFecha = await mantenimientosRepository.findFechaInicioReparacion(vehiculoId, empresaId);
+    await vehiculosRepository.updateEstado(vehiculoId, ESTADO_EN_REPARACION, empresaId, { desdeFecha });
   } else if (!bloqueado && vehiculo.estado === ESTADO_EN_REPARACION) {
     await vehiculosRepository.updateEstado(vehiculoId, ESTADO_ACTIVO, empresaId);
   }

@@ -167,13 +167,13 @@ async function migrarEntregasConductorAUsuario() {
 // importadas antes de este cambio quedaron con conductor_id NULL; este
 // backfill corre el mismo matching sobre ellas, una sola vez por empresa (las
 // importaciones nuevas ya lo resuelven en sync-engine.service.js).
-// Vehiculos que ya estaban "en reparacion" antes de existir estado_desde: se
-// toma la fecha del mantenimiento pendiente mas antiguo (que es lo que pone
-// el estado automaticamente, ver vehiculo-disponibilidad.service.js). Si un
-// vehiculo se marco en reparacion a mano y no tiene mantenimiento pendiente,
-// no hay dato real -- se deja NULL (el frontend muestra el estado sin dias)
-// hasta su proximo cambio de estado. Solo toca filas en NULL: es seguro
-// correrlo en cada arranque.
+// Vehiculos que ya estaban "en reparacion" antes de existir estado_desde. La
+// cuenta arranca el dia del mantenimiento que lo llevo al taller: primero el
+// pendiente mas antiguo (lo que pone el estado automaticamente, ver
+// vehiculo-disponibilidad.service.js); si no tiene pendientes (lo marcaron a
+// mano), el ultimo mantenimiento registrado hasta hoy. Sin ningun
+// mantenimiento no hay dato: queda NULL (el frontend muestra el estado sin
+// dias). Solo toca filas en NULL: es seguro correrlo en cada arranque.
 async function backfillEstadoDesdeReparacion() {
   await db.run(`
     UPDATE vehiculos v
@@ -182,6 +182,18 @@ async function backfillEstadoDesdeReparacion() {
       SELECT vehiculo_id, MIN(fecha) AS desde
       FROM mantenimientos
       WHERE estado = 'pendiente' AND fecha <= CURRENT_DATE
+      GROUP BY vehiculo_id
+    ) sub
+    WHERE v.id = sub.vehiculo_id AND v.estado = 'reparacion' AND v.estado_desde IS NULL
+  `);
+
+  await db.run(`
+    UPDATE vehiculos v
+    SET estado_desde = (sub.desde::timestamp AT TIME ZONE 'America/Bogota')
+    FROM (
+      SELECT vehiculo_id, MAX(fecha) AS desde
+      FROM mantenimientos
+      WHERE fecha <= CURRENT_DATE
       GROUP BY vehiculo_id
     ) sub
     WHERE v.id = sub.vehiculo_id AND v.estado = 'reparacion' AND v.estado_desde IS NULL

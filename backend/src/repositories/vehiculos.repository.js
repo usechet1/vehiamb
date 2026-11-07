@@ -208,7 +208,17 @@ async function update(id, vehiculo, empresaId) {
   return findById(id, empresaId);
 }
 
-async function updateEstado(id, estado, empresaId) {
+// desdeFecha (AAAA-MM-DD, calendario de Bogota): dia en que arranca el
+// estado cuando no es "ahora" -- ej. la fecha del mantenimiento que deja el
+// vehiculo en reparacion (ver vehiculo-disponibilidad.service.js).
+async function updateEstado(id, estado, empresaId, { desdeFecha } = {}) {
+  if (desdeFecha && db.client === "postgres") {
+    return db.get(
+      "UPDATE vehiculos SET estado_desde = (?::date::timestamp AT TIME ZONE 'America/Bogota'), estado = ? WHERE id = ? AND empresa_id = ? RETURNING *",
+      [desdeFecha, estado, id, empresaId]
+    );
+  }
+
   if (db.client === "postgres") {
     return db.get(
       `UPDATE vehiculos SET ${ESTADO_DESDE_ASSIGNMENT}, estado = ? WHERE id = ? AND empresa_id = ? RETURNING *`,

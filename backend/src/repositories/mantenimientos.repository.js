@@ -149,6 +149,18 @@ async function updateEstado(id, estado, empresaId) {
 // chequeo de arriba en asignaciones.service.js (vehiculo.estado !== "activo")
 // bloquearia por error cualquier fecha futura hasta el proximo evento que
 // reevalue el mantenimiento, no solo el dia real del mantenimiento.
+// Dia en que arranca la reparacion: la fecha del mantenimiento pendiente mas
+// antiguo (hoy o antes), que es el que deja el vehiculo fuera de servicio --
+// la cuenta "N dias en reparacion" empieza ahi, no cuando se guardo el
+// registro (puede haberse cargado dias despues). AAAA-MM-DD o null.
+async function findFechaInicioReparacion(vehiculoId, empresaId) {
+  const row = await db.get(
+    "SELECT to_char(MIN(fecha), 'YYYY-MM-DD') AS fecha FROM mantenimientos WHERE vehiculo_id = ? AND empresa_id = ? AND estado = ? AND fecha <= CURRENT_DATE",
+    [vehiculoId, empresaId, "pendiente"]
+  );
+  return row?.fecha || null;
+}
+
 async function existeMantenimientoQueBloquea(vehiculoId, empresaId) {
   const row = await db.get(
     "SELECT 1 FROM mantenimientos WHERE vehiculo_id = ? AND empresa_id = ? AND estado = ? AND fecha <= CURRENT_DATE LIMIT 1",
@@ -299,6 +311,7 @@ module.exports = {
   updateEstado,
   updateSalidaInventario,
   existeMantenimientoQueBloquea,
+  findFechaInicioReparacion,
   existeMantenimientoQueBloqueaEnFecha,
   findVehiculosBloqueadosEnFecha,
   remove
