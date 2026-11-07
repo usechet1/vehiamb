@@ -21,15 +21,16 @@ window.VehiAmb.ui = {
         return Math.max(0, Math.round((hoy - inicio) / 86400000));
     },
 
-    // "Desde hoy en reparación" / "1 día en reparación" / "12 días en reparación".
-    // Devuelve "" si el vehiculo no esta en reparacion o no se sabe desde cuando
-    // (ej. marcado a mano antes de existir estado_desde) -- no se inventa la cifra.
+    // "(hoy)" / "(1 día)" / "(12 días)" que lleva el vehiculo en reparacion,
+    // para ir junto a la etiqueta "En reparación". Devuelve "" si no esta en
+    // reparacion o no se sabe desde cuando (sin mantenimiento registrado) --
+    // no se inventa la cifra.
     textoDiasEnReparacion(vehiculo) {
         if (!vehiculo || vehiculo.estado !== "reparacion") return "";
         const dias = this.diasDesde(vehiculo.estado_desde);
         if (dias === null) return "";
-        if (dias === 0) return "En reparación desde hoy";
-        return `${dias} ${dias === 1 ? "día" : "días"} en reparación`;
+        if (dias === 0) return "(hoy)";
+        return `(${dias} ${dias === 1 ? "día" : "días"})`;
     },
 
     showMessage(element, text, type = "success") {

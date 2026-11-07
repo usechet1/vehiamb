@@ -1111,7 +1111,7 @@ async function renderMaintenanceDetailView(item) {
             ${detailRow("Vehículo", vehicleName)}
             ${detailRow("Placa", item.placa || "Sin placa")}
             ${detailRow("Estado", estadosMantenimiento[item.estado] || item.estado || "Completado")}
-            ${diasEnReparacionItem(item) ? detailRow("Tiempo en reparación", diasEnReparacionItem(item)) : ""}
+            ${diasEnReparacionItem(item) ? detailRow("Tiempo en reparación", diasEnReparacionItem(item).replace(/[()]/g, "")) : ""}
             ${detailRow("Fecha", formatDate(item.fecha))}
             ${detailRow("Fecha tentativa de salida", formatDate(item.fecha_tentativa_salida))}
             ${detailRow("Valor", formatCurrency(item.valor))}
@@ -1542,7 +1542,7 @@ function renderMantenimientos(mantenimientos) {
                                     ? `<span class="pill ${estado.clase}">${estado.texto}</span>`
                                     : `<span class="mnt-hist-status-ok">✓ ${estado.texto}</span>`}
                                 ${item.vehiculo_varado && item.estado === "pendiente" ? '<span class="pill pill-danger">⚠ En taller</span>' : ""}
-                                ${diasEnReparacionItem(item) ? `<span class="pill pill-warning">🔧 ${escapeHtml(diasEnReparacionItem(item))}</span>` : ""}
+                                ${diasEnReparacionItem(item) ? `<span class="pill pill-warning">En reparación ${escapeHtml(diasEnReparacionItem(item))}</span>` : ""}
                                 ${puedeAprobarFila ? `<button type="button" class="btn-primary mnt-hist-approve" data-approve-id="${item.id}">Aprobar</button>` : ""}
                             </div>
                             <div class="mnt-hist-sub">${escapeHtml(item.placa) || "Sin placa"}${vehicleName ? ` · ${escapeHtml(vehicleName)}` : ""}${km > 0 ? ` · ${km.toLocaleString("es-CO")} km` : ""}</div>

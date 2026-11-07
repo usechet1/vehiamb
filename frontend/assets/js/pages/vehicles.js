@@ -124,6 +124,7 @@ function renderCard(vehiculo) {
 
     const puedeEditar = window.VehiAmb.auth.hasPermission("vehicles.edit");
     const puedeRegistrarMantenimiento = window.VehiAmb.auth.hasPermission("maintenance.create");
+    // "(14 días)" va dentro de la misma etiqueta del estado: "En reparación (14 días)".
     const diasEnReparacion = window.VehiAmb.ui.textoDiasEnReparacion(vehiculo);
 
     return `
@@ -136,12 +137,10 @@ function renderCard(vehiculo) {
                 <span class="plate">${escapeHtml(vehiculo.placa) || "SIN PLACA"}</span>
                 <select class="vehicle-status-select badge ${estadoInfo.badge}" data-id="${vehiculo.id}">
                     ${Object.entries(ESTADOS).map(([value, info]) => `
-                        <option value="${value}" ${vehiculo.estado === value ? "selected" : ""}>${info.label}</option>
+                        <option value="${value}" ${vehiculo.estado === value ? "selected" : ""}>${info.label}${vehiculo.estado === value && diasEnReparacion ? ` ${escapeHtml(diasEnReparacion)}` : ""}</option>
                     `).join("")}
                 </select>
             </div>
-
-            ${diasEnReparacion ? `<div class="vehicle-card-dias">🔧 ${escapeHtml(diasEnReparacion)}</div>` : ""}
 
             <h3>${escapeHtml(vehiculo.marca) || "Marca"} ${escapeHtml(vehiculo.modelo) || "Modelo"}</h3>
 
