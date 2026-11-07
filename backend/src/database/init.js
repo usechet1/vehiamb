@@ -167,6 +167,27 @@ async function migrarEntregasConductorAUsuario() {
 // importadas antes de este cambio quedaron con conductor_id NULL; este
 // backfill corre el mismo matching sobre ellas, una sola vez por empresa (las
 // importaciones nuevas ya lo resuelven en sync-engine.service.js).
+// Vehiculos que ya estaban "en reparacion" antes de existir estado_desde: se
+// toma la fecha del mantenimiento pendiente mas antiguo (que es lo que pone
+// el estado automaticamente, ver vehiculo-disponibilidad.service.js). Si un
+// vehiculo se marco en reparacion a mano y no tiene mantenimiento pendiente,
+// no hay dato real -- se deja NULL (el frontend muestra el estado sin dias)
+// hasta su proximo cambio de estado. Solo toca filas en NULL: es seguro
+// correrlo en cada arranque.
+async function backfillEstadoDesdeReparacion() {
+  await db.run(`
+    UPDATE vehiculos v
+    SET estado_desde = (sub.desde::timestamp AT TIME ZONE 'America/Bogota')
+    FROM (
+      SELECT vehiculo_id, MIN(fecha) AS desde
+      FROM mantenimientos
+      WHERE estado = 'pendiente' AND fecha <= CURRENT_DATE
+      GROUP BY vehiculo_id
+    ) sub
+    WHERE v.id = sub.vehiculo_id AND v.estado = 'reparacion' AND v.estado_desde IS NULL
+  `);
+}
+
 async function backfillFacturasConductorId() {
   const empresas = await db.all(`
     SELECT DISTINCT empresa_id FROM facturas_vehiculares
@@ -1783,8 +1804,12 @@ ensurePostgresTables()
     ensureColumn("novedades", "fotos_json", "TEXT"),
     ensureColumn("notificacion_comentarios", "fotos_json", "TEXT"),
     ensureColumn("mantenimientos", "soportes_json", "TEXT"),
-    ensureColumn("mantenimientos", "salidas_inventario_json", "TEXT")
+    ensureColumn("mantenimientos", "salidas_inventario_json", "TEXT"),
+    // Desde cuando el vehiculo esta en su estado actual (ver
+    // vehiculos.repository.js#updateEstado) -- "lleva N dias en reparacion".
+    ensureColumn("vehiculos", "estado_desde", "TIMESTAMPTZ")
   ]))
+  .then(backfillEstadoDesdeReparacion)
   .then(migrarArchivoBotiquinATablaPropia)
   .then(backfillExtintoresConsecutivo)
   .then(migrarConductoresNombreSplit)

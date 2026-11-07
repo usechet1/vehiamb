@@ -1111,6 +1111,7 @@ async function renderMaintenanceDetailView(item) {
             ${detailRow("Vehículo", vehicleName)}
             ${detailRow("Placa", item.placa || "Sin placa")}
             ${detailRow("Estado", estadosMantenimiento[item.estado] || item.estado || "Completado")}
+            ${diasEnReparacionItem(item) ? detailRow("Tiempo en reparación", diasEnReparacionItem(item)) : ""}
             ${detailRow("Fecha", formatDate(item.fecha))}
             ${detailRow("Fecha tentativa de salida", formatDate(item.fecha_tentativa_salida))}
             ${detailRow("Valor", formatCurrency(item.valor))}
@@ -1496,6 +1497,13 @@ function agruparPorMes(mantenimientos) {
     return grupos;
 }
 
+// "N dias en reparacion" del vehiculo (vehiculos.estado_desde), solo en los
+// mantenimientos aun pendientes -- son los que lo tienen fuera de servicio.
+function diasEnReparacionItem(item) {
+    if (item.estado !== "pendiente") return "";
+    return window.VehiAmb.ui.textoDiasEnReparacion({ estado: item.vehiculo_estado, estado_desde: item.vehiculo_estado_desde });
+}
+
 function renderMantenimientos(mantenimientos) {
     if (!mantenimientos.length) {
         mantenimientosList.innerHTML = '<p class="dash-empty">No hay mantenimientos para los filtros seleccionados</p>';
@@ -1534,6 +1542,7 @@ function renderMantenimientos(mantenimientos) {
                                     ? `<span class="pill ${estado.clase}">${estado.texto}</span>`
                                     : `<span class="mnt-hist-status-ok">✓ ${estado.texto}</span>`}
                                 ${item.vehiculo_varado && item.estado === "pendiente" ? '<span class="pill pill-danger">⚠ En taller</span>' : ""}
+                                ${diasEnReparacionItem(item) ? `<span class="pill pill-warning">🔧 ${escapeHtml(diasEnReparacionItem(item))}</span>` : ""}
                                 ${puedeAprobarFila ? `<button type="button" class="btn-primary mnt-hist-approve" data-approve-id="${item.id}">Aprobar</button>` : ""}
                             </div>
                             <div class="mnt-hist-sub">${escapeHtml(item.placa) || "Sin placa"}${vehicleName ? ` · ${escapeHtml(vehicleName)}` : ""}${km > 0 ? ` · ${km.toLocaleString("es-CO")} km` : ""}</div>

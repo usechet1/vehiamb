@@ -9,6 +9,29 @@ window.VehiAmb.ui = {
         element?.classList.add("hidden");
     },
 
+    // Dias de calendario (hora local) desde una fecha/hora hasta hoy; null si
+    // no hay fecha. Usado para "lleva N dias en reparacion" (vehiculos.estado_desde).
+    diasDesde(fecha) {
+        if (!fecha) return null;
+        const inicio = new Date(fecha);
+        if (Number.isNaN(inicio.getTime())) return null;
+        inicio.setHours(0, 0, 0, 0);
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        return Math.max(0, Math.round((hoy - inicio) / 86400000));
+    },
+
+    // "Desde hoy en reparación" / "1 día en reparación" / "12 días en reparación".
+    // Devuelve "" si el vehiculo no esta en reparacion o no se sabe desde cuando
+    // (ej. marcado a mano antes de existir estado_desde) -- no se inventa la cifra.
+    textoDiasEnReparacion(vehiculo) {
+        if (!vehiculo || vehiculo.estado !== "reparacion") return "";
+        const dias = this.diasDesde(vehiculo.estado_desde);
+        if (dias === null) return "";
+        if (dias === 0) return "En reparación desde hoy";
+        return `${dias} ${dias === 1 ? "día" : "días"} en reparación`;
+    },
+
     showMessage(element, text, type = "success") {
         if (!element) return;
 

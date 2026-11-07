@@ -187,9 +187,15 @@ async function create(vehiculo) {
   return db.get("SELECT * FROM vehiculos WHERE id = ?", [result.lastID]);
 }
 
+// estado_desde: cuando cambio el estado por ultima vez (para "lleva N dias en
+// reparacion"). En el SET cada expresion ve el valor ANTERIOR de la fila, asi
+// que solo se renueva si el estado realmente cambia -- guardar la ficha sin
+// tocar el estado no reinicia la cuenta.
+const ESTADO_DESDE_ASSIGNMENT = "estado_desde = CASE WHEN COALESCE(estado, '') <> ? THEN CURRENT_TIMESTAMP ELSE estado_desde END";
+
 async function update(id, vehiculo, empresaId) {
-  const assignments = UPDATE_FIELDS.map((field) => `${field} = ?`).join(", ");
-  const values = UPDATE_FIELDS.map((field) => vehiculo[field] ?? null);
+  const assignments = [ESTADO_DESDE_ASSIGNMENT, ...UPDATE_FIELDS.map((field) => `${field} = ?`)].join(", ");
+  const values = [vehiculo.estado ?? null, ...UPDATE_FIELDS.map((field) => vehiculo[field] ?? null)];
 
   if (db.client === "postgres") {
     return db.get(
@@ -205,12 +211,12 @@ async function update(id, vehiculo, empresaId) {
 async function updateEstado(id, estado, empresaId) {
   if (db.client === "postgres") {
     return db.get(
-      "UPDATE vehiculos SET estado = ? WHERE id = ? AND empresa_id = ? RETURNING *",
-      [estado, id, empresaId]
+      `UPDATE vehiculos SET ${ESTADO_DESDE_ASSIGNMENT}, estado = ? WHERE id = ? AND empresa_id = ? RETURNING *`,
+      [estado, estado, id, empresaId]
     );
   }
 
-  await db.run("UPDATE vehiculos SET estado = ? WHERE id = ? AND empresa_id = ?", [estado, id, empresaId]);
+  await db.run(`UPDATE vehiculos SET ${ESTADO_DESDE_ASSIGNMENT}, estado = ? WHERE id = ? AND empresa_id = ?`, [estado, estado, id, empresaId]);
   return findById(id, empresaId);
 }
 

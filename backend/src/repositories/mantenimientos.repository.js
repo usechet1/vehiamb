@@ -81,6 +81,8 @@ async function findAll(filters = {}, empresaId) {
         v.marca,
         v.modelo,
         v.intervalo_cambio_aceite_km,
+        v.estado AS vehiculo_estado,
+        v.estado_desde AS vehiculo_estado_desde,
         u.nombre AS creado_por_nombre
       FROM mantenimientos m
       INNER JOIN vehiculos v ON v.id = m.vehiculo_id
@@ -117,6 +119,8 @@ async function findByIdWithVehiculo(id, empresaId) {
         v.marca,
         v.modelo,
         v.intervalo_cambio_aceite_km,
+        v.estado AS vehiculo_estado,
+        v.estado_desde AS vehiculo_estado_desde,
         u.nombre AS creado_por_nombre
       FROM mantenimientos m
       INNER JOIN vehiculos v ON v.id = m.vehiculo_id

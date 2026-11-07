@@ -124,6 +124,7 @@ function renderCard(vehiculo) {
 
     const puedeEditar = window.VehiAmb.auth.hasPermission("vehicles.edit");
     const puedeRegistrarMantenimiento = window.VehiAmb.auth.hasPermission("maintenance.create");
+    const diasEnReparacion = window.VehiAmb.ui.textoDiasEnReparacion(vehiculo);
 
     return `
         <article class="vehicle-card" data-id="${vehiculo.id}">
@@ -139,6 +140,8 @@ function renderCard(vehiculo) {
                     `).join("")}
                 </select>
             </div>
+
+            ${diasEnReparacion ? `<div class="vehicle-card-dias">🔧 ${escapeHtml(diasEnReparacion)}</div>` : ""}
 
             <h3>${escapeHtml(vehiculo.marca) || "Marca"} ${escapeHtml(vehiculo.modelo) || "Modelo"}</h3>
 
@@ -313,6 +316,9 @@ container.addEventListener("change", async (event) => {
 
     try {
         await window.VehiAmb.api.updateEstadoVehiculo(id, nuevoEstado);
+        // Recarga para que "N dias en reparacion" arranque (o desaparezca)
+        // con la fecha que guardo el backend.
+        cargarVehiculos();
     } catch (error) {
         console.error("No fue posible actualizar el estado:", error);
         cargarVehiculos();
