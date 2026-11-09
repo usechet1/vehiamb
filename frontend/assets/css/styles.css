@@ -2182,15 +2182,17 @@ label[for="loginPassword"] {
 
     .mnt-export-trigger {
         justify-content: center;
-        width: 38px;
-        min-height: 38px;
+        width: 42px;
+        height: 42px;
+        min-height: 42px;
         padding: 0;
     }
 
     .mnt-export-trigger .mnt-export-icono {
         display: block;
-        width: 17px;
-        height: 17px;
+        width: 24px;
+        height: 24px;
+        stroke-width: 2.4;
     }
 
     .mnt-export-trigger .mnt-export-texto,
@@ -2199,7 +2201,7 @@ label[for="loginPassword"] {
     }
 
     #historialMantenimientosSection .section-card-head {
-        padding-right: 64px;
+        padding-right: 68px;
     }
 }
 
