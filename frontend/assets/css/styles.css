@@ -1682,6 +1682,38 @@ label[for="loginPassword"] {
     background: var(--color-success);
 }
 
+/* En el celular los tres pasos (1 Vehículo, 2 Tipo, 3 Detalles) con los
+   tamaños de escritorio no cabian y "Detalles" se salia por la derecha. Se
+   achican numeros y textos, y en pantallas muy angostas solo el paso actual
+   muestra su nombre (los demas quedan con el numero). */
+@media (max-width: 620px) {
+    .wizard-step-indicator {
+        gap: 6px;
+        min-width: 0;
+    }
+
+    .wizard-step-number {
+        width: 30px;
+        height: 30px;
+        font-size: 0.9rem;
+    }
+
+    .wizard-step-label {
+        font-size: 0.92rem;
+    }
+
+    .wizard-step-connector {
+        min-width: 10px;
+        margin: 0 6px;
+    }
+}
+
+@media (max-width: 340px) {
+    .wizard-step-indicator:not(.is-active) .wizard-step-label {
+        display: none;
+    }
+}
+
 .wizard-step-panel,
 .mnt-edit-form {
     display: flex;
