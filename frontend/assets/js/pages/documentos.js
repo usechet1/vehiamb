@@ -293,14 +293,14 @@ function renderKpisDocumentos(documentos) {
     const cards = [
         { key: "vencidos", label: "Vencidos", value: kpis.vencidos, accent: "var(--color-primary)", sub: "acción inmediata" },
         { key: "porVencer", label: "Por vencer · 30 días", value: kpis.porVencer, accent: "var(--color-warning)", sub: "programar renovación" },
-        { key: "vigentes", label: "Vigentes", value: kpis.vigentes, accent: "var(--color-success)", sub: "sin novedad" },
-        { key: "sinAdjunto", label: "Sin adjunto", value: kpis.sinAdjunto, accent: "var(--color-ink-soft)", sub: "falta soporte" }
+        { key: "vigentes", label: "Vigentes", value: kpis.vigentes, accent: "var(--color-success)", sub: "sin novedad", soloEscritorio: true },
+        { key: "sinAdjunto", label: "Sin adjunto", value: kpis.sinAdjunto, accent: "var(--color-ink-soft)", sub: "falta soporte", soloEscritorio: true }
     ];
 
     // Cada tarjeta es un filtro (data-kpi-filtro), no solo un numero -- un
     // clic filtra la lista a ese grupo, otro clic la quita.
     documentosKpisGrid.innerHTML = cards.map((card) => `
-        <button type="button" class="kpi-card kpi-card-clickable ${filtroKpiActivo === card.key ? "is-active" : ""}" style="--kpi-accent: ${card.accent}" data-kpi-filtro="${card.key}" title="Ver solo: ${card.label.toLowerCase()}">
+        <button type="button" class="kpi-card kpi-card-clickable ${card.soloEscritorio ? "kpi-card--solo-escritorio" : ""} ${filtroKpiActivo === card.key ? "is-active" : ""}" style="--kpi-accent: ${card.accent}" data-kpi-filtro="${card.key}" title="Ver solo: ${card.label.toLowerCase()}">
             <div class="kpi-label">${card.label}</div>
             <div class="kpi-value">${card.value}</div>
             <div class="kpi-sub">${card.sub}</div>

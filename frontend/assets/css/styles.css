@@ -3225,6 +3225,15 @@ label[for="loginPassword"] {
     }
 }
 
+/* Documentos: en el celular solo quedan Vencidos y Por vencer (lo que pide
+   accion) -- Vigentes y Sin adjunto ocupaban otra fila completa de tarjetas
+   antes de llegar a la lista. En escritorio siguen las cuatro. */
+@media (max-width: 620px) {
+    .kpi-card--solo-escritorio {
+        display: none;
+    }
+}
+
 .tabs {
     display: flex;
     gap: 24px;
