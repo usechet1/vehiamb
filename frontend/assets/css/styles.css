@@ -6249,9 +6249,12 @@ button.record-link {
 
     /* El detalle de mantenimiento pidio quedarse en 2 columnas incluso en
        movil -- minmax(0, ...) deja que el texto largo (ej. "Pendiente de
-       aprobacion") haga wrap dentro de su celda en vez de desbordarse. */
-    .mnt-detail-2col {
+       aprobacion") haga wrap dentro de su celda en vez de desbordarse. Doble
+       clase para ganarle a ".drawer-detail-list { 1fr }" que viene mas abajo
+       en este mismo bloque (antes la anulaba y salia uno por fila). */
+    .detail-list.mnt-detail-2col {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
     }
 
     /* Los 4 KPI del dashboard aprovechan mejor el ancho en 2x2 que
