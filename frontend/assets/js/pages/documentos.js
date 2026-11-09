@@ -628,7 +628,20 @@ documentosList.addEventListener("click", (event) => {
     documentosList.querySelectorAll("[data-row-menu-toggle]").forEach((el) => el.setAttribute("aria-expanded", "false"));
     popover.classList.toggle("hidden", estabaAbierto);
     toggle.setAttribute("aria-expanded", String(!estabaAbierto));
+    if (!estabaAbierto) abrirMenuFilaHaciaDondeQuepa(popover);
 });
+
+// En la ultima fila el menu (hacia abajo) quedaba cortado: .section-card
+// tiene overflow:hidden (para sus esquinas redondeadas) y recorta lo que se
+// sale por debajo. Si no cabe abajo -- ni en la tarjeta ni en la pantalla --
+// se abre hacia arriba.
+function abrirMenuFilaHaciaDondeQuepa(popover) {
+    popover.classList.remove("doc-row-menu-popover--arriba");
+    const rect = popover.getBoundingClientRect();
+    const tarjeta = popover.closest(".section-card");
+    const limite = Math.min(window.innerHeight, tarjeta ? tarjeta.getBoundingClientRect().bottom : Infinity);
+    if (rect.bottom > limite - 4) popover.classList.add("doc-row-menu-popover--arriba");
+}
 
 document.addEventListener("click", (event) => {
     if (!event.target.closest(".doc-row-menu-wrap")) {

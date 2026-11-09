@@ -5359,6 +5359,13 @@ button.record-link {
     min-width: 140px;
 }
 
+/* Ver abrirMenuFilaHaciaDondeQuepa (documentos.js): en la ultima fila el
+   menu se abre hacia arriba para que la tarjeta no lo recorte. */
+.doc-row-menu-wrap .doc-filter-popover.doc-row-menu-popover--arriba {
+    top: auto;
+    bottom: calc(100% + 4px);
+}
+
 .doc-filter-option-danger {
     color: var(--color-primary);
 }
