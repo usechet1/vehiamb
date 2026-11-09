@@ -329,22 +329,29 @@ function calcularKpisDocumentos(documentos) {
 
 function renderKpisDocumentos(documentos) {
     const kpis = calcularKpisDocumentos(documentos);
+    // "tono" pinta la cifra solo cuando hay algo que atender (vencidos/por
+    // vencer > 0); el resto queda en el color normal del texto.
     const cards = [
-        { key: "vencidos", label: "Vencidos", value: kpis.vencidos, accent: "var(--color-primary)", sub: "acción inmediata" },
-        { key: "porVencer", label: "Por vencer · 30 días", value: kpis.porVencer, accent: "var(--color-warning)", sub: "programar renovación" },
-        { key: "vigentes", label: "Vigentes", value: kpis.vigentes, accent: "var(--color-success)", sub: "sin novedad", soloEscritorio: true },
-        { key: "sinAdjunto", label: "Sin adjunto", value: kpis.sinAdjunto, accent: "var(--color-ink-soft)", sub: "falta soporte", soloEscritorio: true }
+        { key: "vencidos", label: "Vencidos", value: kpis.vencidos, tono: kpis.vencidos ? "danger" : "" },
+        { key: "porVencer", label: "Por vencer · 30 días", value: kpis.porVencer, tono: kpis.porVencer ? "warning" : "" },
+        { key: "vigentes", label: "Vigentes", value: kpis.vigentes, tono: "", soloEscritorio: true },
+        { key: "sinAdjunto", label: "Sin adjunto", value: kpis.sinAdjunto, tono: "", soloEscritorio: true }
     ];
 
-    // Cada tarjeta es un filtro (data-kpi-filtro), no solo un numero -- un
-    // clic filtra la lista a ese grupo, otro clic la quita.
-    documentosKpisGrid.innerHTML = cards.map((card) => `
-        <button type="button" class="kpi-card kpi-card-clickable ${card.soloEscritorio ? "kpi-card--solo-escritorio" : ""} ${filtroKpiActivo === card.key ? "is-active" : ""}" style="--kpi-accent: ${card.accent}" data-kpi-filtro="${card.key}" title="Ver solo: ${card.label.toLowerCase()}">
-            <div class="kpi-label">${card.label}</div>
-            <div class="kpi-value">${card.value}</div>
-            <div class="kpi-sub">${card.sub}</div>
-        </button>
-    `).join("");
+    // Una sola tarjeta con las cifras (igual que Mantenimientos), pero cada
+    // cifra sigue siendo un filtro (data-kpi-filtro): un clic filtra la lista
+    // a ese grupo, otro clic la quita. En el celular solo van Vencidos y Por
+    // vencer (kpi-card--solo-escritorio).
+    documentosKpisGrid.innerHTML = `
+        <div class="mnt-kpi-strip doc-kpi-strip">
+            ${cards.map((card) => `
+                <button type="button" class="mnt-kpi doc-kpi ${card.soloEscritorio ? "kpi-card--solo-escritorio" : ""} ${filtroKpiActivo === card.key ? "is-active" : ""}" data-kpi-filtro="${card.key}" title="Ver solo: ${card.label.toLowerCase()}" aria-pressed="${filtroKpiActivo === card.key}">
+                    <span class="mnt-kpi-label">${card.label}</span>
+                    <span class="mnt-kpi-value${card.tono ? ` mnt-kpi-value--${card.tono}` : ""}">${card.value}</span>
+                </button>
+            `).join("")}
+        </div>
+    `;
 }
 
 function renderDocumentos(documentos) {
