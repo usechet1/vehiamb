@@ -70,10 +70,44 @@ function urlDescargaDocumento(item) {
     const url = window.VehiAmb.api.getAssetUrl(item.archivo_url);
     return `${url}${url.includes("?") ? "&" : "?"}descargar=${encodeURIComponent(nombreDescargaDocumento(item))}`;
 }
-// El download del enlace queda como respaldo (mismo origen via nginx).
 function enlaceDescargaDocumento(item) {
-    return `<a class="doc-action-link" href="${escapeHtml(urlDescargaDocumento(item))}" download="${escapeHtml(nombreDescargaDocumento(item))}">${ICON_DOWNLOAD}Descargar</a>`;
+    return `<a class="doc-action-link" href="${escapeHtml(urlDescargaDocumento(item))}" download="${escapeHtml(nombreDescargaDocumento(item))}" data-descargar-documento>${ICON_DOWNLOAD}Descargar</a>`;
 }
+
+// La app instalada en el celular (manifest "standalone") abre cualquier
+// enlace a un PDF en su visor interno, sin opcion de guardar -- ni el
+// atributo download ni el attachment del servidor lo evitan. Por eso el
+// clic baja el archivo con fetch y lo guarda como blob, igual que los PDF
+// que genera la app (jsPDF), que si se descargan bien en el celular. Si el
+// fetch falla se cae al enlace normal.
+document.addEventListener("click", async (event) => {
+    const enlace = event.target.closest("a[data-descargar-documento]");
+    if (!enlace) return;
+    event.preventDefault();
+    if (enlace.dataset.descargando) return;
+    enlace.dataset.descargando = "1";
+    enlace.setAttribute("aria-busy", "true");
+    try {
+        const respuesta = await fetch(enlace.href);
+        if (!respuesta.ok) throw new Error(`HTTP ${respuesta.status}`);
+        const blob = await respuesta.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const temporal = document.createElement("a");
+        temporal.href = blobUrl;
+        temporal.download = enlace.getAttribute("download") || "documento.pdf";
+        document.body.appendChild(temporal);
+        temporal.click();
+        temporal.remove();
+        // Se libera despues: revocarlo en el mismo tick puede cortar la
+        // descarga en algunos navegadores moviles.
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    } catch (error) {
+        window.location.href = enlace.href;
+    } finally {
+        delete enlace.dataset.descargando;
+        enlace.removeAttribute("aria-busy");
+    }
+});
 const ICON_REFRESH = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>';
 const ICON_UPLOAD = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>';
 const ICON_EDIT = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
@@ -554,7 +588,7 @@ function abrirEdicionDocumento(item) {
 
     if (item.archivo_url) {
         const archivoUrl = window.VehiAmb.api.getAssetUrl(item.archivo_url);
-        documentoArchivoActual.innerHTML = `Archivo actual: <a href="${escapeHtml(archivoUrl)}" target="_blank" rel="noreferrer">${escapeHtml(item.archivo_nombre || "ver archivo")}</a> · <a href="${escapeHtml(urlDescargaDocumento(item))}" download="${escapeHtml(nombreDescargaDocumento(item))}">Descargar</a> (sube uno nuevo para reemplazarlo)`;
+        documentoArchivoActual.innerHTML = `Archivo actual: <a href="${escapeHtml(archivoUrl)}" target="_blank" rel="noreferrer">${escapeHtml(item.archivo_nombre || "ver archivo")}</a> · <a href="${escapeHtml(urlDescargaDocumento(item))}" download="${escapeHtml(nombreDescargaDocumento(item))}" data-descargar-documento>Descargar</a> (sube uno nuevo para reemplazarlo)`;
         documentoArchivoActual.classList.remove("hidden");
     } else {
         documentoArchivoActual.classList.add("hidden");
