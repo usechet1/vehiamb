@@ -5687,6 +5687,24 @@ button.record-link {
     font-size: 0.82rem;
 }
 
+/* Detalle de mantenimiento: todos los botones del mismo alto y repartidos
+   en filas parejas, Aprobar primero. Antes Aprobar heredaba el 70% de ancho
+   centrado de .btn-primary y quedaba descuadrado frente a los demas. */
+.mnt-drawer-actions {
+    align-items: stretch;
+    gap: 8px;
+}
+
+.mnt-drawer-actions > button {
+    flex: 1 1 auto;
+    width: auto;
+    min-height: 40px;
+    margin: 0;
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
 .drawer-close {
     display: inline-grid;
     flex: 0 0 auto;
