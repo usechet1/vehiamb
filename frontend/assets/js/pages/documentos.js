@@ -51,6 +51,25 @@ let filtroKpiActivo = null;
 let subirDocumentoTargetId = null;
 
 const ICON_CLIP = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>';
+const ICON_DOWNLOAD = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>';
+
+// Nombre con el que se guarda el archivo al descargarlo: "SOAT_ABC123.pdf"
+// en vez del nombre interno con el que quedo en uploads/. La extension sale
+// del archivo real (puede ser imagen, no solo PDF).
+function nombreDescargaDocumento(item) {
+    const extension = (String(item.archivo_url || "").split("?")[0].match(/\.([a-z0-9]+)$/i) || [])[1] || "pdf";
+    const tipo = tiposDocumento[item.tipo] || item.tipo || "Documento";
+    return `${[tipo, item.placa].filter(Boolean).join("_")}.${extension.toLowerCase()}`
+        .replace(/[\\/:*?"<>|]+/g, "")
+        .replace(/\s+/g, "_");
+}
+
+// "PDF" abre la vista previa del navegador (pestana nueva); "Descargar" baja
+// el archivo directo -- en celular la vista previa no siempre deja guardarlo.
+// El atributo download funciona porque /uploads es del mismo origen (nginx).
+function enlaceDescargaDocumento(item) {
+    return `<a class="doc-action-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(item.archivo_url))}" download="${escapeHtml(nombreDescargaDocumento(item))}">${ICON_DOWNLOAD}Descargar</a>`;
+}
 const ICON_REFRESH = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>';
 const ICON_UPLOAD = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>';
 const ICON_EDIT = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
@@ -313,6 +332,7 @@ function renderDocumentos(documentos) {
         const acciones = [];
         if (item.archivo_url) {
             acciones.push(`<a class="doc-action-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(item.archivo_url))}" target="_blank" rel="noreferrer">${ICON_CLIP}PDF</a>`);
+            acciones.push(enlaceDescargaDocumento(item));
             if (puedeEditar && TIPOS_AUTOCOMPLETABLES.includes(item.tipo)) {
                 acciones.push(`<button type="button" class="doc-action-link" data-subir-documento="${item.id}">${ICON_REFRESH}Renovar</button>`);
             }
@@ -531,7 +551,7 @@ function abrirEdicionDocumento(item) {
 
     if (item.archivo_url) {
         const archivoUrl = window.VehiAmb.api.getAssetUrl(item.archivo_url);
-        documentoArchivoActual.innerHTML = `Archivo actual: <a href="${escapeHtml(archivoUrl)}" target="_blank" rel="noreferrer">${escapeHtml(item.archivo_nombre || "ver archivo")}</a> (sube uno nuevo para reemplazarlo)`;
+        documentoArchivoActual.innerHTML = `Archivo actual: <a href="${escapeHtml(archivoUrl)}" target="_blank" rel="noreferrer">${escapeHtml(item.archivo_nombre || "ver archivo")}</a> · <a href="${escapeHtml(archivoUrl)}" download="${escapeHtml(nombreDescargaDocumento(item))}">Descargar</a> (sube uno nuevo para reemplazarlo)`;
         documentoArchivoActual.classList.remove("hidden");
     } else {
         documentoArchivoActual.classList.add("hidden");
