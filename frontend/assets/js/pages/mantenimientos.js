@@ -1504,6 +1504,18 @@ function diasEnReparacionItem(item) {
     return window.VehiAmb.ui.textoDiasEnReparacion({ estado: item.vehiculo_estado, estado_desde: item.vehiculo_estado_desde });
 }
 
+// Una sola etiqueta para "el vehiculo esta parado por este mantenimiento":
+// antes salian "⚠ En taller" y "En reparación (N días)" juntas (dicen lo
+// mismo). Rojo si se marco como varado en taller, amarillo si solo esta en
+// reparacion; los dias van en la misma etiqueta.
+function etiquetaVehiculoParado(item) {
+    if (item.estado !== "pendiente") return "";
+    const dias = diasEnReparacionItem(item);
+    if (!item.vehiculo_varado && !dias) return "";
+    const texto = `${item.vehiculo_varado ? "En taller" : "En reparación"}${dias ? ` ${dias}` : ""}`;
+    return `<span class="pill ${item.vehiculo_varado ? "pill-danger" : "pill-warning"}">${escapeHtml(texto)}</span>`;
+}
+
 function renderMantenimientos(mantenimientos) {
     if (!mantenimientos.length) {
         mantenimientosList.innerHTML = '<p class="dash-empty">No hay mantenimientos para los filtros seleccionados</p>';
@@ -1527,6 +1539,9 @@ function renderMantenimientos(mantenimientos) {
                 const fechaValida = fechaStr && !Number.isNaN(fecha.getTime());
                 const vehicleName = `${item.marca || ""} ${item.modelo || ""}`.trim();
                 const km = Number(item.kilometraje || 0);
+                // Con el boton Aprobar a la vista, la etiqueta "Pendiente de
+                // aprobación" sobra (el boton ya lo dice) y no se pinta; quien
+                // no puede aprobar si la ve.
                 const puedeAprobarFila = item.estado === "pendiente" && Boolean(window.VehiAmb.auth?.hasPermission?.("maintenance.approve"));
 
                 return `
@@ -1538,11 +1553,10 @@ function renderMantenimientos(mantenimientos) {
                         <div class="mnt-hist-main">
                             <div class="mnt-hist-title-row">
                                 <span class="mnt-hist-title">${escapeHtml(tiposMantenimiento[item.tipo] || item.tipo)}</span>
-                                ${estado.badge
+                                ${puedeAprobarFila ? "" : estado.badge
                                     ? `<span class="pill ${estado.clase}">${estado.texto}</span>`
                                     : `<span class="mnt-hist-status-ok">✓ ${estado.texto}</span>`}
-                                ${item.vehiculo_varado && item.estado === "pendiente" ? '<span class="pill pill-danger">⚠ En taller</span>' : ""}
-                                ${diasEnReparacionItem(item) ? `<span class="pill pill-warning">En reparación ${escapeHtml(diasEnReparacionItem(item))}</span>` : ""}
+                                ${etiquetaVehiculoParado(item)}
                                 ${puedeAprobarFila ? `<button type="button" class="btn-primary mnt-hist-approve" data-approve-id="${item.id}">Aprobar</button>` : ""}
                             </div>
                             <div class="mnt-hist-sub">${escapeHtml(item.placa) || "Sin placa"}${vehicleName ? ` · ${escapeHtml(vehicleName)}` : ""}${km > 0 ? ` · ${km.toLocaleString("es-CO")} km` : ""}</div>
