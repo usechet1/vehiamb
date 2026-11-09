@@ -409,7 +409,7 @@ function updateConductorTriggerLabel(conductores) {
 }
 
 function updateEstadoTriggerLabel() {
-    filterEstadoTriggerLabel.textContent = filtroEstadoValue ? estadoLabel(filtroEstadoValue) : "Estado de cartera";
+    filterEstadoTriggerLabel.textContent = filtroEstadoValue ? estadoLabel(filtroEstadoValue) : "Cartera";
     filterEstadoTrigger.classList.toggle("is-active", Boolean(filtroEstadoValue));
     filterEstadoPopover.querySelectorAll("[data-estado-value]").forEach((boton) => {
         boton.classList.toggle("is-active", boton.dataset.estadoValue === filtroEstadoValue);

@@ -302,9 +302,10 @@
                         <h2>Historial reciente</h2>
                         <p>Últimas revisiones y mantenimientos registrados.</p>
                         <div class="mnt-export-wrap">
-                            <button type="button" class="btn-secondary" id="exportMenuTrigger">
-                                Exportar
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                            <button type="button" class="btn-secondary mnt-export-trigger" id="exportMenuTrigger" aria-label="Exportar" title="Exportar">
+                                <svg class="mnt-export-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+                                <span class="mnt-export-texto">Exportar</span>
+                                <svg class="mnt-export-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
                             </button>
                             <div class="doc-filter-popover hidden" id="exportMenuPopover">
                                 <button type="button" class="doc-filter-option" id="exportHistorialButton">Exportar PDF</button>
@@ -313,9 +314,9 @@
                         </div>
                     </summary>
                     <div class="section-card-body">
-                        <form id="mantenimientosFilterForm" class="doc-filterbar">
+                        <form id="mantenimientosFilterForm" class="doc-filterbar doc-filterbar--una-fila">
                             <div class="doc-filterbar-row">
-                                <input type="search" id="filterBusqueda" class="doc-search-input" placeholder="Buscar por placa o tipo">
+                                <input type="search" id="filterBusqueda" class="doc-search-input" placeholder="Placa o tipo" aria-label="Buscar por placa o tipo">
 
                                 <div class="doc-filter-popover-wrap">
                                     <button type="button" class="doc-filter-trigger" id="filterTipoTrigger">
@@ -355,7 +356,10 @@
                                     </div>
                                 </div>
 
-                                <button type="button" id="clearFiltersButton" class="doc-filter-trigger">Limpiar</button>
+                                <button type="button" id="clearFiltersButton" class="doc-filter-trigger doc-filter-limpiar" aria-label="Limpiar filtros" title="Limpiar filtros">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+                                    <span class="doc-filter-limpiar-texto">Limpiar</span>
+                                </button>
                             </div>
 
                             <div class="doc-filterbar-chips hidden" id="filtersChips"></div>

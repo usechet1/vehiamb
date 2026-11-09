@@ -2124,6 +2124,53 @@ label[for="loginPassword"] {
     min-width: 170px;
 }
 
+.mnt-export-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.mnt-export-trigger svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* En el escritorio el boton dice "Exportar ▾"; el icono de descarga solo
+   se usa en el celular, donde el boton queda como un cuadrito con el icono
+   para no tapar el subtitulo de "Historial reciente". */
+.mnt-export-icono {
+    display: none;
+}
+
+@media (max-width: 620px) {
+    .mnt-export-wrap {
+        top: 14px;
+        right: 14px;
+    }
+
+    .mnt-export-trigger {
+        justify-content: center;
+        width: 38px;
+        min-height: 38px;
+        padding: 0;
+    }
+
+    .mnt-export-trigger .mnt-export-icono {
+        display: block;
+        width: 17px;
+        height: 17px;
+    }
+
+    .mnt-export-trigger .mnt-export-texto,
+    .mnt-export-trigger .mnt-export-chevron {
+        display: none;
+    }
+
+    #historialMantenimientosSection .section-card-head {
+        padding-right: 64px;
+    }
+}
+
 /* ── Mantenimientos: historial reciente (agrupado por mes) ──────
    La fecha es la columna vertebral: dia grande + mes chico a la
    izquierda, fija para todas las filas del mes. Solo pendiente/
@@ -5164,19 +5211,37 @@ button.record-link {
     color: var(--color-ink);
 }
 
-/* Documentos en el celular: busqueda + Tipo + Fechas + Limpiar en una sola
-   fila (antes se partia en dos y el menu de Tipo se salia por la derecha).
-   La busqueda cede el ancho (min-width:0), los botones pierden la flecha y
-   Limpiar queda solo con icono. Los menus se abren alineados a la derecha
-   del boton para no salirse de la pantalla. */
+/* Buscadores en el celular (Documentos, Mantenimientos, SIMIT,
+   Notificaciones): busqueda + filtros + Limpiar en una sola fila (antes se
+   partia en dos y los menus se salian por la derecha). La busqueda cede el
+   ancho (min-width:0), los botones pierden la flecha y .doc-filter-limpiar
+   (Limpiar, Marcar todas leidas) queda solo con icono. Los menus se abren
+   alineados a la derecha del boton para no salirse de la pantalla. */
 .doc-filter-limpiar svg {
     display: none;
 }
 
 @media (max-width: 620px) {
-    .doc-filterbar--una-fila .doc-filterbar-row {
+    .doc-filterbar--una-fila .doc-filterbar-row,
+    .doc-filterbar-row.doc-filterbar--una-fila {
         flex-wrap: nowrap;
         gap: 6px;
+    }
+
+    /* SIMIT tiene tres filtros: no caben junto a la busqueda, asi que la
+       busqueda va sola arriba y los filtros + Limpiar en la fila de abajo.
+       El primer menu (a la izquierda) se abre hacia la derecha. */
+    .doc-filterbar--una-fila.doc-filterbar--busqueda-arriba .doc-filterbar-row {
+        flex-wrap: wrap;
+    }
+
+    .doc-filterbar--una-fila.doc-filterbar--busqueda-arriba .doc-search-input {
+        flex: 1 1 100%;
+    }
+
+    .doc-filterbar--busqueda-arriba .doc-filter-popover-wrap:first-of-type .doc-filter-popover {
+        left: 0;
+        right: auto;
     }
 
     .doc-filterbar--una-fila .doc-search-input {
@@ -5223,6 +5288,27 @@ button.record-link {
     .doc-filterbar--una-fila .doc-filter-popover {
         left: auto;
         right: 0;
+    }
+}
+
+/* Buscadores con etiqueta (Conductores, Repuestos, Seguridad): en el celular
+   la busqueda y su unico desplegable quedan lado a lado en vez de apilados
+   (form-grid colapsa a 1 columna en movil). La busqueda lleva mas ancho. */
+@media (max-width: 760px) {
+    .filter-form.filtros-una-fila > .form-grid,
+    .filter-form.filtros-una-fila > .form-grid-3 {
+        grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+        gap: 8px;
+    }
+
+    /* Con tres campos (Repuestos: busqueda + Categoria + Estado) la busqueda
+       va sola arriba y los dos desplegables comparten la fila de abajo. */
+    .filter-form.filtros-una-fila > .form-grid-3:has(> .form-group:nth-child(3)) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .filter-form.filtros-una-fila > .form-grid-3:has(> .form-group:nth-child(3)) > .form-group:first-child {
+        grid-column: 1 / -1;
     }
 }
 
