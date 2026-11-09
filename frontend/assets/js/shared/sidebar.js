@@ -52,16 +52,6 @@ function formatearFechaHoy() {
     });
 }
 
-// Version corta para la topbar movil, que tiene mucho menos espacio
-// horizontal que el encabezado de escritorio (.page-header-right).
-function formatearFechaCorta() {
-    return new Date().toLocaleDateString("es-CO", {
-        day: "numeric",
-        month: "short",
-        year: "numeric"
-    });
-}
-
 // Coloca (o actualiza) el nombre de la empresa justo debajo de un elemento de
 // fecha ya existente -- se usa tanto para el encabezado generico
 // (.page-header-right) como para los dos layouts especiales de index.html
@@ -552,10 +542,48 @@ function setupMobileNav(aside) {
         <img src="img/vehiamb_white.png" alt="Vehiamb" class="mobile-topbar-logo">
         <div class="mobile-topbar-right">
             <p class="mobile-topbar-empresa" id="mobileTopbarEmpresa"></p>
-            <p class="mobile-topbar-fecha" id="mobileTopbarFecha">${formatearFechaCorta()}</p>
+            <div class="mobile-topbar-user-wrap">
+                <button type="button" class="user-avatar mobile-topbar-avatar" id="mobileTopbarAvatar" aria-haspopup="true" aria-expanded="false" aria-label="Menú de usuario">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                </button>
+                <div class="mobile-topbar-user-menu hidden" id="mobileTopbarUserMenu" role="menu">
+                    <div class="mobile-topbar-user-head">
+                        <strong id="mobileTopbarUserName">Usuario</strong>
+                        <span id="mobileTopbarUserRole"></span>
+                    </div>
+                    <a href="cambiar-password.html" class="sidebar-user-menu-item" role="menuitem">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>
+                        Cambiar contraseña
+                    </a>
+                    <div class="sidebar-user-menu-divider"></div>
+                    <button type="button" class="sidebar-user-menu-item is-danger" id="mobileTopbarLogout" role="menuitem">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                        Cerrar sesión
+                    </button>
+                </div>
+            </div>
         </div>
     `;
     layout.insertBefore(topbar, layout.firstChild);
+
+    // Foto del usuario en la topbar movil: atajo al menu de usuario (cambiar
+    // contrasena / cerrar sesion) sin tener que abrir el drawer y bajar hasta
+    // su pie. La foto/iniciales y el nombre se llenan en cargarSidebar.
+    const avatarButton = topbar.querySelector("#mobileTopbarAvatar");
+    const userMenu = topbar.querySelector("#mobileTopbarUserMenu");
+    avatarButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const abierto = userMenu.classList.toggle("hidden") === false;
+        avatarButton.setAttribute("aria-expanded", String(abierto));
+    });
+    document.addEventListener("click", (event) => {
+        if (userMenu.classList.contains("hidden") || userMenu.contains(event.target)) return;
+        userMenu.classList.add("hidden");
+        avatarButton.setAttribute("aria-expanded", "false");
+    });
+    topbar.querySelector("#mobileTopbarLogout").addEventListener("click", () => {
+        window.VehiAmb.auth.logout();
+    });
 
     const backdrop = document.createElement("div");
     backdrop.className = "sidebar-backdrop";
@@ -730,11 +758,16 @@ async function cargarSidebar() {
         if (roleEl) roleEl.textContent = user.rol || "Usuario";
         const mobileTopbarEmpresaEl = document.getElementById("mobileTopbarEmpresa");
         if (mobileTopbarEmpresaEl) mobileTopbarEmpresaEl.textContent = user.empresa_nombre || "";
-        if (avatarEl) {
-            avatarEl.innerHTML = user.foto_url
-                ? `<img src="${window.VehiAmb.api.getAssetUrl(user.foto_url)}" alt="" style="object-position: ${escapeHtml(user.foto_posicion || "50% 50%")}">`
-                : getInitials(user.nombre);
-        }
+        const avatarHtml = user.foto_url
+            ? `<img src="${window.VehiAmb.api.getAssetUrl(user.foto_url)}" alt="" style="object-position: ${escapeHtml(user.foto_posicion || "50% 50%")}">`
+            : escapeHtml(getInitials(user.nombre));
+        if (avatarEl) avatarEl.innerHTML = avatarHtml;
+        const mobileAvatarEl = document.getElementById("mobileTopbarAvatar");
+        if (mobileAvatarEl) mobileAvatarEl.innerHTML = avatarHtml;
+        const mobileUserNameEl = document.getElementById("mobileTopbarUserName");
+        if (mobileUserNameEl) mobileUserNameEl.textContent = formatSidebarName(user.nombre) || "Usuario";
+        const mobileUserRoleEl = document.getElementById("mobileTopbarUserRole");
+        if (mobileUserRoleEl) mobileUserRoleEl.textContent = user.rol || "";
         actualizarEncabezadoPagina(user.empresa_nombre);
 
         await setupEmpresaSwitcher(aside, user);

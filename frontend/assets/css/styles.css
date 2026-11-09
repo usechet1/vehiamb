@@ -5802,13 +5802,18 @@ button.record-link {
        y la empresa activa, igual que ya se ve en el encabezado de escritorio
        (.page-header-right). */
     .mobile-topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
         margin-left: auto;
-        max-width: 55vw;
+        max-width: 62vw;
         text-align: right;
         line-height: 1.2;
     }
 
     .mobile-topbar-empresa {
+        min-width: 0;
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
@@ -5817,13 +5822,61 @@ button.record-link {
         font-weight: 700;
     }
 
-    .mobile-topbar-fecha {
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-        color: rgba(255, 255, 255, 0.62);
-        font-size: 0.68rem;
-        text-transform: capitalize;
+    /* Foto del usuario (o iniciales) a la derecha de la topbar: abre un menu
+       corto con cambiar contrasena / cerrar sesion (ver setupMobileNav). */
+    .mobile-topbar-user-wrap {
+        position: relative;
+        flex-shrink: 0;
+    }
+
+    .mobile-topbar-avatar {
+        width: 34px;
+        height: 34px;
+        padding: 0;
+        border: 2px solid rgba(255, 255, 255, 0.28);
+        cursor: pointer;
+    }
+
+    .mobile-topbar-avatar svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .mobile-topbar-avatar[aria-expanded="true"] {
+        border-color: #fff;
+    }
+
+    .mobile-topbar-user-menu {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        z-index: 960;
+        min-width: 200px;
+        padding: 6px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        background: #fff;
+        box-shadow: var(--shadow);
+        text-align: left;
+    }
+
+    .mobile-topbar-user-head {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 8px 10px 10px;
+        margin-bottom: 4px;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .mobile-topbar-user-head strong {
+        color: var(--color-ink);
+        font-size: 0.88rem;
+    }
+
+    .mobile-topbar-user-head span {
+        color: var(--color-muted);
+        font-size: 0.75rem;
     }
 
     .mobile-menu-toggle {
