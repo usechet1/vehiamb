@@ -64,10 +64,15 @@ function nombreDescargaDocumento(item) {
 }
 
 // "Descargar" baja el archivo directo en vez de abrir la vista previa del
-// navegador -- en celular la vista previa no siempre deja guardarlo.
-// El atributo download funciona porque /uploads es del mismo origen (nginx).
+// navegador. El ?descargar= hace que el backend lo mande como attachment
+// (app.js): en el celular el atributo download solo no basta.
+function urlDescargaDocumento(item) {
+    const url = window.VehiAmb.api.getAssetUrl(item.archivo_url);
+    return `${url}${url.includes("?") ? "&" : "?"}descargar=${encodeURIComponent(nombreDescargaDocumento(item))}`;
+}
+// El download del enlace queda como respaldo (mismo origen via nginx).
 function enlaceDescargaDocumento(item) {
-    return `<a class="doc-action-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(item.archivo_url))}" download="${escapeHtml(nombreDescargaDocumento(item))}">${ICON_DOWNLOAD}Descargar</a>`;
+    return `<a class="doc-action-link" href="${escapeHtml(urlDescargaDocumento(item))}" download="${escapeHtml(nombreDescargaDocumento(item))}">${ICON_DOWNLOAD}Descargar</a>`;
 }
 const ICON_REFRESH = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>';
 const ICON_UPLOAD = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg>';
@@ -549,7 +554,7 @@ function abrirEdicionDocumento(item) {
 
     if (item.archivo_url) {
         const archivoUrl = window.VehiAmb.api.getAssetUrl(item.archivo_url);
-        documentoArchivoActual.innerHTML = `Archivo actual: <a href="${escapeHtml(archivoUrl)}" target="_blank" rel="noreferrer">${escapeHtml(item.archivo_nombre || "ver archivo")}</a> · <a href="${escapeHtml(archivoUrl)}" download="${escapeHtml(nombreDescargaDocumento(item))}">Descargar</a> (sube uno nuevo para reemplazarlo)`;
+        documentoArchivoActual.innerHTML = `Archivo actual: <a href="${escapeHtml(archivoUrl)}" target="_blank" rel="noreferrer">${escapeHtml(item.archivo_nombre || "ver archivo")}</a> · <a href="${escapeHtml(urlDescargaDocumento(item))}" download="${escapeHtml(nombreDescargaDocumento(item))}">Descargar</a> (sube uno nuevo para reemplazarlo)`;
         documentoArchivoActual.classList.remove("hidden");
     } else {
         documentoArchivoActual.classList.add("hidden");

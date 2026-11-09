@@ -49,11 +49,24 @@ app.use("/api", apiLimiter);
 // validacion de magic bytes en validate-upload.js. No se fuerza
 // Content-Disposition: attachment aqui porque romperia el "Ver adjunto" que
 // abre PDFs/fotos inline en pestana nueva (documentos.js, mantenimientos.js).
+// Para bajar el archivo se pide con ?descargar=<nombre>: solo entonces va como
+// attachment. Hace falta del lado del servidor porque en el celular el
+// atributo download del enlace se ignora y el navegador abre la vista previa.
+function contentDispositionDescarga(nombre) {
+  const limpio = String(nombre).replace(/[\r\n"\\/:*?<>|]+/g, "").trim().slice(0, 150) || "archivo";
+  const ascii = limpio.normalize("NFD").replace(/[^\x20-\x7e]/g, "");
+  return `attachment; filename="${ascii || "archivo"}"; filename*=UTF-8''${encodeURIComponent(limpio)}`;
+}
+
 app.use(
   "/uploads",
   express.static(path.resolve(__dirname, "..", "uploads"), {
     setHeaders(res) {
       res.setHeader("X-Content-Type-Options", "nosniff");
+      const descargar = res.req?.query?.descargar;
+      if (typeof descargar === "string" && descargar) {
+        res.setHeader("Content-Disposition", contentDispositionDescarga(descargar));
+      }
     }
   })
 );
