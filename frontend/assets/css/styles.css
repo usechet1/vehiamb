@@ -1485,6 +1485,22 @@ label[for="loginPassword"] {
     display: flex;
     flex-direction: column;
     gap: 7px;
+    /* Sin esto, dentro de un flex/grid el grupo no puede quedar mas angosto
+       que el ancho "natural" de su campo -- y los campos de fecha tienen un
+       ancho natural grande, asi que en el celular se salian del borde. */
+    min-width: 0;
+}
+
+/* Campos de fecha/hora: nunca mas anchos que su contenedor. El navegador
+   les da un ancho minimo propio (fecha + icono del calendario) que en
+   pantallas angostas los sacaba de la tarjeta. */
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"],
+input[type="month"] {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .form-group label {
@@ -4650,8 +4666,9 @@ label[for="loginPassword"] {
     gap: 14px;
 }
 
-.import-grupo-rango .form-group {
-    flex: 1;
+.import-grupo-rango .form-group,
+#metricasFilterForm > .form-group {
+    flex: 1 1 0;
 }
 
 #mantenimientoForm.compact-form {
