@@ -287,32 +287,39 @@ function renderSummary(rows, valorHistorico, infractorTop) {
     fechaLoteState = calcularSincronizacionLote(rows);
     simitSyncNote.textContent = formatSyncNote(fechaLoteState);
 
+    // Una sola tarjeta con todas las cifras (igual que Mantenimientos y
+    // Documentos). Las celdas con data-accion/data-filter-estado siguen
+    // siendo clicables (ver el listener de kpisGrid). En el celular: total y
+    // flota al dia lado a lado, el valor en su propia linea (es una cifra
+    // larga) y los estados extra (si los hay) debajo.
+    const estadosExtra = orden.filter((estado) => conteos[estado]);
     kpisGrid.innerHTML = `
-        <div class="kpi-card clickable-record" style="--kpi-accent: ${totalComparendos.accent}" data-accion="ranking-comparendos" tabindex="0" role="button" aria-label="Ver vehículos con comparendos">
-            <div class="kpi-label">Total comparendos</div>
-            <div class="kpi-value">${totalComparendos.total}</div>
-            ${totalComparendos.texto ? `<div class="kpi-sub ${totalComparendos.clase}">${totalComparendos.texto}</div>` : ""}
-        </div>
-        <div class="kpi-card" style="--kpi-accent: var(--color-primary)">
-            <div class="kpi-label">Valor total comparendos</div>
-            <div class="kpi-value">${formatCurrency(valorRiesgo)}</div>
-            ${tendencia ? `<div class="kpi-sub ${tendencia.clase}">${tendencia.texto}</div>` : ""}
-        </div>
-        <div class="kpi-card" style="--kpi-accent: var(--color-success)">
-            <div class="kpi-label">Flota al día</div>
-            <div class="kpi-value">${alDia.alDia}/${alDia.total}</div>
-            <div class="kpi-bar"><div class="kpi-bar-fill" style="width: ${alDia.porcentaje}%"></div></div>
-            ${desactualizados ? `<div class="kpi-sub">${desactualizados} sin consultar hace +30 días</div>` : ""}
-        </div>
-        ${orden
-            .filter((estado) => conteos[estado])
-            .map((estado) => `
-                <div class="kpi-card clickable-record" style="--kpi-accent: ${ESTADO_KPI_ACCENT[estado]}" data-filter-estado="${estado}" tabindex="0" role="button" aria-label="Ver vehículos en estado ${estadoLabel(estado)}">
-                    <div class="kpi-label">${ESTADO_KPI_LABEL[estado] || estadoLabel(estado)}</div>
-                    <div class="kpi-value">${conteos[estado]}</div>
+        <div class="mnt-kpi-strip simit-kpi-strip" style="--simit-kpi-cols: ${3 + estadosExtra.length}">
+            <div class="mnt-kpi simit-kpi simit-kpi--clic" data-accion="ranking-comparendos" tabindex="0" role="button" aria-label="Ver vehículos con comparendos">
+                <span class="mnt-kpi-label">Comparendos</span>
+                <span class="mnt-kpi-value"${totalComparendos.total ? ` style="color: ${totalComparendos.accent}"` : ""}>${totalComparendos.total}</span>
+                ${totalComparendos.texto ? `<span class="mnt-kpi-sub ${totalComparendos.clase}">${totalComparendos.texto}</span>` : ""}
+            </div>
+            <div class="mnt-kpi simit-kpi simit-kpi--valor">
+                <span class="mnt-kpi-label">Valor total</span>
+                <span class="simit-kpi-valor-cifra">
+                    <span class="mnt-kpi-value">${formatCurrency(valorRiesgo)}</span>
+                    ${tendencia ? `<span class="mnt-kpi-sub ${tendencia.clase}">${tendencia.texto}</span>` : ""}
+                </span>
+            </div>
+            <div class="mnt-kpi simit-kpi simit-kpi--flota" style="--kpi-accent: var(--color-success)">
+                <span class="mnt-kpi-label">Flota al día</span>
+                <span class="mnt-kpi-value">${alDia.alDia}/${alDia.total}</span>
+                <div class="kpi-bar"><div class="kpi-bar-fill" style="width: ${alDia.porcentaje}%"></div></div>
+                ${desactualizados ? `<span class="mnt-kpi-sub">${desactualizados} sin consultar +30 días</span>` : ""}
+            </div>
+            ${estadosExtra.map((estado) => `
+                <div class="mnt-kpi simit-kpi simit-kpi--clic simit-kpi--extra" data-filter-estado="${estado}" tabindex="0" role="button" aria-label="Ver vehículos en estado ${estadoLabel(estado)}">
+                    <span class="mnt-kpi-label">${ESTADO_KPI_LABEL[estado] || estadoLabel(estado)}</span>
+                    <span class="mnt-kpi-value" style="color: ${ESTADO_KPI_ACCENT[estado]}">${conteos[estado]}</span>
                 </div>
-            `)
-            .join("")}
+            `).join("")}
+        </div>
     `;
 
     renderRankings(topVehiculos, topInfractores);
