@@ -2336,16 +2336,17 @@ label[for="loginPassword"] {
     font-weight: 600;
 }
 
-.mnt-hist-action {
-    color: var(--color-muted);
-    font-size: 0.78rem;
-    font-weight: 600;
+/* Dias que lleva el vehiculo parado (reemplaza a "Revisar"/"Ver detalle"). */
+.mnt-hist-dias {
+    color: var(--color-warning);
+    font-size: 0.8rem;
+    font-weight: 700;
     white-space: nowrap;
+    font-variant-numeric: tabular-nums;
 }
 
-.mnt-hist-action--revisar {
+.mnt-hist-dias--taller {
     color: var(--color-primary);
-    font-weight: 700;
 }
 
 .mnt-hist-end-row {

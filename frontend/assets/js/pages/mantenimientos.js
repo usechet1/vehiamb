@@ -136,16 +136,16 @@ window.VehiAmb.ui.setupDictadoVoz(descripcionVozButton, mantenimientoDescripcion
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
 // Solo "pendiente"/"rechazado" son excepcionales y necesitan una etiqueta con
-// color + una accion real ("Revisar") -- lo normal (completado/aprobado) no
-// necesita destacarse, solo un texto en verde sin fondo.
+// color -- lo normal (completado/aprobado) no necesita destacarse, solo un
+// texto en verde sin fondo.
 function estadoInfo(item) {
     if (item.estado === "pendiente") {
-        return { badge: true, clase: "pill-warning", texto: "Pendiente de aprobación", accion: "Revisar", esExcepcion: true };
+        return { badge: true, clase: "pill-warning", texto: "Pendiente de aprobación" };
     }
     if (item.estado === "rechazado") {
-        return { badge: true, clase: "pill-danger", texto: "Rechazado", accion: "Revisar", esExcepcion: true };
+        return { badge: true, clase: "pill-danger", texto: "Rechazado" };
     }
-    return { badge: false, texto: estadosMantenimiento[item.estado] || "Completado", accion: "Ver detalle", esExcepcion: false };
+    return { badge: false, texto: estadosMantenimiento[item.estado] || "Completado" };
 }
 
 function calcularKpisMantenimientos(mantenimientos) {
@@ -1507,13 +1507,21 @@ function diasEnReparacionItem(item) {
 // Una sola etiqueta para "el vehiculo esta parado por este mantenimiento":
 // antes salian "⚠ En taller" y "En reparación (N días)" juntas (dicen lo
 // mismo). Rojo si se marco como varado en taller, amarillo si solo esta en
-// reparacion; los dias van en la misma etiqueta.
+// reparacion. Los dias van aparte, a la derecha (diasParadoFila).
 function etiquetaVehiculoParado(item) {
     if (item.estado !== "pendiente") return "";
-    const dias = diasEnReparacionItem(item);
-    if (!item.vehiculo_varado && !dias) return "";
-    const texto = `${item.vehiculo_varado ? "En taller" : "En reparación"}${dias ? ` ${dias}` : ""}`;
-    return `<span class="pill ${item.vehiculo_varado ? "pill-danger" : "pill-warning"}">${escapeHtml(texto)}</span>`;
+    if (!item.vehiculo_varado && !diasEnReparacionItem(item)) return "";
+    return `<span class="pill ${item.vehiculo_varado ? "pill-danger" : "pill-warning"}">${item.vehiculo_varado ? "En taller" : "En reparación"}</span>`;
+}
+
+// Dias que lleva parado, en la esquina de la fila donde antes decia
+// "Revisar"/"Ver detalle" (sobraba: tocar la fila ya abre el detalle).
+// "(3 días)" -> "3 días", "(hoy)" -> "Hoy".
+function diasParadoFila(item) {
+    const dias = diasEnReparacionItem(item).replace(/[()]/g, "").trim();
+    if (!dias) return "";
+    const texto = dias.charAt(0).toUpperCase() + dias.slice(1);
+    return `<span class="mnt-hist-dias${item.vehiculo_varado ? " mnt-hist-dias--taller" : ""}" title="Tiempo en reparación">${escapeHtml(texto)}</span>`;
 }
 
 function renderMantenimientos(mantenimientos) {
@@ -1571,7 +1579,7 @@ function renderMantenimientos(mantenimientos) {
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                                     </button>
                                 ` : ""}
-                                <span class="mnt-hist-action${estado.esExcepcion ? " mnt-hist-action--revisar" : ""}">${estado.accion}</span>
+                                ${diasParadoFila(item)}
                             </div>
                         </div>
                     </article>
