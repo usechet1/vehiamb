@@ -50,7 +50,6 @@ let filtroTipoValue = "";
 let filtroKpiActivo = null;
 let subirDocumentoTargetId = null;
 
-const ICON_CLIP = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>';
 const ICON_DOWNLOAD = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>';
 
 // Nombre con el que se guarda el archivo al descargarlo: "SOAT_ABC123.pdf"
@@ -64,8 +63,8 @@ function nombreDescargaDocumento(item) {
         .replace(/\s+/g, "_");
 }
 
-// "PDF" abre la vista previa del navegador (pestana nueva); "Descargar" baja
-// el archivo directo -- en celular la vista previa no siempre deja guardarlo.
+// "Descargar" baja el archivo directo en vez de abrir la vista previa del
+// navegador -- en celular la vista previa no siempre deja guardarlo.
 // El atributo download funciona porque /uploads es del mismo origen (nginx).
 function enlaceDescargaDocumento(item) {
     return `<a class="doc-action-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(item.archivo_url))}" download="${escapeHtml(nombreDescargaDocumento(item))}">${ICON_DOWNLOAD}Descargar</a>`;
@@ -331,7 +330,6 @@ function renderDocumentos(documentos) {
 
         const acciones = [];
         if (item.archivo_url) {
-            acciones.push(`<a class="doc-action-link" href="${escapeHtml(window.VehiAmb.api.getAssetUrl(item.archivo_url))}" target="_blank" rel="noreferrer">${ICON_CLIP}PDF</a>`);
             acciones.push(enlaceDescargaDocumento(item));
             if (puedeEditar && TIPOS_AUTOCOMPLETABLES.includes(item.tipo)) {
                 acciones.push(`<button type="button" class="doc-action-link" data-subir-documento="${item.id}">${ICON_REFRESH}Renovar</button>`);
