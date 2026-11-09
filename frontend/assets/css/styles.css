@@ -5695,6 +5695,12 @@ button.record-link {
     gap: 8px;
 }
 
+/* Sin ningun boton visible (aprobado y no es cambio de aceite) la fila no
+   debe dejar un hueco bajo el titulo. */
+.mnt-drawer-actions:not(:has(> button:not(.hidden))) {
+    display: none;
+}
+
 .mnt-drawer-actions > button {
     flex: 1 1 auto;
     width: auto;
@@ -5744,6 +5750,26 @@ button.record-link {
     font-size: 1.1rem;
     font-weight: 800;
     line-height: 1;
+}
+
+/* Exportar PDF del detalle de mantenimiento: icono junto a ⋮ y ×. */
+.mnt-head-icon-btn {
+    cursor: pointer;
+}
+
+.mnt-head-icon-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.mnt-head-icon-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.mnt-head-icon-btn[aria-busy="true"] {
+    opacity: 0.5;
+    cursor: progress;
 }
 
 .mnt-kebab-trigger:hover {

@@ -2017,9 +2017,10 @@ maintenanceDrawerBackdrop.addEventListener("click", closeDetailDrawer);
 exportMaintenanceButton.addEventListener("click", async () => {
     if (!currentDetailItem) return;
 
-    const originalLabel = exportMaintenanceButton.textContent;
+    // Es un boton de solo icono (junto a ⋮ y ×): mientras genera se atenua
+    // en vez de cambiar el texto, que borraria el icono.
     exportMaintenanceButton.disabled = true;
-    exportMaintenanceButton.textContent = "Generando...";
+    exportMaintenanceButton.setAttribute("aria-busy", "true");
 
     try {
         await window.VehiAmb.mantenimientos.exportPdf(currentDetailItem);
@@ -2028,7 +2029,7 @@ exportMaintenanceButton.addEventListener("click", async () => {
         window.VehiAmb.ui.showMessage(mensaje, error.message || "No se pudo exportar el PDF", "error");
     } finally {
         exportMaintenanceButton.disabled = false;
-        exportMaintenanceButton.textContent = originalLabel;
+        exportMaintenanceButton.removeAttribute("aria-busy");
     }
 });
 
