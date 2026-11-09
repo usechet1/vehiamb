@@ -2308,6 +2308,19 @@ label[for="loginPassword"] {
     font-weight: 650;
 }
 
+/* Detalle de mantenimiento: el estado va junto al titulo (como en la lista),
+   no como un cuadro mas de la grilla de datos. */
+.mnt-drawer-title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+}
+
+.mnt-drawer-title-row .mnt-hist-status-ok {
+    font-size: 0.85rem;
+}
+
 .mnt-hist-sub {
     overflow: hidden;
     color: var(--color-muted);

@@ -79,6 +79,7 @@ const maintenanceDrawerBackdrop = document.getElementById("maintenanceDrawerBack
 const closeMaintenanceDrawer = document.getElementById("closeMaintenanceDrawer");
 const maintenanceDrawerTitle = document.getElementById("maintenanceDrawerTitle");
 const maintenanceDrawerSubtitle = document.getElementById("maintenanceDrawerSubtitle");
+const maintenanceDrawerEstado = document.getElementById("maintenanceDrawerEstado");
 const maintenanceDrawerBody = document.getElementById("maintenanceDrawerBody");
 const exportMaintenanceButton = document.getElementById("exportMaintenanceButton");
 const approveMaintenanceButton = document.getElementById("approveMaintenanceButton");
@@ -146,6 +147,15 @@ function estadoInfo(item) {
         return { badge: true, clase: "pill-danger", texto: "Rechazado" };
     }
     return { badge: false, texto: estadosMantenimiento[item.estado] || "Completado" };
+}
+
+// Mismo aspecto en la lista y en el titulo del detalle: "✓ Aprobado" en
+// texto verde para lo normal, etiqueta de color solo para pendiente/rechazado.
+function estadoHtml(item) {
+    const estado = estadoInfo(item);
+    return estado.badge
+        ? `<span class="pill ${estado.clase}">${estado.texto}</span>`
+        : `<span class="mnt-hist-status-ok">✓ ${estado.texto}</span>`;
 }
 
 function calcularKpisMantenimientos(mantenimientos) {
@@ -1110,7 +1120,6 @@ async function renderMaintenanceDetailView(item) {
         <dl class="detail-list drawer-detail-list mnt-detail-2col">
             ${detailRow("Vehículo", vehicleName)}
             ${detailRow("Placa", item.placa || "Sin placa")}
-            ${detailRow("Estado", estadosMantenimiento[item.estado] || item.estado || "Completado")}
             ${diasEnReparacionItem(item) ? detailRow("Tiempo en reparación", diasEnReparacionItem(item).replace(/[()]/g, "")) : ""}
             ${detailRow("Fecha", formatDate(item.fecha))}
             ${detailRow("Fecha tentativa de salida", formatDate(item.fecha_tentativa_salida))}
@@ -1401,6 +1410,7 @@ async function openMaintenanceDetail(item) {
 
     maintenanceDrawerTitle.textContent = tiposMantenimiento[item.tipo] || item.tipo || "Mantenimiento";
     maintenanceDrawerSubtitle.textContent = `${item.placa || "Sin placa"} - ${vehicleName}`;
+    maintenanceDrawerEstado.innerHTML = estadoHtml(item);
     const esCambioAceite = item.tipo === "cambio_aceite";
     viewEtiquetaButton.classList.toggle("hidden", !esCambioAceite);
     subirSalidaInventarioButton.classList.toggle("hidden", !esCambioAceite);
@@ -1541,7 +1551,6 @@ function renderMantenimientos(mantenimientos) {
                 <span class="mnt-hist-month-summary">${grupo.items.length} ${grupo.items.length === 1 ? "registro" : "registros"} · ${formatCurrency(totalGrupo)}</span>
             </div>
             ${grupo.items.map((item) => {
-                const estado = estadoInfo(item);
                 const fechaStr = String(item.fecha || "").slice(0, 10);
                 const fecha = new Date(`${fechaStr}T00:00:00`);
                 const fechaValida = fechaStr && !Number.isNaN(fecha.getTime());
@@ -1561,9 +1570,7 @@ function renderMantenimientos(mantenimientos) {
                         <div class="mnt-hist-main">
                             <div class="mnt-hist-title-row">
                                 <span class="mnt-hist-title">${escapeHtml(tiposMantenimiento[item.tipo] || item.tipo)}</span>
-                                ${puedeAprobarFila ? "" : estado.badge
-                                    ? `<span class="pill ${estado.clase}">${estado.texto}</span>`
-                                    : `<span class="mnt-hist-status-ok">✓ ${estado.texto}</span>`}
+                                ${puedeAprobarFila ? "" : estadoHtml(item)}
                                 ${etiquetaVehiculoParado(item)}
                                 ${puedeAprobarFila ? `<button type="button" class="btn-primary mnt-hist-approve" data-approve-id="${item.id}">Aprobar</button>` : ""}
                             </div>
