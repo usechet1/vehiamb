@@ -188,22 +188,27 @@ function calcularKpisMantenimientos(mantenimientos) {
 function renderKpisMantenimientos(mantenimientos) {
     const kpis = calcularKpisMantenimientos(mantenimientos);
 
+    // Una sola tarjeta con las 4 cifras (antes 4 tarjetas que en el celular
+    // ocupaban dos filas completas). Pendientes/En taller se pintan de color
+    // solo cuando hay algo que atender.
     mantenimientosKpisGrid.innerHTML = `
-        <div class="kpi-card" style="--kpi-accent: var(--color-warning)">
-            <div class="kpi-label">Pendientes de aprobación</div>
-            <div class="kpi-value">${kpis.pendientes}</div>
-        </div>
-        <div class="kpi-card" style="--kpi-accent: var(--color-primary)">
-            <div class="kpi-label">Vehículos en taller</div>
-            <div class="kpi-value">${kpis.enTaller}</div>
-        </div>
-        <div class="kpi-card" style="--kpi-accent: var(--color-success)">
-            <div class="kpi-label">Mantenimientos este mes</div>
-            <div class="kpi-value">${kpis.esteMes}</div>
-        </div>
-        <div class="kpi-card" style="--kpi-accent: var(--color-success)">
-            <div class="kpi-label">Gasto este mes</div>
-            <div class="kpi-value">${formatCurrency(kpis.gastoEsteMes)}</div>
+        <div class="mnt-kpi-strip">
+            <div class="mnt-kpi">
+                <span class="mnt-kpi-label">Pendientes</span>
+                <span class="mnt-kpi-value${kpis.pendientes ? " mnt-kpi-value--warning" : ""}">${kpis.pendientes}</span>
+            </div>
+            <div class="mnt-kpi">
+                <span class="mnt-kpi-label">En taller</span>
+                <span class="mnt-kpi-value${kpis.enTaller ? " mnt-kpi-value--danger" : ""}">${kpis.enTaller}</span>
+            </div>
+            <div class="mnt-kpi">
+                <span class="mnt-kpi-label">Este mes</span>
+                <span class="mnt-kpi-value">${kpis.esteMes}</span>
+            </div>
+            <div class="mnt-kpi mnt-kpi--gasto">
+                <span class="mnt-kpi-label">Gasto del mes</span>
+                <span class="mnt-kpi-value">${formatCurrency(kpis.gastoEsteMes)}</span>
+            </div>
         </div>
     `;
 }

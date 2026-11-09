@@ -2143,6 +2143,93 @@ label[for="loginPassword"] {
     gap: 10px;
 }
 
+/* ── Mantenimientos: las 4 cifras en una sola tarjeta ─────────────
+   Escritorio: 4 columnas separadas por una linea. Celular: los tres
+   conteos en una fila y el gasto del mes en una linea abajo. */
+.mnt-kpis {
+    margin-bottom: 20px;
+}
+
+.mnt-kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    background: var(--color-surface);
+    border: 0.5px solid var(--color-border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.mnt-kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    padding: 14px 16px;
+}
+
+.mnt-kpi + .mnt-kpi {
+    border-left: 1px solid var(--color-border);
+}
+
+.mnt-kpi-label {
+    color: var(--color-muted);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mnt-kpi-value {
+    color: var(--color-ink);
+    font-size: 1.3rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.mnt-kpi-value--warning {
+    color: var(--color-warning);
+}
+
+.mnt-kpi-value--danger {
+    color: var(--color-primary);
+}
+
+@media (max-width: 620px) {
+    .mnt-kpis {
+        margin-bottom: 14px;
+    }
+
+    .mnt-kpi-strip {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .mnt-kpi {
+        padding: 10px 12px;
+        gap: 2px;
+    }
+
+    .mnt-kpi-value {
+        font-size: 1.15rem;
+    }
+
+    .mnt-kpi.mnt-kpi--gasto {
+        grid-column: 1 / -1;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        border-left: 0;
+        border-top: 1px solid var(--color-border);
+    }
+
+    .mnt-kpi--gasto .mnt-kpi-value {
+        font-size: 1.05rem;
+    }
+}
+
 /* ── Mantenimientos: exportar (menu en el header de la seccion) ─ */
 .mnt-export-wrap {
     position: absolute;
