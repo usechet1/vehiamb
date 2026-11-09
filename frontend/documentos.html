@@ -139,9 +139,9 @@
                             <p>Vencimientos de RTM, SOAT, seguros y documentos.</p>
                         </summary>
                         <div class="section-card-body">
-                            <form id="documentosFilterForm" class="doc-filterbar">
+                            <form id="documentosFilterForm" class="doc-filterbar doc-filterbar--una-fila">
                                 <div class="doc-filterbar-row">
-                                    <input type="search" id="filterDocumentoBusqueda" class="doc-search-input" placeholder="Placa o número de documento">
+                                    <input type="search" id="filterDocumentoBusqueda" class="doc-search-input" placeholder="Placa o número" aria-label="Buscar por placa o número de documento">
 
                                     <div class="doc-filter-popover-wrap">
                                         <button type="button" class="doc-filter-trigger" id="filterTipoTrigger">
@@ -169,7 +169,10 @@
                                         </div>
                                     </div>
 
-                                    <button type="button" id="clearDocumentosFiltersButton" class="doc-filter-trigger">Limpiar</button>
+                                    <button type="button" id="clearDocumentosFiltersButton" class="doc-filter-trigger doc-filter-limpiar" aria-label="Limpiar filtros" title="Limpiar filtros">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+                                        <span class="doc-filter-limpiar-texto">Limpiar</span>
+                                    </button>
                                 </div>
 
                                 <div class="doc-filterbar-chips hidden" id="documentosFilterChips"></div>

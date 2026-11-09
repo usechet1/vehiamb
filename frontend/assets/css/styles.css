@@ -5164,6 +5164,68 @@ button.record-link {
     color: var(--color-ink);
 }
 
+/* Documentos en el celular: busqueda + Tipo + Fechas + Limpiar en una sola
+   fila (antes se partia en dos y el menu de Tipo se salia por la derecha).
+   La busqueda cede el ancho (min-width:0), los botones pierden la flecha y
+   Limpiar queda solo con icono. Los menus se abren alineados a la derecha
+   del boton para no salirse de la pantalla. */
+.doc-filter-limpiar svg {
+    display: none;
+}
+
+@media (max-width: 620px) {
+    .doc-filterbar--una-fila .doc-filterbar-row {
+        flex-wrap: nowrap;
+        gap: 6px;
+    }
+
+    .doc-filterbar--una-fila .doc-search-input {
+        flex: 1 1 0;
+        min-width: 0;
+        padding: 9px 10px;
+        font-size: 0.85rem;
+    }
+
+    .doc-filterbar--una-fila .doc-filter-trigger {
+        padding: 9px 10px;
+        font-size: 0.8rem;
+    }
+
+    .doc-filterbar--una-fila .doc-filter-trigger svg {
+        display: none;
+    }
+
+    /* El tipo elegido (p.ej. "Licencia de tránsito") reemplaza "Tipo" en el
+       boton: se recorta para no empujar la fila fuera de la pantalla. */
+    .doc-filterbar--una-fila .doc-filter-trigger > span {
+        max-width: 72px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .doc-filterbar--una-fila .doc-filter-limpiar {
+        justify-content: center;
+        width: 40px;
+        padding: 0;
+    }
+
+    .doc-filterbar--una-fila .doc-filter-limpiar svg {
+        display: block;
+        width: 16px;
+        height: 16px;
+        opacity: 0.75;
+    }
+
+    .doc-filterbar--una-fila .doc-filter-limpiar-texto {
+        display: none;
+    }
+
+    .doc-filterbar--una-fila .doc-filter-popover {
+        left: auto;
+        right: 0;
+    }
+}
+
 .doc-filterbar-chips {
     display: flex;
     flex-wrap: wrap;
