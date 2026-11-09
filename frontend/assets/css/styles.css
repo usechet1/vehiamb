@@ -5826,8 +5826,14 @@ button.record-link {
         left: 0;
         width: min(84vw, 300px);
         height: 100vh;
+        /* En Android 100vh incluye la zona de la barra del navegador /
+           botones del sistema, asi que el final del menu quedaba fuera de
+           la pantalla. dvh es el alto realmente visible. */
+        height: 100dvh;
         z-index: 1000;
         overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
         transform: translateX(-100%);
         transition: transform 0.25s ease;
         box-shadow: 24px 0 48px rgba(0, 0, 0, 0.28);
@@ -6942,6 +6948,19 @@ button.record-link {
 }
 
 @media (max-width: 900px) {
+    /* En el drawer movil el que scrollea es el sidebar completo (logo, menu
+       y pie), no solo el menu: la regla general de arriba le pone
+       overflow-y:auto al menu, y con eso en Android quedaban dos zonas de
+       scroll anidadas y el pie (usuario, cerrar sesion) fuera de alcance. */
+    .sidebar .sidebar-menu {
+        flex: none;
+        overflow: visible;
+    }
+
+    .sidebar-footer {
+        padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    }
+
     .sidebar {
         scrollbar-width: thin;
         scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
